@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-24 14:41:08.751898",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_id",
+  "qty",
+  "initial_qty",
+  "current_qty",
+  "status",
+  "unit",
+  "unit_weight",
+  "supplier_rate",
+  "commission_percent",
+  "less_percent",
+  "less_units",
+  "packing_cost",
+  "loading_cost",
+  "farmer_charges",
+  "sale_price",
+  "barcode",
+  "lot_code",
+  "storage_location",
+  "shelf_life_days",
+  "critical_age_days",
+  "net_qty",
+  "net_amount",
+  "commission_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "initial_qty",
+   "fieldtype": "Float",
+   "label": "Initial Quantity"
+  },
+  {
+   "fieldname": "current_qty",
+   "fieldtype": "Float",
+   "label": "Current Quantity"
+  },
+  {
+   "default": "Available",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Available\nPartial\nSold Out"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "unit_weight",
+   "fieldtype": "Float",
+   "label": "Unit Weight"
+  },
+  {
+   "fieldname": "supplier_rate",
+   "fieldtype": "Currency",
+   "label": "Supplier Rate"
+  },
+  {
+   "fieldname": "commission_percent",
+   "fieldtype": "Percent",
+   "label": "Commission %"
+  },
+  {
+   "fieldname": "less_percent",
+   "fieldtype": "Percent",
+   "label": "Less %"
+  },
+  {
+   "fieldname": "less_units",
+   "fieldtype": "Float",
+   "label": "Less Units"
+  },
+  {
+   "fieldname": "packing_cost",
+   "fieldtype": "Currency",
+   "label": "Packing Cost"
+  },
+  {
+   "fieldname": "loading_cost",
+   "fieldtype": "Currency",
+   "label": "Loading Cost"
+  },
+  {
+   "fieldname": "farmer_charges",
+   "fieldtype": "Currency",
+   "label": "Farmer Charges"
+  },
+  {
+   "fieldname": "sale_price",
+   "fieldtype": "Currency",
+   "label": "Target Sale Price"
+  },
+  {
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "label": "Barcode"
+  },
+  {
+   "fieldname": "lot_code",
+   "fieldtype": "Data",
+   "label": "Lot Code"
+  },
+  {
+   "fieldname": "storage_location",
+   "fieldtype": "Data",
+   "label": "Storage Location"
+  },
+  {
+   "fieldname": "shelf_life_days",
+   "fieldtype": "Int",
+   "label": "Shelf Life Days"
+  },
+  {
+   "fieldname": "critical_age_days",
+   "fieldtype": "Int",
+   "label": "Critical Age Days"
+  },
+  {
+   "description": "qty \u2212 deduction (less_percent or less_units)",
+   "fieldname": "net_qty",
+   "fieldtype": "Float",
+   "label": "Net Qty (After Less)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "description": "net_qty \u00d7 sale_price (what buyer pays for this lot)",
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "label": "Net Amount",
+   "read_only": 1
+  },
+  {
+   "description": "net_amount \u00d7 commission_percent / 100",
+   "fieldname": "commission_amount",
+   "fieldtype": "Currency",
+   "label": "Commission Amount",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-24 15:47:44.311179",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Lot",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

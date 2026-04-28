@@ -1,0 +1,11 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [
+    ".next/",
+    "node_modules/",
+    "out/",
+    "tmp/",
+    "build_output.log",
+    "tsconfig.tsbuildinfo"
+  ]
+}

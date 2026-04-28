@@ -1,0 +1,257 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ARR-.YYYY.-.#####",
+ "creation": "2026-04-24 14:41:08.932593",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "is_submittable": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "arrival_date",
+  "party_id",
+  "organization_id",
+  "arrival_type",
+  "contact_bill_no",
+  "reference_no",
+  "lot_prefix",
+  "storage_location",
+  "vehicle_number",
+  "vehicle_type",
+  "driver_name",
+  "driver_mobile",
+  "guarantor",
+  "loaders_count",
+  "hire_charges",
+  "hamali_expenses",
+  "other_expenses",
+  "advance",
+  "advance_payment_mode",
+  "advance_bank_account_id",
+  "advance_cheque_no",
+  "advance_cheque_date",
+  "advance_bank_name",
+  "status",
+  "items",
+  "commission_section",
+  "total_realized",
+  "total_commission",
+  "total_expenses",
+  "mandi_total_earnings",
+  "net_payable_farmer"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "arrival_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Entry Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "party_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contact",
+   "options": "Mandi Contact",
+   "reqd": 1
+  },
+  {
+   "default": "direct",
+   "fieldname": "arrival_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Arrival Type",
+   "options": "direct\ncommission\ncommission_supplier"
+  },
+  {
+   "fieldname": "organization_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Organization ID"
+  },
+  {
+   "fieldname": "contact_bill_no",
+   "fieldtype": "Int",
+   "label": "Bill No"
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Reference No"
+  },
+  {
+   "fieldname": "lot_prefix",
+   "fieldtype": "Data",
+   "label": "Lot Prefix"
+  },
+  {
+   "fieldname": "storage_location",
+   "fieldtype": "Data",
+   "label": "Storage Location"
+  },
+  {
+   "fieldname": "vehicle_number",
+   "fieldtype": "Data",
+   "label": "Vehicle Number"
+  },
+  {
+   "fieldname": "vehicle_type",
+   "fieldtype": "Data",
+   "label": "Vehicle Type"
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name"
+  },
+  {
+   "fieldname": "driver_mobile",
+   "fieldtype": "Phone",
+   "label": "Driver Mobile"
+  },
+  {
+   "fieldname": "guarantor",
+   "fieldtype": "Data",
+   "label": "Guarantor"
+  },
+  {
+   "fieldname": "loaders_count",
+   "fieldtype": "Int",
+   "label": "Loaders Count"
+  },
+  {
+   "fieldname": "hire_charges",
+   "fieldtype": "Currency",
+   "label": "Hire Charges"
+  },
+  {
+   "fieldname": "hamali_expenses",
+   "fieldtype": "Currency",
+   "label": "Hamali Expenses"
+  },
+  {
+   "fieldname": "other_expenses",
+   "fieldtype": "Currency",
+   "label": "Other Expenses"
+  },
+  {
+   "fieldname": "advance",
+   "fieldtype": "Currency",
+   "label": "Advance Amount"
+  },
+  {
+   "default": "credit",
+   "fieldname": "advance_payment_mode",
+   "fieldtype": "Select",
+   "label": "Payment Mode",
+   "options": "credit\ncash\nupi_bank\ncheque"
+  },
+  {
+   "fieldname": "advance_bank_account_id",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "advance_cheque_no",
+   "fieldtype": "Data",
+   "label": "Cheque No"
+  },
+  {
+   "fieldname": "advance_cheque_date",
+   "fieldtype": "Date",
+   "label": "Cheque Date"
+  },
+  {
+   "fieldname": "advance_bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nPaid\nPartial\nOverdue"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Arrival Items",
+   "options": "Mandi Lot"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "commission_section",
+   "fieldtype": "Section Break",
+   "label": "Commission Summary"
+  },
+  {
+   "description": "Net qty \u00d7 sale price across all lots (after deductions)",
+   "fieldname": "total_realized",
+   "fieldtype": "Currency",
+   "label": "Total Realized (After Less)",
+   "read_only": 1
+  },
+  {
+   "description": "Mandi's commission = commission% \u00d7 total_realized",
+   "fieldname": "total_commission",
+   "fieldtype": "Currency",
+   "label": "Total Commission",
+   "read_only": 1
+  },
+  {
+   "description": "Hire + Hamali + Other + Packing + Loading + Farmer charges",
+   "fieldname": "total_expenses",
+   "fieldtype": "Currency",
+   "label": "Total Charges & Expenses",
+   "read_only": 1
+  },
+  {
+   "description": "Commission + Charges (what Mandi earns from this arrival)",
+   "fieldname": "mandi_total_earnings",
+   "fieldtype": "Currency",
+   "label": "Mandi Total Earnings",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "description": "Realized \u2212 Mandi Earnings \u2212 Advance (what farmer/supplier should receive)",
+   "fieldname": "net_payable_farmer",
+   "fieldtype": "Currency",
+   "label": "Net Payable to Farmer/Supplier",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-24 15:47:43.697043",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Arrival",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
