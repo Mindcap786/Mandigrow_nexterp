@@ -11,3 +11,7 @@ export async function registerPushNotifications() {
 export async function unregisterPushNotifications() {
     console.log('[push-notifications] Unregistration handled by Frappe.');
 }
+
+export async function initializePush(userId: string, orgId: string, router: any) {
+    console.log('[push-notifications] Initialization handled by Frappe.');
+}
