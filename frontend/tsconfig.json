@@ -24,19 +24,19 @@
     "baseUrl": ".",
     "paths": {
       "zod": [
-        "node_modules/zod"
+        "../node_modules/zod"
       ],
       "@/*": [
-        "./frontend/*"
+        "./*"
       ]
     },
     "target": "ES2017"
   },
   "include": [
-    "frontend/next-env.d.ts",
-    "frontend/.next/types/**/*.ts",
-    "frontend/**/*.ts",
-    "frontend/**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx",
     "/tmp/mandipro-next/types/**/*.ts",
     "/tmp/mandipro-next/dev/types/**/*.ts"
   ],
