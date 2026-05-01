@@ -43,7 +43,7 @@ import {
 import { Check, ChevronsUpDown, Loader2, Package, QrCode, Printer } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { cn } from "@/lib/utils"
-import inventoryData from "../../inventory_data.json"
+import inventoryData from "@/inventory_data.json"
 import { getIntelligentVisual } from "@/lib/utils/commodity-mapping"
 import * as LucideIcons from "lucide-react"
 import { useFieldGovernance } from "@/hooks/useFieldGovernance"
