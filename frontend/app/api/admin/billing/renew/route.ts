@@ -1,52 +1,21 @@
-import { createClient } from '@/lib/supabaseClient';
-import { NextResponse, NextRequest } from 'next/server';
-import { invalidateSubscriptionCache } from '@/lib/subscription-guard';
-import { verifyAdminAccess } from '@/lib/admin-auth';
+import {{ NextRequest, NextResponse }} from 'next/server';
 
-export async function POST(request: NextRequest) {
-    const auth = await verifyAdminAccess(request, 'billing', 'manage');
-    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+/**
+ * Legacy Supabase route — migrated to Frappe.
+ * This endpoint is no longer active. Use Frappe RPC via /api/method/ instead.
+ */
+export async function GET(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-        { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+export async function POST(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    try {
-        const body = await request.json();
-        const {
-            organization_id,
-            plan_id,
-            billing_cycle,
-            payment_amount,
-            payment_gateway = 'manual'
-        } = body;
+export async function PUT(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-        if (!organization_id) {
-            return NextResponse.json({ error: 'Missing organization ID' }, { status: 400 });
-        }
-
-        // Use the database RPC for atomic, consistent renewal
-        const { data, error } = await supabaseAdmin.rpc('process_subscription_renewal', {
-            p_org_id: organization_id,
-            p_payment_amount: payment_amount || null,
-            p_payment_gateway: payment_gateway,
-            p_billing_cycle: billing_cycle || null,
-            p_plan_id: plan_id || null
-        });
-
-        if (error) throw error;
-
-        // Bust subscription cache so next check reflects new state instantly
-        invalidateSubscriptionCache(organization_id);
-
-        return NextResponse.json({
-            message: 'Subscription renewed successfully',
-            ...data
-        });
-    } catch (e: any) {
-        console.error('[Billing Renew API] Error:', e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
-    }
-}
+export async function DELETE(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}

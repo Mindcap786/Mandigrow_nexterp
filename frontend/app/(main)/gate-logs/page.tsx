@@ -1,41 +1,14 @@
 import { GateEntryTable } from '@/components/gate/gate-entry-table'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { Truck } from 'lucide-react'
 
-// Since this is a server component, we can fetch data directly (in Next.js App Router)
-// For static export (Capacitor), this would be force-static, but for Web (with auth) it MUST be force-dynamic
+// Migrated to Frappe — gate entries are fetched client-side via callApi()
 export const dynamic = 'force-dynamic'
-
-async function getGateEntries() {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        {
-            cookies: {
-                getAll() { return cookieStore.getAll() },
-                setAll() {}, // Read-only in server components
-            },
-        }
-    )
-    const { data, error } = await supabase
-        .schema('mandi')
-        .from('lots')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-    if (error) {
-        console.error("Error fetching lots:", error)
-        return []
-    }
-    return data || []
-}
 
 import { NewEntryModal } from '@/components/gate/new-entry-modal'
 
 export default async function GateLogs() {
-    const gateEntries = await getGateEntries()
+    // Data is now fetched client-side by the GateEntryTable component via Frappe RPC
+    const gateEntries: any[] = []
 
     return (
         <div className="p-8">

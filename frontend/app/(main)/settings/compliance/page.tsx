@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Loader2, Shield, CheckCircle2, Clock, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Lock, Server, FileText, Eye } from "lucide-react";
@@ -46,68 +46,58 @@ export default function SOC2Page() {
     }, [profile, isSuperAdmin]);
 
     const fetchVisibility = async () => {
-        if (isSuperAdmin) return; // Super admin always sees it
-        const { data, error } = await supabase.schema('core')
-            .from('platform_branding_settings')
-            .select('is_compliance_visible_to_tenants')
-            .maybeSingle();
-        
-        if (data && !error) {
-            setIsVisible(data.is_compliance_visible_to_tenants);
-        } else {
-            setIsVisible(false); // Default to restriction on failure
+        if (isSuperAdmin) { setIsVisible(true); return; }
+        try {
+            const res = await callApi('mandigrow.api.get_compliance_visibility');
+            setIsVisible(res?.message?.is_compliance_visible_to_tenants ?? false);
+        } catch {
+            setIsVisible(false);
         }
     };
 
     const fetchBusinessData = async () => {
-        // Fetch Org Info (GST, etc.)
-        const { data: org } = await supabase.from('organizations').select('*').eq('id', profile?.organization_id).single();
-        if (org) setOrgData(org);
-
-        // Fetch Banks from 'mandi' schema 'accounts' table
-        const { count: bCount } = await supabase.schema('mandi')
-            .from('accounts')
-            .select('id', { count: 'exact', head: true })
-            .eq('organization_id', profile?.organization_id)
-            .eq('type', 'asset')
-            .eq('account_sub_type', 'bank');
-        setBankCount(bCount || 0);
-
-        // Fetch Commodities from 'mandi' schema
-        const { count: cCount } = await supabase.schema('mandi')
-            .from('commodities')
-            .select('id', { count: 'exact', head: true })
-            .eq('organization_id', profile?.organization_id);
-        setCommodityCount(cCount || 0);
+        try {
+            const res = await callApi('mandigrow.api.get_organization_compliance', {
+                org_id: profile?.organization_id
+            });
+            if (res?.message) {
+                setOrgData(res.message.org || null);
+                setBankCount(res.message.bank_count || 0);
+                setCommodityCount(res.message.commodity_count || 0);
+            }
+        } catch (err) {
+            console.error('[compliance] fetchBusinessData failed:', err);
+        }
     };
 
     const fetchControls = async () => {
         setLoading(true);
-        const { data } = await supabase.from("compliance_controls")
-            .select("*")
-            .eq("organization_id", profile?.organization_id)
-            .order("control_id");
-        if (data) setControls(data);
+        try {
+            const res = await callApi('mandigrow.api.get_compliance_controls', {
+                org_id: profile?.organization_id
+            });
+            if (res?.message) setControls(res.message);
+        } catch (err) {
+            console.error('[compliance] fetchControls failed:', err);
+        }
         setLoading(false);
     };
 
     const fetchMetrics = async () => {
         try {
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/observability/health`,
-                { headers: { "Content-Type": "application/json" } }
-            );
-            const json = await res.json();
-            setMetrics(json?.data);
+            const res = await callApi('mandigrow.api.get_system_health');
+            setMetrics(res?.message || null);
         } catch { /* ignore */ }
     };
 
     const updateControl = async (controlId: string, updates: any) => {
         setUpdating(controlId);
-        await supabase.from("compliance_controls")
-            .update({ ...updates, last_reviewed_at: new Date().toISOString().split("T")[0] })
-            .eq("organization_id", profile?.organization_id)
-            .eq("control_id", controlId);
+        await callApi('mandigrow.api.update_compliance_control', {
+            org_id: profile?.organization_id,
+            control_id: controlId,
+            ...updates,
+            last_reviewed_at: new Date().toISOString().split('T')[0]
+        });
         setUpdating(null);
         fetchControls();
     };

@@ -1,36 +1,21 @@
-import { createClient } from '@/lib/supabaseClient';
-import { NextResponse } from 'next/server';
+import {{ NextRequest, NextResponse }} from 'next/server';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-    { auth: { autoRefreshToken: false, persistSession: false } }
-);
+/**
+ * Legacy Supabase route — migrated to Frappe.
+ * This endpoint is no longer active. Use Frappe RPC via /api/method/ instead.
+ */
+export async function GET(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-export async function POST(req: Request) {
-    try {
-        const body = await req.json();
-        const { orgId, updates } = body;
+export async function POST(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-        if (!orgId) {
-            return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-        }
+export async function PUT(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-        // Using service role key bypasses RLS and browser constraints
-        const { error } = await supabaseAdmin
-            .schema('core')
-            .from('organizations')
-            .update(updates)
-            .eq('id', orgId);
-
-        if (error) {
-            console.error('[Branding Update DB Error]:', error);
-            throw new Error(error.message);
-        }
-
-        return NextResponse.json({ success: true });
-    } catch (err: any) {
-        console.error('[Branding Update Error]:', err);
-        return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
-    }
-}
+export async function DELETE(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}

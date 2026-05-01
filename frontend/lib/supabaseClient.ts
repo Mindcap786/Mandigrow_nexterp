@@ -1,23 +1,17 @@
-import { createBrowserClient } from '@supabase/ssr'
-import { createClient } from '@/lib/supabaseClient'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
-
 /**
- * Safe mock for createClient that prevents crashes during Frappe migration.
+ * supabaseClient.ts — Legacy Compatibility Shim
+ * 
+ * MandiGrow has fully migrated from Supabase to Frappe + MariaDB.
+ * This file provides no-op stubs so that any remaining legacy imports
+ * (e.g. `import { supabase } from '@/lib/supabaseClient'`) do not crash.
+ * 
+ * All real data operations go through `@/lib/frappeClient` → `callApi()`.
  */
-export function createClient(url?: string, key?: string, options?: any) {
-    if (!url || !key) return supabase;
-    return supabase; // Always return proxy for now
-}
 
 // Detect if we're in a Capacitor native environment
-// This check works at runtime in the WebView
 export function isNative(): boolean {
-    if (typeof window === 'undefined') return false
-    // Capacitor sets this globally on the window object
-    return !!(window as any).Capacitor?.isNativePlatform?.()
+    if (typeof window === 'undefined') return false;
+    return !!(window as any).Capacitor?.isNativePlatform?.();
 }
 
 /**
@@ -27,23 +21,27 @@ export function isNative(): boolean {
  */
 function getRedirectUrl(): string {
     if (isNative()) {
-        return 'mandigrow://auth/callback'
+        return 'mandigrow://auth/callback';
     }
     if (typeof window !== 'undefined') {
-        return `${window.location.origin}/auth/callback`
+        return `${window.location.origin}/auth/callback`;
     }
-    return `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
+    return `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`;
 }
 
-// Supabase client initialization (Neutralized for Frappe Migration)
-// We use a Recursive Proxy to gracefully handle any remaining calls to supabase.* without crashing.
-// It is "thenable" so that 'await supabase.from().select()' won't crash.
+// ---------------------------------------------------------------------------
+// No-op Supabase Proxy
+// ---------------------------------------------------------------------------
+// A recursive proxy that swallows all chained calls like:
+//   supabase.from('x').select('*').eq('id', 1)
+// and resolves to { data: null, error: null }.
+// ---------------------------------------------------------------------------
 const createDummyProxy = (): any => {
     const dummy: any = () => proxy;
     
     dummy.then = (onRes: any) => Promise.resolve(onRes({ data: null, error: null, count: 0 }));
-    dummy.catch = (onErr: any) => Promise.resolve(dummy);
-    dummy.finally = (onFin: any) => Promise.resolve(dummy);
+    dummy.catch = (_onErr: any) => Promise.resolve(dummy);
+    dummy.finally = (_onFin: any) => Promise.resolve(dummy);
     
     const proxy: any = new Proxy(dummy, {
         get: (target, prop) => {
@@ -53,7 +51,6 @@ const createDummyProxy = (): any => {
             if (typeof prop === 'string' && ['on', 'subscribe', 'channel', 'removeChannel'].includes(prop)) {
                 return () => proxy;
             }
-            // Return proxy for everything else to allow chaining like .from().select().eq()...
             return proxy;
         }
     });
@@ -62,7 +59,7 @@ const createDummyProxy = (): any => {
 };
 
 export const supabase = new Proxy({} as any, {
-    get: (target, prop) => {
+    get: (_target, prop) => {
         if (prop === 'auth') {
             return {
                 getSession: async () => ({ data: { session: null }, error: null }),
@@ -84,8 +81,19 @@ export const supabase = new Proxy({} as any, {
 });
 
 /**
- * Export redirect URL helper so login pages can pass it per auth call:
- * supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: getAuthRedirectUrl() } })
+ * Legacy stub for `createClient` — returns the same no-op proxy.
+ * Files that used to do ``
+ * have been repointed to this module.
  */
-export { getRedirectUrl as getAuthRedirectUrl }
+export function createClient(_url?: string, _key?: string, _options?: any) {
+    return supabase;
+}
 
+/**
+ * Legacy stub for `createBrowserClient` from @supabase/ssr.
+ */
+export function createBrowserClient(_url?: string, _key?: string, _options?: any) {
+    return supabase;
+}
+
+export { getRedirectUrl as getAuthRedirectUrl };

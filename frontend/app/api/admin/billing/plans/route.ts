@@ -1,41 +1,21 @@
-import { createClient } from '@/lib/supabaseClient';
-import { NextResponse, NextRequest } from 'next/server';
-import { invalidateCache } from '@/lib/server-cache';
-import { verifyAdminAccess } from '@/lib/admin-auth';
+import {{ NextRequest, NextResponse }} from 'next/server';
 
-export async function POST(request: NextRequest) {
-    const auth = await verifyAdminAccess(request, 'billing', 'manage');
-    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+/**
+ * Legacy Supabase route — migrated to Frappe.
+ * This endpoint is no longer active. Use Frappe RPC via /api/method/ instead.
+ */
+export async function GET(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-        { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+export async function POST(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    try {
-        const { id, ...updatePayload } = await request.json();
+export async function PUT(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-        if (!id) {
-            return NextResponse.json({ error: 'Missing plan ID' }, { status: 400 });
-        }
-
-        // 1. Update the plan
-        const { data, error } = await supabaseAdmin
-            .schema('core')
-            .from('app_plans')
-            .update(updatePayload)
-            .eq('id', id)
-            .select();
-
-        if (error) throw error;
-
-        // Bust plan cache so new plan data is fetched on next request
-        invalidateCache('plans:');
-
-        return NextResponse.json({ message: 'Plan updated successfully', data });
-    } catch (e: any) {
-        console.error('[Admin Plans API] Update error:', e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
-    }
-}
+export async function DELETE(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}

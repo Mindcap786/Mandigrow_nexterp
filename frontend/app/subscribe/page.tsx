@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
+
 import { Loader2, Monitor, Smartphone, Check, ArrowRight, Zap, Shield, Crown, Info, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -58,34 +58,20 @@ export default function SubscribePage() {
     }, []);
 
     const checkUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+        // Auth is handled by Frappe session
+        setUser(null);
     };
 
     const fetchPlans = async () => {
         setLoading(true);
         try {
-            const { createClient } = await import('@supabase/supabase-js');
-            const supabaseRaw = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            );
-
-            const { data, error } = await supabaseRaw
-                .schema('core')
-                .from('app_plans')
-                .select('*')
-                .eq('is_active', true)
-                .order('sort_order', { ascending: true });
-
-            if (error) throw error;
-            
-            // Only show the 3 default plans OR custom plans explicitly marked to be shown
-            const visiblePlans = (data || []).filter((plan: any) => 
-                ['basic', 'standard', 'enterprise'].includes(plan.name.toLowerCase()) || 
+            // Plans are managed via Frappe Mandi Organization doctype
+            const res = await callApi('mandigrow.api.get_plans');
+            const data = res?.message || [];
+            const visiblePlans = data.filter((plan: any) => 
+                ['basic', 'standard', 'enterprise'].includes(plan.name?.toLowerCase()) || 
                 plan.features?.show_on_homepage === true
             );
-            
             setPlans(visiblePlans);
         } catch (err) {
             console.error('Error fetching plans:', err);

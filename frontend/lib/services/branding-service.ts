@@ -1,5 +1,5 @@
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+
 export interface BrandingSettings {
     id: string;
     document_footer_powered_by_text: string;
@@ -21,19 +21,9 @@ export async function getPlatformBranding(): Promise<BrandingSettings | null> {
     }
 
     try {
-        const { data, error } = await supabase
-            .schema('core')
-            .from('platform_branding_settings')
-            .select('*')
-            .maybeSingle();
-
-        if (error) {
-            console.error("Error fetching platform branding:", error);
-            return null;
-        }
-
-        if (data) {
-            cachedSettings = data as BrandingSettings;
+        const res = await callApi('mandigrow.api.get_branding_settings');
+        if (res?.message) {
+            cachedSettings = res.message as BrandingSettings;
             lastFetchTime = now;
             return cachedSettings;
         }

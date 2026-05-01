@@ -1,24 +1,21 @@
-import { createClient } from '@/lib/supabaseClient';
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdminAccess } from '@/lib/admin-auth';
+import {{ NextRequest, NextResponse }} from 'next/server';
 
-export async function GET(req: NextRequest) {
-    const auth = await verifyAdminAccess(req, 'billing', 'reset_mrr');
-    if (auth.error) {
-        return NextResponse.json({ error: auth.error }, { status: auth.status });
-    }
+/**
+ * Legacy Supabase route — migrated to Frappe.
+ * This endpoint is no longer active. Use Frappe RPC via /api/method/ instead.
+ */
+export async function GET(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-        { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+export async function POST(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    const { error } = await supabaseAdmin
-        .schema('core')
-        .from('subscriptions')
-        .update({ mrr_amount: 0 })
-        .neq('id', 'dummy'); // match all
+export async function PUT(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
 
-    return NextResponse.json({ success: !error, error });
-}
+export async function DELETE(_request: NextRequest) {{
+    return NextResponse.json({{ error: 'This endpoint has been migrated to Frappe RPC.' }}, {{ status: 410 }});
+}}
