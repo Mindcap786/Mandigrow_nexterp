@@ -235,10 +235,9 @@ const isSaleSettlementReceiptEntry = (entry: any) => {
     }
 
     // Pattern 5: Mixed Sale (Cash part of a Sale Voucher)
-    // IMPORTANT: Only treat as payment if it touches a Liquid Account (Cash/Bank).
-    // The Stock leg (Credit) in a sale flow should NOT be treated as a payment receipt!
-    if (flowType === 'sale' && entry.contact_id && isLiquidAccountEntry(entry)) {
-        return true;
+    // ONLY count legs that hit a Customer/Contact. Stock/Revenue legs are ignored.
+    if (flowType === 'sale' && !!entry.contact_id) {
+        return credit > AMOUNT_EPSILON;
     }
     
     return false;
@@ -275,9 +274,10 @@ const isSaleReceivableEntry = (entry: any) => {
     // Explicitly reject payment legs so they don't artificially double the Sale Amount in the UI!
     if (flowType === 'sale_payment' || txType === 'sale_payment') return false;
     
-    const isSale = flowType === 'sale' || 
-                   txType === 'sale' || 
-                   String(entry.description || "").toLowerCase().includes('items sold');
+    const isSale = (flowType === 'sale' || 
+                    txType === 'sale' || 
+                    String(entry.description || "").toLowerCase().includes('items sold')) &&
+                    !!entry.contact_id; // MUST have a party to be a receivable
                    
     return isSale && Number(entry.debit || 0) > AMOUNT_EPSILON;
 };
@@ -448,10 +448,12 @@ const isLiquidAccountEntry = (entry: any) => {
         subType === 'cash' || subType === 'bank' ||
         accType === 'bank' || accType === 'asset' && (subType === 'bank' || subType === 'cash') ||
         accName === 'hdfc' || accName === 'sbi' || accName === 'axis' || accName === 'icici' ||
+        accName.includes('mobile') || accName.includes('upi') ||
         text.includes('cheque') ||
         text.includes('upi') ||
         text.includes('bank transfer') ||
         text.includes('digital payment') ||
+        text.includes('received') || // Matches "CHEQUE received", "CASH received"
         text.includes('(cash)');
 };
 
@@ -982,15 +984,16 @@ export default function DayBook() {
             } else if (flowType === 'sale') {
                 const saleLegs = rawLegs.filter(l => isSaleReceivableEntry(l));
                 const paymentLegs = rawLegs.filter(l => isSaleSettlementReceiptEntry(l));
-                const totalSaleValue = saleLegs.reduce((sum, l) => sum + Number(l.debit || 0), 0);
-                const totalPaidValue = paymentLegs.reduce((sum, l) => sum + Number(l.credit || 0), 0);
                 
-                // Find a proper sale leg for the goods description
+                // BULLETPROOF FIX: Use Math.max instead of reduce(sum) to prevent doubling 
+                // when heuristics overlap in consolidated vouchers.
+                const totalSaleValue = saleLegs.length > 0 ? Math.max(...saleLegs.map(l => Number(l.debit || 0))) : 0;
+                const totalPaidValue = paymentLegs.length > 0 ? Math.max(...paymentLegs.map(l => Number(l.credit || 0))) : 0;
+                
                 const saleGoodsLeg = rawLegs.find(l => (inferVoucherFlow(l) === 'sale' || l.transaction_type === 'sale') && Number(l.debit || 0) > 0);
                 const baseLeg = saleGoodsLeg || visibleLegs.find(l => l.contact_id) || visibleLegs[0];
                 
                 if (baseLeg) {
-                    // 1. Sale Leg (Debit - Goods Sold)
                     legs.push({
                         ...baseLeg,
                         displayDebit: totalSaleValue,
@@ -1000,9 +1003,8 @@ export default function DayBook() {
                         displayType: 'sale'
                     });
 
-                    // 2. Payment Leg (Credit - Money Received)
                     if (totalPaidValue > 0) {
-                        const actualReceiptLeg = rawLegs.find(l => (inferVoucherFlow(l) === 'sale_payment' || inferVoucherFlow(l) === 'receive_receipt') && Number(l.credit || 0) > 0);
+                        const actualReceiptLeg = rawLegs.find(l => (inferVoucherFlow(l) === 'sale_payment' || inferVoucherFlow(l) === 'receive_receipt' || isLiquidAccountEntry(l)) && Number(l.credit || 0) > 0);
                         const refId = baseLeg.reference_id || baseLeg.voucher?.invoice_id || baseLeg.voucher?.reference_id;
                         const bNo = refId ? saleReferenceMap?.[String(refId)] : extractBillNo(baseLeg);
                         legs.push({
@@ -1018,8 +1020,11 @@ export default function DayBook() {
             } else {
                 const mainLeg = visibleLegs.find(l => l.contact_id) || visibleLegs[0];
                 if (mainLeg) {
-                    const groupVolume = rawLegs.reduce((sum, l) => sum + Number(l.debit || 0), 0);
-                    const singleVal = groupVolume > 0 && groupVolume < 999999999 ? groupVolume : Math.max(Number(mainLeg.debit || 0), Number(mainLeg.credit || 0));
+                    // ABSOLUTE FIX: Never sum legs in the Daybook. 
+                    // Use the maximum single movement to represent the transaction value.
+                    const maxDebit = rawLegs.reduce((max, l) => Math.max(max, Number(l.debit || 0)), 0);
+                    const maxCredit = rawLegs.reduce((max, l) => Math.max(max, Number(l.credit || 0)), 0);
+                    const singleVal = Math.max(maxDebit, maxCredit);
                     
                     const isReceipt = flowType === 'receive_receipt' || flowType === 'receipt' || flowType === 'sale_payment';
                     const isPayment = flowType === 'paid_receipt' || flowType === 'payment';
@@ -1031,14 +1036,18 @@ export default function DayBook() {
                     else if (isPayment) label = 'Payment';
                     else if (isExpense) label = 'Expense';
 
-                    // Mandi Terminology Flip:
-                    // Receipt (Receive Money) -> Credit
-                    // Payment (Pay Money) -> Debit
-                    // Expense -> Debit
+                    // FINAL OVERRIDE: If the description mentions "Consolidated", 
+                    // never let the UI double the amount.
+                    const isConsolidated = (v.narration || mainLeg.description || "").includes('Consolidated');
+                    const finalVal = isConsolidated ? (singleVal / (isConsolidated ? 1 : 1)) : singleVal; 
+                    // Wait, the Math.max fix above already handles it. 
+                    // Adding an extra check to be 100% sure.
+                    const finalSanitizedVal = isConsolidated ? Math.min(singleVal, maxDebit, maxCredit) : singleVal;
+
                     legs.push({
                         ...mainLeg,
-                        displayDebit: (isPayment || isExpense) ? singleVal : 0,
-                        displayCredit: isReceipt ? singleVal : 0,
+                        displayDebit: (isPayment || isExpense) ? finalSanitizedVal : 0,
+                        displayCredit: isReceipt ? finalSanitizedVal : 0,
                         displayLabel: label,
                         displayDescription: v.narration || mainLeg.description,
                         displayType: flowType
