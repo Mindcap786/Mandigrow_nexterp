@@ -9,7 +9,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
 interface PlatformMetrics {
   total_mandis: number
   active_mandis: number
@@ -44,26 +43,18 @@ export function useAdminMetrics(autoRefreshMs = 30_000) {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: Record<string, string> = {}
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
-
-      const res = await fetch('/api/admin/metrics', { headers })
-      if (res.status === 403) {
-        setError('Access denied — super admin required')
-        setLoading(false)
-        return
-      }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data: PlatformMetrics = await res.json()
-      setMetrics(data)
+      setLoading(true)
+      const data = await callApi('mandigrow.api.get_admin_metrics')
+      setMetrics(data as PlatformMetrics)
       setLastUpdated(new Date())
       setError(null)
-    } catch (err) {
+    } catch (err: any) {
       console.error('[useAdminMetrics]', err)
-      setError('Failed to load platform metrics')
+      if (err.status === 403) {
+          setError('Access denied — super admin required')
+      } else {
+          setError('Failed to load platform metrics')
+      }
     } finally {
       setLoading(false)
     }

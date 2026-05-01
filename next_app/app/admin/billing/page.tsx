@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 
 const PLAN_COLORS: Record<string, string> = {
     basic: 'bg-gray-500',
@@ -46,32 +45,21 @@ export default function BillingOverviewPage() {
         fetchTenants();
     }, []);
 
-    const getHeaders = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-        };
-    };
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/admin/billing/stats', { headers: await getHeaders() });
-            if (!res.ok) throw new Error('Failed to fetch stats');
-            const data = await res.json();
+            const data = await callApi('mandigrow.api.get_admin_billing_stats');
             setStats(data);
-        } catch (e) {
-            toast({ title: 'Error fetching stats', variant: 'destructive' });
+        } catch (e: any) {
+            toast({ title: 'Error fetching stats', description: e.message, variant: 'destructive' });
         }
         setLoading(false);
     };
 
     const fetchTenants = async () => {
         try {
-            const res = await fetch('/api/admin/tenants', { headers: await getHeaders() });
-            if (!res.ok) throw new Error('Failed to fetch tenants');
-            const data = await res.json();
+            const data = await callApi('mandigrow.api.get_admin_tenants');
             setTenants(Array.isArray(data) ? data : []);
         } catch (e) {
             setTenants([]);
@@ -85,16 +73,11 @@ export default function BillingOverviewPage() {
         }
         setActionLoading(true);
         try {
-            const res = await fetch('/api/admin/billing/actions', {
-                method: 'POST',
-                headers: await getHeaders(),
-                body: JSON.stringify({
-                    action: actionId,
-                    organization_id: selectedTenantId,
-                    payload
-                })
+            await callApi('mandigrow.api.admin_billing_action', {
+                action: actionId,
+                organization_id: selectedTenantId,
+                payload
             });
-            if (!res.ok) throw new Error('Action failed');
             toast({ title: 'Success', description: `Action ${actionId} completed` });
             fetchData();
         } catch (e: any) {
@@ -107,12 +90,11 @@ export default function BillingOverviewPage() {
         if (!selectedTenantId || !customPlan.name) return;
         setActionLoading(true);
         try {
-            const res = await fetch('/api/admin/billing/custom-plan', {
-                method: 'POST',
-                headers: await getHeaders(),
-                body: JSON.stringify({ organization_id: selectedTenantId, ...customPlan })
+            await callApi('mandigrow.api.admin_billing_action', {
+                action: 'custom-plan',
+                organization_id: selectedTenantId,
+                payload: customPlan
             });
-            if (!res.ok) throw new Error('Failed to save custom plan');
             toast({ title: 'Plan Created' });
             setIsPlanBuilderOpen(false);
             fetchTenants();

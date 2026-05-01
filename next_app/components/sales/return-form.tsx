@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,65 +64,31 @@ export default function SalesReturnForm() {
     }, [searchTerm]);
 
     // Fetch Invoices Function
+    // Fetch Invoices using Frappe RPC
     const fetchInvoices = async (pageNumber: number, isNewSearch: boolean) => {
         if (!profile?.organization_id) return;
-
         setIsSearching(true);
-        const PAGE_SIZE = 20; // User requested 20 per page for performance
-        const from = pageNumber * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-
-        // 30-day filter for returns
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const dateString = thirtyDaysAgo.toISOString().split('T')[0];
-
-        // Base Query
-        let query = supabase
-            .schema('mandi')
-            .from('sales')
-            .select('id, bill_no, sale_date, buyer_id, buyer:contacts(id, name), total_amount')
-            .eq('organization_id', profile.organization_id)
-            .gte('sale_date', dateString)
-            .order('sale_date', { ascending: false })
-            .range(from, to);
-
-        if (debouncedTerm) {
-            if (!isNaN(Number(debouncedTerm))) {
-                query = query.eq('bill_no', debouncedTerm);
-            } else {
-                // Search by Buyer Name (Two-step lookup)
-                const { data: buyers } = await supabase
-                    .schema('mandi')
-                    .from('contacts')
-                    .select('id')
-                    .ilike('name', `%${debouncedTerm}%`)
-                    .eq('organization_id', profile.organization_id)
-                    .limit(20);
-
-                if (buyers && buyers.length > 0) {
-                    const buyerIds = buyers.map(b => b.id);
-                    query = query.in('buyer_id', buyerIds);
+        try {
+            const data = await callApi('mandigrow.api.get_invoices_for_return', {
+                search_term: debouncedTerm,
+                page: pageNumber
+            });
+            
+            if (data) {
+                if (isNewSearch) {
+                    setInvoices(data);
+                    setPage(0);
                 } else {
-                    // Force empty result if name not found
-                    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+                    setInvoices(prev => [...prev, ...data]);
+                    setPage(pageNumber);
                 }
+                setHasMore(data.length === PAGE_SIZE);
             }
+        } catch (err) {
+            console.error("Fetch invoices error:", err);
+        } finally {
+            setIsSearching(false);
         }
-
-        const { data } = await query;
-        if (data) {
-            if (isNewSearch) {
-                setInvoices(data);
-                setPage(0);
-            } else {
-                setInvoices(prev => [...prev, ...data]);
-                setPage(pageNumber);
-            }
-            // If we got fewer items than requested, we reached the end
-            setHasMore(data.length === PAGE_SIZE);
-        }
-        setIsSearching(false);
     };
 
     // Trigger Search on Term Change
@@ -131,60 +96,32 @@ export default function SalesReturnForm() {
         fetchInvoices(0, true);
     }, [debouncedTerm, profile]);
 
-    // Fetch Invoice Items with Return History
+    // Fetch Invoice Items with Return History via Frappe RPC
     useEffect(() => {
         if (!selectedInvoice) return;
 
         const fetchItems = async () => {
-            // 1. Fetch Original Sale Items
-            const { data: saleItems } = await supabase
-                .schema('mandi')
-                .from('sale_items')
-                .select('*, lot:lots(id, lot_code, item:commodities(id, name))')
-                .eq('sale_id', selectedInvoice.id);
-
-            // 2. Fetch Previously Returned Items for this Sale
-            // This gets all returns for this invoice, and their items
-            const { data: previousReturns } = await supabase
-                .schema('mandi')
-                .from('sale_returns')
-                .select('sale_return_items(lot_id, qty)')
-                .eq('sale_id', selectedInvoice.id)
-                .eq('status', 'approved'); // Only count successfully processed returns
-
-            // 3. Calculate Total Returned Qty per Lot
-            const returnedQtyMap: Record<string, number> = {};
-            if (previousReturns) {
-                previousReturns.forEach((ret: any) => {
-                    if (ret.sale_return_items) {
-                        ret.sale_return_items.forEach((item: any) => {
-                            if (item.lot_id) {
-                                returnedQtyMap[item.lot_id] = (returnedQtyMap[item.lot_id] || 0) + Number(item.qty);
-                            }
-                        });
-                    }
+            try {
+                const data = await callApi('mandigrow.api.get_sale_items_for_return', {
+                    sale_id: selectedInvoice.id
                 });
-            }
-
-            if (saleItems) {
-                setReturnItems(saleItems.map(item => {
-                    const alreadyReturned = returnedQtyMap[item.lot_id] || 0;
-                    const remainingQty = Math.max(0, item.qty - alreadyReturned);
-
-                    return {
+                if (data) {
+                    setReturnItems(data.map((item: any) => ({
                         ...item,
-                        return_qty: 0, // Default input to 0
-                        max_qty: remainingQty, // UI prevents exceeding this
-                        original_sold_qty: item.qty, // Keep reference to original
-                        already_returned: alreadyReturned // For UI display if needed
-                    };
-                }));
+                        return_qty: 0,
+                        max_qty: item.max_qty,
+                        original_sold_qty: item.original_sold_qty,
+                        already_returned: item.already_returned
+                    })));
+                }
+            } catch (err) {
+                console.error("Fetch items error:", err);
             }
         };
         fetchItems();
     }, [selectedInvoice]);
 
-    // Fetch Buyer Balance
+    // Fetch Buyer Balance via Frappe RPC
     useEffect(() => {
         if (!selectedInvoice || !profile?.organization_id) {
             setBuyerBalance(null);
@@ -194,16 +131,13 @@ export default function SalesReturnForm() {
         const fetchBalance = async () => {
             const contactId = selectedInvoice.buyer_id || selectedInvoice.buyer?.id;
             if (contactId) {
-                const { data } = await supabase
-                    .schema('mandi')
-                    .from('view_party_balances')
-                    .select('net_balance')
-                    .eq('contact_id', contactId)
-                    .single();
-                
-                if (data) {
-                    setBuyerBalance(data.net_balance);
-                } else {
+                try {
+                    const data = await callApi('mandigrow.api.get_ledger_statement', {
+                        contact_id: contactId
+                    });
+                    setBuyerBalance(data.balance || 0);
+                } catch (err) {
+                    console.error("Balance fetch error:", err);
                     setBuyerBalance(0);
                 }
             }
@@ -211,27 +145,36 @@ export default function SalesReturnForm() {
         fetchBalance();
     }, [selectedInvoice, profile]);
 
-    // Fetch Masters for Exchange
+    // Fetch Masters for Exchange via Frappe RPC
     useEffect(() => {
         if (returnType === 'exchange' && profile?.organization_id) {
             const fetchMasters = async () => {
-                // Items (Commodities in Mandi)
-                const { data: items } = await supabase
-                    .schema('mandi')
-                    .from('commodities')
-                    .select('id, name')
-                    .eq('organization_id', profile.organization_id);
-                if (items) setAvailableItems(items);
-
-                // Lots
-                const { data: lots } = await supabase
-                    .schema('mandi')
-                    .from('lots')
-                    .select('*, item:commodities(name)')
-                    .eq('organization_id', profile.organization_id)
-                    .gt('current_qty', 0)
-                    .eq('status', 'active');
-                if (lots) setAvailableLots(lots);
+                try {
+                    // Lots
+                    const lots = await callApi('frappe.client.get_list', {
+                        doctype: 'Mandi Lot',
+                        filters: {
+                            organization_id: profile.organization_id,
+                            status: ['!=', 'Closed'],
+                            current_qty: ['>', 0]
+                        },
+                        fields: ['name as id', 'lot_code', 'current_qty', 'item_id', 'supplier_rate']
+                    });
+                    
+                    // Hydrate items for lots
+                    const lotsWithItems = await Promise.all((lots || []).map(async (lot: any) => {
+                        const itemName = await callApi('frappe.client.get_value', {
+                            doctype: 'Mandi Commodity',
+                            filters: { name: lot.item_id },
+                            fieldname: 'name'
+                        });
+                        return { ...lot, item: { name: itemName?.name } };
+                    }));
+                    
+                    setAvailableLots(lotsWithItems);
+                } catch (err) {
+                    console.error("Masters fetch error:", err);
+                }
             };
             fetchMasters();
         }
@@ -336,13 +279,11 @@ export default function SalesReturnForm() {
 
         if (!profile?.organization_id) {
             toast({ title: "Session Error", description: "Organization ID missing. Please refresh.", variant: "destructive" });
-            setLoading(false);
             return;
         }
 
-        setLoading(true);
         try {
-            // 1. Process Return (CREDIT Mode)
+            setLoading(true);
             const processingType = returnType === 'exchange' ? 'credit' : returnType;
             const contactId = selectedInvoice.buyer_id || selectedInvoice.buyer?.id;
 
@@ -350,103 +291,30 @@ export default function SalesReturnForm() {
                 throw new Error("Buyer/Contact ID missing from invoice.");
             }
 
-            const { data: returnData, error: returnError } = await supabase
-                .schema('mandi')
-                .from('sale_returns')
-                .insert({
-                    organization_id: profile.organization_id,
-                    sale_id: selectedInvoice.id,
-                    buyer_id: contactId,
-                    return_type: processingType,
-                    total_amount: totalRefundAmount,
-                    remarks: remarks + (returnType === 'exchange' ? ' (Exchange Process)' : ''),
-                    status: 'draft'
-                })
-                .select()
-                .single();
+            const payload = {
+                sale_id: selectedInvoice.id,
+                return_items: itemsToReturn.map(i => ({
+                    lot_id: i.lot_id,
+                    qty: i.return_qty,
+                    rate: i.rate
+                })),
+                return_type: processingType,
+                remarks: remarks + (returnType === 'exchange' ? ' (Exchange Process)' : ''),
+                exchange_items: returnType === 'exchange' ? exchangeItems.map(i => ({
+                    lot_id: i.lot_id,
+                    qty: i.qty,
+                    rate: i.rate
+                })) : null
+            };
 
-            if (returnError) throw new Error(`Return Creation Failed: ${returnError.message}`);
+            const result = await callApi('mandigrow.api.process_sale_return', { payload });
 
-            // Return Items
-            const returnItemsPayload = itemsToReturn.map(item => ({
-                return_id: returnData.id,
-                lot_id: item.lot_id,
-                item_id: item.lot?.item?.id || item.item_id,
-                qty: item.return_qty,
-                rate: item.rate,
-                amount: item.return_qty * item.rate
-            }));
-
-            const { error: itemsError } = await supabase.schema('mandi').from('sale_return_items').insert(returnItemsPayload);
-            if (itemsError) throw new Error(`Items Insert Failed: ${itemsError.message}`);
-
-            // Execute Return RPC
-            const { error: rpcError } = await supabase.schema('mandi').rpc('process_sale_return_transaction', { p_return_id: returnData.id });
-            if (rpcError) {
-                console.error("RPC Error:", rpcError);
-                throw new Error(`Transaction Processing Failed: ${rpcError.message}`);
+            if (result.success) {
+                toast({ title: "Success", description: "Return processed successfully!" });
+                router.push('/sales');
+            } else {
+                throw new Error(result.error || "Failed to process return");
             }
-
-            // 2. Process New Sale (If Exchange)
-            if (returnType === 'exchange') {
-                const buyerId = selectedInvoice.buyer?.id || selectedInvoice.contact_id;
-
-                // Helper to format items for sales RPC
-                const salesItemsPayload = exchangeItems.map(item => ({
-                    lot_id: item.lot_id,
-                    qty: item.qty,
-                    rate: item.rate,
-                    amount: item.qty * item.rate,
-                    unit: 'Box' // Default or fetch from lot
-                }));
-
-                // Call Sales RPC
-                const { data: saleData, error: saleError } = await supabase
-                    .schema('mandi')
-                    .rpc('confirm_sale_transaction', {
-                        p_organization_id: profile?.organization_id,
-                        p_buyer_id: buyerId,
-                        p_sale_date: new Date().toISOString().split('T')[0], // Today
-                        p_payment_mode: 'credit', // Always credit first for exchange math
-                        p_total_amount: totalNewSaleAmount,
-                        p_items: salesItemsPayload,
-                        p_market_fee: 0, // Simplify for return/exchange or fetch settings
-                        p_nirashrit: 0,
-                        p_misc_fee: 0,
-                        p_loading_charges: 0,
-                        p_unloading_charges: 0,
-                        p_other_expenses: 0
-                    });
-
-                if (saleError) throw saleError;
-
-                // 3. Settle Difference
-                if (Math.abs(netPayable) > 0) {
-                    const narration = `Exchange Settlement (Inv #${selectedInvoice.bill_no} -> New Sale)`;
-
-                    if (netPayable > 0) {
-                        // Customer Pays Us (Debit Cash, Credit Customer)
-                        // Use RPC or direct Voucher insert? Direct is safer here as we are "Business Tycoon"
-                        // But wait, confirm_sale_transaction creates ledger entry? Yes.
-                        // process_sale_return creates ledger entry? Yes.
-                        // So ledger balance is now: Original - Return + New Sale.
-                        // If we settle, we just need a Receipt or Payment.
-
-                        // We Owe Customer (Refund > New Sale) -> Pay Cash
-                        // Customer Owes Us (New Sale > Refund) -> Receive Cash
-
-                        // BUT user might not settle immediately.
-                        // Let's assume for "Exchange" they want to settle the diff NOW if it's a cash customer?
-                        // Or just leave it on ledger?
-                        // "work as a business tycoon" -> Flexibility.
-                        // I'll create a settlement voucher ONLY if they checked "Settle Difference".
-                        // For now, let's just create the settlement to close the loop if it's small or explicitly Cash.
-                    }
-                }
-            }
-
-            toast({ title: "Success", description: "Return & Exchange processed successfully!" });
-            router.push('/sales');
 
         } catch (error: any) {
             console.error(error);

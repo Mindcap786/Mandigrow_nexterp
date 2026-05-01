@@ -8,7 +8,6 @@ import {
     Clock, CheckCircle2, XCircle, AlertCircle, ChevronRight, Landmark
 } from 'lucide-react';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,40 +67,32 @@ export default function AdminDashboard() {
     const [monitoring, setMonitoring] = useState<{ platform_status: string; critical_alerts: Array<{ message: string }>; warning_alerts: Array<{ message: string }> }>({ platform_status: 'checking', critical_alerts: [], warning_alerts: [] });
 
     const fetchAll = useCallback(async () => {
-        // Trigger lifecycle sync + fetch ancillary data
-        await Promise.resolve(supabase.rpc('sync_platform_lifecycle')).catch(() => {});
+        try {
+            const monitoringData = await callApi('mandigrow.api.get_platform_monitoring');
+            setMonitoring(monitoringData as any);
+            
+            const tenantsData = await callApi('mandigrow.api.get_admin_tenants');
+            if (Array.isArray(tenantsData)) {
+                setRecentTenants(tenantsData.slice(0, 8));
+            }
+            
+            // Sync status from metrics hook into local monitoring state
+            setMonitoring(prev => ({
+                ...prev,
+                platform_status: metrics.system_status,
+            }));
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const authHeaders = session?.access_token
-            ? { 'Authorization': `Bearer ${session.access_token}` }
-            : {} as Record<string, string>;
-
-        const [tenantsRes, monitoringRes] = await Promise.allSettled([
-            fetch('/api/admin/tenants', { headers: authHeaders }).then(r => r.ok ? r.json() : []),
-            fetch('/api/admin/monitoring').then(r => r.json()),
-        ]);
-
-        if (tenantsRes.status === 'fulfilled' && Array.isArray(tenantsRes.value)) {
-            setRecentTenants(tenantsRes.value.slice(0, 8));
+            refetch();
+        } catch (e) {
+            console.error('Fetch all failed:', e);
         }
-        if (monitoringRes.status === 'fulfilled') {
-            setMonitoring(monitoringRes.value);
-        }
-
-        // Sync status from metrics hook into local monitoring state
-        setMonitoring(prev => ({
-            ...prev,
-            platform_status: metrics.system_status,
-        }));
-
-        refetch();
     }, [metrics.system_status, refetch]);
 
     useEffect(() => {
         fetchAll();
         const interval = setInterval(fetchAll, 30_000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchAll]);
 
     const statCards = STAT_CARDS(metrics);
 

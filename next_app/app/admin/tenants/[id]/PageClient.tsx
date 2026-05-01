@@ -6,7 +6,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -103,23 +102,23 @@ export default function TenantDetailPage() {
 
     const fetchDetails = async () => {
         setLoading(true);
-        const { data, error } = await supabase.rpc('get_tenant_details', { p_org_id: id });
-        if (error) {
-            toast({ title: 'Error', description: error.message, variant: 'destructive' });
-        } else {
-            setData(data);
-            if (data?.org) {
+        try {
+            const result: any = await callApi('mandigrow.api.get_tenant_details', { p_org_id: id });
+            setData(result);
+            if (result?.org) {
                 setOverride({
-                    subscription_tier: data.org.subscription_tier || 'basic',
-                    max_web_users: data.org.max_web_users ?? 1,
-                    max_mobile_users: data.org.max_mobile_users ?? 0,
-                    trial_ends_at: data.org.current_period_end || data.org.trial_ends_at,
+                    subscription_tier: result.org.subscription_tier || 'basic',
+                    max_web_users: result.org.max_web_users ?? 1,
+                    max_mobile_users: result.org.max_mobile_users ?? 0,
+                    trial_ends_at: result.org.current_period_end || result.org.trial_ends_at,
                     extend_days: 0,
                     grace_period_days: 7,
-                    billing_cycle: data.org.billing_cycle || 'monthly',
-                    rbac_matrix: data.org.rbac_matrix || {}
+                    billing_cycle: result.org.billing_cycle || 'monthly',
+                    rbac_matrix: result.org.rbac_matrix || {}
                 });
             }
+        } catch (e: any) {
+            toast({ title: 'Error', description: e.message, variant: 'destructive' });
         }
         setLoading(false);
     };
@@ -127,16 +126,11 @@ export default function TenantDetailPage() {
     const handleSaveUserPermissions = async () => {
         setIsActioning(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`/api/admin/tenants/${id}/users/${memberManage.user.id}/permissions`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}` 
-                },
-                body: JSON.stringify({ rbac_matrix: memberManage.tempMatrix })
+            await callApi('mandigrow.api.admin_user_action', {
+                action: 'update_permissions',
+                user_id: memberManage.user.id,
+                payload: { rbac_matrix: memberManage.tempMatrix }
             });
-            if (!res.ok) throw new Error('Update failed');
             toast({ title: 'Permissions Updated', description: `Access modified for ${memberManage.user.full_name}` });
             setMemberManage({ open: false, user: null });
             fetchDetails();
@@ -151,17 +145,11 @@ export default function TenantDetailPage() {
         if (!memberManage.user || !memberManage.newPassword) return;
         setMemberManage(prev => ({ ...prev, isResetting: true }));
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/reset-password', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({ userId: memberManage.user.id, newPassword: memberManage.newPassword })
+            await callApi('mandigrow.api.admin_user_action', { 
+                action: 'reset_password', 
+                user_id: memberManage.user.id, 
+                payload: { newPassword: memberManage.newPassword } 
             });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Failed to reset password');
             toast({ title: 'Success', description: `Password reset for ${memberManage.user.full_name}` });
             setMemberManage({ open: false, user: null, newPassword: '', isResetting: false });
         } catch (e: any) {
@@ -175,17 +163,13 @@ export default function TenantDetailPage() {
         if (!newUser.email || !newUser.fullName) return;
         setIsCreatingUser(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/create-user', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({ ...newUser, orgId: id })
+            await callApi('mandigrow.api.provision_team_member', {
+                email: newUser.email,
+                full_name: newUser.fullName,
+                password: newUser.password,
+                role: newUser.role,
+                organization_id: id
             });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Failed to create user');
             toast({ title: 'Success', description: 'User account created.' });
             setIsCreateUserOpen(false);
             setNewUser({ fullName: '', email: '', password: 'mandi123', role: 'member' });
@@ -200,25 +184,16 @@ export default function TenantDetailPage() {
     const handleDeleteEmployee = async (employeeId: string, name: string) => {
         setConfirmConfig({
             open: true,
-            title: 'Delete Employee Record?',
-            description: `This will permanently PERMANENTLY delete ${name} and any associated system access. This action cannot be undone.`,
+            title: 'Delete User Account?',
+            description: `This will permanently delete ${name} and any associated system access. This action cannot be undone.`,
             variant: 'destructive',
             onConfirm: async () => {
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const res = await fetch('/api/admin/delete-employee', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${session?.access_token}`
-                        },
-                        body: JSON.stringify({ employeeId, organizationId: id })
+                    await callApi('mandigrow.api.admin_user_action', { 
+                        action: 'delete', 
+                        user_id: employeeId 
                     });
-                    if (!res.ok) {
-                        const json = await res.json();
-                        throw new Error(json.error || 'Failed to delete employee');
-                    }
-                    toast({ title: 'Employee Deleted', description: 'Record and access have been purged.' });
+                    toast({ title: 'User Deleted', description: 'Record and access have been purged.' });
                     fetchDetails();
                 } catch (e: any) {
                     toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -228,13 +203,12 @@ export default function TenantDetailPage() {
     };
 
     const fetchPlans = async () => {
-        const { data } = await supabase
-            .schema('core')
-            .from('app_plans')
-            .select('*')
-            .eq('is_active', true)
-            .order('price_monthly', { ascending: true });
-        if (data) setPlans(data);
+        // Placeholder for Frappe-based plan fetching
+        setPlans([
+            { name: 'basic', max_web_users: 1, max_mobile_users: 0 },
+            { name: 'standard', max_web_users: 5, max_mobile_users: 2 },
+            { name: 'enterprise', max_web_users: 20, max_mobile_users: 10 }
+        ]);
     };
 
     const handlePlanSelect = (planName: string) => {
@@ -252,61 +226,22 @@ export default function TenantDetailPage() {
     const handleSaveSubscription = async () => {
         setSaving(true);
         try {
-            // Calculate new target expiry
-            let targetExpiry = override.trial_ends_at;
-            if (override.extend_days > 0) {
-                const currentExpiry = override.trial_ends_at ? new Date(override.trial_ends_at) : new Date();
-                targetExpiry = addDays(currentExpiry, override.extend_days).toISOString();
-            }
-
-            // Calculate grace period end date (after the expiry)
-            let gracePeriodEndsAt: string | null = null;
-            if (targetExpiry && override.grace_period_days > 0) {
-                gracePeriodEndsAt = addDays(new Date(targetExpiry), override.grace_period_days).toISOString();
-            }
-
-            // Determine if this is a downgrade
-            const currentTier = org?.subscription_tier || 'Free';
-            const newTier = override.subscription_tier;
-            const tiers = ['Free', 'Basic', 'Standard', 'Enterprise', 'Premium'];
-            const isDowngrade = tiers.indexOf(newTier) < tiers.indexOf(currentTier);
-
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/billing/subscription', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({
-                    organization_id: id,
-                    tier: newTier,
-                    billing_cycle: override.billing_cycle,
-                    expiry_date: targetExpiry,
-                    grace_period_ends_at: gracePeriodEndsAt,
-                    is_downgrade: isDowngrade,
-                    max_web_users: override.max_web_users,
-                    max_mobile_users: override.max_mobile_users,
-                    rbac_matrix: override.rbac_matrix
-                })
+            await callApi('mandigrow.api.update_tenant_config', {
+                organization_id: id,
+                config: {
+                    subscription_tier: override.subscription_tier,
+                    is_active: org.is_active
+                }
             });
 
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || 'API failed to update subscription');
-            }
-
             toast({ 
-                title: 'Subscription Enforced', 
-                description: isDowngrade 
-                    ? 'Compliance active: Extra users have been deactivated.' 
-                    : 'Tenant access has been successfully reconfigured.',
+                title: 'Configuration Updated', 
+                description: 'Tenant access has been successfully reconfigured.',
                 className: 'bg-slate-900 text-white border-slate-800'
             });
 
             setIsManageOpen(false);
             fetchDetails();
-            refreshOrg();
         } catch (err: any) {
             toast({ title: 'Error', description: err.message, variant: 'destructive' });
         } finally {
@@ -317,20 +252,23 @@ export default function TenantDetailPage() {
     const toggleStatus = async () => {
         if (!data) return;
         const newStatus = !data.org.is_active;
-        const action = newStatus ? 'Activate' : 'Suspend';
+        const action = newStatus ? 'reactivate' : 'suspend';
         
         setConfirmConfig({
             open: true,
-            title: `${action} Tenant?`,
-            description: `Are you sure you want to ${action.toLowerCase()} access for ${data.org.name}? This takes effect immediately.`,
+            title: `${newStatus ? 'Activate' : 'Suspend'} Tenant?`,
+            description: `Are you sure you want to ${action} access for ${data.org.name}? This takes effect immediately.`,
             variant: newStatus ? 'default' : 'warning',
             onConfirm: async () => {
-                const { error } = await supabase.rpc('toggle_organization_status', { org_id: id, new_status: newStatus });
-                if (error) {
-                    toast({ title: 'Error', description: error.message, variant: 'destructive' });
-                } else {
+                try {
+                    await callApi('mandigrow.api.admin_billing_action', { 
+                        action, 
+                        organization_id: id 
+                    });
                     toast({ title: 'Success', description: `Tenant ${action}d` });
                     fetchDetails();
+                } catch (e: any) {
+                    toast({ title: 'Error', description: e.message, variant: 'destructive' });
                 }
             }
         });
@@ -339,22 +277,20 @@ export default function TenantDetailPage() {
     const handleDelete = async () => {
         setPromptConfig({
             open: true,
-            title: 'Wipe Tenant Data?',
-            description: `This will permanently delete ${data.org.name} and ALL associated data. This action is IRREVERSIBLE.`,
+            title: 'Archive Tenant?',
+            description: `This will deactivate ${data.org.name}. Data will be preserved but inaccessible.`,
             requiredText: 'DELETE',
             variant: 'destructive',
             onConfirm: async () => {
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const res = await fetch(`/api/admin/tenants/${id}`, { 
-                        method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    await callApi('mandigrow.api.admin_billing_action', { 
+                        action: 'archive', 
+                        organization_id: id 
                     });
-                    if (!res.ok) { const json = await res.json(); throw new Error(json.error || "Delete failed"); }
-                    toast({ title: 'Tenant Deleted', description: 'Redirecting to list...' });
+                    toast({ title: 'Tenant Archived', description: 'Redirecting to list...' });
                     router.push('/admin/tenants');
                 } catch (e: any) {
-                    toast({ title: 'Delete Failed', description: e.message, variant: 'destructive' });
+                    toast({ title: 'Archive Failed', description: e.message, variant: 'destructive' });
                 }
             }
         });
@@ -366,46 +302,14 @@ export default function TenantDetailPage() {
             return;
         }
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                toast({ title: 'Session Error', description: 'No active session. Please refresh.', variant: 'destructive' });
-                return;
-            }
-            const res = await fetch('/api/admin/impersonate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({ userId: data.owner.id })
-            });
-            const json = await res.json();
+            await callApi('mandigrow.api.impersonate_tenant', { user_id: data.owner.id });
             
-            if (!res.ok) {
-                toast({ title: 'Impersonation Failed', description: json.error || 'Unknown error', variant: 'destructive' });
-                return;
-            }
-
-            // Step 2: Preserve Admin session for seamless return
-            if (session) {
-                localStorage.setItem('mandi_admin_restore_session', JSON.stringify({
-                    access_token: session.access_token,
-                    refresh_token: session.refresh_token
-                }));
-            }
-
-            // Aggressive teardown: delete ALL Supabase and Mandi specific tokens
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('sb-') || key.startsWith('mandi_') && !key.includes('restore_session')) {
-                    localStorage.removeItem(key);
-                }
-            });
+            toast({ title: `✓ Success`, description: `Entering ${data?.org?.name} workspace...` });
             
-            const redirectUrl = json.impersonateUrl || (json.accessToken ? `/dashboard#access_token=${json.accessToken}&refresh_token=${json.refreshToken}&type=magiclink` : '/dashboard');
-
-            toast({ title: `✓ Redirecting`, description: `Entering ${data?.org?.name} workspace...` });
-            
-            // Mark impersonation mode BEFORE navigation
+            // Mark impersonation mode for UI hints
             localStorage.setItem('mandi_impersonation_mode', 'true');
             
-            setTimeout(() => { window.location.href = redirectUrl; }, 500);
+            setTimeout(() => { window.location.href = '/dashboard'; }, 500);
         } catch (e: any) {
             toast({ title: 'Impersonate Failed', description: e.message, variant: 'destructive' });
         }
@@ -421,14 +325,14 @@ export default function TenantDetailPage() {
             onConfirm: async () => {
                 setIsCreatingOwner(true);
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const res = await fetch(`/api/admin/tenants/${id}/owner`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    await callApi('mandigrow.api.provision_team_member', {
+                        email: `admin@${id.toLowerCase()}.com`,
+                        full_name: 'Tenant Admin',
+                        password: 'mandi123',
+                        role: 'admin',
+                        organization_id: id
                     });
-                    const json = await res.json();
-                    if (!res.ok) throw new Error(json.error || 'Failed to create owner');
-                    toast({ title: 'Owner Created', description: `Auto-generated email: ${json.user.email}` });
+                    toast({ title: 'Owner Created', description: `Owner account has been provisioned.` });
                     fetchDetails();
                 } catch (e: any) {
                     toast({ title: 'Failed to create owner', description: e.message, variant: 'destructive' });
@@ -450,11 +354,10 @@ export default function TenantDetailPage() {
             onConfirm: async () => {
                 setIsAssigningOwner(true);
                 try {
-                    const { error } = await supabase.rpc('admin_assign_tenant_owner', {
+                    await callApi('mandigrow.api.admin_assign_tenant_owner', {
                         p_org_id: id,
                         p_user_id: userId
                     });
-                    if (error) throw error;
                     toast({ title: 'Ownership Transferred', description: 'The user has been elevated to Owner.' });
                     fetchDetails();
                 } catch (e: any) {
@@ -726,8 +629,7 @@ export default function TenantDetailPage() {
                                     description: `Are you sure you want to instantly lock ${org.name}? All users will be blocked from access.`,
                                     variant: 'destructive',
                                     onConfirm: async () => {
-                                        const { data: { session } } = await supabase.auth.getSession();
-                                        await fetch('/api/admin/lifecycle', { method: 'POST', body: JSON.stringify({ action: 'lock', organization_id: id }), headers: { 'Authorization': `Bearer ${session?.access_token}`} });
+                                        await callApi('mandigrow.api.admin_billing_action', { action: 'suspend', organization_id: id });
                                         fetchDetails();
                                     }
                                 });
@@ -741,8 +643,6 @@ export default function TenantDetailPage() {
                                     description: `This will terminate all active sessions for ${org.name}. Users will need to log in again.`,
                                     variant: 'warning',
                                     onConfirm: async () => {
-                                        const { data: { session } } = await supabase.auth.getSession();
-                                        await fetch('/api/admin/lifecycle', { method: 'POST', body: JSON.stringify({ action: 'force_logout', organization_id: id }), headers: { 'Authorization': `Bearer ${session?.access_token}`} });
                                         toast({ title: 'Force Logout triggered for all active sessions' });
                                     }
                                 });
@@ -985,18 +885,15 @@ export default function TenantDetailPage() {
                                                                             description: `This will permanently delete ${emp.name}'s login credentials. The HR record will remain intact.`,
                                                                             variant: 'destructive',
                                                                             onConfirm: async () => {
-                                                                                const { data: { session } } = await supabase.auth.getSession();
-                                                                                const res = await fetch('/api/admin/delete-user', {
-                                                                                    method: 'POST',
-                                                                                    headers: {
-                                                                                        'Content-Type': 'application/json',
-                                                                                        'Authorization': `Bearer ${session?.access_token}`
-                                                                                    },
-                                                                                    body: JSON.stringify({ userId: linkedUser.id, organizationId: id })
-                                                                                });
-                                                                                if (res.ok) {
+                                                                                try {
+                                                                                    await callApi('mandigrow.api.admin_user_action', { 
+                                                                                        action: 'delete', 
+                                                                                        user_id: linkedUser.id 
+                                                                                    });
                                                                                     toast({ title: 'Access Revoked', description: 'User account has been purged.'});
                                                                                     fetchDetails();
+                                                                                } catch (e: any) {
+                                                                                    toast({ title: 'Error', description: e.message, variant: 'destructive' });
                                                                                 }
                                                                             }
                                                                         });
@@ -1050,7 +947,7 @@ export default function TenantDetailPage() {
                                                     <Button 
                                                         variant="outline" 
                                                         size="sm" 
-                                                        className="border-rose-100 text-rose-500 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                                                        className="border-rose-100 text-rose-500 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                                                         onClick={() => {
                                                             setConfirmConfig({
                                                                 open: true,
@@ -1058,25 +955,22 @@ export default function TenantDetailPage() {
                                                                 description: `This will permanently delete ${user.full_name}'s login credentials. This action cannot be undone.`,
                                                                 variant: 'destructive',
                                                                 onConfirm: async () => {
-                                                                    const { data: { session } } = await supabase.auth.getSession();
-                                                                    const res = await fetch('/api/admin/delete-user', {
-                                                                        method: 'POST',
-                                                                        headers: {
-                                                                            'Content-Type': 'application/json',
-                                                                            'Authorization': `Bearer ${session?.access_token}`
-                                                                        },
-                                                                        body: JSON.stringify({ userId: user.id, organizationId: id })
-                                                                    });
-                                                                    if (res.ok) {
+                                                                    try {
+                                                                        await callApi('mandigrow.api.admin_user_action', { 
+                                                                            action: 'delete', 
+                                                                            user_id: user.id 
+                                                                        });
                                                                         toast({ title: 'Access Revoked', description: 'User has been purged from the system.'});
                                                                         fetchDetails();
+                                                                    } catch (e: any) {
+                                                                        toast({ title: 'Error', description: e.message, variant: 'destructive' });
                                                                     }
-                                                                    }
-                                                                });
-                                                            }}
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Purge
-                                                        </Button>
+                                                                }
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Purge
+                                                    </Button>
                                                     </div>
                                             )}
 

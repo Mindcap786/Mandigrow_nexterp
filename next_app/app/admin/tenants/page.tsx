@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -100,13 +99,8 @@ export default function TenantsPage() {
     const fetchTenants = async (sync = false) => {
         setLoading(true);
         try {
-            const url = sync ? '/api/admin/tenants?sync=true' : '/api/admin/tenants';
-            const res = await fetch(url);
-            if (!res.ok) {
-                const errBody = await res.json().catch(() => ({}));
-                throw new Error(errBody.error || `HTTP ${res.status}`);
-            }
-            setTenants(await res.json());
+            const data = await callApi('mandigrow.api.get_admin_tenants');
+            setTenants(data as any[]);
             if (sync) {
                 toast({ title: 'Sync Complete', description: 'Tenant statuses and billing updated.' });
             }
@@ -117,16 +111,21 @@ export default function TenantsPage() {
     };
 
     const toggleStatus = async (orgId: string, currentStatus: boolean) => {
-        const action = currentStatus ? 'Suspend' : 'Activate';
+        const action = currentStatus ? 'suspend' : 'reactivate';
         
         setActionInfo({
-            title: `${action} Tenant`,
-            description: `Are you sure you want to ${action.toLowerCase()} this tenant environment?`,
-            confirmText: action,
+            title: `${currentStatus ? 'Suspend' : 'Activate'} Tenant`,
+            description: `Are you sure you want to ${action} this tenant environment?`,
+            confirmText: currentStatus ? 'Suspend' : 'Activate',
             variant: currentStatus ? 'destructive' : 'default',
             onConfirm: async () => {
-                // TODO: Implement Frappe toggle RPC
-                toast({ title: 'Note', description: 'Status toggle not yet implemented for Frappe.' });
+                try {
+                    await callApi('mandigrow.api.admin_billing_action', { action, organization_id: orgId });
+                    toast({ title: 'Success', description: `Tenant ${action}ed.` });
+                    fetchTenants();
+                } catch (e: any) {
+                    toast({ title: 'Action Failed', description: e.message, variant: 'destructive' });
+                }
             }
         });
         setConfirmActionOpen(true);
@@ -142,11 +141,7 @@ export default function TenantsPage() {
         if (!selectedTenant) return;
         setIsDeleting(true);
         try {
-            const res = await fetch(`/api/admin/tenants/${selectedTenant.id}?mode=soft`, {
-                method: 'DELETE',
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Failed');
+            await callApi('mandigrow.api.admin_billing_action', { action: 'archive', organization_id: selectedTenant.id });
             toast({ title: 'Tenant Archived', description: `${selectedTenant.name} has been archived.` });
             setConfirmDeleteOpen(false);
             fetchTenants();
@@ -167,52 +162,14 @@ export default function TenantsPage() {
         
         setIsImpersonating(tenantOwnerId);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                toast({ title: 'Session Error', description: 'No active session found. Please refresh.', variant: 'destructive' });
-                setIsImpersonating(null);
-                return;
-            }
-
-            // Step 1: Get impersonation tokens from backend
-            const res = await fetch('/api/admin/impersonate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({ userId: tenantOwnerId })
-            });
-            const json = await res.json();
+            await callApi('mandigrow.api.impersonate_tenant', { user_id: tenantOwnerId });
             
-            if (!res.ok) {
-                toast({ title: 'Access Denied', description: json.error || 'Server error', variant: 'destructive' });
-                setIsImpersonating(null);
-                return;
-            }
-
-            // Step 2: Preserve Admin session for seamless return
-            if (session) {
-                localStorage.setItem('mandi_admin_restore_session', JSON.stringify({
-                    access_token: session.access_token,
-                    refresh_token: session.refresh_token
-                }));
-            }
-
-            // aggressive teardown: delete ALL Supabase auth tokens from localStorage
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith('sb-') && key?.endsWith('-auth-token')) {
-                    localStorage.removeItem(key);
-                }
-            }
-            localStorage.removeItem('mandi_profile_cache');
+            toast({ title: `✓ Success`, description: `Entering ${tenantName} workspace...` });
             
-            const redirectUrl = json.impersonateUrl || (json.accessToken ? `/dashboard#access_token=${json.accessToken}&refresh_token=${json.refreshToken}&type=magiclink` : '/dashboard');
-
-            toast({ title: `✓ Redirecting`, description: `Entering ${tenantName} workspace...` });
-            
-            // Mark impersonation mode BEFORE navigation so dashboard check works reliably
+            // Mark impersonation mode for UI hints
             localStorage.setItem('mandi_impersonation_mode', 'true');
             
-            setTimeout(() => { window.location.href = redirectUrl; }, 500);
+            setTimeout(() => { window.location.href = '/dashboard'; }, 500);
 
         } catch (e: any) {
             toast({ title: 'Impersonate Failed', description: e.message, variant: 'destructive' });
@@ -230,14 +187,14 @@ export default function TenantsPage() {
             onConfirm: async () => {
                 setIsCreatingOwner(tenantId);
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const res = await fetch(`/api/admin/tenants/${tenantId}/owner`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    await callApi('mandigrow.api.provision_team_member', {
+                        email: `admin@${tenantId.toLowerCase()}.com`,
+                        full_name: 'Tenant Admin',
+                        password: 'mandi123',
+                        role: 'admin',
+                        organization_id: tenantId
                     });
-                    const json = await res.json();
-                    if (!res.ok) throw new Error(json.error || 'Failed to create owner');
-                    toast({ title: 'Owner Created', description: `Auto-generated email: ${json.user.email}` });
+                    toast({ title: 'Owner Created', description: `Owner account has been provisioned.` });
                     fetchTenants();
                 } catch (e: any) {
                     toast({ title: 'Failed to create owner', description: e.message, variant: 'destructive' });
@@ -254,22 +211,10 @@ export default function TenantsPage() {
             return;
         }
 
-        if (newTenant.username && newTenant.username.length < 6) {
-            toast({ title: 'Short Username', description: 'Username must be at least 6 characters.', variant: 'destructive' });
-            return;
-        }
-
         setIsProvisioning(true);
         try {
-            const res = await fetch('/api/admin/provision', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newTenant)
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Provisioning failed');
+            const res: any = await callApi('mandigrow.api.provision_tenant', newTenant);
+            if (res.status === 'error') throw new Error(res.message);
 
             toast({ title: 'Success', description: `Tenant ${newTenant.orgName} provisioned successfully.` });
             setProvisionOpen(false);
