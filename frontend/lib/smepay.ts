@@ -9,8 +9,8 @@ const SMEPAY_BASE_URL =
     ? 'https://extranet.smepay.in' 
     : 'https://staging.smepay.in';
 
-const SMEPAY_CLIENT_ID = process.env.SMEPAY_CLIENT_ID!;
-const SMEPAY_CLIENT_SECRET = process.env.SMEPAY_CLIENT_SECRET!;
+const SMEPAY_CLIENT_ID = process.env.SMEPAY_CLIENT_ID
+const SMEPAY_CLIENT_SECRET = process.env.SMEPAY_CLIENT_SECRET
 
 // In-memory token cache (server-side only)
 let cachedToken: { token: string; expiresAt: number } | null = null;

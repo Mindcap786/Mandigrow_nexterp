@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminAccess } from '@/lib/admin-auth';
 // Static export: API routes must declare generateStaticParams for dynamic segments
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 export async function generateStaticParams() { return []; }
 
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
     try {

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabaseClient'
 import { NextRequest, NextResponse } from 'next/server'
 import { Database } from '@/lib/database.types'
 import { verifyAdminAccess } from '@/lib/admin-auth'
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         }
 
         const supabaseAdmin = createClient<Database>(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_URL
             process.env.SUPABASE_SERVICE_ROLE_KEY,
             {
                 auth: {

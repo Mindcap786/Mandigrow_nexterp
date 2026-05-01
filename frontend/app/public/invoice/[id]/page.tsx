@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { notFound } from 'next/navigation';
 import DownloadInvoiceButton from '@/components/billing/download-invoice-button';
 
@@ -11,8 +11,8 @@ export default async function PublicInvoicePage({ params }: { params: { id: stri
 
     // Initialize admin client inside the request scope to ensure env vars are fresh
     const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL
+        process.env.SUPABASE_SERVICE_ROLE_KEY
         {
             auth: {
                 autoRefreshToken: false,

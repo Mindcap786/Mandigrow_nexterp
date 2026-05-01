@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { cached, TTL, invalidateCache } from './server-cache';
 
 // Server-side subscription guard for API routes
@@ -15,8 +15,8 @@ interface SubscriptionStatus {
 }
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+    process.env.SUPABASE_SERVICE_ROLE_KEY
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
 

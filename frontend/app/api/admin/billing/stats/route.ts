@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { NextResponse, NextRequest } from 'next/server';
 import { cached, TTL } from '@/lib/server-cache';
 import { verifyAdminAccess } from '@/lib/admin-auth';
@@ -8,8 +8,8 @@ export async function GET(req: NextRequest) {
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL
+        process.env.SUPABASE_SERVICE_ROLE_KEY
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
 

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { NextResponse, NextRequest } from 'next/server';
 import { verifyAdminAccess } from '@/lib/admin-auth';
 // Static export: nested dynamic API routes need combined params shape
@@ -8,8 +8,8 @@ export async function generateStaticParams(): Promise<{ id: string; userId: stri
 
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+    process.env.SUPABASE_SERVICE_ROLE_KEY
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
 

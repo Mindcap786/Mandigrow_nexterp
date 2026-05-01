@@ -67,7 +67,7 @@ export default function SubscribePage() {
         try {
             const { createClient } = await import('@supabase/supabase-js');
             const supabaseRaw = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_URL
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
             );
 

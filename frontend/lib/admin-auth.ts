@@ -1,10 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { NextRequest } from 'next/server';
 
 export async function verifyAdminAccess(req: NextRequest, _resource?: string, _action?: string) {
     const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL
+        process.env.SUPABASE_SERVICE_ROLE_KEY
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
 

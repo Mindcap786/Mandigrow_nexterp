@@ -1,10 +1,16 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabaseClient'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://placeholder.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 
-// Supabase client initialization (Legacy - only used for static image bucket access)
+/**
+ * Safe mock for createClient that prevents crashes during Frappe migration.
+ */
+export function createClient(url?: string, key?: string, options?: any) {
+    if (!url || !key) return supabase;
+    return supabase; // Always return proxy for now
+}
 
 // Detect if we're in a Capacitor native environment
 // This check works at runtime in the WebView

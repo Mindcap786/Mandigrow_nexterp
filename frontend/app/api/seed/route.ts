@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabaseClient'
 import { NextResponse } from 'next/server'
 
 // Initialize Supabase Admin Client (using service role if available, otherwise public for now since RLS might block if not logged in. 

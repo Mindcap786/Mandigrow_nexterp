@@ -1,12 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabaseClient';
 import { NextResponse } from 'next/server';
 
 // POST /api/subscription/cancel
 // Schedules cancel_at_period_end = true — access until period_end, then expired
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+    process.env.SUPABASE_SERVICE_ROLE_KEY
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
         // Send cancellation email
         try {
             const supabaseClient = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_URL
                 process.env.SUPABASE_SERVICE_ROLE_KEY!
             );
             await supabaseClient.functions.invoke('send-subscription-notification', {
