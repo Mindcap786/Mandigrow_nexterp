@@ -18,6 +18,7 @@ class MandiSale(Document):
 
     def validate(self):
         self._ensure_bill_no()
+        self.recalculate_totals()
 
     def _ensure_bill_no(self):
         """Auto-increment contact_bill_no per party if not set."""
@@ -32,3 +33,59 @@ class MandiSale(Document):
                 order_by="contact_bill_no desc",
             )
             self.contact_bill_no = (flt(last_bill_no) or 0) + 1
+
+    def get_invoice_total(self):
+        """The definitive formula for a Mandi Sale total."""
+        return (
+            flt(self.totalamount)
+            + flt(getattr(self, 'marketfee', 0))
+            + flt(getattr(self, 'nirashrit', 0))
+            + flt(getattr(self, 'miscfee', 0))
+            + flt(getattr(self, 'loadingcharges', 0))
+            + flt(getattr(self, 'unloadingcharges', 0))
+            + flt(getattr(self, 'otherexpenses', 0))
+            + flt(getattr(self, 'gsttotal', 0))
+            - flt(getattr(self, 'discountamount', 0))
+        )
+
+    def recalculate_totals(self):
+        """Ensures totalamount is the sum of items if items exist."""
+        if hasattr(self, 'items') and self.items:
+            self.totalamount = sum(flt(item.amount) for item in self.items)
+        
+        # Set the definitive Grand Total in the database
+        self.invoice_total = self.get_invoice_total()
+
+        # Update Status based on payment
+        total = flt(self.invoice_total)
+        received = flt(self.amountreceived)
+        mode = (self.paymentmode or "credit").strip().lower()
+        
+        # Determine if cleared
+        is_cleared = True
+        if mode == "cheque":
+            from frappe.utils import getdate, today
+            # If explicit flag is present
+            if getattr(self.flags, "cheque_status", None) is not None:
+                is_cleared = self.flags.cheque_status
+            elif self.chequedate:
+                is_cleared = getdate(self.chequedate) <= getdate(today())
+        elif mode == "credit":
+            # Credit doesn't have an instantly 'cleared' partial payment concept in the same way
+            pass
+            
+        if not is_cleared:
+            received = 0.0
+
+        if mode == "credit":
+            if received >= total and total > 0:
+                self.status = "Paid"
+            else:
+                self.status = "Pending"
+        else:
+            if received >= total and total > 0:
+                self.status = "Paid"
+            elif received > 0:
+                self.status = "Partial"
+            else:
+                self.status = "Pending"

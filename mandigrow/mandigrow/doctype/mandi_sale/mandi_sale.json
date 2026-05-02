@@ -7,12 +7,13 @@
  "editable_grid": 1,
  "is_submittable": 1,
  "engine": "InnoDB",
- "field_order": [
+  "field_order": [
   "saledate",
   "buyerid",
   "organization_id",
   "paymentmode",
   "totalamount",
+  "invoice_total",
   "marketfee",
   "nirashrit",
   "miscfee",
@@ -70,6 +71,13 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Total Amount"
+  },
+  {
+   "fieldname": "invoice_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Invoice Total",
+   "read_only": 1
   },
   {
    "fieldname": "marketfee",

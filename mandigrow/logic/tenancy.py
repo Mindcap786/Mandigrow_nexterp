@@ -38,9 +38,9 @@ TENANT_DOCTYPES = frozenset([
 # ── Core helpers ───────────────────────────────────────────────────────────────
 
 def is_super_admin(user=None):
-    """True only for the literal Administrator account."""
+    """True for the literal Administrator account or the platform owner."""
     user = user or frappe.session.user
-    return user == "Administrator"
+    return user in ["Administrator", "mindcap786@gmail.com"]
 
 
 def get_current_org_or_none():

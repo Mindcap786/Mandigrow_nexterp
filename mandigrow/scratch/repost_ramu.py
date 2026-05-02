@@ -1,0 +1,18 @@
+import frappe
+from mandigrow.mandigrow.logic.automation import post_arrival_ledger
+
+def run():
+    doc_name = "ARR-ORG00003-2026-00001"
+    doc = frappe.get_doc("Mandi Arrival", doc_name)
+    
+    # Force post the ledger
+    print(f"Reposing Ledger for {doc_name}...")
+    try:
+        post_arrival_ledger(doc)
+        frappe.db.commit()
+        print("Success!")
+    except Exception as e:
+        print(f"Error during repost: {e}")
+        frappe.db.rollback()
+
+run()

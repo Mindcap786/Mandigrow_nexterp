@@ -27,6 +27,42 @@ from mandigrow.logic.erp_bootstrap import (
     resolve_uom,
 )
 
+# ── Settlement Helpers ────────────────────────────────────────────────────────
+def _auto_settle_party(party_type, party_name, company):
+    """
+    Triggers FIFO settlement for a party whenever a financial entry is submitted.
+    Bridges ERPNext core (Payment/Journal) with MandiGrow custom billing.
+    """
+    from mandigrow.api import settle_buyer_receipt, settle_supplier_payment
+    
+    # 1. Resolve Mandi Contact
+    filters = {}
+    if party_type == "Customer":
+        filters = {"customer": party_name}
+    elif party_type == "Supplier":
+        filters = {"supplier": party_name}
+    
+        return
+
+    contact = frappe.db.get_value("Mandi Contact", filters, ["name", "organization_id"], as_dict=True)
+    if not contact:
+        return
+
+    # 2. Get real balance to settle
+    # We use the full balance to ensure the bill statuses are accurate
+    if party_type == "Customer":
+        # Sum all GL entries for this buyer to find how much "credit" they have vs their bills
+        # Actually, simpler: find total paid (all credits) and total billed (all debits)
+        # But wait, settle_buyer_receipt already handles FIFO from a given amount.
+        # To truly "sync", we should use the logic from repair_all_settlements.
+        from mandigrow.api import repair_single_party_settlement
+        repair_single_party_settlement(contact.name, contact.organization_id)
+    
+        # Same for suppliers
+        from mandigrow.api import repair_single_party_settlement
+        repair_single_party_settlement(contact.name, contact.organization_id)
+
+
 
 # ── Cost Center helper ─────────────────────────────────────────────────────────
 
@@ -89,7 +125,25 @@ def get_acc(base_name, company=None):
         if found:
             return found
 
-    return f"{base_name} - {company}"   # last-resort; will surface a clear error
+    # Robust Solution: Self-Healing Chart of Accounts
+    # If account doesn't exist, create it under the correct parent
+    try:
+        parent_account = _resolve_parent_account(company, base_name)
+        if parent_account:
+            new_acc = frappe.get_doc({
+                "doctype": "Account",
+                "account_name": base_name,
+                "parent_account": parent_account,
+                "company": company,
+                "account_type": account_type or "",
+                "is_group": 0
+            })
+            new_acc.insert(ignore_permissions=True)
+            return new_acc.name
+    except Exception as e:
+        frappe.log_error(f"Failed to auto-create account {base_name} for {company}: {str(e)}")
+
+    return f"{base_name} - {abbr}" 
 
 
 def get_cash_acc(company=None):       return get_acc("Cash", company)
@@ -98,16 +152,64 @@ def get_supplier_acc(company=None):   return get_acc("Creditors", company)
 def get_debtor_acc(company=None):     return get_acc("Debtors", company)
 def get_comm_acc(company=None):       return get_acc("Commission Income", company)
 def get_stock_acc(company=None):      return get_acc("Stock In Hand", company)
-def get_expense_acc(company=None):    return get_acc("Commission Income", company)
+def get_expense_acc(company=None):    return get_acc("Expense Recovery", company)
 
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
+
+def _resolve_parent_account(company, base_name):
+    """Find a suitable parent account for auto-created master accounts."""
+    search_map = {
+        "Cash": ["Cash", "Cash In Hand", "Bank and Cash"],
+        "Bank Account": ["Bank", "Bank Accounts", "Bank and Cash"],
+        "Stock In Hand": ["Stock Assets", "Direct Assets", "Current Assets"],
+        "Creditors": ["Account Payable", "Creditors", "Current Liabilities"],
+        "Debtors": ["Account Receivable", "Debtors", "Current Assets"],
+        "Commission Income": ["Direct Income", "Income", "Revenue"]
+    }
+    
+    parents = search_map.get(base_name, ["Current Assets"])
+    abbr = _company_abbr(company)
+    
+    for p in parents:
+        for candidate in (f"{p} - {abbr}", f"{p} - {company}", p):
+            if frappe.db.exists("Account", {"name": candidate, "company": company, "is_group": 1}):
+                return candidate
+                
+    # Final fallback: find any group account that matches the type
+    account_type = _ACCOUNT_TYPE_MAP.get(base_name)
+    if account_type:
+        found = frappe.db.get_value("Account", 
+            {"company": company, "account_type": account_type, "is_group": 1}, "name")
+        if found: return found
+        
+    return None
 
 def _flt(v):
     try:
         return float(v or 0)
     except (TypeError, ValueError):
         return 0.0
+
+
+def _invoice_total(doc):
+    """Compute the final invoice total after charges and discounts.
+    Delegates to the DocType controller's get_invoice_total() for consistency."""
+    if hasattr(doc, 'get_invoice_total'):
+        return doc.get_invoice_total()
+    
+    # Fallback for dict-like objects (e.g. from SQL results)
+    return (
+        _flt(doc.get('totalamount', 0))
+        + _flt(doc.get('marketfee', 0))
+        + _flt(doc.get('nirashrit', 0))
+        + _flt(doc.get('miscfee', 0))
+        + _flt(doc.get('loadingcharges', 0))
+        + _flt(doc.get('unloadingcharges', 0))
+        + _flt(doc.get('otherexpenses', 0))
+        + _flt(doc.get('gsttotal', 0))
+        - _flt(doc.get('discountamount', 0))
+    )
 
 
 def _party_name(contact_id):
@@ -133,16 +235,26 @@ def _arrival_status(advance, net_payable, mode=None, is_cleared=True):
 
 def _sale_status(paid, total, due_date_str, mode=None, is_cleared=True):
     """Compute Paid / Partial / Pending / Overdue for a sale."""
+    from frappe.utils import getdate, today
+    mode = (mode or "credit").strip().lower()
+    
     # If it's a post-dated cheque, we treat it as udhaar (pending) for now
     if not is_cleared:
         paid = 0.0
 
-    if total > 0 and paid >= total:
-        return "Paid"
-    if paid > 0:
-        status = "Partial"
+    if mode == "credit":
+        if total > 0 and paid >= total:
+            status = "Paid"
+        else:
+            status = "Pending"
     else:
-        status = "Pending"
+        if total > 0 and paid >= total:
+            status = "Paid"
+        elif paid > 0:
+            status = "Partial"
+        else:
+            status = "Pending"
+
     if status != "Paid" and due_date_str and getdate(due_date_str) < getdate(today()):
         return "Overdue"
     return status
@@ -151,36 +263,53 @@ def _sale_status(paid, total, due_date_str, mode=None, is_cleared=True):
 # ── Arrival Ledger (on_submit) ─────────────────────────────────────────────────
 
 def _resolve_pay_account(company, mode, specific_account_id=None):
-    """Return the cash/bank account to debit/credit for a given payment mode."""
+    """Return the cash/bank account to debit/credit for a given payment mode.
+
+    Multi-tenant safety: validate the specific_account_id actually belongs to
+    the correct company before using it. If it belongs to a different company
+    (e.g. a stale UI selection from a different tenant), fall back to the
+    company-resolved account. This prevents cross-company GL validation errors.
+    """
     if specific_account_id and frappe.db.exists("Account", specific_account_id):
-        return specific_account_id
-        
+        # Validate this account belongs to the correct company
+        acc_company = frappe.db.get_value("Account", specific_account_id, "company")
+        if acc_company == company:
+            return specific_account_id
+        # Account belongs to a different company — fall through to auto-resolve
+
     mode = (mode or "").strip().lower()
     if mode in ("cash",):
         return get_cash_acc(company)
     if mode in ("upi", "upi_bank", "bank", "bank_transfer", "neft", "rtgs", "imps", "cheque"):
-        # If we have multiple banks, get_acc might be ambiguous, 
-        # but for legacy data or missing selection, it's better than nothing.
         return get_acc("Bank Account", company)
     return get_cash_acc(company)
 
 
-def _is_cheque_cleared(mode, cheque_date, force_clear=False):
+def _is_cheque_cleared(mode, cheque_date, clear_instantly=None):
     """
-    Cheque rule: Only cleared if force_clear is True.
-    If force_clear is False, it's considered 'Clear Later' (Pending).
-    If it's not a cheque, it's always cleared (Cash/Bank/UPI).
+    Determines if a cheque transaction should be marked as 'Cleared' immediately.
+    Rules:
+    1. If mode is not cheque (Cash/UPI), always cleared.
+    2. If clear_instantly is explicitly passed (from UI toggle), follow that.
+    3. If cheque_date is Today or Past, mark as cleared instantly (Mandi behavior).
+    4. If cheque_date is Future, mark as Pending (Clear Later).
     """
-    if (mode or "").strip().lower() != "cheque":
+    from frappe.utils import getdate, today
+    mode = (mode or "").strip().lower()
+    if mode != "cheque":
         return True
     
-    # If the user explicitly clicked "Cleared Instantly", it's cleared.
-    if force_clear:
+    # Explicit signal from UI toggle (Highest Priority)
+    if clear_instantly is True:
+        return True
+    if clear_instantly is False:
+        return False
+        
+    # Default behavior based on date
+    if not cheque_date:
         return True
         
-    # If not forced, it is NOT cleared (Pending), even if the date is today or past.
-    # This ensures "Clear Later" always puts the bill in Pending status.
-    return False
+    return getdate(cheque_date) <= getdate(today())
 
 
 def post_arrival_ledger(doc, method=None):
@@ -206,7 +335,25 @@ def post_arrival_ledger(doc, method=None):
       commission_supplier — Mandi sources goods from supplier on commission
       direct              — Direct purchase; no commission calculation
     """
-    company      = get_default_company()
+    # ── IDEMPOTENCY GUARD ────────────────────────────────────────────────────
+    # If GL entries already exist for this arrival, do NOT post again.
+    # This prevents duplicates if the hook is accidentally called twice (e.g.
+    # during repair scripts, re-saves, or bench execute double-runs).
+    existing_gl = frappe.db.count("GL Entry", {
+        "against_voucher_type": "Mandi Arrival",
+        "against_voucher": doc.name
+    })
+    if existing_gl > 0:
+        frappe.logger().info(f"[post_arrival_ledger] Skipping {doc.name} — {existing_gl} GL entries already exist.")
+        return
+    # ─────────────────────────────────────────────────────────────────────────
+
+    company = None
+    if getattr(doc, "organization_id", None):
+        company = frappe.db.get_value("Mandi Organization", doc.organization_id, "erp_company")
+    if not company:
+        company = get_default_company()
+
     party_name   = _party_name(doc.party_id)
     arrival_type = (doc.arrival_type or "direct").strip()
 
@@ -282,7 +429,8 @@ def post_arrival_ledger(doc, method=None):
                     "against_voucher":            doc.name,
                     "user_remark":                f"Expense Recovery (Hamali/Packing/Loading) on {bill_ref} — {party_name}",
                 })
-    else:
+    
+    elif arrival_type == "direct":
         # Direct purchase: Stock Dr / Creditor Cr (full purchase value minus expenses)
         total_expenses = _flt(doc.total_expenses)
         net_payable = round(total_realized - total_expenses, 2)
@@ -338,17 +486,20 @@ def post_arrival_ledger(doc, method=None):
     cheque_date  = getattr(doc, "advance_cheque_date", None)
     # Compute is_cleared up-front so the doctype status update below is always
     # defined, even when no advance JE is created (advance=0 or mode=credit).
-    force_clear  = getattr(doc.flags, "advance_cheque_status", False)
-    is_cleared   = _is_cheque_cleared(advance_mode, cheque_date, force_clear)
+    if advance_mode == "cheque":
+        force_clear  = doc.flags.get("advance_cheque_status")
+        is_cleared   = _is_cheque_cleared(advance_mode, cheque_date, force_clear)
+    else:
+        is_cleared   = True
     advance_je = None
     if advance > 0 and advance_mode != "credit":
         pay_account = _resolve_pay_account(company, advance_mode, doc.get("advance_bank_account_id"))
         cheque_no   = getattr(doc, "advance_cheque_no", None)
 
-        # Posting date: cheque_date for cheques (so it lands on the bank's
-        # actual movement day), otherwise the arrival date.
+        # Posting date: for instantly cleared cheques, use arrival date.
+        # For Clear Later (pending), use cheque_date so it lands on the expected movement day.
         pje_posting = doc.arrival_date or today()
-        if advance_mode == "cheque" and cheque_date:
+        if advance_mode == "cheque" and cheque_date and not is_cleared:
             pje_posting = cheque_date
 
         pje_voucher_type = "Cash Entry" if advance_mode == "cash" else "Journal Entry"
@@ -365,8 +516,8 @@ def post_arrival_ledger(doc, method=None):
                     "debit_in_account_currency": advance,
                     "party_type":                "Supplier",
                     "party":                     supplier,
-                    "against_voucher_type":      "Mandi Arrival",
-                    "against_voucher":           doc.name,
+                    "reference_type":           "Mandi Arrival",
+                    "reference_name":           doc.name,
                     "user_remark":               f"Advance paid to {party_name} — {bill_ref}",
                     "account_currency":          "INR",
                     "exchange_rate":             1,
@@ -374,8 +525,8 @@ def post_arrival_ledger(doc, method=None):
                 {
                     "account":                    pay_account,
                     "credit_in_account_currency": advance,
-                    "against_voucher_type":       "Mandi Arrival",
-                    "against_voucher":            doc.name,
+                    "reference_type":            "Mandi Arrival",
+                    "reference_name":            doc.name,
                     "user_remark":                f"Advance paid to {party_name} — {bill_ref} ({advance_mode})",
                     "account_currency":           "INR",
                     "exchange_rate":              1,
@@ -445,10 +596,31 @@ def post_sale_ledger(doc, method=None):
       upi_bank   → bank transfer received
       cheque     → cleared if cheque_date <= today, else udhaar until cleared
     """
-    company    = get_default_company()
+    # Guard: prevent on_journal_submit from triggering settlement repair
+    # during this same transaction (the GL entries aren't tagged yet)
+    frappe.flags._posting_sale_ledger = True
+
+    # ── IDEMPOTENCY GUARD ────────────────────────────────────────────────────
+    # If GL entries already exist for this sale, do NOT post again.
+    existing_gl = frappe.db.count("GL Entry", {
+        "against_voucher_type": "Mandi Sale",
+        "against_voucher": doc.name
+    })
+    if existing_gl > 0:
+        frappe.logger().info(f"[post_sale_ledger] Skipping {doc.name} — {existing_gl} GL entries already exist.")
+        frappe.flags._posting_sale_ledger = False
+        return
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    company = None
+    if getattr(doc, "organization_id", None):
+        company = frappe.db.get_value("Mandi Organization", doc.organization_id, "erp_company")
+    if not company:
+        company = get_default_company()
+
     party_name = _party_name(doc.buyerid)
 
-    total_amount = _flt(doc.totalamount)
+    total_amount = _invoice_total(doc)
     paid_amount  = _flt(doc.amountreceived)
 
     details = []
@@ -467,139 +639,173 @@ def post_sale_ledger(doc, method=None):
     ensure_company_party_defaults(company)
     customer = ensure_customer_for_contact(doc.buyerid, company)
 
+    # ── 1. Determine Payment Status ──────────────────────────────────────────
     payment_mode = (doc.paymentmode or "credit").lower().strip()
     cheque_no    = getattr(doc, "chequeno", None)
     cheque_date  = getattr(doc, "chequedate", None)
+    
+    # Resolve if this payment should be recorded as "Cleared" (instantly hitting bank/cash)
+    if payment_mode == "cheque":
+        is_cleared = doc.get("clear_instantly")
+        if is_cleared is None: is_cleared = doc.flags.get("cheque_status")
+        if is_cleared is None: is_cleared = frappe.flags.get(f"cheque_status_{doc.name}")
+        if is_cleared is None: is_cleared = frappe.flags.get("last_cheque_status")
+        if is_cleared is None and doc.buyerid: is_cleared = frappe.flags.get(f"cheque_status_{doc.buyerid}")
+        if is_cleared is None: is_cleared = _is_cheque_cleared(payment_mode, cheque_date)
+    else:
+        # Cash, UPI, Bank Transfer are always cleared instantly
+        is_cleared = True
+    
+    # Ensure it is a boolean
+    is_cleared = True if is_cleared else False
+    
+    # Inform user of detection (for verification)
+    status_msg = "CLEARED (Instant)" if is_cleared else "PENDING (Clear Later)"
+    frappe.msgprint(f"Payment detected as: <b>{status_msg}</b>", indicator="blue" if is_cleared else "orange")
+    
+    # Determine the receipt posting date.
+    # If Clear Now, use today/sale date. If Clear Later, use cheque_date.
+    pje_posting_date = doc.saledate or today()
+    if payment_mode == "cheque" and cheque_date and not is_cleared:
+        pje_posting_date = cheque_date
 
-    # ── 1. Sale Journal Entry ──────────────────────────────────────────────
+    # ── 2. Construct Ledger Legs ─────────────────────────────────────────────
+    cost_center = _get_cost_center(company)
+    
+    # A. Sale Legs (Revenue and Party Liability)
+    sale_legs = [
+        {
+            "account":                   get_debtor_acc(company),
+            "debit_in_account_currency": total_amount,
+            "party_type":                "Customer",
+            "party":                     customer,
+            "reference_type":           "Mandi Sale",
+            "reference_name":           doc.name,
+            "user_remark":               f"Goods sold to {party_name} — {bill_ref}{details_str}",
+            "account_currency":          "INR",
+            "exchange_rate":             1,
+            "cost_center":               cost_center
+        },
+        {
+            "account":                    get_stock_acc(company),
+            "credit_in_account_currency": total_amount,
+            "reference_type":            "Mandi Sale",
+            "reference_name":            doc.name,
+            "user_remark":                f"Stock issued — {bill_ref}",
+            "account_currency":           "INR",
+            "exchange_rate":              1,
+            "cost_center":                cost_center
+        }
+    ]
+
+    # B. Receipt Legs (Money in and Party Credit)
+    # We ALWAYS build these if there is a payment, so we can create a separate JV.
+    receipt_legs = []
+    if paid_amount > 0 and payment_mode != "credit":
+        pay_account = _resolve_pay_account(company, payment_mode, doc.get("bankaccountid"))
+        receipt_legs = [
+            {
+                "account":                   pay_account,
+                "debit_in_account_currency": paid_amount,
+                "reference_type":           "Mandi Sale",
+                "reference_name":           doc.name,
+                "user_remark":               f"{payment_mode.upper()} received — {bill_ref}",
+                "account_currency":          "INR",
+                "exchange_rate":             1,
+                "cost_center":               cost_center
+            },
+            {
+                "account":                    get_debtor_acc(company),
+                "credit_in_account_currency": paid_amount,
+                "party_type":                 "Customer",
+                "party":                      customer,
+                "reference_type":           "Mandi Sale",
+                "reference_name":           doc.name,
+                "user_remark":                f"Payment from {party_name} against {bill_ref}",
+                "account_currency":           "INR",
+                "exchange_rate":              1,
+                "cost_center":                cost_center
+            }
+        ]
+
+    # ── 3. Post to General Ledger ────────────────────────────────────────────
+    
+    # 1. ALWAYS Create Sale Voucher First
     sale_je = frappe.get_doc({
         "doctype":      "Journal Entry",
         "voucher_type": "Journal Entry",
         "company":      company,
         "posting_date": doc.saledate or today(),
-        "user_remark":  f"Sale {bill_ref} — {party_name}{details_str}"[:140],
-        "accounts": [
-            {
-                "account":                   get_debtor_acc(company),
-                "debit_in_account_currency": total_amount,
-                "party_type":                "Customer",
-                "party":                     customer,
-                "against_voucher_type":      "Mandi Sale",
-                "against_voucher":           doc.name,
-                "user_remark":               f"Goods sold to {party_name} — {bill_ref}{details_str}",
-                "account_currency":          "INR",
-                "exchange_rate":             1,
-            },
-            {
-                "account":                    get_stock_acc(company),
-                "credit_in_account_currency": total_amount,
-                "against_voucher_type":       "Mandi Sale",
-                "against_voucher":            doc.name,
-                "user_remark":                f"Stock out — {bill_ref}",
-                "account_currency":           "INR",
-                "exchange_rate":              1,
-            },
-        ],
+        "user_remark":  f"Sale {bill_ref} — {party_name}"[:140],
+        "accounts":     sale_legs
     })
-    
-    # Ensure cost center is set for all sale legs
-    cost_center = _get_cost_center(company)
-    for row in sale_je.accounts:
-        row.cost_center = cost_center
-        
     sale_je.flags.ignore_permissions = True
     sale_je.insert()
     sale_je.submit()
+    primary_je_name = sale_je.name
     _tag_gl_entries(sale_je.name, "Mandi Sale", doc.name)
 
-    # ── 2. Receipt Journal Entry (Cash / UPI / Bank / Cheque) ──────────────
-    if paid_amount > 0 and payment_mode != "credit":
-        pay_account = _resolve_pay_account(company, payment_mode, doc.get("bankaccountid"))
-        
-        # Respect explicit UI flag if passed, else fallback to date logic
-        if hasattr(doc.flags, "cheque_status"):
-            is_cleared = doc.flags.cheque_status
-        else:
-            is_cleared = _is_cheque_cleared(payment_mode, cheque_date)
-
-        # For cheques, the receipt lands on the cheque date (when funds move).
-        pje_posting_date = doc.saledate or today()
-        if payment_mode == "cheque" and cheque_date:
-            pje_posting_date = cheque_date
-
-        pje_voucher_type = "Cash Entry" if payment_mode == "cash" else "Journal Entry"
-
-        pje_payload = {
+    # 2. Create Receipt Voucher separately if money was received
+    if receipt_legs:
+        receipt_je = frappe.get_doc({
             "doctype":      "Journal Entry",
-            "voucher_type": pje_voucher_type,
+            "voucher_type": "Journal Entry",
             "company":      company,
             "posting_date": pje_posting_date,
             "user_remark":  f"Payment for Sale {bill_ref} — {party_name} ({payment_mode})"[:140],
-            "accounts": [
-                {
-                    "account":                   pay_account,
-                    "debit_in_account_currency": paid_amount,
-                    "against_voucher_type":      "Mandi Sale",
-                    "against_voucher":           doc.name,
-                    "user_remark":               f"{payment_mode.upper()} received from {party_name} — {bill_ref}",
-                    "account_currency":          "INR",
-                    "exchange_rate":             1,
-                },
-                {
-                    "account":                    get_debtor_acc(company),
-                    "credit_in_account_currency": paid_amount,
-                    "party_type":                 "Customer",
-                    "party":                      customer,
-                    "against_voucher_type":       "Mandi Sale",
-                    "against_voucher":            doc.name,
-                    "user_remark":                f"Payment received against Sale {bill_ref}",
-                    "account_currency":           "INR",
-                    "exchange_rate":              1,
-                },
-            ],
-        }
-
-        # Ensure cost center is set for all receipt legs
-        cost_center = frappe.db.get_value("Company", company, "cost_center")
-        for row in pje_payload["accounts"]:
-            row.setdefault("cost_center", cost_center)
-
+            "accounts":     receipt_legs
+        })
+        
         if payment_mode == "cheque":
-            pje_payload["cheque_no"] = cheque_no or "Pending"
-            pje_payload["cheque_date"] = cheque_date or doc.saledate or today()
-            if is_cleared:
-                pje_payload["clearance_date"] = pje_payload["cheque_date"]
-
-        pje = frappe.get_doc(pje_payload)
-        pje.flags.ignore_permissions = True
-        pje.insert()
+            receipt_je.cheque_no = cheque_no or "Pending"
+            receipt_je.cheque_date = cheque_date or doc.saledate or today()
+            
+        # If it's instantly cleared, always set clearance_date to match ledger submission
         if is_cleared:
-            pje.submit()
+            receipt_je.clearance_date = pje_posting_date
+        
+        receipt_je.flags.ignore_permissions = True
+        receipt_je.insert()
+        
+        if is_cleared:
+            receipt_je.submit()
+            # Force persistence after submission to bypass internal JE validation
+            receipt_je.db_set("clearance_date", pje_posting_date)
+        
+        _tag_gl_entries(receipt_je.name, "Mandi Sale", doc.name)
 
-        # Tag both submitted and draft JEs
-        if is_cleared and payment_mode == "cheque":
-            pje.db_set("clearance_date", pje_payload.get("cheque_date") or today())
 
-        _tag_gl_entries(pje.name, "Mandi Sale", doc.name)
-
-    # ── 3. Update status ───────────────────────────────────────────────────
+    # ── 3. Compute and store status ────────────────────────────────────────
+    # Rules (user-specified):
+    #   cash / upi_bank / cheque-instant  → is_cleared=True
+    #   credit / cheque-pay-later         → is_cleared=False (treat as udhaar)
+    #
+    #   paid >= total  → "Paid"
+    #   paid > 0       → "Partial"
+    #   paid == 0      → "Pending"  (shown as Udhaar in UI for credit mode)
+    #
     credit_days = _flt(frappe.db.get_value("Mandi Contact", doc.buyerid, "credit_days") or 7)
     due_date    = doc.duedate or add_days(doc.saledate or today(), int(credit_days))
     
-    if hasattr(doc.flags, "cheque_status"):
-        is_cleared = doc.flags.cheque_status
+    if payment_mode == "cheque":
+        is_cleared = doc.flags.get("cheque_status")
+        if is_cleared is None: is_cleared = frappe.flags.get(f"cheque_status_{doc.name}")
+        if is_cleared is None: is_cleared = _is_cheque_cleared(payment_mode, cheque_date)
     else:
-        is_cleared = _is_cheque_cleared(payment_mode, cheque_date)
-        
+        # Cash, UPI, Bank Transfer are always cleared instantly
+        is_cleared = True
     status      = _sale_status(paid_amount, total_amount, str(due_date), payment_mode, is_cleared)
 
     frappe.db.set_value("Mandi Sale", doc.name, {
         "status":  status,
         "duedate": due_date,
     }, update_modified=False)
+    
+    # Release the reentrancy guard
+    frappe.flags._posting_sale_ledger = False
 
     frappe.msgprint(
-        f"✅ Journal Entry <b>{sale_je.name}</b> created for Sale <b>{doc.name}</b>",
+        f"✅ Ledger Entry <b>{primary_je_name}</b> created for Bill <b>#{bill_ref}</b>",
         indicator="green",
     )
 
@@ -613,7 +819,12 @@ def _create_purchase_receipt(doc):
     roll back the financial Journal Entry above.
     """
     try:
-        company   = get_default_company()
+        company = None
+        if getattr(doc, "organization_id", None):
+            company = frappe.db.get_value("Mandi Organization", doc.organization_id, "erp_company")
+        if not company:
+            company = get_default_company()
+
         supplier  = ensure_supplier_for_contact(doc.party_id, company)
         warehouse = get_default_warehouse(company)
 
@@ -674,12 +885,17 @@ def _tag_gl_entries(je_name, voucher_type, voucher_no):
     Directly update GL Entries for a submitted Journal Entry to ensure
     the against_voucher and against_voucher_type are correctly populated.
     This bypasses ERPNext's restriction on custom doctypes in JE's reference_type.
+
+    NOTE: Do NOT filter by voucher_type here. ERPNext creates GL entries with
+    voucher_type matching the JE's voucher_type (e.g. 'Cash Entry', 'Bank Entry',
+    'Journal Entry'). We tag by voucher_no only so all legs are captured.
     """
     frappe.db.sql("""
         UPDATE `tabGL Entry`
         SET against_voucher_type = %s, against_voucher = %s
-        WHERE voucher_no = %s AND voucher_type = 'Journal Entry' AND is_cancelled = 0
+        WHERE voucher_no = %s AND is_cancelled = 0
     """, (voucher_type, voucher_no, je_name))
+    frappe.db.commit()
     
 def on_arrival_submit(doc, method=None):
     """Dispatches to ledger + stock receipt on Mandi Arrival submit."""
@@ -708,3 +924,31 @@ def on_sale_submit(doc, method=None):
             indicator="red",
         )
         raise   # re-raise so the submit is rolled back if ledger failed
+
+
+# ── Settlement Dispatchers ──────────────────────────────────────────────────
+
+def on_payment_submit(doc, method=None):
+    """Triggered when an ERPNext Payment Entry is submitted."""
+    if doc.party_type in ("Customer", "Supplier") and doc.party:
+        _auto_settle_party(doc.party_type, doc.party, doc.company)
+
+
+def on_journal_submit(doc, method=None):
+    """Triggered when an ERPNext Journal Entry is submitted."""
+    # Skip settlement if we're inside post_sale_ledger or post_arrival_ledger.
+    # The sale/arrival already computed its own status; running settlement now
+    # would overwrite amountreceived to 0 because the GL entries aren't
+    # fully tagged yet (race condition).
+    if getattr(frappe.flags, '_posting_sale_ledger', False):
+        return
+    if getattr(frappe.flags, '_posting_arrival_ledger', False):
+        return
+    
+    parties_processed = set()
+    for acc in doc.accounts:
+        if acc.party_type in ("Customer", "Supplier") and acc.party:
+            key = (acc.party_type, acc.party)
+            if key not in parties_processed:
+                _auto_settle_party(acc.party_type, acc.party, doc.company)
+                parties_processed.add(key)

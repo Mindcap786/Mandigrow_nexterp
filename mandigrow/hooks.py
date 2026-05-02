@@ -155,11 +155,15 @@ doc_events = {
 			"mandigrow.logic.tenancy.stamp_organization_id",
 			"mandigrow.logic.commission.calculate_arrival_commission",
 		],
-		"on_submit": "mandigrow.logic.automation.on_arrival_submit"
+		"on_submit": [
+			"mandigrow.logic.automation.on_arrival_submit"
+		]
 	},
 	"Mandi Sale": {
 		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
-		"on_submit": "mandigrow.logic.automation.on_sale_submit"
+		"on_submit": [
+			"mandigrow.logic.automation.on_sale_submit"
+		]
 	},
 	"Mandi Contact": {
 		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
@@ -169,6 +173,12 @@ doc_events = {
 	},
 	"Mandi Storage Location": {
 		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
+	},
+	"Payment Entry": {
+		"on_submit": "mandigrow.logic.automation.on_payment_submit"
+	},
+	"Journal Entry": {
+		"on_submit": "mandigrow.logic.automation.on_journal_submit"
 	},
 }
 

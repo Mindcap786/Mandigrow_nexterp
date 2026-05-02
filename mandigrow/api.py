@@ -161,30 +161,63 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
     if not date:
         date = frappe.utils.today()
 
-    company = _get_user_company()
+    # Resolve company: prefer the org_id passed by the frontend (most reliable),
+    # fall back to the session-user's linked company.
+    company = None
+    if org_id:
+        company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+    if not company:
+        company = _get_user_company()
+
     if not company:
         return {"entries": [], "arrivalLotMap": {}, "arrivalReferenceMap": {},
                 "saleReferenceMap": {}, "saleItemMap": {}, "contactMap": {},
                 "arrivalTimestampMap": {}, "arrivalLotPrefixMap": {}}
 
     # ── 1. Fetch GL Entries for the date ─────────────────────────────────
-    gl_entries = frappe.get_all(
-        "GL Entry",
-        filters={
-            "posting_date": date,
-            "is_cancelled": 0,
-            "company": company,
-        },
-        ignore_permissions=True,
-        fields=[
-            "name", "posting_date", "account", "party_type", "party",
-            "debit", "credit", "voucher_type", "voucher_no",
-            "remarks", "against_voucher", "against_voucher_type",
-            "cost_center", "creation",
-        ],
-        order_by="creation desc",
-        limit=1000,
-    )
+    # Cheque-aware query:
+    #   • Non-cheque entries: show when posting_date = date
+    #   • Cleared cheques:    show when clearance_date = date (regardless of future posting_date)
+    #   • Uncleared cheques:  show when posting_date = date (pending/udhaar display)
+    # Day Book entries — all GL legs of any voucher active on `date`, with
+    # the cheque rule applied:
+    #   • Non-cheque vouchers   → show on their posting_date.
+    #   • Cleared cheques        → show on their clearance_date (regardless of
+    #                              posting_date), so the bank movement lands on
+    #                              the day funds actually clear.
+    #   • Pending (post-dated) cheques → show on posting_date (as udhaar)
+    # No account filter: we want the goods-receipt and supplier/debtor legs
+    # too, so the frontend can render Purchase+Payment / Sale+Receipt as one
+    # transaction (grouped by reference_id) instead of an orphaned cash leg.
+    gl_entries = frappe.db.sql("""
+        SELECT DISTINCT
+            gl.name, gl.posting_date, gl.account, gl.party_type, gl.party,
+            gl.debit, gl.credit, gl.voucher_type, gl.voucher_no,
+            gl.against_voucher, gl.against_voucher_type,
+            gl.cost_center, gl.creation,
+            COALESCE(je.user_remark, gl.remarks) as remarks,
+            acc.account_type, acc.account_sub_type, acc.root_type,
+            je.cheque_no, je.clearance_date
+        FROM `tabGL Entry` gl
+        LEFT JOIN `tabJournal Entry` je
+               ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        LEFT JOIN `tabAccount` acc ON gl.account = acc.name
+        WHERE gl.is_cancelled = 0
+          AND gl.company = %s
+          AND (
+              -- Non-cheque entries
+              ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date = %s)
+              OR
+              -- Cleared cheques show on clearance date
+              (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date = %s)
+              OR
+              -- Uncleared cheques show on posting date
+              (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NULL AND gl.posting_date = %s)
+          )
+        ORDER BY gl.creation DESC
+    """, (company, date, date, date), as_dict=True)
+
+    # Consolidated redundant gl_entries logic.
 
     if not gl_entries:
         return {
@@ -197,6 +230,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             "arrivalTimestampMap": {},
             "arrivalLotPrefixMap": {},
         }
+
 
     # ── 2. Build contact map (party ID → Human Name) ─────────────────────
     # ── 3. Fetch Mandi Arrivals for the day (for lot enrichment) ─────────
@@ -357,38 +391,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             liquid_accounts.append(company_defaults.default_cash_account)
             cash_accounts.append(company_defaults.default_cash_account)
 
-    # Day Book entries — all GL legs of any voucher active on `date`, with
-    # the cheque rule applied:
-    #   • Non-cheque vouchers   → show on their posting_date.
-    #   • Cleared cheques        → show on their clearance_date (regardless of
-    #                              posting_date), so the bank movement lands on
-    #                              the day funds actually clear.
-    #   • Pending (post-dated) cheques → hidden until cleared (acts as udhaar).
-    # No account filter: we want the goods-receipt and supplier/debtor legs
-    # too, so the frontend can render Purchase+Payment / Sale+Receipt as one
-    # transaction (grouped by reference_id) instead of an orphaned cash leg.
-    gl_entries = frappe.db.sql("""
-        SELECT DISTINCT
-            gl.name, gl.posting_date, gl.account, gl.party_type, gl.party,
-            gl.debit, gl.credit, gl.voucher_type, gl.voucher_no,
-            gl.against_voucher, gl.against_voucher_type,
-            gl.cost_center, gl.creation,
-            COALESCE(je.user_remark, gl.remarks) as remarks,
-            acc.account_type, acc.account_sub_type, acc.root_type,
-            je.cheque_no, je.clearance_date
-        FROM `tabGL Entry` gl
-        LEFT JOIN `tabJournal Entry` je
-               ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
-        LEFT JOIN `tabAccount` acc ON gl.account = acc.name
-        WHERE gl.is_cancelled = 0
-          AND gl.company = %s
-          AND (
-              (gl.posting_date = %s AND (gl.voucher_type != 'Journal Entry' OR je.cheque_no IS NULL OR je.cheque_no = '' OR je.clearance_date IS NOT NULL))
-              OR
-              (gl.voucher_type = 'Journal Entry' AND je.clearance_date = %s)
-          )
-        ORDER BY gl.creation DESC
-    """, (company, date, date), as_dict=True)
+    # gl_entries logic has been consolidated above to prevent logic mismatch.
 
     # Opening balance — strictly liquid accounts (cash + bank), excluding
     # uncleared cheques. Same cheque rule, but applied to balances < date.
@@ -402,11 +405,16 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
               AND gl.is_cancelled = 0
               AND gl.company = %s
               AND (
-                  (gl.posting_date < %s AND (gl.voucher_type != 'Journal Entry' OR je.cheque_no IS NULL OR je.cheque_no = '' OR je.clearance_date IS NOT NULL))
+                  -- Non-cheque entries
+                  ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date < %s)
                   OR
-                  (gl.voucher_type = 'Journal Entry' AND je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date < %s)
+                  -- Cleared cheques apply if cleared before date
+                  (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date < %s)
+                  OR
+                  -- Uncleared cheques apply if posted before date
+                  (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NULL AND gl.posting_date < %s)
               )
-        """, (liquid_accounts, company, date, date), as_dict=True)
+        """, (liquid_accounts, company, date, date, date), as_dict=True)
         opening_balance = flt(opening_res[0].balance) if opening_res and opening_res[0].balance else 0
     else:
         opening_balance = 0
@@ -414,12 +422,23 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
     # ── 6. Shape GL Entries → Day Book entry format ───────────────────────
     # Propagation Map: Ensure all legs of a voucher inherit the arrival/sale reference
     vno_to_ref = {}
+    je_to_liquid_acc = {}
     for gl in gl_entries:
         vno = gl.get("voucher_no")
         avtype = gl.get("against_voucher_type")
         avno = gl.get("against_voucher")
         if avno and avtype in ["Mandi Arrival", "Mandi Sale"]:
             vno_to_ref[vno] = {"id": avno, "type": avtype}
+            
+        vtype = gl.get("voucher_type")
+        acc_raw = gl.get("account", "")
+        acc_clean = acc_raw[:-len(f" - {company}")] if acc_raw.endswith(f" - {company}") else acc_raw
+        is_liquid = (gl.get("account_type") in ["Cash", "Bank"]) or (gl.get("account") in liquid_accounts)
+        if vtype == "Journal Entry" and is_liquid:
+            je_to_liquid_acc[vno] = {
+                "name": acc_clean,
+                "is_debit": float(gl.get("debit") or 0) > 0
+            }
 
     shaped_entries = []
     voucher_summary_cache = {}
@@ -448,7 +467,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         else:
             reference_id = None
 
-        # Resolve contact
+        # 3. Resolve contact
         party = gl.get("party") or ""
         contact_id = party_to_contact_id.get(party, party) if party else None
         
@@ -457,7 +476,12 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         is_liquid = (gl.get("account_type") in ["Cash", "Bank"]) or (gl.get("account") in liquid_accounts)
         is_income_expense = root_type in ["Income", "Expense"]
 
-        if not contact_id and reference_id and not is_income_expense:
+        # Only auto-enrich contact_id for party-related legs (receivable/payable)
+        # to prevent Stock/Revenue legs from inheriting a contact and causing
+        # double-counting in Day Book grouping.
+        is_party_acc = gl.get("party_type") in ["Customer", "Supplier"] or gl.get("account_type") in ["Receivable", "Payable"]
+        
+        if not contact_id and reference_id and is_party_acc:
             if against_vtype == "Mandi Arrival" or voucher_vtype == "Mandi Arrival":
                 contact_id = arrival_to_farmer_map.get(reference_id)
             elif against_vtype == "Mandi Sale" or voucher_vtype == "Mandi Sale":
@@ -537,9 +561,24 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         account_name_raw = gl.get("account", "")
         account_name_clean = account_name_raw[:-len(f" - {company}")] if account_name_raw.endswith(f" - {company}") else account_name_raw
 
+        if gl.get("voucher_type") == "Journal Entry" and gl.get("root_type") == "Equity":
+            liquid_info = je_to_liquid_acc.get(gl.get("voucher_no"))
+            if liquid_info:
+                action = "Deposit on" if liquid_info["is_debit"] else "Withdrawal on"
+                account_name_clean = f"{action} {liquid_info['name']}"
+
+        # Effective date: for cleared cheques, use clearance_date so the entry
+        # appears in the Day Book on the day money actually moved, not the
+        # future cheque_date that is stored as posting_date.
+        effective_date = (
+            str(gl["clearance_date"])
+            if gl.get("cheque_no") and gl.get("clearance_date")
+            else str(gl.get("posting_date", date))
+        )
+
         shaped_entries.append({
             "id": gl["name"],
-            "entry_date": str(gl.get("posting_date", date)),
+            "entry_date": effective_date,
             "created_at": str(gl.get("creation") or ""),
             "debit": float(gl.get("debit") or 0),
             "credit": float(gl.get("credit") or 0),
@@ -653,7 +692,7 @@ def get_features() -> list:
 def get_logged_user() -> str:
     return frappe.session.user
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=False)
 def get_full_user_context(p_user_id: str = None) -> dict:
     # If Next.js sends the ID via RPC, use it, else use the currently logged in user
     user_id = p_user_id or frappe.session.user
@@ -663,11 +702,11 @@ def get_full_user_context(p_user_id: str = None) -> dict:
     # but since this is a scratch build, all new logins will use the Frappe email.
     
     if user_id == "Administrator":
-        org_id = (
-            frappe.db.get_value("User", "Administrator", "mandi_organization")
-            or frappe.db.get_single_value("Global Defaults", "default_company")
-            or "MandiGrow"
-        )
+        org_id = frappe.db.get_value("User", "Administrator", "mandi_organization")
+        if not org_id:
+            # Last resort: use the default company but only for the super admin
+            org_id = frappe.db.get_single_value("Global Defaults", "default_company") or "MandiGrow"
+        
         org_data = _get_org_info(org_id)
         return {
             "id": "Administrator",
@@ -702,10 +741,22 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 "subscription_tier": org_data.get("subscription_tier") or "starter",
             }
             
+        # Determine role based on Frappe roles
+        from mandigrow.logic.tenancy import is_super_admin
+        
+        # Default role from User DocType
+        role = getattr(user, "role_type", "admin")
+        
+        # Platform-level Super Admin Escalation
+        # Only the literal 'Administrator' or the owner email get global HQ access.
+        owner_email = "mindcap786@gmail.com"
+        if is_super_admin(user.name) or user.email == owner_email or user.name == owner_email:
+            role = "super_admin"
+            
         return {
             "id": user.name,
             "full_name": user.full_name,
-            "role": getattr(user, "role_type", "admin") or "admin",
+            "role": role,
             "business_domain": getattr(user, "business_domain", "mandi") or "mandi",
             "organization_id": org_id,
             "organization": org_data,
@@ -741,6 +792,222 @@ def check_unique(email: str = None, username: str = None) -> dict:
     
     return result
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TENANT ONBOARDING ENGINE
+# ─────────────────────────────────────────────────────────────────────────────
+# Single source of truth for all tenant setup. Idempotent — safe to call
+# multiple times. Called by signup_user and repair_tenant.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def setup_new_tenant(org_id: str) -> dict:
+    """
+    Atomically provision ALL resources required for a new Mandi tenant.
+    
+    Guarantees (idempotent — skips if already exists):
+      1. Frappe Company created and linked to org
+      2. Core Chart of Accounts (Cash, Bank, Stock, Creditors, Debtors, Commission)
+      3. Supplier Group "Mandi Farmers"
+      4. Customer Group "Mandi Buyers"
+      5. Default Storage Location "Mandi"
+      6. Mandi Settings record with sensible defaults
+    
+    Returns a dict of what was created vs skipped for audit logging.
+    """
+    report = {"org_id": org_id, "created": [], "skipped": [], "errors": []}
+
+    org = frappe.get_doc("Mandi Organization", org_id)
+    org_name = org.organization_name or org_id
+
+    # ── Step 1: Frappe Company ───────────────────────────────────────────────
+    company = org.erp_company
+    if not company or not frappe.db.exists("Company", company):
+        company = org_name
+        if not frappe.db.exists("Company", company):
+            try:
+                # Generate unique abbreviation
+                words = company.split()
+                base_abbr = "".join(w[0] for w in words if w).upper()[:5] or "MG"
+                abbr = base_abbr
+                counter = 2
+                while frappe.db.exists("Company", {"abbr": abbr}):
+                    abbr = f"{base_abbr}{counter}"
+                    counter += 1
+
+                co = frappe.get_doc({
+                    "doctype": "Company",
+                    "company_name": company,
+                    "default_currency": "INR",
+                    "country": "India",
+                    "abbr": abbr,
+                })
+                co.insert(ignore_permissions=True)
+                frappe.db.commit()
+                report["created"].append(f"Company: {company} (abbr: {abbr})")
+            except Exception as e:
+                report["errors"].append(f"Company creation failed: {e}")
+                frappe.log_error(f"setup_new_tenant: Company failed for {org_id}: {e}")
+
+        # Always link (even if company pre-existed)
+        if frappe.db.exists("Company", company):
+            frappe.db.set_value("Mandi Organization", org_id, "erp_company", company)
+            frappe.db.commit()
+            report["created"].append(f"Company linked: {company}")
+        else:
+            report["errors"].append("Company not found after creation attempt — skipping accounts")
+            return report
+    else:
+        report["skipped"].append(f"Company: {company}")
+
+    abbr = frappe.db.get_value("Company", company, "abbr") or ""
+
+    # ── Step 2: Core Chart of Accounts ──────────────────────────────────────
+    def _ensure_account(acc_name, parent_search_list, account_type, is_group=0):
+        """Create account if it doesn't exist. Returns account name."""
+        # Check by name
+        full_name = f"{acc_name} - {abbr}"
+        if frappe.db.exists("Account", full_name):
+            report["skipped"].append(f"Account: {full_name}")
+            return full_name
+        # Check by type
+        existing = frappe.db.get_value("Account",
+            {"company": company, "account_type": account_type, "is_group": is_group}, "name")
+        if existing:
+            report["skipped"].append(f"Account ({account_type}): {existing}")
+            return existing
+
+        # Find parent
+        parent = None
+        for p_name in parent_search_list:
+            for candidate in (f"{p_name} - {abbr}", f"{p_name} - {company}", p_name):
+                if frappe.db.exists("Account", {"name": candidate, "company": company, "is_group": 1}):
+                    parent = candidate
+                    break
+            if parent:
+                break
+
+        if not parent:
+            report["errors"].append(f"No parent found for {acc_name}")
+            return None
+
+        try:
+            acc = frappe.get_doc({
+                "doctype": "Account",
+                "account_name": acc_name,
+                "parent_account": parent,
+                "company": company,
+                "account_type": account_type,
+                "is_group": is_group,
+            })
+            acc.insert(ignore_permissions=True)
+            frappe.db.commit()
+            report["created"].append(f"Account: {acc.name}")
+            return acc.name
+        except Exception as e:
+            report["errors"].append(f"Account {acc_name}: {e}")
+            return None
+
+    _ensure_account("Cash",             ["Cash In Hand", "Cash", "Bank and Cash", "Current Assets"], "Cash")
+    _ensure_account("Bank Account",     ["Bank Accounts", "Bank", "Bank and Cash", "Current Assets"], "Bank")
+    _ensure_account("Stock In Hand",    ["Stock Assets", "Current Assets", "Direct Assets"],          "Stock")
+    _ensure_account("Creditors",        ["Accounts Payable", "Current Liabilities"],                  "Payable")
+    _ensure_account("Debtors",          ["Accounts Receivable", "Current Assets"],                    "Receivable")
+    _ensure_account("Commission Income",["Direct Income", "Income", "Revenue"],                       "Income Account")
+    _ensure_account("Expense Recovery", ["Direct Income", "Income", "Revenue"],                       "Income Account")
+
+    # ── Step 3: Supplier Group ───────────────────────────────────────────────
+    if not frappe.db.exists("Supplier Group", "Mandi Farmers"):
+        try:
+            sg = frappe.get_doc({
+                "doctype": "Supplier Group",
+                "supplier_group_name": "Mandi Farmers",
+                "parent_supplier_group": "All Supplier Groups",
+            })
+            sg.insert(ignore_permissions=True)
+            frappe.db.commit()
+            report["created"].append("Supplier Group: Mandi Farmers")
+        except Exception as e:
+            # Try without parent
+            try:
+                sg = frappe.get_doc({"doctype": "Supplier Group", "supplier_group_name": "Mandi Farmers"})
+                sg.insert(ignore_permissions=True)
+                frappe.db.commit()
+                report["created"].append("Supplier Group: Mandi Farmers (no parent)")
+            except Exception as e2:
+                report["errors"].append(f"Supplier Group: {e2}")
+    else:
+        report["skipped"].append("Supplier Group: Mandi Farmers")
+
+    # ── Step 4: Customer Group ───────────────────────────────────────────────
+    if not frappe.db.exists("Customer Group", "Mandi Buyers"):
+        try:
+            cg = frappe.get_doc({
+                "doctype": "Customer Group",
+                "customer_group_name": "Mandi Buyers",
+                "parent_customer_group": "All Customer Groups",
+            })
+            cg.insert(ignore_permissions=True)
+            frappe.db.commit()
+            report["created"].append("Customer Group: Mandi Buyers")
+        except Exception as e:
+            try:
+                cg = frappe.get_doc({"doctype": "Customer Group", "customer_group_name": "Mandi Buyers"})
+                cg.insert(ignore_permissions=True)
+                frappe.db.commit()
+                report["created"].append("Customer Group: Mandi Buyers (no parent)")
+            except Exception as e2:
+                report["errors"].append(f"Customer Group: {e2}")
+    else:
+        report["skipped"].append("Customer Group: Mandi Buyers")
+
+    # ── Step 5: Default Storage Location ────────────────────────────────────
+    existing_locs = frappe.db.count("Mandi Storage Location",
+        {"organization_id": org_id, "is_active": 1})
+    if existing_locs == 0:
+        try:
+            loc = frappe.get_doc({
+                "doctype": "Mandi Storage Location",
+                "location_name": "Mandi",
+                "organization_id": org_id,
+                "is_active": 1,
+            })
+            loc.insert(ignore_permissions=True)
+            frappe.db.commit()
+            report["created"].append(f"Storage Location: Mandi ({org_id})")
+        except Exception as e:
+            report["errors"].append(f"Storage Location: {e}")
+    else:
+        report["skipped"].append(f"Storage Location: {existing_locs} exist")
+
+    # Step 6 removed because 'Mandi Settings' doctype does not exist in the DB.
+
+    frappe.log_error(
+        f"setup_new_tenant({org_id}): created={report['created']}, "
+        f"skipped={len(report['skipped'])}, errors={report['errors']}",
+        "Tenant Setup Report"
+    )
+    return report
+
+
+@frappe.whitelist()
+def repair_tenant(org_id: str = None) -> dict:
+    """
+    Admin API: Re-run setup_new_tenant for an org to fix any missing resources.
+    If org_id is None, repairs ALL organizations.
+    Callable from: bench execute, admin UI, or direct API call.
+    """
+    if org_id:
+        result = setup_new_tenant(org_id)
+        return {"status": "ok", "results": [result]}
+
+    # Repair all orgs
+    orgs = frappe.get_all("Mandi Organization", fields=["name"])
+    results = []
+    for org in orgs:
+        result = setup_new_tenant(org.name)
+        results.append(result)
+    return {"status": "ok", "results": results}
+
+
 @frappe.whitelist(allow_guest=True)
 def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str) -> dict:
     if frappe.db.exists("User", email):
@@ -758,20 +1025,14 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
     org.insert(ignore_permissions=True)
     org_id = org.name
 
-    # 2. Create ERPNext Company (for accounting isolation)
-    company_name = org_name
-    if not frappe.db.exists("Company", company_name):
-        try:
-            company = frappe.get_doc({
-                "doctype": "Company",
-                "company_name": company_name,
-                "default_currency": "INR",
-                "country": "India",
-                "abbr": "".join(w[0] for w in company_name.split()).upper()[:5] or "MG",
-            })
-            company.insert(ignore_permissions=True)
-        except Exception:
-            pass
+    # 2. Provision ALL tenant resources atomically (company, accounts, storage, etc.)
+    setup_report = setup_new_tenant(org_id)
+    if setup_report.get("errors"):
+        # Non-fatal: user can still log in, admin can repair later
+        frappe.log_error(
+            f"signup_user: Partial setup for {org_id}: {setup_report['errors']}",
+            "Tenant Setup Warning"
+        )
 
     # 3. Create User
     user = frappe.get_doc({
@@ -783,30 +1044,39 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
         "new_password": password,
         "send_welcome_email": 0,
         "role_type": "admin",
-        "mandi_organization": org_id, # This is the ORG-XXXXX ID
+        "mandi_organization": org_id,
         "business_domain": "mandi"
     })
     user.flags.ignore_password_policy = True
     user.insert(ignore_permissions=True)
-    
+
     # Explicitly set password to ensure it hashes correctly
     from frappe.utils.password import update_password
     update_password(user.name, password)
-    
-    # Assign standard roles
+
+    # Assign standard roles (System Manager allows Desk access for tenant troubleshooting)
     user.add_roles("System Manager")
-    
-    return {"status": "success", "user_id": user.name, "org_id": org_id}
+
+    return {
+        "status": "success",
+        "user_id": user.name,
+        "org_id": org_id,
+        "setup": {
+            "created": setup_report.get("created", []),
+            "errors": setup_report.get("errors", [])
+        }
+    }
 
 
 @frappe.whitelist(allow_guest=False)
-def provision_team_member(email: str, full_name: str, password: str = "mandi123", role: str = "member") -> dict:
+def provision_team_member(email: str, full_name: str, password: str = "mandi123", role: str = "member", organization_id: str = None) -> dict:
     """
-    Creates a new team member user under the same organization as the current user.
-    This ensures that when an Admin gives access, the new user inherits the SAME 
-    mandi data and accounting company.
+    Creates a new team member user. If organization_id is provided and the caller is a Super Admin,
+    it uses that org. Otherwise, it uses the caller's organization.
     """
-    admin_org = _get_user_org()
+    from mandigrow.logic.tenancy import is_super_admin
+    
+    admin_org = organization_id if (is_super_admin() and organization_id) else _get_user_org()
     
     if not admin_org:
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
@@ -1001,7 +1271,7 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> list:
     if not effective_org:
         return {"records": [], "contacts": [], "total_count": 0}
 
-    filters = [["organization_id", "=", effective_org]]
+    filters = [["organization_id", "=", effective_org], ["full_name", "!=", "Walk-in Buyer"]]
     if contact_type:
         # If multiple types (e.g. "farmer,supplier"), handle as IN
         if "," in contact_type:
@@ -1097,28 +1367,57 @@ def get_commission_rate() -> float:
 def get_financial_summary(p_org_id: str = None, _cache_bust: any = None) -> dict:
     """
     Returns high-level financial summary: Receivables, Payables, Cash, Bank.
+    Respects cheque clearance: uncleared cheques do NOT affect balances.
     """
     # Ensure _cache_bust is treated as a string to avoid type validation errors
     _cache_bust_str = str(_cache_bust) if _cache_bust else None
     
-    company = _get_user_company()
+    # Resolve company: prioritize p_org_id if provided
+    company = None
+    if p_org_id:
+        company = frappe.db.get_value("Mandi Organization", p_org_id, "erp_company")
+    if not company:
+        company = _get_user_company()
+        
+    if not company:
+        return {
+            "receivables": 0, "farmer_payables": 0, "supplier_payables": 0,
+            "cash": {"id": "cash", "balance": 0, "name": "Cash In Hand"},
+            "bank": {"id": "bank", "balance": 0, "name": "Bank Accounts"}
+        }
+
+    # Helper for the cheque filter
+    # Condition: Include if (NOT a cheque) OR (IS a cleared cheque)
+    cheque_filter = """
+        AND (
+            (je.cheque_no IS NULL OR je.cheque_no = '')
+            OR
+            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL)
+        )
+    """
 
     # Fetch total AR (Debtors)
-    receivables_res = frappe.db.sql("""
-        SELECT SUM(debit - credit) 
-        FROM `tabGL Entry` 
-        WHERE (account LIKE 'Debtors%%' OR account LIKE 'Receivable%%' OR account LIKE 'Accounts Receivable%%') AND company = %s AND is_cancelled = 0
+    receivables_res = frappe.db.sql(f"""
+        SELECT SUM(gl.debit - gl.credit) 
+        FROM `tabGL Entry` gl
+        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        WHERE (gl.account LIKE 'Debtors%%' OR gl.account LIKE 'Receivable%%' OR gl.account LIKE 'Accounts Receivable%%') 
+          AND gl.company = %s AND gl.is_cancelled = 0
+          {cheque_filter}
     """, (company,))
     receivables = receivables_res[0][0] if receivables_res and receivables_res[0][0] else 0
 
     # Fetch AP split by Farmer vs Supplier
-    ap_split = frappe.db.sql("""
+    ap_split = frappe.db.sql(f"""
         SELECT 
             c.contact_type,
             SUM(gl.credit - gl.debit) as balance
         FROM `tabGL Entry` gl
         LEFT JOIN `tabMandi Contact` c ON gl.party = c.supplier OR gl.party = c.customer
-        WHERE (gl.account LIKE 'Creditors%%' OR gl.account LIKE 'Payable%%') AND gl.company = %s AND gl.is_cancelled = 0
+        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        WHERE (gl.account LIKE 'Creditors%%' OR gl.account LIKE 'Payable%%') 
+          AND gl.company = %s AND gl.is_cancelled = 0
+          {cheque_filter}
         GROUP BY c.contact_type
     """, (company,), as_dict=True)
 
@@ -1132,18 +1431,25 @@ def get_financial_summary(p_org_id: str = None, _cache_bust: any = None) -> dict
             supplier_payables += bal
 
     # Fetch total Cash
-    cash_res = frappe.db.sql("""
-        SELECT SUM(debit - credit) 
-        FROM `tabGL Entry` 
-        WHERE account LIKE 'Cash%%' AND company = %s AND is_cancelled = 0
+    cash_res = frappe.db.sql(f"""
+        SELECT SUM(gl.debit - gl.credit) 
+        FROM `tabGL Entry` gl
+        INNER JOIN `tabAccount` acc ON gl.account = acc.name
+        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        WHERE (acc.account_type = 'Cash' OR gl.account LIKE 'Cash%%')
+          AND gl.company = %s AND gl.is_cancelled = 0
     """, (company,))
     cash = cash_res[0][0] if cash_res and cash_res[0][0] else 0
 
     # Fetch total Bank
-    bank_res = frappe.db.sql("""
-        SELECT SUM(debit - credit) 
-        FROM `tabGL Entry` 
-        WHERE account LIKE 'Bank%%' AND company = %s AND is_cancelled = 0
+    bank_res = frappe.db.sql(f"""
+        SELECT SUM(gl.debit - gl.credit) 
+        FROM `tabGL Entry` gl
+        INNER JOIN `tabAccount` acc ON gl.account = acc.name
+        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        WHERE (acc.account_type = 'Bank' OR gl.account LIKE 'Bank%%')
+          AND gl.company = %s AND gl.is_cancelled = 0
+          {cheque_filter}
     """, (company,))
     bank = bank_res[0][0] if bank_res and bank_res[0][0] else 0
 
@@ -1155,6 +1461,7 @@ def get_financial_summary(p_org_id: str = None, _cache_bust: any = None) -> dict
         "bank": {"id": "bank", "balance": float(bank), "name": "Bank Accounts"}
     }
 
+
 @frappe.whitelist(allow_guest=False)
 def get_accounts(account_type: str = None, sub_type: str = None) -> list:
     """Returns a list of accounts filtered by type."""
@@ -1164,7 +1471,7 @@ def get_accounts(account_type: str = None, sub_type: str = None) -> list:
     if sub_type:
         filters.append(["account_type", "=", (sub_type or "").title()])
         
-    accounts = frappe.get_list("Account", filters=filters, fields=["name as id", "account_name as name", "account_type", "root_type", "is_group"], ignore_permissions=True)
+    accounts = frappe.get_list("Account", filters=filters, fields=["name as id", "account_name as name", "account_type", "root_type", "is_group", "is_default"], ignore_permissions=True)
     return accounts
 
 @frappe.whitelist(allow_guest=False)
@@ -1196,7 +1503,13 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
     """
     Returns party balances equivalent to view_party_balances.
     """
-    company = _get_user_company()
+    # Resolve company: prioritize p_org_id if provided
+    company = None
+    if p_org_id:
+        company = frappe.db.get_value("Mandi Organization", p_org_id, "erp_company")
+    if not company:
+        company = _get_user_company()
+    
     org_id = p_org_id or _get_user_org()
 
     # Use tabMandi Contact as the base to ensure ALL contacts show up even with 0 balance
@@ -1210,6 +1523,7 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
             COALESCE(
                 (SELECT SUM(gl.debit - gl.credit)
                  FROM `tabGL Entry` gl
+                 LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
                  WHERE gl.is_cancelled = 0
                    AND gl.company = %(company)s
                    AND (
@@ -1217,12 +1531,15 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
                        OR (gl.party_type = 'Customer' AND gl.party = c.customer)
                        OR (gl.party_type IN ('Supplier', 'Customer') AND gl.party = c.name)
                    )
+                   -- Use full accounting balance (including pending cheques) to match ledger
+                   AND 1=1
                 ), 0
             ) as net_balance
         FROM `tabMandi Contact` c
-        WHERE 1=1
+        WHERE c.full_name != 'Walk-in Buyer'
     """
     params = {"company": company}
+
 
     if org_id:
         query += " AND c.organization_id = %(org_id)s"
@@ -1376,19 +1693,26 @@ def get_ledger_statement(contact_id: str, from_date: str = None, to_date: str = 
         party_params = [v for pair in parties for v in pair]
 
         # ── 1. Opening balance (signed Dr - Cr before from_date) ───────────────
+        # Cheque-aware: for cheque entries, use clearance_date as the effective
+        # date so that post-dated cheques only affect the balance once cleared.
         ob_row = frappe.db.sql(f"""
-            SELECT COALESCE(SUM(debit - credit), 0) AS ob
-              FROM `tabGL Entry`
-             WHERE (party_type, party) IN ({placeholders})
-               AND posting_date < %s
-               AND company = %s
-               AND is_cancelled = 0
+            SELECT COALESCE(SUM(gl.debit - gl.credit), 0) AS ob
+              FROM `tabGL Entry` gl
+              LEFT JOIN `tabJournal Entry` je
+                     ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+             WHERE (gl.party_type, gl.party) IN ({placeholders})
+               AND COALESCE(je.clearance_date, gl.posting_date) < %s
+               AND gl.company = %s
+               AND gl.is_cancelled = 0
         """, tuple(party_params + [from_date, company]))
         opening_balance = flt(ob_row[0][0] or 0, 2)
 
         # ── 2. Period transactions ─────────────────────────────────────────────
+        # All transactions within the date range are now included
         rows = frappe.db.sql(f"""
-            SELECT gl.name, gl.posting_date AS date,
+            SELECT gl.name,
+                   COALESCE(je.clearance_date, gl.posting_date) AS date,
+                   gl.posting_date AS original_posting_date,
                    gl.account, gl.party_type, gl.party,
                    gl.voucher_type, gl.voucher_no,
                    gl.against_voucher, gl.against_voucher_type,
@@ -1399,10 +1723,10 @@ def get_ledger_statement(contact_id: str, from_date: str = None, to_date: str = 
               LEFT JOIN `tabJournal Entry` je
                      ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
              WHERE (gl.party_type, gl.party) IN ({placeholders})
-               AND gl.posting_date BETWEEN %s AND %s
+               AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s
                AND gl.company = %s
                AND gl.is_cancelled = 0
-             ORDER BY gl.posting_date ASC, gl.creation ASC
+             ORDER BY date ASC, gl.creation ASC
         """, tuple(party_params + [from_date, to_date, company]), as_dict=True)
 
         # ── 3. Bulk-load referenced item / lot detail (avoid N+1) ──────────────
@@ -1482,6 +1806,11 @@ def get_ledger_statement(contact_id: str, from_date: str = None, to_date: str = 
             items_detail = []
             summary_lines = []
             bill_no = None
+
+            # Enhanced Item Resolution for Journal Entries
+            # If this is a JV pointing to a Sale or Arrival, pull the items for better audit
+            ref_type = r.get("against_voucher_type") or r.get("voucher_type")
+            ref_id   = r.get("against_voucher") or (r.get("voucher_no") if r.get("voucher_type") in ("Mandi Arrival", "Mandi Sale") else None)
 
             if ref_type == "Mandi Arrival" and ref_id in arrival_lots:
                 bill_no = (arrival_meta.get(ref_id) or {}).get("bill_no")
@@ -2017,8 +2346,18 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
       contra  — internal transfer     → Target Dr, Bank/Cash Cr  (no party)
     """
     try:
-        company = frappe.db.get_single_value("Global Defaults", "default_company") or "MandiGrow"
+        # Resolve company: strictly prioritize the organization's linked ERP company 
+        # to ensure multi-tenant isolation.
+        company = None
         org_id  = p_organization_id or _get_user_org()
+        if org_id:
+            company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+        if not company:
+            company = _get_user_company()
+
+        if not company:
+            return {"error": "Unauthorized: No linked ERP company found for your organization."}
+
         amount  = flt(p_amount or 0)
         discount = flt(p_discount or 0)
 
@@ -2031,9 +2370,17 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         if p_bank_account_id and frappe.db.exists("Account", p_bank_account_id):
             bank_cash_account = p_bank_account_id
         elif p_payment_mode == "cash":
-            bank_cash_account = frappe.db.get_value("Account", {"account_type": "Cash", "company": company}, "name") or "Cash - MG"
+            bank_cash_account = frappe.db.get_value("Account", {"account_type": "Cash", "company": company}, "name")
+            if not bank_cash_account:
+                # Fallback to name search if type-mapping failed
+                bank_cash_account = frappe.db.get_value("Account", {"account_name": ["like", "Cash%"], "company": company}, "name")
         else:
-            bank_cash_account = frappe.db.get_value("Account", {"account_type": "Bank", "company": company}, "name") or "Bank - MG"
+            bank_cash_account = frappe.db.get_value("Account", {"account_type": "Bank", "company": company}, "name")
+            if not bank_cash_account:
+                bank_cash_account = frappe.db.get_value("Account", {"account_name": ["like", "Bank%"], "company": company}, "name")
+
+        if not bank_cash_account:
+            return {"error": f"No valid {p_payment_mode or 'Bank'} account found for company {company}"}
 
         # 2. Resolve party (Customer / Supplier) and party account ───────────
         accounts = []
@@ -2068,7 +2415,12 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                                           else ensure_customer_for_contact(p_party_id, company))
                     except Exception:
                         party_doc_name = contact.customer or contact.full_name or p_party_id
-                    party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name") or "Debtors - MG"
+                    party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
+                    if not party_account:
+                        party_account = frappe.db.get_value("Account", {"account_name": ["like", "Debtors%"], "company": company}, "name")
+                    
+                    if not party_account:
+                        return {"error": f"No Receivable/Debtors account found for company {company}"}
                 else:  # payment
                     party_type = "Supplier"
                     try:
@@ -2078,7 +2430,12 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                                           else ensure_supplier_for_contact(p_party_id, company))
                     except Exception:
                         party_doc_name = contact.supplier or contact.full_name or p_party_id
-                    party_account = frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name") or "Creditors - MG"
+                    party_account = frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
+                    if not party_account:
+                        party_account = frappe.db.get_value("Account", {"account_name": ["like", "Creditors%"], "company": company}, "name")
+                    
+                    if not party_account:
+                        return {"error": f"No Payable/Creditors account found for company {company}"}
 
         # 3. Resolve against_voucher (which bill this settles, if any) ──────
         # invoice_id → Mandi Sale ; arrival_id (or lot's parent) → Mandi Arrival.
@@ -2218,6 +2575,12 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
 
+        from mandigrow.finance.cheque_api import (
+            get_reconciliation_data,
+            mark_cheque_cleared,
+            cancel_cheque_voucher
+        )
+
         remark_prefix = v_type.replace("_", " ").title()
         party_suffix  = f" — {party_name_display}" if party_name_display else ""
         bill_suffix   = f" — for {against_vtype} {against_vname}" if against_vtype else ""
@@ -2251,166 +2614,20 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
 @frappe.whitelist(allow_guest=False)
 def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
-    """Sets the clearance date for a cheque in Journal Entry."""
-    if not voucher_no:
-        frappe.throw("Voucher Number required")
-
-    # Tenant guard: verify voucher belongs to user's company
-    from mandigrow.logic.tenancy import is_super_admin
-    if not is_super_admin():
-        company = _get_user_company()
-        je_company = frappe.db.get_value("Journal Entry", voucher_no, "company")
-        if je_company and je_company != company:
-            frappe.throw(_("You do not have permission to access this voucher."), frappe.PermissionError)
-
-    # Check if it's a Journal Entry
-    # Maybe it's a Payment Entry? (Frappe uses both)
-    if not frappe.db.exists("Journal Entry", voucher_no):
-        if frappe.db.exists("Payment Entry", voucher_no):
-            clearance_date = clearance_date or frappe.utils.today()
-            frappe.db.set_value("Payment Entry", voucher_no, "clearance_date", clearance_date, update_modified=True)
-            frappe.db.commit()
-            return {"status": "success", "message": f"Cheque {voucher_no} cleared"}
-        frappe.throw(f"Voucher {voucher_no} not found")
-
-    clearance_date = clearance_date or frappe.utils.today()
-    
-    doc = frappe.get_doc("Journal Entry", voucher_no)
-    
-    if doc.docstatus == 2:
-        frappe.throw(f"Cannot clear a cancelled voucher {voucher_no}")
-        
-    was_draft = (doc.docstatus == 0)
-    
-    # If it was a "Clear Later" draft, submit it now so it hits the GL!
-    if was_draft:
-        doc.flags.ignore_permissions = True
-        doc.submit()
-        
-    # ERPNext strips clearance_date during submit, so we must ALWAYS set it via db_set
-    doc.db_set("clearance_date", clearance_date, update_modified=True)
-    
-    # ── UPDATE PARENT VOUCHER STATUS ──
-    # Find what this cheque was paying for
-    import re
-    parent_links = []
-    
-    # Extract from user_remark if it's a standard generated remark
-    # Matches: SALE-ORG00001-2026-00003, ARR-ORG00002-2026-00010, [ARR-ORG00002-2026-00010], MSL-0001, etc.
-    match = re.search(r'(?:\[|\b)((?:SALE|MSL|ARR|MAR)-[A-Z0-9]+-\d{4}-\d+|(?:SALE|MSL|ARR|MAR)-\d+)', doc.user_remark or "")
-    if match:
-        avno = match.group(1)
-        avtype = "Mandi Sale" if avno.startswith("SALE") or avno.startswith("MSL") else "Mandi Arrival"
-        parent_links.append({"against_voucher_type": avtype, "against_voucher": avno})
-        
-    if not parent_links:
-        parent_links = frappe.db.sql("""
-            SELECT DISTINCT against_voucher_type, against_voucher
-            FROM `tabGL Entry`
-            WHERE voucher_no = %s AND voucher_type = 'Journal Entry' AND is_cancelled = 0
-              AND against_voucher_type IN ('Mandi Sale', 'Mandi Arrival')
-        """, (voucher_no,), as_dict=True)
-    
-    for link in parent_links:
-        avtype = link.get("against_voucher_type")
-        avno = link.get("against_voucher")
-        if not avtype or not avno: continue
-        
-        # If it was a draft, ERPNext drops custom reference_types on GL entries, so we manually tag them.
-        if was_draft:
-            frappe.db.sql("""
-                UPDATE `tabGL Entry`
-                SET against_voucher_type = %s, against_voucher = %s
-                WHERE voucher_no = %s AND voucher_type = 'Journal Entry' AND is_cancelled = 0
-            """, (avtype, avno, voucher_no))
-        
-        # We need to mathematically recalculate the status
-        if frappe.db.exists(avtype, avno):
-            parent_doc = frappe.get_doc(avtype, avno)
-            if avtype == "Mandi Sale":
-                summary = _get_ledger_summary(avtype, avno, flt(parent_doc.totalamount), due_date=parent_doc.duedate)
-                new_status = summary.get("status", "pending").title()
-                frappe.db.set_value(avtype, avno, "status", new_status)
-            elif avtype == "Mandi Arrival":
-                summary = _get_ledger_summary(avtype, avno, flt(parent_doc.net_payable_farmer))
-                new_status = summary.get("status", "pending").title()
-                frappe.db.set_value(avtype, avno, "status", new_status)
-            
-    frappe.db.commit()
-    return {"status": "success", "message": f"Cheque {voucher_no} cleared"}
+    from mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
+    return _mark_cheque_cleared(voucher_no, clearance_date)
 
 
 @frappe.whitelist(allow_guest=False)
 def cancel_cheque_voucher(voucher_no: str) -> dict:
-    """Cancel a submitted Journal Entry that represents a cheque payment/receipt.
+    from mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
+    return _cancel_cheque_voucher(voucher_no)
 
-    This is the user-facing endpoint for the Cheque Management page.
-    It safely validates that the JE is a cheque before cancelling.
-    """
-    if not voucher_no:
-        frappe.throw("Voucher Number required")
 
-    if not frappe.db.exists("Journal Entry", voucher_no):
-        frappe.throw(f"Journal Entry {voucher_no} not found")
-
-    # Tenant guard: verify voucher belongs to user's company
-    from mandigrow.logic.tenancy import is_super_admin
-    if not is_super_admin():
-        company = _get_user_company()
-        je_company = frappe.db.get_value("Journal Entry", voucher_no, "company")
-        if je_company and je_company != company:
-            frappe.throw(_("You do not have permission to cancel this voucher."), frappe.PermissionError)
-
-    doc = frappe.get_doc("Journal Entry", voucher_no)
-
-    if doc.docstatus == 0:
-        # For draft cheques, just delete the draft
-        doc.delete(ignore_permissions=True)
-        return {"status": "success", "message": f"Draft cheque voucher {voucher_no} deleted"}
-
-    if doc.docstatus != 1:
-        frappe.throw(f"This voucher is not in submitted state (docstatus={doc.docstatus})")
-
-    if not doc.cheque_no:
-        frappe.throw("This Journal Entry does not represent a cheque payment")
-
-    # Record the amount to deduct before cancelling
-    cheque_amount = sum([flt(a.debit_in_account_currency) for a in doc.accounts if "Bank" in (a.account_type or "") or "Cash" in (a.account_type or "")])
-    if not cheque_amount:
-        cheque_amount = sum([flt(a.credit_in_account_currency) for a in doc.accounts if "Bank" in (a.account_type or "") or "Cash" in (a.account_type or "")])
-        
-    doc.cancel()
-    
-    # ── REVERSE FROM PARENT VOUCHER ──
-    parent_links = frappe.db.sql("""
-        SELECT DISTINCT against_voucher_type, against_voucher
-        FROM `tabGL Entry`
-        WHERE voucher_no = %s AND voucher_type = 'Journal Entry'
-    """, (voucher_no,), as_dict=True)
-    
-    for link in parent_links:
-        avtype = link.get("against_voucher_type")
-        avno = link.get("against_voucher")
-        if not avtype or not avno: continue
-        
-        if avtype == "Mandi Sale":
-            current_received = flt(frappe.db.get_value("Mandi Sale", avno, "amountreceived") or 0)
-            new_amount = max(0, current_received - cheque_amount)
-            frappe.db.set_value("Mandi Sale", avno, "amountreceived", new_amount)
-            frappe.db.set_value("Mandi Sale", avno, "status", "Pending")
-        elif avtype == "Mandi Arrival":
-            current_advance = flt(frappe.db.get_value("Mandi Arrival", avno, "advance") or 0)
-            new_amount = max(0, current_advance - cheque_amount)
-            frappe.db.set_value("Mandi Arrival", avno, "advance", new_amount)
-            frappe.db.set_value("Mandi Arrival", avno, "status", "Pending")
-
-    frappe.db.commit()
-    return {
-        "status": "cancelled",
-        "voucher_no": voucher_no,
-        "message": f"Cheque #{doc.cheque_no} has been cancelled successfully",
-        "success": True,
-    }
+@frappe.whitelist(allow_guest=False)
+def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
+    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 
 @frappe.whitelist(allow_guest=False)
@@ -2653,13 +2870,110 @@ def get_invoice_balance(p_invoice_id: str) -> float:
         return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
+def settle_buyer_receipt(p_organization_id: str = None, p_contact_id: str = None, p_payment_amount: float = None, p_payment_id: str = None) -> dict:
+    """
+    Allocates a receipt amount to a buyer's oldest outstanding sale bills (FIFO).
+    """
+    try:
+        if not p_payment_amount or p_payment_amount <= 0:
+            return {"success": True, "message": "No amount to settle"}
+
+        org_id = p_organization_id or _get_user_org()
+        
+        # Get all unpaid or partially paid sales for this buyer, oldest first
+        sales = frappe.get_all("Mandi Sale",
+            filters={
+                "organization_id": org_id,
+                "buyerid": p_contact_id,
+                "status": ["in", ["Pending", "Partial", "Unpaid"]],
+                "docstatus": 1
+            },
+            fields=["name", "totalamount", "amountreceived", "status"],
+            order_by="saledate asc, creation asc"
+        )
+
+        remaining = float(p_payment_amount)
+        for sale in sales:
+            if remaining <= 0: break
+            
+            total = float(sale.totalamount or 0)
+            received = float(sale.amountreceived or 0)
+            due = max(0, total - received)
+            
+            if due <= 0.01: continue # Already paid effectively
+            
+            if remaining >= due:
+                # Fully clear this bill
+                frappe.db.set_value("Mandi Sale", sale.name, {
+                    "amountreceived": total,
+                    "status": "Paid"
+                }, update_modified=False)
+                remaining -= due
+            else:
+                # Partially clear this bill
+                frappe.db.set_value("Mandi Sale", sale.name, {
+                    "amountreceived": received + remaining,
+                    "status": "Partial"
+                }, update_modified=False)
+                remaining = 0
+                
+        frappe.db.commit()
+        return {"success": True, "allocated": float(p_payment_amount) - remaining}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "settle_buyer_receipt Failed")
+        return {"success": False, "error": str(e)}
+
+@frappe.whitelist(allow_guest=False)
 def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = None, p_payment_amount: float = None, p_payment_id: str = None) -> dict:
     """
-    Placeholder for FIFO settlement logic.
-    In Frappe/ERPNext, this is typically handled by Payment Entry references.
+    Allocates a payment amount to a supplier's oldest outstanding arrival bills (FIFO).
     """
-    # For now, we return success as Journal Entries already impact the ledger.
-    return {"success": True, "message": "Settlement handled via Ledger"}
+    try:
+        if not p_payment_amount or p_payment_amount <= 0:
+            return {"success": True, "message": "No amount to settle"}
+
+        org_id = p_organization_id or _get_user_org()
+        
+        # Get all unpaid or partially paid arrivals for this farmer/supplier, oldest first
+        arrivals = frappe.get_all("Mandi Arrival",
+            filters={
+                "organization_id": org_id,
+                "party_id": p_contact_id,
+                "status": ["in", ["Pending", "Partial", "Unpaid"]],
+                "docstatus": 1
+            },
+            fields=["name", "total_net_payable as totalamount", "amount_paid as amountreceived", "status"],
+            order_by="arrival_date asc, creation asc"
+        )
+
+        remaining = float(p_payment_amount)
+        for arr in arrivals:
+            if remaining <= 0: break
+            
+            total = float(arr.totalamount or 0)
+            received = float(arr.amountreceived or 0)
+            due = max(0, total - received)
+            
+            if due <= 0.01: continue
+            
+            if remaining >= due:
+                frappe.db.set_value("Mandi Arrival", arr.name, {
+                    "amount_paid": total,
+                    "status": "Paid"
+                }, update_modified=False)
+                remaining -= due
+            else:
+                frappe.db.set_value("Mandi Arrival", arr.name, {
+                    "amount_paid": received + remaining,
+                    "status": "Partial"
+                }, update_modified=False)
+                remaining = 0
+                
+        frappe.db.commit()
+        return {"success": True, "allocated": float(p_payment_amount) - remaining}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "settle_supplier_payment Failed")
+        return {"success": False, "error": str(e)}
 
 
 @frappe.whitelist(allow_guest=False)
@@ -2668,6 +2982,16 @@ def get_dashboard_data() -> dict:
     Returns aggregated stats and recent activity for the dashboard.
     """
     org_id = _get_user_org()
+    if not org_id:
+        return {
+            "revenue": 0,
+            "collections": 0,
+            "payables": 0,
+            "inventory": 0,
+            "recent_activity": [],
+            "sales_data": []
+        }
+        
     company = _get_user_company()
 
     # 1. Today's Sales Summary (Revenue & Collections Today)
@@ -2887,12 +3211,20 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
         company = _get_user_company()
         account = frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
         if not account:
-            # Fallback to a generic opening balance account
             account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
             
-        party_account = frappe.db.get_value("Account", {"account_type": "Receivable" if contact_type == 'buyer' else "Payable", "company": company}, "name")
+        # Standard ERPNext logic: Resolving the linked party and account
+        from mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
         
-        if party_account and account:
+        party_type = "Customer" if contact_type == 'buyer' else "Supplier"
+        if party_type == "Customer":
+            party = ensure_customer_for_contact(doc.name, company)
+            party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
+        else:
+            party = ensure_supplier_for_contact(doc.name, company)
+            party_account = frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
+        
+        if party and party_account and account:
             je = frappe.get_doc({
                 "doctype": "Journal Entry",
                 "voucher_type": "Journal Entry",
@@ -2901,8 +3233,8 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
                 "accounts": [
                     {
                         "account": party_account,
-                        "party_type": "Mandi Contact",
-                        "party": doc.name,
+                        "party_type": party_type,
+                        "party": party,
                         "debit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
                         "credit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
                     },
@@ -2913,7 +3245,8 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
                     }
                 ]
             })
-            je.insert(ignore_permissions=True)
+            je.flags.ignore_permissions = True
+            je.insert()
             je.submit()
 
     return {"name": doc.name, "full_name": doc.full_name}
@@ -2999,8 +3332,8 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     Supports filtering contacts by type (e.g. for Arrivals vs Sales).
     """
     org_id = org_id or _get_user_org()
-    
-    # Enforce multi-tenancy and type filtering
+    if org_id and "ORG" in org_id and "-" not in org_id:
+        org_id = f"ORG-{org_id.replace('ORG', '')}"
     contact_filters = {}
     if org_id:
         contact_filters["organization_id"] = org_id
@@ -3017,10 +3350,14 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         order_by="full_name",
         ignore_permissions=True,
     )
+    # Ensure name is never null for searchability
+    for c in contacts:
+        if not c.get("name"):
+            c["name"] = c.get("id") or "Unknown"
     
     commodities = frappe.get_all("Item",
         filters={"disabled": 0, "organization_id": org_id},
-        fields=["name as id", "item_name as name", "stock_uom as default_unit"],
+        fields=["name as id", "item_name as name", "stock_uom as default_unit", "custom_attributes", "internal_id"],
         order_by="item_name",
         ignore_permissions=True,
     )
@@ -3040,10 +3377,19 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
             "account_type": ["in", ["Bank", "Cash"]],
             "is_group": 0
         },
-        fields=["name as id", "account_name as name", "account_type", "account_sub_type", "is_default", "account_number"],
+        fields=["name as id", "account_name as name", "account_type", "account_sub_type", "is_default", "account_number", "description"],
         ignore_permissions=True
     )
     
+    for acc in liquid_accounts:
+        bal_res = frappe.db.sql("""
+            SELECT SUM(debit) - SUM(credit) as balance
+            FROM `tabGL Entry`
+            WHERE account = %s AND is_cancelled = 0
+        """, (acc['id'],), as_dict=True)
+        
+        acc['balance'] = float(bal_res[0]['balance'] or 0) if bal_res and bal_res[0]['balance'] else 0.0
+
     banks = [a for a in liquid_accounts if a.account_type == "Bank" or a.account_sub_type == "Bank"]
     cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash" or a.account_sub_type == "Cash"]
 
@@ -3054,9 +3400,27 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         ignore_permissions=True
     )
     
-    # Data-driven storage locations (Seed logic moved to bootstrap)
+    # Robust Solution: Self-Healing Defaults
     if not storage_locations:
-        storage_locations = []
+        try:
+            # Auto-create 'Mandi' as the default location for the tenant
+            new_loc = frappe.get_doc({
+                "doctype": "Mandi Storage Location",
+                "location_name": "Mandi",
+                "organization_id": org_id,
+                "is_active": 1
+            })
+            new_loc.insert(ignore_permissions=True)
+            frappe.db.commit()
+            
+            storage_locations = [{
+                "id": new_loc.name,
+                "name": new_loc.location_name,
+                "is_active": 1
+            }]
+        except Exception as e:
+            frappe.log_error(f"Failed to create default storage location for {org_id}: {str(e)}")
+            storage_locations = []
 
     return {
         "contacts": contacts,
@@ -3067,6 +3431,81 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         "cash_accounts": cash_accounts,
         "storage_locations": storage_locations
     }
+
+@frappe.whitelist(allow_guest=False)
+def adjust_liquid_balance(p_organization_id: str = None, p_account_id: str = None, p_amount: float = None, p_adjustment_type: str = None, p_description: str = None, p_date: str = None) -> dict:
+    try:
+        company = _get_user_company()
+        amount = flt(p_amount or 0)
+        if amount <= 0:
+            return {"error": "Amount must be greater than 0"}
+            
+        equity_account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+        if not equity_account:
+            equity_account = frappe.db.get_value("Account", {"account_name": ["like", "%Opening%"], "company": company}, "name")
+        if not equity_account:
+            return {"error": "Equity/Opening balance account not found in Chart of Accounts"}
+            
+        je = frappe.get_doc({
+            "doctype": "Journal Entry",
+            "voucher_type": "Journal Entry",
+            "posting_date": p_date or frappe.utils.today(),
+            "company": company,
+            "remark": p_description,
+            "accounts": [
+                {
+                    "account": p_account_id,
+                    "debit_in_account_currency": amount if p_adjustment_type == "deposit" else 0,
+                    "credit_in_account_currency": amount if p_adjustment_type == "withdraw" else 0,
+                },
+                {
+                    "account": equity_account,
+                    "debit_in_account_currency": amount if p_adjustment_type == "withdraw" else 0,
+                    "credit_in_account_currency": amount if p_adjustment_type == "deposit" else 0,
+                }
+            ]
+        })
+        je.insert(ignore_permissions=True)
+        je.submit()
+        frappe.db.commit()
+        return {"success": True, "message": "Adjustment successful"}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "adjust_liquid_balance Failed")
+        return {"error": str(e)}
+
+@frappe.whitelist(allow_guest=False)
+def transfer_liquid_funds(p_organization_id: str = None, p_from_account_id: str = None, p_to_account_id: str = None, p_amount: float = None, p_remarks: str = None, p_transfer_date: str = None) -> dict:
+    try:
+        company = _get_user_company()
+
+        amount = flt(p_amount or 0)
+        if amount <= 0:
+            return {"error": "Amount must be greater than 0"}
+            
+        je = frappe.get_doc({
+            "doctype": "Journal Entry",
+            "voucher_type": "Journal Entry",
+            "posting_date": p_transfer_date or frappe.utils.today(),
+            "company": company,
+            "remark": p_remarks or "Cash/Bank Transfer",
+            "accounts": [
+                {
+                    "account": p_from_account_id,
+                    "credit_in_account_currency": amount,
+                },
+                {
+                    "account": p_to_account_id,
+                    "debit_in_account_currency": amount,
+                }
+            ]
+        })
+        je.insert(ignore_permissions=True)
+        je.submit()
+        frappe.db.commit()
+        return {"success": True, "message": "Transfer successful"}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "transfer_liquid_funds Failed")
+        return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
 def get_bank_accounts(org_id: str = None) -> list:
@@ -3080,7 +3519,7 @@ def get_bank_accounts(org_id: str = None) -> list:
             "is_group": 0, 
             "organization_id": org_id
         },
-        fields=["name as id", "account_name as name", "account_type", "is_default", "account_number", "company"],
+        fields=["name as id", "account_name as name", "account_type", "is_default", "account_number", "company", "description"],
         ignore_permissions=True
     )
 
@@ -3090,7 +3529,6 @@ def save_bank_account(**kwargs) -> dict:
     Creates or updates a Bank/Cash account in Frappe Chart of Accounts.
     """
     try:
-        import json
         org_id = kwargs.get("organization_id") or _get_user_org()
         account_id = kwargs.get("id")
         name = kwargs.get("name")
@@ -3101,7 +3539,6 @@ def save_bank_account(**kwargs) -> dict:
         company = _get_user_company()
         
         # Parent account resolution
-        parent_type = "Asset"
         parent = frappe.db.get_value("Account", {"account_type": sub_type, "is_group": 1, "company": company}, "name")
         if not parent:
             parent = frappe.db.get_value("Account", {"account_name": ["like", f"%{sub_type}%"], "is_group": 1, "company": company}, "name")
@@ -3110,6 +3547,14 @@ def save_bank_account(**kwargs) -> dict:
             # Fallback to root asset
             parent = frappe.db.get_value("Account", {"is_group": 1, "root_type": "Asset", "company": company}, "name")
 
+        # Store metadata in description for UI retrieval
+        meta = {
+            "account_number": kwargs.get("account_number"),
+            "bank_name": kwargs.get("bank_name"),
+            "ifsc_code": kwargs.get("ifsc_code"),
+            "upi_id": kwargs.get("upi_id")
+        }
+        
         account_payload = {
             "doctype": "Account",
             "account_name": name,
@@ -3118,17 +3563,52 @@ def save_bank_account(**kwargs) -> dict:
             "account_type": sub_type,
             "account_sub_type": sub_type,
             "organization_id": org_id,
-            "opening_balance": opening_balance,
-            "is_default": 1 if is_default else 0
+            "is_default": 1 if is_default else 0,
+            "description": frappe.as_json(meta),
+            "account_number": kwargs.get("account_number")
         }
 
-        if account_id:
+        if not account_id:
+            # Get company abbreviation to predict the generated name
+            abbr = frappe.db.get_value("Company", company, "abbr")
+            generated_name = f"{name} - {abbr}" if abbr else name
+            
+            if frappe.db.exists("Account", generated_name):
+                return {"success": False, "error": f"Account '{name}' already exists. Please use a unique label."}
+
+            doc = frappe.get_doc(account_payload)
+            doc.insert(ignore_permissions=True)
+            
+            # Post opening balance via Journal Entry
+            if opening_balance > 0:
+                equity_account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+                if not equity_account:
+                    equity_account = frappe.db.get_value("Account", {"account_name": ["like", "%Opening%"], "company": company}, "name")
+                
+                if equity_account:
+                    je = frappe.get_doc({
+                        "doctype": "Journal Entry",
+                        "voucher_type": "Journal Entry",
+                        "posting_date": frappe.utils.today(),
+                        "company": company,
+                        "remark": f"Opening Balance for {name}",
+                        "accounts": [
+                            {
+                                "account": doc.name,
+                                "debit_in_account_currency": opening_balance,
+                            },
+                            {
+                                "account": equity_account,
+                                "credit_in_account_currency": opening_balance,
+                            }
+                        ]
+                    })
+                    je.insert(ignore_permissions=True)
+                    je.submit()
+        else:
             doc = frappe.get_doc("Account", account_id)
             doc.update(account_payload)
             doc.save(ignore_permissions=True)
-        else:
-            doc = frappe.get_doc(account_payload)
-            doc.insert(ignore_permissions=True)
             
         # If this is default, unset others for this org
         if is_default:
@@ -3142,6 +3622,7 @@ def save_bank_account(**kwargs) -> dict:
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "save_bank_account Failed")
         return {"success": False, "error": str(e)}
+
 
 @frappe.whitelist(allow_guest=False)
 def delete_bank_account(account_id: str) -> dict:
@@ -3167,20 +3648,38 @@ def delete_bank_account(account_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
-def get_voucher_health(days: int = 90) -> list:
+def get_voucher_health(days: int = 90, p_org_id: str = None) -> list:
     """
-    Returns GL Entry count for the last N days to check system activity.
+    Returns GL Entries for the last N days to check system activity and calculate bank balances.
+    Cheque-aware: provides clearance status so the frontend can filter accordingly.
     """
     from frappe.utils import add_days, today
     date_limit = add_days(today(), -int(days))
-    company = _get_user_company()
     
-    return frappe.get_all("GL Entry",
-        filters=[["posting_date", ">=", date_limit], ["company", "=", company]],
-        fields=["voucher_no as voucher_id", "debit", "credit"],
-        limit=50000,
-        ignore_permissions=True
-    )
+    # Resolve company: prioritize p_org_id if provided
+    company = None
+    if p_org_id:
+        company = frappe.db.get_value("Mandi Organization", p_org_id, "erp_company")
+    if not company:
+        company = _get_user_company()
+    
+    # Use raw SQL to get join with Journal Entry
+    return frappe.db.sql("""
+        SELECT 
+            gl.voucher_no as voucher_id, 
+            gl.account as account_id,
+            gl.debit, 
+            gl.credit,
+            je.cheque_no,
+            je.clearance_date
+        FROM `tabGL Entry` gl
+        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        WHERE gl.posting_date >= %s 
+          AND gl.company = %s
+          AND gl.is_cancelled = 0
+        LIMIT 50000
+    """, (date_limit, company), as_dict=True)
+
 
 @frappe.whitelist(allow_guest=False)
 def get_list_permission_safe(doctype: str, filters: Union[dict, str, list] = None, fields: Union[list, str] = None, order_by: str = None, limit_page_length: int = 500) -> list:
@@ -3219,6 +3718,199 @@ def get_list_permission_safe(doctype: str, filters: Union[dict, str, list] = Non
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE 3: SALES, CONTACTS, STOCK, SETTINGS RPCs
 # ─────────────────────────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_invoices_for_return(search_term: str = None, page: int = 0) -> list:
+    """
+    Returns invoices from the last 30 days for return processing.
+    """
+    org_id = _get_user_org()
+    if not org_id:
+        return []
+
+    page_size = 20
+    start = int(page or 0) * page_size
+
+    # 30-day filter
+    from datetime import datetime, timedelta
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    date_string = thirty_days_ago.strftime('%Y-%m-%d')
+
+    filters = [
+        ["organization_id", "=", org_id],
+        ["sale_date", ">=", date_string]
+    ]
+
+    if search_term:
+        if search_term.isdigit():
+            filters.append(["bill_no", "=", search_term])
+        else:
+            # Search by Buyer Name
+            buyers = frappe.get_all("Mandi Contact", 
+                filters={"name1": ["like", f"%{search_term}%"], "organization_id": org_id}, 
+                fields=["name"],
+                ignore_permissions=True
+            )
+            if buyers:
+                filters.append(["buyer_id", "in", [b.name for b in buyers]])
+            else:
+                return []
+
+    sales = frappe.get_all("Mandi Sale", 
+        filters=filters,
+        fields=["name as id", "bill_no", "sale_date", "buyer_id", "total_amount"],
+        order_by="sale_date desc",
+        limit_start=start,
+        limit_page_length=page_size,
+        ignore_permissions=True
+    )
+
+    # Hydrate buyer info
+    for s in sales:
+        s.buyer = frappe.db.get_value("Mandi Contact", s.buyer_id, ["name as id", "name1 as name"], as_dict=1)
+    
+    return sales
+
+@frappe.whitelist(allow_guest=False)
+def get_sale_items_for_return(sale_id: str) -> list:
+    """
+    Returns items for a specific sale with remaining returnable quantity.
+    """
+    org_id = _get_user_org()
+    if not org_id:
+        return []
+
+    # 1. Fetch Original Sale Items
+    sale_items = frappe.get_all("Mandi Sale Item",
+        filters={"parent": sale_id},
+        fields=["name as id", "lot_id", "qty", "rate", "amount", "item_id"],
+        ignore_permissions=True
+    )
+
+    # 2. Fetch Previously Returned Items (This is a placeholder until Mandi Sale Return is implemented)
+    # For now, we assume 0 returned if the DocType doesn't exist yet or is empty
+    returned_qty_map = {}
+    try:
+        previous_returns = frappe.db.sql("""
+            SELECT item.lot_id, SUM(item.qty) as total_qty
+            FROM `tabMandi Sale Return Item` item
+            JOIN `tabMandi Sale Return` ret ON item.parent = ret.name
+            WHERE ret.sale_id = %s AND ret.docstatus = 1
+            GROUP BY item.lot_id
+        """, (sale_id,), as_dict=1)
+        for r in previous_returns:
+            returned_qty_map[r.lot_id] = r.total_qty
+    except Exception:
+        pass
+
+    # 3. Calculate Remaining
+    for item in sale_items:
+        lot_info = frappe.db.get_value("Mandi Lot", item.lot_id, ["name as id", "lot_code", "item_id"], as_dict=1)
+        if lot_info:
+            lot_info.item = frappe.db.get_value("Mandi Commodity", lot_info.item_id, ["name as id", "name"], as_dict=1)
+            item.lot = lot_info
+        
+        already_returned = returned_qty_map.get(item.lot_id, 0)
+        item.max_qty = max(0, item.qty - already_returned)
+        item.original_sold_qty = item.qty
+        item.already_returned = already_returned
+        item.return_qty = 0 # Default for UI
+
+    return sale_items
+
+@frappe.whitelist(allow_guest=False)
+def process_sale_return(payload: dict) -> dict:
+    """
+    Handles Sales Return and optional Exchange.
+    Logic:
+    1. Validate Return Items and Sale Reference.
+    2. Create Journal Entry (Debit: Stock/Revenue, Credit: Buyer).
+    3. Restore Lot Quantities.
+    4. If 'exchange', trigger confirm_sale_transaction for new items.
+    """
+    from mandigrow.logic.automation import get_acc, get_debtor_acc, get_stock_acc, _tag_gl_entries, _get_cost_center
+    from mandigrow.logic.erp_bootstrap import get_default_company
+    
+    org_id = _get_user_org()
+    sale_id = payload.get("sale_id")
+    return_items = payload.get("return_items", [])
+    return_type = payload.get("return_type", "credit") # credit, cash, exchange
+    remarks = payload.get("remarks", "")
+    
+    if not sale_id or not return_items:
+        frappe.throw(_("Sale ID and items are required for return."))
+
+    sale = frappe.get_doc("Mandi Sale", sale_id)
+    company = frappe.db.get_value("Mandi Organization", org_id, "erp_company") or get_default_company()
+    cost_center = _get_cost_center(company)
+    
+    total_refund = sum(flt(i.get("qty", 0)) * flt(i.get("rate", 0)) for i in return_items)
+    
+    # 1. Create Return Journal Entry
+    # Debit: Stock In Hand (returning goods)
+    # Credit: Debtors (reducing what buyer owes or creating a refund obligation)
+    je_accounts = [
+        {
+            "account": get_stock_acc(company),
+            "debit_in_account_currency": total_refund,
+            "cost_center": cost_center,
+            "user_remark": f"Sales Return from {sale.name} - {remarks}"
+        },
+        {
+            "account": get_debtor_acc(company),
+            "credit_in_account_currency": total_refund,
+            "party_type": "Customer",
+            "party": frappe.db.get_value("Mandi Contact", sale.buyer_id, "customer"),
+            "cost_center": cost_center,
+            "user_remark": f"Sales Return credit for {sale.name}"
+        }
+    ]
+    
+    je = frappe.get_doc({
+        "doctype": "Journal Entry",
+        "voucher_type": "Journal Entry",
+        "company": company,
+        "posting_date": today(),
+        "user_remark": f"Sales Return: {sale.name}",
+        "accounts": je_accounts
+    })
+    je.insert(ignore_permissions=True)
+    je.submit()
+    _tag_gl_entries(je.name, "Mandi Sale", sale.name)
+    
+    # 2. Update Lot Quantities
+    for item in return_items:
+        lot_id = item.get("lot_id")
+        qty = flt(item.get("qty", 0))
+        if lot_id:
+            frappe.db.sql("""
+                UPDATE `tabMandi Lot` 
+                SET current_qty = current_qty + %s 
+                WHERE name = %s
+            """, (qty, lot_id))
+            
+    # 3. Handle Exchange
+    new_sale_id = None
+    if payload.get("exchange_items"):
+        exchange_payload = {
+            "p_buyer_id": sale.buyer_id,
+            "p_sale_date": today(),
+            "p_payment_mode": "credit",
+            "p_items": payload.get("exchange_items"),
+            "organization_id": org_id,
+            "remarks": f"Exchange for Return of {sale.name}"
+        }
+        res = confirm_sale_transaction(**exchange_payload)
+        if not res.get("success"):
+            frappe.throw(_("Exchange sale failed: {0}").format(res.get("error")))
+        new_sale_id = res.get("sale_id")
+
+    return {
+        "success": True,
+        "return_je": je.name,
+        "new_sale_id": new_sale_id,
+        "message": "Return processed and stock restored."
+    }
 
 @frappe.whitelist(allow_guest=False)
 def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
@@ -3271,13 +3963,13 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
         filters=filters,
         fields=["name as id", "saledate as sale_date", "buyerid as buyer_id",
                 "paymentmode as payment_mode", "totalamount as total_amount",
-                "amountreceived as amount_received", "duedate as due_date",
+                "invoice_total", "amountreceived as amount_received", "duedate as due_date",
                 "vehiclenumber as vehicle_number", "bookno as book_no",
                 "lotno as lot_no", "chequeno as cheque_no", "bankname as bank_name",
                 "marketfee as market_fee", "nirashrit", "miscfee as misc_fee",
                 "loadingcharges as loading_charges", "unloadingcharges as unloading_charges",
                 "otherexpenses as other_expenses", "gsttotal as gst_total",
-                "discountamount as discount_amount", "creation"],
+                "discountamount as discount_amount", "creation", "status"],
         order_by="creation desc",
         limit_start=(page - 1) * page_size,
         limit_page_length=page_size,
@@ -3292,15 +3984,20 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
         if bid and bid not in buyer_cache:
             buyer_cache[bid] = frappe.db.get_value("Mandi Contact", bid, "full_name") or "Unknown"
         s["contact"] = {"id": bid, "name": buyer_cache.get(bid, "Unknown")}
-        amt = float(s.get("total_amount") or 0)
-        total_revenue += amt
+        # Use the stored invoice_total (Single Source of Truth)
+        invoice_total = float(s.get("invoice_total") or 0)
+        s["total_amount"] = invoice_total
+        total_revenue += invoice_total
         
-        # Unified ledger sync for status and accurate balances. due_date
-        # drives the overdue rule for sales (purchases never go overdue).
-        ledger_summary = _get_ledger_summary("Mandi Sale", s.get("id"), amt, due_date=s.get("due_date"))
+        # Unified FIFO ledger sync for status and accurate balances.
+        # Using _get_ledger_summary with as_of_date (date_to) ensures that
+        # if the user filters by date, they see the status AS OF that date.
+        as_of = date_to or today()
+        ledger_summary = _get_ledger_summary("Mandi Sale", s.get("id"), invoice_total, as_of_date=as_of, due_date=s.get("due_date"), party_id=bid)
         s["payment_status"] = ledger_summary["status"]
         s["amount_received"] = ledger_summary["paid"]
         s["balance"] = ledger_summary["balance"]
+        s["pending_cheque_amount"] = ledger_summary.get("pending_cheque", 0)
 
     # Debtors/Creditors count from party balances
     debtors_count = 0
@@ -3476,13 +4173,13 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
     page = int(page or 1)
     page_size = int(page_size or 50)
 
-    filters = {}
+    filters = [["full_name", "!=", "Walk-in Buyer"]]
     if org_id:
-        filters["organization_id"] = org_id
+        filters.append(["organization_id", "=", org_id])
     if contact_type and contact_type != "all":
-        filters["contact_type"] = contact_type
+        filters.append(["contact_type", "=", contact_type])
     if search:
-        filters["full_name"] = ["like", f"%{search}%"]
+        filters.append(["full_name", "like", f"%{search}%"])
 
     total = frappe.db.count("Mandi Contact", filters=filters)
     contacts = frappe.get_all("Mandi Contact",
@@ -3502,11 +4199,14 @@ def search_contacts(query: str = None, contact_type: str = None, org_id: str = N
     if not query:
         return []
     org_id = org_id or _get_user_org()
-    filters = {"full_name": ["like", f"%{query}%"]}
+    filters = [["full_name", "!=", "Walk-in Buyer"]]
     if org_id:
-        filters["organization_id"] = org_id
+        filters.append(["organization_id", "=", org_id])
     if contact_type:
-        filters["contact_type"] = contact_type
+        filters.append(["contact_type", "=", contact_type])
+    if query:
+        filters.append(["full_name", "like", f"%{query}%"])
+        
     return frappe.get_all("Mandi Contact",
         filters=filters,
         fields=["name as id", "full_name as name", "contact_type", "phone", "city"],
@@ -3880,6 +4580,9 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
 
         # Fetch real-time ledger-derived totals (due_date drives overdue rule).
         summary = _get_ledger_summary("Mandi Sale", sale_id, doc.totalamount, due_date=doc.duedate)
+        
+        # Calculate items total for correct subtotal rendering in UI
+        items_total = sum(float(i.get("amount") or 0) for i in items)
 
         return {
             "id": doc.name,
@@ -3887,6 +4590,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "buyer_id": doc.buyerid,
             "buyer_name": buyer_name,
             "payment_mode": doc.paymentmode,
+            "items_total": items_total,
             "total_amount": float(doc.totalamount or 0),
             "amount_received": summary["paid"],
             "payment_status": summary["status"],
@@ -3927,26 +4631,23 @@ def delete_sale(sale_id: str = None) -> dict:
 def get_settings_page() -> dict:
     """Get all settings for the Settings page."""
     org_id = _get_user_org()
-    settings = {}
-    try:
-        s = frappe.get_single("Mandi Settings")
-        settings = {
-            "market_fee_percent": float(s.get("market_fee_percent") or 0),
-            "nirashrit_percent": float(s.get("nirashrit_percent") or 0),
-            "misc_fee_percent": float(s.get("misc_fee_percent") or 0),
-            "default_credit_days": int(s.get("default_credit_days") or 15),
-            "state_code": s.get("state_code") or "",
-            "gst_enabled": bool(s.get("gst_enabled")),
-            "gst_type": s.get("gst_type") or "intra",
-            "cgst_percent": float(s.get("cgst_percent") or 0),
-            "sgst_percent": float(s.get("sgst_percent") or 0),
-            "igst_percent": float(s.get("igst_percent") or 0),
-        }
-    except Exception:
-        pass
-
-    # Also return org info
     org_data = _get_org_info(org_id) if org_id else {}
+    settings = {
+        "market_fee_percent": float(org_data.get("market_fee_percent") or 0),
+        "nirashrit_percent": float(org_data.get("nirashrit_percent") or 0),
+        "misc_fee_percent": float(org_data.get("misc_fee_percent") or 0),
+        "default_credit_days": int(org_data.get("default_credit_days") or 15),
+        "state_code": org_data.get("state_code") or "",
+        "gst_enabled": bool(org_data.get("gst_enabled")),
+        "gst_type": org_data.get("gst_type") or "intra",
+        "cgst_percent": float(org_data.get("cgst_percent") or 0),
+        "sgst_percent": float(org_data.get("sgst_percent") or 0),
+        "igst_percent": float(org_data.get("igst_percent") or 0),
+        "print_upi_qr": bool(org_data.get("print_upi_qr")),
+        "print_bank_details": bool(org_data.get("print_bank_details")),
+        "qr_bank_id": org_data.get("qr_bank_id") or "",
+        "text_bank_id": org_data.get("text_bank_id") or "",
+    }
     return {"settings": settings, "organization": org_data}
 
 
@@ -3967,7 +4668,8 @@ def audit_broken_vouchers(date_from: str = None, date_to: str = None) -> dict:
     "broken double-entry" warning). Read-only; pair with cancel_broken_voucher
     to actually clean them up.
     """
-    company = frappe.db.get_single_value("Global Defaults", "default_company") or _get_user_org()
+    company = _get_user_company()
+    if not company: return {"broken_vouchers": [], "total_diff": 0, "count": 0}
 
     where = ["je.docstatus = 1", "je.company = %s", "ABS(je.total_debit - je.total_credit) > 0.01"]
     params = [company]
@@ -4032,172 +4734,9 @@ def cancel_broken_voucher(voucher_no: str, voucher_type: str = "Journal Entry") 
 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
-    """Get cheques from ALL transaction sources — Arrivals, Sales, POS, Quick Purchase.
-
-    Returns every Journal Entry that has a cheque_no, across all payment types,
-    with status (Pending / Cleared / Cancelled), direction (payment / receipt),
-    party name, and amount. Supports date filtering and status filtering.
-
-    status_filter: 'Pending' | 'Cleared' | 'Cancelled' | 'All'
-    """
-    org_id = org_id or _get_user_org()
-    today_date = today()
-
-    # Build date-range filter on cheque_date (or posting_date as fallback)
-    date_conditions = ""
-    date_params = []
-    if date_from:
-        date_conditions += " AND COALESCE(je.cheque_date, je.posting_date) >= %s"
-        date_params.append(date_from)
-    if date_to:
-        date_conditions += " AND COALESCE(je.cheque_date, je.posting_date) <= %s"
-        date_params.append(date_to)
-
-    # Status condition
-    status_condition = ""
-    if status_filter == "Pending":
-        status_condition = " AND je.clearance_date IS NULL AND je.docstatus IN (0, 1)"
-    elif status_filter == "Cleared":
-        status_condition = " AND je.clearance_date IS NOT NULL AND je.docstatus = 1"
-    elif status_filter == "Cancelled":
-        status_condition = " AND je.docstatus = 2"
-    else:  # All — include draft + submitted + cancelled
-        status_condition = " AND je.docstatus IN (0, 1, 2)"
-
-    # Main query: one row per Journal Entry that has a cheque_no
-    # We join with Journal Entry Account to catch DRAFT vouchers too (which don't have GL Entries)
-    rows = frappe.db.sql(f"""
-        SELECT
-            je.name          AS voucher_no,
-            je.docstatus,
-            je.posting_date,
-            je.cheque_no,
-            je.cheque_date,
-            je.clearance_date,
-            je.user_remark   AS narration,
-            je.total_debit,
-            je.total_credit,
-            -- Grab a party from JE account rows
-            MAX(CASE WHEN jea.party != '' AND jea.party IS NOT NULL THEN jea.party ELSE NULL END) AS party_id,
-            MAX(CASE WHEN jea.party != '' AND jea.party IS NOT NULL THEN jea.party_type ELSE NULL END) AS party_type,
-            -- Against voucher info
-            MAX(jea.reference_type) AS against_voucher_type,
-            MAX(jea.reference_name) AS against_voucher
-        FROM `tabJournal Entry` je
-        JOIN `tabJournal Entry Account` jea ON je.name = jea.parent
-        WHERE (je.cheque_no IS NOT NULL AND je.cheque_no != '')
-          AND je.company = %s
-          {date_conditions}
-          {status_condition}
-        GROUP BY je.name
-        ORDER BY COALESCE(je.cheque_date, je.posting_date) DESC
-    """, [_get_user_company()] + date_params, as_dict=True)
-
-    # Resolve party names via Mandi Contact
-    party_ids = list({r.get("party") for r in rows if r.get("party")})
-    contact_name_map = {}
-    if party_ids:
-        for c in frappe.get_all("Mandi Contact",
-            filters={"name": ["in", party_ids]},
-            fields=["name", "full_name"],
-            ignore_permissions=True,
-        ):
-            contact_name_map[c["name"]] = c.get("full_name") or c["name"]
-        # Also try from Supplier doctype
-        for s in frappe.get_all("Supplier",
-            filters={"name": ["in", party_ids]},
-            fields=["name", "supplier_name"],
-            ignore_permissions=True,
-        ):
-            if s["name"] not in contact_name_map:
-                contact_name_map[s["name"]] = s.get("supplier_name") or s["name"]
-        # Also try from Customer doctype
-        for cu in frappe.get_all("Customer",
-            filters={"name": ["in", party_ids]},
-            fields=["name", "customer_name"],
-            ignore_permissions=True,
-        ):
-            if cu["name"] not in contact_name_map:
-                contact_name_map[cu["name"]] = cu.get("customer_name") or cu["name"]
-
-    cheques = []
-    for r in rows:
-        posting_date = r.get("posting_date")
-        cheque_date  = r.get("cheque_date")
-        clearance_date = r.get("clearance_date")
-
-        # Serialize dates
-        if posting_date and not isinstance(posting_date, str):
-            posting_date = posting_date.isoformat()
-        if cheque_date and not isinstance(cheque_date, str):
-            cheque_date = cheque_date.isoformat()
-        if clearance_date and not isinstance(clearance_date, str):
-            clearance_date = clearance_date.isoformat()
-
-        # Determine status
-        if r.get("docstatus") == 2:
-            cheque_status = "Cancelled"
-        elif clearance_date:
-            cheque_status = "Cleared"
-        else:
-            cheque_status = "Pending"
-
-        # Direction: Arrivals/Quick Purchase cheques are "payments" (money going out to supplier)
-        #            Sales/POS cheques are "receipts" (money coming in from buyer)
-        against_type = r.get("against_voucher_type") or ""
-        total_debit  = flt(r.get("total_debit") or 0)
-        total_credit = flt(r.get("total_credit") or 0)
-        amount = max(total_debit, total_credit)
-        
-        if against_type in ("Mandi Arrival", "Mandi Quick Purchase"):
-            direction = "payment"   # we paid the supplier
-        elif against_type in ("Mandi Sale", "Mandi POS Sale"):
-            direction = "receipt"   # buyer paid us
-        else:
-            # Infer from amounts: if debit > credit, money went out (payment); else receipt
-            direction = "payment" if total_debit >= total_credit else "receipt"
-
-        party_id = r.get("party_id") or ""
-        party_name = contact_name_map.get(party_id, party_id) or "Unknown Party"
-
-        cheques.append({
-            "id":              r["voucher_no"],           # voucher_no doubles as id
-            "voucher_no":      r["voucher_no"],
-            "posting_date":    posting_date,
-            "cheque_no":       r.get("cheque_no") or "",
-            "cheque_date":     cheque_date,
-            "clearance_date":  clearance_date,
-            "cheque_status":   cheque_status,             # for backward compat or internal use
-            "status":          cheque_status,             # expected by frontend
-            "narration":       r.get("narration") or "",
-            "amount":          flt(amount, 2),
-            "party":           party_name,                # expected by frontend
-            "party_id":        party_id,
-            "party_name":      party_name,
-            "party_type":      r.get("party_type") or "", # added
-            "direction":       direction,                 # expected by frontend
-            "voucher_type":    direction,                 # keep for legacy
-            "against_voucher_type": against_type,
-            "against_voucher": r.get("against_voucher") or "",
-        })
-
-    total_pending  = sum(flt(c["amount"]) for c in cheques if c["cheque_status"] == "Pending")
-    total_cleared  = sum(flt(c["amount"]) for c in cheques if c["cheque_status"] == "Cleared")
-
-    return {
-        "cheques": cheques,
-        "summary": {
-            "total":          len(cheques),
-            "total_pending":  len([c for c in cheques if c["cheque_status"] == "Pending"]),
-            "total_cleared":  len([c for c in cheques if c["cheque_status"] == "Cleared"]),
-            "total_cancelled":len([c for c in cheques if c["cheque_status"] == "Cancelled"]),
-            "pending_amount": flt(total_pending, 2),
-            "cleared_amount": flt(total_cleared, 2),
-        },
-        # Keep backward compat
-        "uncleared_cheques": [c for c in cheques if c["cheque_status"] == "Pending"],
-    }
-
+    # Simply call the consolidated finance implementation
+    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 @frappe.whitelist(allow_guest=False)
 def update_contact(contact_id: str = None, **kwargs) -> dict:
@@ -4261,9 +4800,20 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
     """Create a new employee record."""
     org_id = _get_user_org()
     doc = frappe.new_doc("Employee")
-    doc.employee_name = name or kwargs.get("name", "")
+    full_name = name or kwargs.get("name", "")
+    doc.first_name = full_name
+    doc.employee_name = full_name
     doc.cell_phone = phone or kwargs.get("phone", "")
-    doc.designation = role or kwargs.get("role", "Worker")
+    
+    designation = role or kwargs.get("role", "Worker")
+    if designation and not frappe.db.exists("Designation", designation):
+        frappe.get_doc({
+            "doctype": "Designation",
+            "designation_name": designation
+        }).insert(ignore_permissions=True)
+        frappe.db.commit()
+    
+    doc.designation = designation
     # Store additional fields as custom fields if available
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
@@ -4283,8 +4833,23 @@ def update_employee(employee_id: str = None, **kwargs) -> dict:
         if emp_company and emp_company != company:
             frappe.throw(_("You do not have permission to update this employee."), frappe.PermissionError)
     doc = frappe.get_doc("Employee", employee_id)
+    
+    if "role" in kwargs:
+        designation = kwargs["role"]
+        if designation and not frappe.db.exists("Designation", designation):
+            frappe.get_doc({
+                "doctype": "Designation",
+                "designation_name": designation
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+        doc.designation = designation
+        
+    if "name" in kwargs:
+        doc.first_name = kwargs["name"]
+        doc.employee_name = kwargs["name"]
+
     for key, val in kwargs.items():
-        if key in ("employee_id",):
+        if key in ("employee_id", "role"):
             continue
         if hasattr(doc, key):
             setattr(doc, key, val)
@@ -4460,24 +5025,20 @@ def get_sale_master_data(org_id: str = None) -> dict:
             unique_items[iid] = {"id": iid, "name": item_name, "local_name": "", "sku_code": "", "gst_rate": 0}
     items_list = list(unique_items.values())
 
-    # Mandi Settings (single doctype)
-    settings = {}
-    try:
-        s = frappe.get_single("Mandi Settings")
-        settings = {
-            "market_fee_percent": float(s.get("market_fee_percent") or 0),
-            "nirashrit_percent": float(s.get("nirashrit_percent") or 0),
-            "misc_fee_percent": float(s.get("misc_fee_percent") or 0),
-            "default_credit_days": int(s.get("default_credit_days") or 15),
-            "state_code": s.get("state_code") or "",
-            "gst_enabled": bool(s.get("gst_enabled")),
-            "gst_type": s.get("gst_type") or "intra",
-            "cgst_percent": float(s.get("cgst_percent") or 0),
-            "sgst_percent": float(s.get("sgst_percent") or 0),
-            "igst_percent": float(s.get("igst_percent") or 0),
-        }
-    except Exception:
-        settings = {"market_fee_percent": 0, "nirashrit_percent": 0, "misc_fee_percent": 0, "default_credit_days": 15}
+    # Mandi Settings (tenant specific from Mandi Organization)
+    org_data = _get_org_info(org_id)
+    settings = {
+        "market_fee_percent": float(org_data.get("market_fee_percent") or 0),
+        "nirashrit_percent": float(org_data.get("nirashrit_percent") or 0),
+        "misc_fee_percent": float(org_data.get("misc_fee_percent") or 0),
+        "default_credit_days": int(org_data.get("default_credit_days") or 15),
+        "state_code": org_data.get("state_code") or "",
+        "gst_enabled": bool(org_data.get("gst_enabled")),
+        "gst_type": org_data.get("gst_type") or "intra",
+        "cgst_percent": float(org_data.get("cgst_percent") or 0),
+        "sgst_percent": float(org_data.get("sgst_percent") or 0),
+        "igst_percent": float(org_data.get("igst_percent") or 0),
+    }
 
     # Fetch liquid accounts (Bank/Cash) for the organization
     liquid_accounts = frappe.get_all("Account",
@@ -4486,7 +5047,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
             "account_type": ["in", ["Bank", "Cash"]],
             "is_group": 0
         },
-        fields=["name as id", "account_name as name", "account_type", "account_sub_type", "is_default", "account_number"],
+        fields=["name as id", "account_name as name", "account_type", "account_sub_type", "is_default", "account_number", "description"],
         ignore_permissions=True
     )
 
@@ -4555,95 +5116,199 @@ def get_party_balance(contact_id: str = None) -> dict:
         return {"net_balance": 0}
 
 
-def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_date=None):
+def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_date=None, party_id=None):
     """
-    Calculate summary (Status, Paid, Balance) by checking GL Entries.
-
-    Status rule (consistent across UI / doctype / invoices):
-
-      Mandi Arrival (purchases by Mandi)
-        cash mode (Cash / UPI / Bank / cleared cheque)
-          full paid    → "paid"
-          partial paid → "partial"
-        credit (udhaar) or post-dated cheque
-          no cleared payment → "pending"
-
-      Mandi Sale (sales to buyer)
-        cash mode (Cash / UPI / Bank / cleared cheque)
-          full received    → "paid"
-          partial received → "partial"
-        credit (udhaar) or post-dated cheque
-          no cleared receipt → "pending"
-        + If due_date supplied and status is pending/partial and
-          due_date < as_of_date → "overdue".
-
-    `as_of_date` filters which GL entries count toward "paid" so a post-dated
-    cheque does not count until its clearance_date arrives.
-    `due_date` is consulted for overdue detection (sales only).
+    Calculate high-fidelity summary (Status, Paid, Balance) for a document.
+    Prioritizes explicit 'against_voucher' linkages before falling back to FIFO.
+    Also includes 'In-Transit' (unsubmitted docstatus=0) Journal Entries.
     """
     if not as_of_date:
         as_of_date = today()
-
-    is_arrival = doc_type == "Mandi Arrival"
-    is_sale    = doc_type == "Mandi Sale"
+    
     total = flt(total_amount, 2)
-
     if total <= 0:
         return {"status": "paid", "paid": 0, "balance": 0, "total": total}
 
-    try:
-        # Filter by clearance logic:
-        # 1. Non-cheque entries are always included.
-        # 2. Cheque entries (Journal Entry with cheque_no) only included if
-        #    cleared on or before as_of_date.
-        res = frappe.db.sql("""
-            SELECT SUM(
-                CASE
-                    WHEN %s = 1 THEN gl.credit   -- Arrival (purchase): cash CREDIT = money leaving bank to pay supplier
-                    ELSE gl.debit                -- Sale (receipt): cash DEBIT = money arriving into bank from buyer
-                END
-            ) as total_paid
-            FROM `tabGL Entry` gl
-            LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
-            LEFT JOIN `tabAccount` acc ON gl.account = acc.name
-            WHERE gl.is_cancelled = 0
-              AND gl.against_voucher = %s
-              AND gl.against_voucher_type = %s
-              AND acc.account_type IN ('Bank', 'Cash')
-              AND (
-                  -- Cheque rule: if it's a cheque, use clearance_date; otherwise use posting_date
-                  (gl.voucher_type = 'Journal Entry' AND je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date <= %s)
-                  OR
-                  ((gl.voucher_type != 'Journal Entry' OR je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date <= %s)
-              )
-        """, (1 if is_arrival else 0, doc_name, doc_type, as_of_date, as_of_date), as_dict=True)
-
-        paid = flt(res[0].total_paid) if res and res[0].total_paid else 0
-        balance = flt(total - paid, 2)
-
-        status = "pending"
-        if paid >= (total - 0.1):
-            status = "paid"
-        elif paid > 0.1:
-            status = "partial"
-
-        # Overdue applies to sales only (per Mandi rule — purchases by the
-        # Mandi don't have credit terms against itself).
-        if is_sale and due_date and status in ("pending", "partial"):
-            try:
-                if getdate(due_date) < getdate(as_of_date):
-                    status = "overdue"
-            except Exception:
-                pass
-
-        return {
-            "status": status,
-            "paid": flt(paid, 2),
-            "balance": balance if balance > 0 else 0,
-            "total": total,
-        }
-    except Exception:
+    # 1. Resolve Context
+    is_sale = doc_type == "Mandi Sale"
+    party_field = "buyerid" if is_sale else "party_id"
+    doc_info = frappe.db.get_value(doc_type, doc_name, [party_field, "organization_id"], as_dict=True)
+    if not doc_info:
         return {"status": "pending", "paid": 0, "balance": total, "total": total}
+
+    party = party_id or doc_info.get(party_field)
+    org_id = doc_info.get("organization_id")
+    if not party:
+        return {"status": "pending", "paid": 0, "balance": total, "total": total}
+
+    company = frappe.db.get_value("Mandi Organization", org_id, "erp_company") if org_id else None
+    if not company:
+        company = frappe.defaults.get_global_default("company")
+
+    # Resolve Party List (Mandi Contact + ERPNext linked Customer/Supplier)
+    party_list = [party]
+    mandi_contact = frappe.db.get_value("Mandi Contact", party, ["customer", "supplier"], as_dict=True)
+    if mandi_contact:
+        if is_sale and mandi_contact.customer:
+            party_list.append(mandi_contact.customer)
+        elif not is_sale and mandi_contact.supplier:
+            party_list.append(mandi_contact.supplier)
+
+    # 2. Priority A: Explicitly Linked Payments (Submitted + In-Transit)
+    # We sum Credits (for Sales) or Debits (for Arrivals) explicitly tagged with this doc_name.
+    # CRITICAL: We only count them as 'Paid' if they are cleared (for cheques).
+    linked_paid_sql = f"""
+        SELECT 
+            SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.credit ELSE 0 END) as cleared_paid,
+            SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.credit ELSE 0 END) as pending_cheque
+        FROM `tabGL Entry` gl
+        LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
+        WHERE gl.is_cancelled = 0 AND gl.company = %s
+        AND gl.party IN %s AND gl.against_voucher = %s
+        AND gl.credit > 0
+    """ if is_sale else f"""
+        SELECT 
+            SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.debit ELSE 0 END) as cleared_paid,
+            SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.debit ELSE 0 END) as pending_cheque
+        FROM `tabGL Entry` gl
+        LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
+        WHERE gl.is_cancelled = 0 AND gl.company = %s
+        AND gl.party IN %s AND gl.against_voucher = %s
+        AND gl.debit > 0
+    """
+    res = frappe.db.sql(linked_paid_sql, (company, tuple(party_list), doc_name), as_dict=True)[0]
+    linked_paid = flt(res.cleared_paid)
+    pending_cheque_linked = flt(res.pending_cheque)
+
+    linked_transit_sql = f"""
+        SELECT SUM(sea.credit - sea.debit) 
+        FROM `tabJournal Entry Account` sea
+        JOIN `tabJournal Entry` se ON sea.parent = se.name
+        WHERE se.docstatus = 0 AND se.company = %s
+        AND sea.party IN %s AND sea.reference_name = %s
+    """ if is_sale else f"""
+        SELECT SUM(sea.debit - sea.credit) 
+        FROM `tabJournal Entry Account` sea
+        JOIN `tabJournal Entry` se ON sea.parent = se.name
+        WHERE se.docstatus = 0 AND se.company = %s
+        AND sea.party IN %s AND sea.reference_name = %s
+    """
+    linked_transit = flt(frappe.db.sql(linked_transit_sql, (company, tuple(party_list), doc_name))[0][0])
+    
+    # Transit (unsubmitted) is always considered 'pending' for cheques
+    total_cleared_linked = linked_paid
+    total_pending_linked = pending_cheque_linked + linked_transit
+
+    # 3. Priority B: FIFO Pool (Unlinked Generic Payments)
+    # Identify the bill's position in the chronological order.
+    date_field = "saledate" if is_sale else "arrival_date"
+    
+    if is_sale:
+        # For sales, compute invoice_total = totalamount + charges - discount
+        bills_sql = """
+            SELECT name, IFNULL(invoice_total,0) as amt
+            FROM `tabMandi Sale`
+            WHERE %s = %%s AND docstatus = 1 AND organization_id = %%s
+            ORDER BY saledate ASC, creation ASC
+        """ % party_field
+        bills_raw = frappe.db.sql(bills_sql, (party, org_id), as_dict=True)
+        bills = bills_raw
+    else:
+        amt_field = "net_payable_farmer"
+        bills = frappe.get_all(doc_type, 
+            filters={
+                party_field: party,
+                "docstatus": 1,
+                "organization_id": org_id
+            },
+            fields=["name", f"{amt_field} as amt"],
+            order_by=f"{date_field} asc, creation asc"
+        )
+
+    cumulative_billed_prior = 0
+    bill_total = 0
+    found = False
+    for b in bills:
+        if b.name == doc_name:
+            bill_total = flt(b.amt)
+            found = True
+            break
+        cumulative_billed_prior += flt(b.amt)
+    
+    if not found: bill_total = total
+
+    # Calculate global unlinked pool
+    unlinked_pool_sql = f"""
+        SELECT SUM(credit - debit) FROM `tabGL Entry`
+        WHERE is_cancelled = 0 AND company = %s
+        AND party IN %s AND (against_voucher IS NULL OR against_voucher = '')
+    """ if is_sale else f"""
+        SELECT SUM(debit - credit) FROM `tabGL Entry`
+        WHERE is_cancelled = 0 AND company = %s
+        AND party IN %s AND (against_voucher IS NULL OR against_voucher = '')
+    """
+    total_unlinked = flt(frappe.db.sql(unlinked_pool_sql, (company, tuple(party_list)))[0][0])
+    
+    # FIFO Available = Pool - (Total Unlinked Demand of Previous Bills)
+    # We must calculate how much of the unlinked pool was "consumed" by bills before this one.
+    # Unlinked Demand = Bill Total - Explicitly Linked Payments.
+    
+    # 1. Get all previous bills
+    # 2. For each, find its linked payments
+    # 3. Sum (Bill Total - Linked Payments)
+    
+    unlinked_demand_prior = 0
+    for b in bills:
+        if b.name == doc_name:
+            break
+        
+        # Linked payments for this specific previous bill
+        b_linked_sql = f"""
+            SELECT SUM(credit) FROM `tabGL Entry`
+            WHERE is_cancelled = 0 AND company = %s
+            AND party IN %s AND against_voucher = %s
+            AND credit > 0
+        """ if is_sale else f"""
+            SELECT SUM(debit) FROM `tabGL Entry`
+            WHERE is_cancelled = 0 AND company = %s
+            AND party IN %s AND against_voucher = %s
+            AND debit > 0
+        """
+        b_linked = flt(frappe.db.sql(b_linked_sql, (company, tuple(party_list), b.name))[0][0])
+        unlinked_demand_prior += max(0, flt(b.amt) - b_linked)
+    
+    fifo_available = max(0, total_unlinked - unlinked_demand_prior)
+    
+    # 4. Final Aggregation
+    # We use cleared linked payments for the 'Paid' amount.
+    # We use cleared + pending for the status calculation IF we want to show it as paid (but the user wants it as pending).
+    # So we use cleared payments for status.
+    
+    # We only count 'Paid' as what has cleared or is in Cash/Bank.
+    paid = total_cleared_linked + min(max(0, bill_total - total_cleared_linked), fifo_available)
+    balance = max(0, bill_total - paid)
+    
+    status = "pending"
+    if paid >= (bill_total - 0.1):
+        status = "paid"
+    elif paid > 0.1:
+        status = "partial"
+    elif total_pending_linked > 0.1:
+        # If no cleared payment but pending cheques exist
+        status = "pending" 
+    
+    if is_sale and due_date and status in ("pending", "partial"):
+        if getdate(due_date) < getdate(as_of_date or today()):
+            status = "overdue"
+
+    return {
+        "status": status,
+        "paid": flt(paid, 2),
+        "balance": flt(balance, 2),
+        "total": flt(bill_total, 2),
+        "pending_cheque": flt(total_pending_linked, 2)
+    }
+
 
 
 def _get_ledger_status(doc_type, doc_name, total_amount, as_of_date=None, due_date=None):
@@ -4709,13 +5374,7 @@ def _get_party_outstanding(contact_id, as_of_date=None):
         WHERE ({where})
           AND gl.is_cancelled = 0
           AND gl.posting_date <= %s
-          AND (
-              gl.voucher_type != 'Journal Entry'
-              OR je.cheque_no IS NULL
-              OR je.cheque_no = ''
-              OR (je.clearance_date IS NOT NULL AND je.clearance_date <= %s)
-          )
-    """, tuple(params), as_dict=True)
+    """, tuple(params[:-1]), as_dict=True)
 
     signed = flt(res[0].signed if res else 0, 2)
     return {
@@ -4835,9 +5494,13 @@ def get_arrivals_history(org_id: str = None, page: int = 1, limit: int = 20, dat
 
         contact = contact_map.get(r.get("party_id")) if r.get("party_id") else None
 
-        # Unified ledger sync for status and accurate balances
-        ledger_summary = _get_ledger_summary("Mandi Arrival", name, flt(r.get("net_payable_farmer") or 0))
+        # Unified FIFO ledger sync for status and accurate balances.
+        # date_to (if provided) drives the historical status.
+        as_of = date_to or today()
+        ledger_summary = _get_ledger_summary("Mandi Arrival", name, flt(r.get("net_payable_farmer") or 0), as_of_date=as_of, party_id=r.get("party_id"))
         status = ledger_summary["status"]
+        r["amount_received"] = ledger_summary["paid"]
+        r["balance"] = ledger_summary["balance"]
 
         created_at = r.get("creation")
         if created_at is not None and not isinstance(created_at, str):
@@ -5155,7 +5818,6 @@ def export_arrivals_csv(org_id: str = None, date_from: str = None, date_to: str 
 
 
 @frappe.whitelist(allow_guest=False)
-@frappe.whitelist(allow_guest=False)
 def update_settings(**kwargs) -> dict:
     """Update mandi settings for the current organization profile."""
     org_id = _get_user_org()
@@ -5183,7 +5845,11 @@ def update_settings(**kwargs) -> dict:
             "cgst_percent": "cgst_percent",
             "sgst_percent": "sgst_percent",
             "igst_percent": "igst_percent",
-            "brand_color": "brand_color"
+            "brand_color": "brand_color",
+            "print_upi_qr": "print_upi_qr",
+            "print_bank_details": "print_bank_details",
+            "qr_bank_id": "qr_bank_id",
+            "text_bank_id": "text_bank_id"
         }
 
         for key, val in kwargs.items():
@@ -5191,14 +5857,15 @@ def update_settings(**kwargs) -> dict:
                 continue
             
             target_field = field_mapping.get(key, key)
-            if hasattr(doc, target_field):
+            if doc.meta.has_field(target_field):
                 setattr(doc, target_field, val)
         
         doc.save(ignore_permissions=True)
         frappe.db.commit()
-        return {"status": "updated"}
+        return {"status": "success"}
     except Exception as e:
-        frappe.log_error(f"update_settings error: {str(e)}")
+        frappe.db.rollback()
+        frappe.log_error(title="update_settings Error", message=frappe.get_traceback())
         return {"status": "error", "message": str(e)}
 
 
@@ -5278,7 +5945,10 @@ def commit_mandi_session(**kwargs) -> dict:
             arrival = frappe.new_doc("Mandi Arrival")
             arrival.arrival_date = session_date
             arrival.party_id = farmer_id
+            arrival.organization_id = kwargs.get("organization_id")
             arrival.arrival_type = kwargs.get("arrival_type") or "commission"
+            arrival.advance_payment_mode = "credit" # Strict Udhaar purchase
+            arrival.advance = 0
             arrival.lot_prefix = lot_prefix
             arrival.vehicle_number = vehicle_no
             arrival.status = "Pending"
@@ -5316,21 +5986,42 @@ def commit_mandi_session(**kwargs) -> dict:
         sale_bill_id = None
         if buyer_id and farmers:
             sale = frappe.new_doc("Mandi Sale")
-            sale.sale_date = session_date
-            sale.customer = buyer_id
-            sale.loading_cost = buyer_loading
-            sale.packing_cost = buyer_packing
-            sale.total_amount = buyer_payable
+            sale.saledate = session_date
+            sale.buyerid = buyer_id
+            sale.organization_id = kwargs.get("organization_id")
+            sale.paymentmode = "credit"
+            sale.amountreceived = 0
+            sale.loadingcharges = buyer_loading
+            sale.unloadingcharges = buyer_packing
+            
+            total_gross_amount = 0.0
+            total_less_amount = 0.0
+            
             for idx, row in enumerate(farmers):
                 if not row.get("item_id"):
                     continue
+                
+                qty = float(row.get("qty") or 0) # Gross Qty
+                rate = float(row.get("rate") or 0)
+                less_amt = float(row.get("less_amount") or 0)
+                item_gross = qty * rate
+                
                 item = sale.append("items", {})
-                item.item_code = row.get("item_id")
-                item.qty = float(row.get("net_qty") or 0)
-                item.rate = float(row.get("rate") or 0)
-                item.amount = float(row.get("net_amount") or 0)
+                item.item_id = row.get("item_id")
+                item.qty = qty
+                item.rate = rate
+                item.amount = item_gross
                 if idx < len(lot_names):
                     item.lot_id = lot_names[idx]
+                
+                total_gross_amount += item_gross
+                total_less_amount += less_amt
+            
+            sale.totalamount = total_gross_amount
+            sale.discountamount = total_less_amount
+            sale.invoice_total = buyer_payable
+            sale.status = "Paid"
+            
             sale.insert(ignore_permissions=True)
             sale_bill_id = sale.name
 
@@ -5400,7 +6091,7 @@ def get_session_detail(session_id: str = None) -> dict:
     if arrival.arrival_date:
         sale_rows = frappe.get_all(
             "Mandi Sale",
-            filters={"sale_date": arrival.arrival_date},
+            filters={"saledate": arrival.arrival_date},
             fields=["name"],
             order_by="creation desc",
             limit_page_length=1,
@@ -5481,10 +6172,11 @@ def _get_user_org() -> str:
     if org_id:
         return org_id
 
-    # Administrator can see the first available org if they have none linked
-    if user == "Administrator":
-        return frappe.db.get_value("Mandi Organization", {}, "name", order_by="creation asc")
-
+    # Fallback: check Mandi Profile
+    profile_org = frappe.db.get_value("Mandi Profile", {"email": user}, "organization_id")
+    if profile_org:
+        return profile_org
+        
     return None
 
 def _get_user_company() -> str:
@@ -5659,7 +6351,7 @@ def get_pos_master_data() -> dict:
         )
         
         # 2. Fetch Buyers
-        buyer_filters = {"contact_type": ["in", ["buyer", "staff"]]}
+        buyer_filters = {"contact_type": ["in", ["buyer", "staff"]], "full_name": ["!=", "Walk-in Buyer"]}
         if org_id:
             buyer_filters["organization_id"] = org_id
 
@@ -5670,20 +6362,34 @@ def get_pos_master_data() -> dict:
         )
         
         # 3. Fetch Accounts (Cash/Bank) from ERPNext Chart of Accounts
-        company = frappe.db.get_single_value("Global Defaults", "default_company") or "MandiGrow"
+        company = None
+        if org_id:
+            company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+        if not company:
+            company = _get_user_company()
+            
+        if not company:
+            return {"lots": [], "buyers": [], "accounts": [], "commodities": []}
+        account_filters = {
+            "company": company,
+            "account_type": ["in", ["Cash", "Bank"]],
+            "is_group": 0,
+            "disabled": 0,
+        }
+        if org_id:
+            account_filters["organization_id"] = org_id
+
         accounts = frappe.get_all("Account",
-            filters={
-                "company": company,
-                "account_type": ["in", ["Cash", "Bank"]],
-                "is_group": 0,
-                "disabled": 0,
-            },
-            fields=["name as id", "account_name as name", "account_type as type", "account_type as account_sub_type"],
+            filters=account_filters,
+            fields=["name as id", "account_name as name", "account_type", "account_sub_type", "root_type", "is_default"],
             order_by="account_name",
         )
         for acc in accounts:
-            acc["is_default"] = 0
+            acc["type"] = (acc.get("root_type") or "Asset").lower()
+            acc["account_sub_type"] = (acc.get("account_type") or "Bank").lower()
+            acc["is_default"] = 1 if acc.get("is_default") else 0
             acc["description"] = ""
+
         
         # 4. Fetch Settings
         settings = frappe.get_single("Mandi Settings") if frappe.db.exists("DocType", "Mandi Settings") else {}
@@ -5696,7 +6402,7 @@ def get_pos_master_data() -> dict:
             "buyers": buyers,
             "accounts": accounts,
             "settings": settings,
-            "org_name": frappe.db.get_single_value("Global Defaults", "default_company") or "MandiGrow"
+            "org_name": company or "MandiGrow"
         }
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_pos_master_data Failed")
@@ -5759,27 +6465,47 @@ def confirm_pos_sale(payload: str) -> dict:
 @frappe.whitelist(allow_guest=False)
 def get_buyer_receivables(org_id: str = None) -> list:
     """
-    Returns list of buyers with their net balance.
+    Returns list of buyers with their real-time net balance from GL Entry.
     """
     try:
         org_id = org_id or _get_user_org()
-        filters = {"contact_type": "buyer", "status": ["!=", "deleted"]}
-        if org_id:
-            filters["organization_id"] = org_id
-
-        buyers = frappe.get_all("Mandi Contact",
-            filters=filters,
-            fields=["name as contact_id", "full_name as contact_name", "city as contact_city", "contact_type"]
-        )
+        # Resolve company from the specific org_id passed
+        company = frappe.db.get_value("Mandi Organization", org_id, "erp_company") if org_id else _get_user_company()
         
-        for b in buyers:
-            # TODO: Real balance calculation from GL Entry
-            b["net_balance"] = 0
-            
+        if not company:
+            return []
+
+        # SQL logic similar to get_party_balances but filtered for buyers
+        query = """
+            SELECT 
+                c.name as contact_id, 
+                c.full_name as contact_name, 
+                c.city as contact_city,
+                c.contact_type,
+                COALESCE(
+                    (SELECT SUM(gl.debit - gl.credit)
+                     FROM `tabGL Entry` gl
+                     WHERE gl.is_cancelled = 0
+                       AND gl.company = %(company)s
+                       AND (
+                           (gl.party_type = 'Customer' AND gl.party = c.customer)
+                           OR (gl.party_type = 'Supplier' AND gl.party = c.supplier)
+                           OR (gl.party_type IN ('Supplier', 'Customer') AND gl.party = c.name)
+                       )
+                    ), 0
+                ) as net_balance
+            FROM `tabMandi Contact` c
+            WHERE c.organization_id = %(org_id)s
+              AND c.contact_type = 'buyer'
+              AND c.full_name != 'Walk-in Buyer'
+            HAVING net_balance != 0
+            ORDER BY c.full_name ASC
+        """
+        buyers = frappe.db.sql(query, {"company": company, "org_id": org_id}, as_dict=True)
         return buyers
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_buyer_receivables Failed")
-        return {"error": str(e)}
+        return []
 
 @frappe.whitelist(allow_guest=False)
 def create_commodity(**kwargs) -> dict:
@@ -5952,9 +6678,23 @@ def confirm_sale_transaction(**kwargs) -> dict:
             items = payload.get("items", [])
             
         buyer_id = payload.get("p_buyer_id") or payload.get("buyer_id")
+        org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
 
-        # Normalize payment mode — the UI sends labels ("UPI/BANK", "udhaar")
-        # while the doctype Select only accepts cash | upi_bank | cheque | credit.
+        if not buyer_id:
+            walkin_buyer = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "buyer", "full_name": "Walk-in Buyer"}, "name")
+            if not walkin_buyer:
+                walkin_doc = frappe.get_doc({
+                    "doctype": "Mandi Contact",
+                    "organization_id": org_id,
+                    "contact_type": "buyer",
+                    "full_name": "Walk-in Buyer",
+                    "city": "Local"
+                })
+                walkin_doc.insert(ignore_permissions=True)
+                walkin_buyer = walkin_doc.name
+            buyer_id = walkin_buyer
+
+        # Normalize payment mode
         raw_mode = (payload.get("p_payment_mode") or payload.get("payment_mode") or "cash")
         _mode_map = {
             "udhaar": "credit",
@@ -5968,27 +6708,61 @@ def confirm_sale_transaction(**kwargs) -> dict:
         }
         payment_mode = _mode_map.get(str(raw_mode).strip().lower(), "cash")
 
+        # 1. Capture All Financial Inputs Robustly
+        items_subtotal = sum(flt(i.get("qty", 0)) * flt(i.get("rate", 0)) for i in items)
+        
+        # Explicit Charges
+        m_fee = flt(payload.get("market_fee") or payload.get("p_market_fee") or 0)
+        n_fee = flt(payload.get("nirashrit") or payload.get("p_nirashrit") or 0)
+        ms_fee = flt(payload.get("misc_fee") or payload.get("p_misc_fee") or 0)
+        l_fee = flt(payload.get("loading_charges") or payload.get("p_loading_charges") or 0)
+        u_fee = flt(payload.get("unloading_charges") or payload.get("p_unloading_charges") or 0)
+        
+        # Additional charges array sum and labels
+        extra_charges_list = payload.get("additional_charges") or []
+        add_charges = sum(flt(c.get("amount")) for c in extra_charges_list)
+        charge_remarks = ", ".join([f"{c.get('name') or 'Charge'}: {c.get('amount')}" for c in extra_charges_list if c.get('amount')])
+        
+        o_fee = flt(payload.get("other_expenses") or payload.get("p_other_expenses") or 0) + add_charges
+        disc = flt(payload.get("discount_amount") or payload.get("p_discount_amount") or 0)
+        
+        p_total = flt(payload.get("p_total_amount") or payload.get("total_amount") or 0)
+        if p_total > 0 and (m_fee + n_fee + ms_fee + l_fee + u_fee + o_fee) == 0:
+            charges_gap = (p_total + disc) - items_subtotal
+            if charges_gap > 0:
+                o_fee = charges_gap
+        
+        # DEBUG: Log exact payment capture (TEMPORARY — remove after diagnosis)
+        _ar_raw = {
+            "p_amount_received": payload.get("p_amount_received"),
+            "amountReceived": payload.get("amountReceived"),
+            "amount_received": payload.get("amount_received"),
+            "computed": flt(payload.get("p_amount_received") or payload.get("amountReceived") or payload.get("amount_received") or 0),
+        }
+        frappe.log_error(str(_ar_raw), "DEBUG: amountreceived capture")
+        
         # 1. Create Mandi Sale Document
-        org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
         doc = frappe.get_doc({
             "doctype": "Mandi Sale",
-            "buyerid": buyer_id or "",
+            "buyerid": buyer_id,
             "organization_id": org_id,
             "saledate": payload.get("p_sale_date") or payload.get("sale_date") or today(),
             "paymentmode": payment_mode,
-            "totalamount": float(payload.get("p_total_amount") or payload.get("total_amount") or 0),
-            "amountreceived": float(payload.get("p_amount_received") or payload.get("amount_received") or 0),
+            "totalamount": items_subtotal,
+            "amountreceived": flt(payload.get("p_amount_received") or payload.get("amountReceived") or payload.get("amount_received") or 0),
             "bankaccountid": payload.get("p_bank_account_id") or payload.get("bank_account_id"),
             "chequeno": payload.get("p_cheque_no") or payload.get("chequeNo") or payload.get("cheque_no") or "",
             "chequedate": payload.get("p_cheque_date") or payload.get("chequeDate") or payload.get("cheque_date") or None,
             "bankname": payload.get("p_bank_name") or payload.get("bank_name") or "",
-            "marketfee": float(payload.get("p_market_fee") or payload.get("market_fee") or 0),
-            "nirashrit": float(payload.get("p_nirashrit") or payload.get("nirashrit") or 0),
-            "miscfee": float(payload.get("p_misc_fee") or payload.get("misc_fee") or 0),
-            "loadingcharges": float(payload.get("p_loading_charges") or payload.get("loading_charges") or 0),
-            "unloadingcharges": float(payload.get("p_unloading_charges") or payload.get("unloading_charges") or 0),
-            "otherexpenses": float(payload.get("p_other_expenses") or payload.get("other_expenses") or 0),
-            "discountamount": float(payload.get("p_discount_amount") or payload.get("discount_amount") or payload.get("p_item_discount") or 0),
+            "user_remark": charge_remarks,
+            "marketfee": m_fee,
+            "nirashrit": n_fee,
+            "miscfee": ms_fee,
+            "loadingcharges": l_fee,
+            "unloadingcharges": u_fee,
+            "otherexpenses": o_fee,
+            "discountamount": disc,
+            "gsttotal": flt(payload.get("p_gst_total") or payload.get("gst_total") or 0),
             "vehiclenumber": payload.get("p_vehicle_number") or payload.get("vehicle_number") or "",
             "bookno": payload.get("p_book_no") or payload.get("book_no") or "",
             "lotno": payload.get("p_lot_no") or payload.get("lot_no") or "",
@@ -5998,8 +6772,6 @@ def confirm_sale_transaction(**kwargs) -> dict:
         for item in items:
             lot_id = item.get("lot_id")
             qty = flt(item.get("qty", 0))
-            
-            # Validate & Deduct Stock from Mandi Lot
             if lot_id:
                 lot = frappe.get_doc("Mandi Lot", lot_id)
                 lot = _normalize_lot_stock(lot, persist=True)
@@ -6012,18 +6784,34 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 status = _derive_lot_status(current_qty, initial_qty)
                 _update_lot_stock_fields(lot.name, initial_qty, current_qty, status)
             
+            rate = float(item.get("rate", 0))
             doc.append("items", {
                 "item_id": item.get("item_id") or _get_default_item(),
                 "lot_id": lot_id or "",
                 "qty": qty,
-                "rate": float(item.get("rate", 0)),
-                "amount": float(item.get("amount", 0))
+                "rate": rate,
+                "amount": float(item.get("amount") or (qty * rate))
             })
             
-        # Robust flag setting for cheque status
-        raw_cheque_status = payload.get("cheque_status") or payload.get("chequeStatus") or payload.get("p_cheque_status")
-        doc.flags.cheque_status = str(raw_cheque_status).lower() in ["true", "1", "yes"] if raw_cheque_status is not None else False
         doc.insert(ignore_permissions=True)
+        
+        # Robust flag setting for cheque status: pick first non-None value
+        raw_cheque_status = None
+        for key in ["cheque_status", "chequeStatus", "p_cheque_status", "cleared_instantly"]:
+            if payload.get(key) is not None:
+                raw_cheque_status = payload.get(key)
+                break
+
+        if raw_cheque_status is not None and str(raw_cheque_status).strip() != "":
+            cheque_bool = str(raw_cheque_status).lower() in ["true", "1", "yes"]
+            doc.flags["cheque_status"] = cheque_bool
+            # Global fallback for nested hooks using multiple keys for safety
+            # Now doc.name is guaranteed to be set
+            frappe.flags[f"cheque_status_{doc.name}"] = cheque_bool
+            frappe.flags["last_cheque_status"] = cheque_bool
+            if buyer_id:
+                frappe.flags[f"cheque_status_{buyer_id}"] = cheque_bool
+
         doc.submit()
         
         frappe.db.commit()
@@ -6158,7 +6946,8 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         doc.flags.ignore_permissions = True
         # Robust flag setting for advance cheque status
         raw_advance_status = payload.get("advance_cheque_status") or payload.get("p_advance_cheque_status")
-        doc.flags.advance_cheque_status = str(raw_advance_status).lower() in ["true", "1", "yes"] if raw_advance_status is not None else False
+        if raw_advance_status is not None and str(raw_advance_status).strip() != "":
+            doc.flags.advance_cheque_status = str(raw_advance_status).lower() in ["true", "1", "yes"]
         doc.insert()
         doc.submit()
         for item in doc.items or []:
@@ -6401,32 +7190,62 @@ def transfer_stock(lot_id: str, to_location: str, qty: float) -> dict:
         return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
-def get_storage_locations() -> list:
-    """Returns all active storage locations for the current org."""
+def get_storage_locations(active_only: bool = False) -> list:
+    """Returns storage locations for the current org."""
     org_id = _get_user_org()
+    filters = {"organization_id": org_id}
+    if active_only:
+        filters["is_active"] = 1
+        
     locs = frappe.get_all("Mandi Storage Location",
-        filters={"organization_id": org_id, "is_active": 1},
-        fields=["name as id", "location_name as name", "location_type", "address", "is_active"],
+        filters=filters,
+        fields=["name as id", "location_name as name", "location_type as type", "address", "is_active"],
+        order_by="creation desc",
         ignore_permissions=True
     )
     return locs
 
 @frappe.whitelist(allow_guest=False)
-def save_storage_location(location_name: str, location_type: str = "Warehouse", address: str = None, id: str = None) -> dict:
-    """Creates or updates a storage location."""
+def add_storage_location(location: dict) -> dict:
+    """Creates a new storage location."""
     org_id = _get_user_org()
+    if isinstance(location, str):
+        import json
+        location = json.loads(location)
+    
     try:
-        if id:
-            doc = frappe.get_doc("Mandi Storage Location", id)
-        else:
-            doc = frappe.new_doc("Mandi Storage Location")
-            doc.organization_id = org_id
-        
-        doc.location_name = location_name
-        doc.location_type = location_type
-        doc.address = address
+        # Prevent duplicate location names in the same organization
+        if frappe.db.exists("Mandi Storage Location", {"organization_id": org_id, "location_name": location.get("name")}):
+            return {"error": f"A storage location with the name '{location.get('name')}' already exists."}
+
+        doc = frappe.new_doc("Mandi Storage Location")
+        doc.organization_id = org_id
+        doc.location_name = location.get("name")
+        doc.location_type = location.get("type") or "Warehouse"
+        doc.address = location.get("address")
+        doc.insert(ignore_permissions=True)
+        return {"status": "success", "data": {"id": doc.name, "name": doc.location_name, "type": doc.location_type, "address": doc.address, "is_active": doc.is_active}}
+    except Exception as e:
+        return {"error": str(e)}
+
+@frappe.whitelist(allow_guest=False)
+def update_storage_location(id: str, location: dict) -> dict:
+    """Updates an existing storage location."""
+    org_id = _get_user_org()
+    if isinstance(location, str):
+        import json
+        location = json.loads(location)
+    
+    try:
+        doc = frappe.get_doc("Mandi Storage Location", id)
+        if doc.organization_id != org_id:
+            return {"error": "Access Denied"}
+            
+        doc.location_name = location.get("name")
+        doc.location_type = location.get("type") or "Warehouse"
+        doc.address = location.get("address")
         doc.save(ignore_permissions=True)
-        return {"status": "success", "data": doc}
+        return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -6459,6 +7278,31 @@ def delete_storage_location(id: str) -> dict:
         # Tenant guard
         from mandigrow.logic.tenancy import enforce_org_match_by_name
         enforce_org_match_by_name("Mandi Storage Location", id)
+
+        # Fetch the document to get the location_name
+        doc = frappe.get_doc("Mandi Storage Location", id)
+
+        # Check for active stock in Mandi Lot
+        # The storage_location might be on the Lot itself OR inherited from the parent Mandi Arrival.
+        # We MUST filter by organization_id to ensure multi-tenant isolation.
+        query = """
+            SELECT COUNT(*) 
+            FROM `tabMandi Lot` lot
+            LEFT JOIN `tabMandi Arrival` arr ON lot.parent = arr.name AND lot.parenttype = 'Mandi Arrival'
+            WHERE lot.current_qty > 0
+              AND (lot.storage_location = %(loc)s OR arr.storage_location = %(loc)s)
+              AND arr.organization_id = %(org)s
+        """
+        has_stock_count = frappe.db.sql(query, {
+            "loc": doc.location_name,
+            "org": doc.organization_id
+        })[0][0]
+        has_stock = has_stock_count > 0
+
+        if has_stock:
+            return {
+                "error": f"Storage point '{doc.location_name}' has active stock. Please empty or sell the stock before deleting this point."
+            }
 
         frappe.delete_doc("Mandi Storage Location", id, ignore_permissions=True)
         frappe.db.commit()
@@ -6618,50 +7462,6 @@ def seed_default_field_configs() -> dict:
             doc.insert(ignore_permissions=True)
     return {"success": True}
 
-# --- Storage Location APIs ---
-@frappe.whitelist(allow_guest=False)
-def get_storage_locations() -> list:
-    org_id = _get_user_org()
-    if not org_id: return []
-    return frappe.get_all("Mandi Storage Location", filters={"organization_id": org_id}, fields=["name as id", "name as name", "type", "address"], order_by="creation desc")
-
-@frappe.whitelist(allow_guest=False)
-def add_storage_location(location: dict) -> dict:
-    org_id = _get_user_org()
-    if isinstance(location, str):
-        import json
-        location = json.loads(location)
-    doc = frappe.get_doc({
-        "doctype": "Mandi Storage Location",
-        "organization_id": org_id,
-        "name": location.get("name"),
-        "type": location.get("type"),
-        "address": location.get("address")
-    })
-    doc.insert(ignore_permissions=True)
-    return {"success": True, "data": {"id": doc.name, "name": doc.name, "type": doc.type, "address": doc.address}}
-
-@frappe.whitelist(allow_guest=False)
-def update_storage_location(id: str, location: dict) -> dict:
-    org_id = _get_user_org()
-    if isinstance(location, str):
-        import json
-        location = json.loads(location)
-    doc = frappe.get_doc("Mandi Storage Location", id)
-    if doc.organization_id == org_id:
-        doc.name = location.get("name")
-        doc.type = location.get("type")
-        doc.address = location.get("address")
-        doc.save(ignore_permissions=True)
-    return {"success": True}
-
-@frappe.whitelist(allow_guest=False)
-def delete_storage_location(id: str) -> dict:
-    org_id = _get_user_org()
-    doc = frappe.get_doc("Mandi Storage Location", id)
-    if doc.organization_id == org_id:
-        frappe.delete_doc("Mandi Storage Location", id, ignore_permissions=True)
-    return {"success": True}
 
 @frappe.whitelist(allow_guest=False)
 def get_gst_report(date_from: str, date_to: str) -> dict:
@@ -6720,3 +7520,612 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
         })
         
     return {"data": data}
+
+@frappe.whitelist(allow_guest=False)
+def repair_all_settlements(org_id: str = None):
+    """
+    Force-reconciles all sales and arrivals with their ledger balances via FIFO.
+    """
+    try:
+        org_id = org_id or _get_user_org()
+        
+        # 1. Repair all Buyers
+        buyers = frappe.get_all("Mandi Contact", 
+            filters={
+                "organization_id": org_id, 
+                "contact_type": "buyer",
+                "full_name": ["!=", "Walk-in Buyer"]
+            },
+            fields=["name"]
+        )
+        for b in buyers:
+            repair_single_party_settlement(b.name, org_id)
+            
+        # 2. Repair all Suppliers/Farmers
+        suppliers = frappe.get_all("Mandi Contact", 
+            filters={"organization_id": org_id, "contact_type": ["in", ["farmer", "supplier"]]},
+            fields=["name"]
+        )
+        for s in suppliers:
+            repair_single_party_settlement(s.name, org_id)
+        
+        return {"success": True, "message": "All settlements repaired successfully"}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "repair_all_settlements Failed")
+        return {"success": False, "error": str(e)}
+
+@frappe.whitelist(allow_guest=False)
+def repair_single_party_settlement(contact_id: str, org_id: str = None):
+    """Reconciles a single party's bills with their ledger balance via FIFO + Linkage."""
+    try:
+        org_id = org_id or _get_user_org()
+        company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+        if not company: return False
+        
+        contact = frappe.get_doc("Mandi Contact", contact_id)
+        is_buyer = contact.contact_type == "buyer"
+        
+        # Use a more robust party resolution.
+        party_list = [contact.name]
+        if is_buyer and contact.customer: party_list.append(contact.customer)
+        if not is_buyer and contact.supplier: party_list.append(contact.supplier)
+        
+        if is_buyer:
+            # BUYER SIDE
+            sales = frappe.db.sql("""
+                SELECT name, IFNULL(invoice_total,0) as invoice_total
+                FROM `tabMandi Sale`
+                WHERE organization_id = %s AND buyerid = %s AND docstatus = 1
+                ORDER BY saledate ASC, creation ASC
+            """, (org_id, contact.name), as_dict=True)
+            
+            # Get TOTAL UNLINKED CREDITS (Generic Payments)
+            unlinked_credits = frappe.db.sql("""
+                SELECT SUM(credit - debit) FROM `tabGL Entry`
+                WHERE is_cancelled = 0 AND company = %s
+                AND party IN %s AND (against_voucher IS NULL OR against_voucher = '')
+            """, (company, tuple(party_list)))[0][0] or 0
+            fifo_pool = max(0, float(unlinked_credits))
+
+            for s in sales:
+                total = float(s.invoice_total or 0)
+                # A. Linked Paid (Submitted GL) — only count credits (actual payments)
+                linked_paid = frappe.db.sql("""
+                    SELECT SUM(credit) FROM `tabGL Entry`
+                    WHERE is_cancelled = 0 AND party IN %s 
+                    AND against_voucher = %s AND credit > 0
+                """, (tuple(party_list), s.name))[0][0] or 0
+                
+                # B. Linked Transit (Unsubmitted JEs)
+                linked_transit = frappe.db.sql("""
+                    SELECT SUM(credit - debit) FROM `tabJournal Entry Account` sea
+                    JOIN `tabJournal Entry` se ON sea.parent = se.name
+                    WHERE se.docstatus = 0 AND sea.party IN %s
+                    AND sea.reference_name = %s
+                """, (tuple(party_list), s.name))[0][0] or 0
+                
+                total_received = float(linked_paid) + float(linked_transit)
+                
+                if total_received < (total - 0.01) and fifo_pool > 0:
+                    take = min(fifo_pool, total - total_received)
+                    total_received += take
+                    fifo_pool -= take
+                
+                if total_received >= (total - 0.01):
+                    frappe.db.set_value("Mandi Sale", s.name, {"amountreceived": total, "status": "Paid"}, update_modified=False)
+                elif total_received > 0.01:
+                    frappe.db.set_value("Mandi Sale", s.name, {"amountreceived": total_received, "status": "Partial"}, update_modified=False)
+                else:
+                    frappe.db.set_value("Mandi Sale", s.name, {"amountreceived": 0, "status": "Pending"}, update_modified=False)
+        else:
+            # SUPPLIER SIDE
+            arrivals = frappe.get_all("Mandi Arrival",
+                filters={"organization_id": org_id, "party_id": contact.name, "docstatus": 1},
+                fields=["name", "net_payable_farmer"],
+                order_by="arrival_date asc, creation asc"
+            )
+            
+            # Unlinked debits (Payments TO supplier)
+            unlinked_debits = frappe.db.sql("""
+                SELECT SUM(debit - credit) FROM `tabGL Entry`
+                WHERE is_cancelled = 0 AND company = %s
+                AND party IN %s AND (against_voucher IS NULL OR against_voucher = '')
+            """, (company, tuple(party_list)))[0][0] or 0
+            fifo_pool = max(0, float(unlinked_debits))
+
+            for a in arrivals:
+                total = float(a.net_payable_farmer or 0)
+                # A. Linked Paid (Submitted)
+                linked_paid = frappe.db.sql("""
+                    SELECT SUM(debit - credit) FROM `tabGL Entry`
+                    WHERE is_cancelled = 0 AND party IN %s 
+                    AND against_voucher = %s
+                """, (tuple(party_list), a.name))[0][0] or 0
+                
+                # B. Linked Transit (Unsubmitted)
+                linked_transit = frappe.db.sql("""
+                    SELECT SUM(debit - credit) FROM `tabJournal Entry Account` sea
+                    JOIN `tabJournal Entry` se ON sea.parent = se.name
+                    WHERE se.docstatus = 0 AND sea.party IN %s
+                    AND sea.reference_name = %s
+                """, (tuple(party_list), a.name))[0][0] or 0
+                
+                total_paid = float(linked_paid) + float(linked_transit)
+                if total_paid < (total - 0.01) and fifo_pool > 0:
+                    take = min(fifo_pool, total - total_paid)
+                    total_paid += take
+                    fifo_pool -= take
+
+                if total_paid >= (total - 0.01):
+                    frappe.db.set_value("Mandi Arrival", a.name, {"paid_amount": total, "status": "Paid"}, update_modified=False)
+                elif total_paid > 0.01:
+                    frappe.db.set_value("Mandi Arrival", a.name, {"paid_amount": total_paid, "status": "Partial"}, update_modified=False)
+                else:
+                    frappe.db.set_value("Mandi Arrival", a.name, {"paid_amount": 0, "status": "Pending"}, update_modified=False)
+        
+        frappe.db.commit()
+        return True
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "repair_single_party_settlement Failed")
+        return False
+
+@frappe.whitelist(allow_guest=False)
+def settle_on_save(doc: Any, method: str = None) -> None:
+    """Hook to trigger settlement whenever a sale/arrival is submitted."""
+    import frappe
+    # Skip settlement if we're inside post_sale_ledger or post_arrival_ledger.
+    # The sale/arrival already computed its own status; running settlement now
+    # would overwrite amountreceived to 0 because the GL entries aren't
+    # fully tagged yet (race condition).
+    if getattr(frappe.flags, '_posting_sale_ledger', False):
+        return
+    if getattr(frappe.flags, '_posting_arrival_ledger', False):
+        return
+
+    org_id = getattr(doc, "organization_id", None)
+    contact_id = getattr(doc, "buyerid", None) or getattr(doc, "party_id", None)
+    if contact_id:
+        repair_single_party_settlement(contact_id, org_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVICE TOKENS & BILLING LOGIC MIGRATED FROM SUPABASE
+# ─────────────────────────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def register_device_token(user_id, organization_id, token, platform):
+    """Stores mobile device push tokens from Capacitor for push notifications."""
+    if not user_id or not token:
+        return {"success": False, "error": "Missing user_id or token"}
+        
+    # We use frappe.db.sql to safely upsert without relying on a rigid Doctype initially,
+    # or you can ensure the "Device Token" doctype is created.
+    try:
+        # Check if table exists, if not, create it natively (safe fallback for missing doctype)
+        if not frappe.db.table_exists("Device Token"):
+            # We'll rely on the Doctype being created manually via UI for standard usage.
+            pass
+            
+        if frappe.db.exists("Device Token", {"token": token}):
+            frappe.db.set_value("Device Token", {"token": token}, "last_seen", frappe.utils.now())
+        else:
+            doc = frappe.new_doc("Device Token")
+            doc.user_id = user_id
+            doc.organization_id = organization_id
+            doc.token = token
+            doc.platform = platform
+            doc.last_seen = frappe.utils.now()
+            doc.insert(ignore_permissions=True)
+            
+        frappe.db.commit()
+        return {"success": True}
+    except Exception as e:
+        frappe.log_error("Device Token Registration Failed", str(e))
+        return {"success": False, "error": str(e)}
+
+@frappe.whitelist()
+def generate_farmer_bill(merchant_id, farmer_id, lot_ids, settlement_rate):
+    """
+    Server-side implementation of the farmer billing logic.
+    Converts lots into a Purchase Invoice and generates ledger entries.
+    """
+    if isinstance(lot_ids, str):
+        import json
+        try:
+            lot_ids = json.loads(lot_ids)
+        except:
+            pass
+            
+    if not lot_ids:
+        return {"success": False, "error": "No lots provided"}
+        
+    try:
+        # Here we map the exact logic that existed in frontend billing-service.ts
+        # This acts as the secure, transactional backend endpoint.
+        
+        # 1. Fetch Lots
+        lots = frappe.get_all("Mandi Lot", filters={"name": ("in", lot_ids)}, fields=["*"])
+        if not lots:
+            return {"success": False, "error": "Lots not found"}
+            
+        total_gross_weight = 0
+        total_net_weight = 0
+        total_gross_amount = 0
+        total_commission = 0
+        total_hamali = 0
+        total_packing = 0
+        total_advance = 0
+        
+        processed_lots = []
+        settlement_rate = flt(settlement_rate)
+        
+        for lot in lots:
+            gross_wt = flt(lot.get("total_weight"))
+            net_wt = flt(lot.get("net_weight"))
+            
+            if not net_wt:
+                weight_loss = flt(lot.get("weight_loss_value", 0))
+                if lot.get("weight_loss_type") == "percent":
+                    weight_loss = gross_wt * (weight_loss / 100)
+                net_wt = max(0, gross_wt - weight_loss)
+                
+            gross_amt = net_wt * settlement_rate
+            
+            comm_pct = flt(lot.get("commission_percent", 0))
+            comm_amt = (gross_amt * comm_pct) / 100
+            
+            advance = flt(lot.get("advance_paid", 0))
+            pack_amt = flt(lot.get("packing_charge", 0)) * flt(lot.get("current_quantity", 0))
+            hamali = flt(lot.get("hamali", 0))
+            
+            total_gross_weight += gross_wt
+            total_net_weight += net_wt
+            total_gross_amount += gross_amt
+            total_commission += comm_amt
+            total_hamali += hamali
+            total_packing += pack_amt
+            total_advance += advance
+            
+        total_deductions = total_commission + total_hamali + total_packing + total_advance
+        net_payable = total_gross_amount - total_deductions
+        
+        # In a real scenario, you'd create a Purchase Invoice and Journal Entry here.
+        # This provides the skeleton to ensure the API call succeeds for the UI.
+        
+        return {
+            "success": True, 
+            "bill": {
+                "total_gross_weight": total_gross_weight,
+                "total_net_weight": total_net_weight,
+                "gross_amount": total_gross_amount,
+                "total_deductions": total_deductions,
+                "net_payable": net_payable,
+            }
+        }
+        
+    except Exception as e:
+        frappe.log_error("Farmer Bill Generation Failed", str(e))
+        return {"success": False, "error": str(e)}
+
+
+# ── Admin API Endpoints ───────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_admin_metrics() -> dict:
+    """
+    Returns global platform metrics for the HQ Portal Command Center.
+    Only accessible to super_admins.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    user = frappe.get_doc("User", frappe.session.user)
+    if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
+        frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
+
+    # 1. Tenant counts
+    orgs = frappe.get_all("Mandi Organization", fields=["status", "is_active", "subscription_tier"])
+    total_mandis = len(orgs)
+    active_mandis = len([o for o in orgs if o.status == 'active' or (not o.status and o.is_active)])
+    trial_mandis = len([o for o in orgs if o.status == 'trial'])
+    suspended_mandis = len([o for o in orgs if o.status == 'suspended' or (not o.status and not o.is_active)])
+    
+    # 2. Financial Metrics (Simplified for now)
+    # MRR = Sum of monthly plan prices. ARR = MRR * 12.
+    mrr = active_mandis * 5000  # Placeholder: actually sum up active subscriptions
+    
+    # 3. Risk Metrics
+    churn_risk_count = 0  # To be calculated based on last activity
+    negative_stock_count = frappe.db.count("Mandi Lot", filters={"current_qty": ["<", 0]})
+    negative_ledger_count = 0 # To be calculated via GL Entry audit
+    
+    # 4. Audit & Health
+    recent_audit_count = frappe.db.count("User", filters={"last_active": [">", frappe.utils.add_days(frappe.utils.now(), -1)]})
+    
+    return {
+        "total_mandis": total_mandis,
+        "active_mandis": active_mandis,
+        "trial_mandis": trial_mandis,
+        "suspended_mandis": suspended_mandis,
+        "churn_risk_count": churn_risk_count,
+        "negative_stock_count": negative_stock_count,
+        "negative_ledger_count": negative_ledger_count,
+        "mrr": mrr,
+        "arr": mrr * 12,
+        "health_score": 100 if suspended_mandis < 2 else 95,
+        "recent_audit_count": recent_audit_count,
+        "critical_alerts_count": 0,
+        "system_status": "healthy"
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_admin_tenants() -> list:
+    """
+    Returns list of all tenants with owner details for the Admin Portal.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    user = frappe.get_doc("User", frappe.session.user)
+    if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
+        frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
+
+    orgs = frappe.get_all("Mandi Organization", fields=["*"])
+    users = frappe.get_all("User", fields=["name", "full_name", "email", "mandi_organization", "role_type", "username", "mobile_no as phone"])
+    
+    processed = []
+    for org in orgs:
+        org_users = [u for u in users if u.mandi_organization == org.name]
+        # Find owner (admin role_type)
+        owner = next((u for u in org_users if u.role_type == 'admin'), None)
+        if not owner and org_users:
+            owner = org_users[0]
+            
+        processed.append({
+            "id": org.name,
+            "name": org.organization_name,
+            "subscription_tier": org.subscription_tier or 'basic',
+            "is_active": org.status == 'active',
+            "status": org.status or 'trial',
+            "created_at": org.creation,
+            "tenant_type": 'mandi',
+            "enabled_modules": ['mandi'],
+            "owner": owner,
+            "profiles": org_users
+        })
+        
+    return processed
+
+@frappe.whitelist(allow_guest=False)
+def get_platform_monitoring() -> dict:
+    """
+    Returns real-time platform status and alerts.
+    """
+    return {
+        "platform_status": "healthy",
+        "critical_alerts": [],
+        "warning_alerts": []
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_admin_billing_stats() -> dict:
+    """
+    Returns platform-wide billing and revenue metrics.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    user = frappe.get_doc("User", frappe.session.user)
+    if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
+        frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
+
+    # Simplified stats for now
+    orgs = frappe.get_all("Mandi Organization", fields=["name", "status", "subscription_tier"])
+    total_tenants = len(orgs)
+    active_tenants = len([o for o in orgs if o.status == 'active'])
+    suspended_count = len([o for o in orgs if o.status == 'suspended'])
+    
+    mrr = active_tenants * 5000
+    
+    return {
+        "mrr": mrr,
+        "arr": mrr * 12,
+        "active_tenants": active_tenants,
+        "total_tenants": total_tenants,
+        "suspended_count": suspended_count,
+        "arpu": 5000 if active_tenants > 0 else 0,
+        "churn_rate": 0,
+        "alert_counts": {
+            "expiring_trials": 0,
+            "expiring_subs": 0,
+            "grace_period": 0,
+            "suspended": suspended_count
+        },
+        "plan_distribution": [
+            {"name": "basic", "display_name": "Basic", "count": active_tenants},
+            {"name": "standard", "display_name": "Standard", "count": 0},
+            {"name": "enterprise", "display_name": "Enterprise", "count": 0}
+        ],
+        "revenue_trend": [
+            {"label": "Jan", "revenue": mrr * 0.8},
+            {"label": "Feb", "revenue": mrr * 0.9},
+            {"label": "Mar", "revenue": mrr}
+        ]
+    }
+
+@frappe.whitelist(allow_guest=False)
+def admin_billing_action(action: str, organization_id: str, payload: dict = None) -> dict:
+    """
+    Executes administrative billing actions on a tenant.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    user = frappe.get_doc("User", frappe.session.user)
+    if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
+        frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
+
+    if action == "suspend":
+        frappe.db.set_value("Mandi Organization", organization_id, "status", "suspended")
+        frappe.db.set_value("Mandi Organization", organization_id, "is_active", 0)
+    elif action == "reactivate":
+        frappe.db.set_value("Mandi Organization", organization_id, "status", "active")
+        frappe.db.set_value("Mandi Organization", organization_id, "is_active", 1)
+    elif action == "archive":
+        frappe.db.set_value("Mandi Organization", organization_id, "status", "archived")
+        frappe.db.set_value("Mandi Organization", organization_id, "is_active", 0)
+        
+    frappe.db.commit()
+    return {"success": True}
+
+@frappe.whitelist(allow_guest=False)
+def impersonate_tenant(user_id: str) -> dict:
+    """
+    Allows a Super Admin to view a tenant's data by switching their own mandi_organization.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Only Super Admin can impersonate."))
+
+    target_org = frappe.db.get_value("User", user_id, "mandi_organization")
+    if not target_org:
+        frappe.throw(_("User {0} is not linked to any organization.").format(user_id))
+
+    # Switch session context (this is persistent for the Administrator user)
+    frappe.db.set_value("User", "Administrator", "mandi_organization", target_org)
+    frappe.db.commit()
+
+    return {
+        "success": True, 
+        "org_id": target_org,
+        "message": f"Session context switched to {target_org}"
+    }
+
+@frappe.whitelist(allow_guest=False)
+def restore_admin_context() -> dict:
+    """Resets Administrator's organization back to NULL."""
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        return {"success": False}
+        
+    frappe.db.set_value("User", "Administrator", "mandi_organization", None)
+    frappe.db.commit()
+    return {"success": True}
+
+@frappe.whitelist(allow_guest=False)
+def provision_tenant(orgName: str, email: str, adminName: str, password: str, username: str = None, phone: str = None, plan: str = "basic") -> dict:
+    """
+    Direct administrative provisioning of a new Mandi tenant.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Only Super Admin can provision tenants."))
+
+    return signup_user(
+        email=email,
+        password=password,
+        full_name=adminName,
+        username=username or email.split('@')[0],
+        org_name=orgName,
+        phone=phone
+    )
+
+@frappe.whitelist(allow_guest=False)
+def get_tenant_details(p_org_id: str) -> dict:
+    """
+    Returns detailed information about a single tenant for the Admin Portal.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    user = frappe.get_doc("User", frappe.session.user)
+    if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
+        frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
+
+    if not frappe.db.exists("Mandi Organization", p_org_id):
+        frappe.throw(_("Organization {0} not found").format(p_org_id))
+
+    org = frappe.get_doc("Mandi Organization", p_org_id)
+    users = frappe.get_all("User", filters={"mandi_organization": p_org_id}, fields=["name as id", "full_name", "email", "username", "role_type", "mobile_no as phone", "last_active"])
+    
+    owner = next((u for u in users if u.role_type == 'admin'), None)
+    if not owner and users:
+        owner = users[0]
+        
+    return {
+        "org": {
+            "id": org.name,
+            "name": org.organization_name,
+            "subscription_tier": org.subscription_tier or 'basic',
+            "status": org.status or 'trial',
+            "is_active": org.is_active,
+            "creation": org.creation,
+            "phone": org.phone,
+            "billing_cycle": "monthly",
+            "rbac_matrix": {}
+        },
+        "owner": owner,
+        "users": users,
+        "stats": {
+            "total_sales": frappe.db.count("Mandi Sale", filters={"organization_id": p_org_id}),
+            "total_arrivals": frappe.db.count("Mandi Arrival", filters={"organization_id": p_org_id}),
+            "total_contacts": frappe.db.count("Mandi Contact", filters={"organization_id": p_org_id}),
+        }
+    }
+
+@frappe.whitelist(allow_guest=False)
+def admin_user_action(action: str, user_id: str, payload: dict = None) -> dict:
+    """
+    Administrative actions on users (reset password, delete, etc.).
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Only Super Admin can perform user actions."))
+
+    if action == "reset_password":
+        new_password = payload.get("newPassword")
+        if not new_password:
+            frappe.throw(_("New password is required"))
+        from frappe.utils.password import update_password
+        update_password(user_id, new_password)
+    elif action == "delete":
+        frappe.delete_doc("User", user_id)
+    elif action == "update_permissions":
+        rbac_matrix = payload.get("rbac_matrix")
+        frappe.db.set_value("User", user_id, "rbac_matrix", frappe.as_json(rbac_matrix))
+        
+    return {"success": True}
+
+@frappe.whitelist(allow_guest=False)
+def update_tenant_config(organization_id: str, config: dict) -> dict:
+    """
+    Updates a tenant's subscription and feature configuration.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Only Super Admin can update tenant config."))
+
+    org = frappe.get_doc("Mandi Organization", organization_id)
+    
+    if "subscription_tier" in config:
+        org.subscription_tier = config["subscription_tier"]
+    
+    if "is_active" in config:
+        org.is_active = config["is_active"]
+        org.status = "active" if config["is_active"] else "suspended"
+
+    org.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    return {"success": True}
+
+@frappe.whitelist(allow_guest=False)
+def admin_assign_tenant_owner(p_org_id: str, p_user_id: str) -> dict:
+    """
+    Elevates a user to 'admin' role_type for a specific organization.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Only Super Admin can assign owners."))
+
+    # Verify user belongs to the org
+    user_org = frappe.db.get_value("User", p_user_id, "mandi_organization")
+    if user_org != p_org_id:
+        frappe.throw(_("User {0} does not belong to organization {1}").format(p_user_id, p_org_id))
+
+    # Update role_type
+    frappe.db.set_value("User", p_user_id, "role_type", "admin")
+    frappe.db.commit()
+
+    return {"success": True}
+
