@@ -8017,6 +8017,47 @@ def update_app_plan(plan_data: dict) -> dict:
     return {"status": "success", "message": "Plan updated"}
 
 @frappe.whitelist(allow_guest=False)
+def get_billing_gateways() -> list:
+    """
+    Returns list of all billing gateways.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Super Admin role required"))
+        
+    gateways = frappe.get_all("Billing Gateway", fields=["*"])
+    for g in gateways:
+        if g.config:
+            import json
+            try:
+                g.config = json.loads(g.config)
+            except:
+                g.config = {}
+        else:
+            g.config = {}
+    return gateways
+
+@frappe.whitelist(allow_guest=False)
+def update_billing_gateway(gateway_type: str, config: dict, is_active: bool) -> dict:
+    """
+    Updates a billing gateway configuration.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Super Admin role required"))
+        
+    if not frappe.db.exists("Billing Gateway", gateway_type):
+        frappe.throw(_("Gateway {0} not found").format(gateway_type))
+        
+    import json
+    frappe.db.set_value("Billing Gateway", gateway_type, {
+        "config": json.dumps(config),
+        "is_active": 1 if is_active else 0
+    })
+    frappe.db.commit()
+    return {"status": "success"}
+
+@frappe.whitelist(allow_guest=False)
 def get_admin_billing_stats() -> dict:
     """
     Returns platform-wide billing and revenue metrics.
@@ -8027,12 +8068,46 @@ def get_admin_billing_stats() -> dict:
         frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
 
     # Simplified stats for now
+    # Dynamic stats
     orgs = frappe.get_all("Mandi Organization", fields=["name", "status", "subscription_tier"])
+    plans = frappe.get_all("App Plan", fields=["plan_name", "price_monthly", "display_name"])
+    plan_map = {p.plan_name: p for p in plans}
+
     total_tenants = len(orgs)
     active_tenants = len([o for o in orgs if o.status == 'active'])
     suspended_count = len([o for o in orgs if o.status == 'suspended'])
     
-    mrr = active_tenants * 5000
+    mrr = 0
+    plan_distribution = []
+    
+    # Calculate MRR and distribution
+    for p_name, plan in plan_map.items():
+        count = len([o for o in orgs if o.subscription_tier == p_name and o.status == 'active'])
+        plan_mrr = count * (plan.price_monthly or 0)
+        mrr += plan_mrr
+        plan_distribution.append({
+            "name": p_name,
+            "display_name": plan.display_name,
+            "count": count,
+            "mrr": plan_mrr
+        })
+    
+    # Fill in missing plans
+    active_plan_names = [pd["name"] for pd in plan_distribution]
+    for p_name, plan in plan_map.items():
+        if p_name not in active_plan_names:
+            plan_distribution.append({
+                "name": p_name,
+                "display_name": plan.display_name,
+                "count": 0,
+                "mrr": 0
+            })
+
+    from frappe.utils import now_datetime, add_days
+    expiring_trials = frappe.db.count("Mandi Organization", filters={
+        "status": "trial",
+        "trial_ends_at": ["between", [now_datetime(), add_days(now_datetime(), 3)]]
+    })
     
     return {
         "mrr": mrr,
@@ -8040,23 +8115,19 @@ def get_admin_billing_stats() -> dict:
         "active_tenants": active_tenants,
         "total_tenants": total_tenants,
         "suspended_count": suspended_count,
-        "arpu": 5000 if active_tenants > 0 else 0,
+        "arpu": mrr / active_tenants if active_tenants > 0 else 0,
         "churn_rate": 0,
         "alert_counts": {
-            "expiring_trials": 0,
+            "expiring_trials": expiring_trials,
             "expiring_subs": 0,
             "grace_period": 0,
-            "suspended": suspended_count
+            "suspended": suspended_count,
+            "trialing": frappe.db.count("Mandi Organization", filters={"status": "trial"})
         },
-        "plan_distribution": [
-            {"name": "basic", "display_name": "Basic", "count": active_tenants},
-            {"name": "standard", "display_name": "Standard", "count": 0},
-            {"name": "enterprise", "display_name": "Enterprise", "count": 0}
-        ],
+        "plan_distribution": plan_distribution,
         "revenue_trend": [
-            {"label": "Jan", "revenue": mrr * 0.8},
-            {"label": "Feb", "revenue": mrr * 0.9},
-            {"label": "Mar", "revenue": mrr}
+            {"label": "Prev", "revenue": mrr * 0.9},
+            {"label": "Current", "revenue": mrr}
         ]
     }
 
