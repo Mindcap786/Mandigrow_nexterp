@@ -733,12 +733,43 @@ def get_full_user_context(p_user_id: str = None) -> dict:
 
         org_data = _get_org_info(org_id) if org_id else None
         subscription_data = None
+        # Silicon Valley Grade: Subscription Lifecycle Engine
+        from frappe.utils import get_datetime, now_datetime, date_diff, add_days
+        
+        status = "active"
+        is_locked = False
+        days_to_expiry = 999
+        
         if org_data:
-            subscription_data = {
-                "status": org_data.get("status") or "active",
-                "is_active": bool(org_data.get("is_active", True)),
-                "subscription_tier": org_data.get("subscription_tier") or "starter",
-            }
+            expiry_date_str = org_data.get("trial_ends_at")
+            if expiry_date_str:
+                expiry_date = get_datetime(expiry_date_str)
+                now = now_datetime()
+                
+                # Fetch Global Settings for Grace/Reminder
+                settings = frappe.get_single("Site Contact Settings")
+                cycle = org_data.get("billing_cycle") or "monthly"
+                
+                grace_days = settings.grace_period_monthly if cycle == "monthly" else settings.grace_period_yearly
+                reminder_days = settings.reminder_before_expiry_monthly if cycle == "monthly" else settings.reminder_before_expiry_yearly
+                
+                days_to_expiry = date_diff(expiry_date, now)
+                
+                if now > add_days(expiry_date, grace_days):
+                    status = "locked"
+                    is_locked = True
+                elif now > expiry_date:
+                    status = "grace_period"
+                elif days_to_expiry <= reminder_days:
+                    status = "expiring_soon"
+                    
+        subscription_data = {
+            "status": status,
+            "is_locked": is_locked,
+            "days_left": days_to_expiry,
+            "expiry_date": org_data.get("trial_ends_at") if org_data else None,
+            "plan": org_data.get("subscription_tier") or "starter"
+        }
             
         from mandigrow.mandigrow.logic.tenancy import is_super_admin
         role = getattr(user, "role_type", "admin")
@@ -8257,8 +8288,10 @@ def get_tenant_details(p_org_id: str) -> dict:
             "status": org.status or 'trial',
             "is_active": org.is_active,
             "creation": org.creation,
+            "expiry": org.trial_ends_at,
+            "grace_period": org.grace_period_days or 7,
             "phone": org.phone,
-            "billing_cycle": "monthly",
+            "billing_cycle": org.billing_cycle or "monthly",
             "rbac_matrix": {}
         },
         "owner": owner,
@@ -8316,9 +8349,8 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     if "trial_ends_at" in config and config["trial_ends_at"]:
         org.trial_ends_at = get_datetime(config["trial_ends_at"])
     
-    if "extend_days" in config and config["extend_days"]:
-        base_date = org.trial_ends_at or frappe.utils.now_datetime()
-        org.trial_ends_at = add_days(base_date, config["extend_days"])
+    if "grace_period_days" in config:
+        org.grace_period_days = config["grace_period_days"]
 
     org.save(ignore_permissions=True)
     frappe.db.commit()
