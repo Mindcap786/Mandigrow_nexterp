@@ -13,11 +13,17 @@ def execute():
         })
         user.insert(ignore_permissions=True)
         
-        # Set default password
-        from frappe.utils.password import update_password
-        update_password(email, "admin123")
+    # Force set password even if user exists to ensure access
+    from frappe.utils.password import update_password
+    update_password(email, "admin123")
+    
+    # Ensure user is enabled and has correct roles
+    if frappe.db.exists("User", email):
+        user = frappe.get_doc("User", email)
+        user.enabled = 1
+        user.insert_auth_method = "Password" # Ensure password login is allowed
+        user.save(ignore_permissions=True)
         
-    # Ensure role is set for existing user too
-    user = frappe.get_doc("User", email)
-    if "System Manager" not in [d.role for d in user.roles]:
-        user.add_roles("System Manager")
+        if "System Manager" not in [d.role for d in user.roles]:
+            user.add_roles("System Manager")
+

