@@ -29,18 +29,14 @@ export default function PaymentGatewaysPage() {
 
     const fetchConfigs = async () => {
         try {
-            const res = await fetch('/api/admin/billing/gateways');
-            const data = await res.json();
-            if (res.ok) {
-                setConfigs(data || []);
-            }
+            const data: any = await callApi('mandigrow.api.get_billing_gateways');
+            setConfigs(data || []);
         } catch (err) {
             console.error('Fetch error:', err);
         } finally {
             setLoading(false);
         }
     };
-
     const getConfig = (gateway: string) => {
         return configs.find(c => c.gateway_type === gateway) || { 
             gateway_type: gateway, 
@@ -64,22 +60,15 @@ export default function PaymentGatewaysPage() {
         });
     };
 
-
     const handleUpdate = async (gateway: string, configOverrides: any = {}) => {
         setSaving(gateway);
         try {
             const current = getConfig(gateway);
-            const res = await fetch('/api/admin/billing/gateways', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    gateway: gateway,
-                    config: { ...current.config, ...configOverrides },
-                    is_active: current.is_active
-                })
+            await callApi('mandigrow.api.update_billing_gateway', {
+                gateway_type: gateway,
+                config: { ...current.config, ...configOverrides },
+                is_active: current.is_active
             });
-
-            if (!res.ok) throw new Error('Failed to update config');
 
             toast({ title: 'Success', description: `${gateway.toUpperCase()} configuration saved.` });
             fetchConfigs();
@@ -94,17 +83,11 @@ export default function PaymentGatewaysPage() {
         setSaving(gateway);
         try {
             const current = getConfig(gateway);
-            const res = await fetch('/api/admin/billing/gateways', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    gateway: gateway,
-                    config: current.config,
-                    is_active: active
-                })
+            await callApi('mandigrow.api.update_billing_gateway', {
+                gateway_type: gateway,
+                config: current.config,
+                is_active: active
             });
-
-            if (!res.ok) throw new Error('Failed to toggle status');
 
             toast({ title: 'Gateway Updated', description: `${gateway.toUpperCase()} is now ${active ? 'Online' : 'Offline'}.` });
             fetchConfigs();
