@@ -778,6 +778,14 @@ def emergency_admin_login(email: str, secret_key: str):
 
 
 @frappe.whitelist(allow_guest=True)
+def force_sync_admin():
+    """Manually triggers the admin account repair patch."""
+    from mandigrow.patches.v1_0.force_admin_reset import execute
+    execute()
+    return "Admin sync completed successfully."
+
+@frappe.whitelist(allow_guest=True)
+
 def check_unique(email: str = None, username: str = None) -> dict:
     """Check if email or username is already taken in the Frappe User table."""
     result = {"emailTaken": False, "usernameTaken": False}
