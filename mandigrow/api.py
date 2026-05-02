@@ -693,8 +693,7 @@ def get_logged_user() -> str:
 @frappe.whitelist(allow_guest=False)
 def get_full_user_context(p_user_id: str = None) -> dict:
     user_id = p_user_id or frappe.session.user
-    
-    if user_id == "Administrator":
+    if user_id in ["Administrator", "mindcap786@gmail.com"]:
         org_id = "Mandi HQ"
         if not frappe.db.exists("Mandi Organization", org_id):
             org_id = frappe.db.get_single_value("Global Defaults", "default_company") or "Mandi HQ"
@@ -710,8 +709,8 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             }
 
         return {
-            "id": "Administrator",
-            "full_name": "System Administrator",
+            "id": user_id,
+            "full_name": "System Administrator" if user_id == "Administrator" else "Platform Owner",
             "role": "super_admin",
             "business_domain": "mandi",
             "organization_id": "HQ",
