@@ -64,21 +64,34 @@ export default function AdminContactInfoPage() {
         setForm((prev) => ({ ...prev, [key]: value }));
 
     const handleSave = async () => {
-        if (!form.id) {
-            toast({ title: 'No row to update', description: 'Run migration first.', variant: 'destructive' });
-            return;
-        }
         setSaving(true);
         const { id, ...rest } = form;
-        const { error } = await supabase
-            .schema('core')
-            .from('site_contact_settings')
-            .update({ ...rest, updated_at: new Date().toISOString() })
-            .eq('id', id);
-        setSaving(false);
-        if (error) {
-            toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+        
+        let response;
+        if (!id) {
+            // Insert initial row
+            response = await supabase
+                .schema('core')
+                .from('site_contact_settings')
+                .insert([{ ...rest, updated_at: new Date().toISOString() }])
+                .select()
+                .single();
         } else {
+            // Update existing row
+            response = await supabase
+                .schema('core')
+                .from('site_contact_settings')
+                .update({ ...rest, updated_at: new Date().toISOString() })
+                .eq('id', id)
+                .select()
+                .single();
+        }
+        
+        setSaving(false);
+        if (response.error) {
+            toast({ title: 'Save failed', description: response.error.message, variant: 'destructive' });
+        } else {
+            if (response.data) setForm(response.data as ContactSettings);
             toast({ title: '✅ Saved', description: 'Public /contact page will reflect changes immediately.' });
         }
     };

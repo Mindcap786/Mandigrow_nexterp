@@ -93,23 +93,42 @@ export default function AdminSettingsPage() {
     };
 
     const handleSaveBranding = async () => {
-        if (!branding.id) return;
         setSavingBranding(true);
-        const { error } = await supabase.schema('core')
-            .from('platform_branding_settings')
-            .update({
-                document_footer_powered_by_text: branding.document_footer_powered_by_text,
-                document_footer_presented_by_text: branding.document_footer_presented_by_text,
-                document_footer_developed_by_text: branding.document_footer_developed_by_text,
-                is_watermark_enabled: branding.is_watermark_enabled,
-                watermark_text: branding.watermark_text,
-                is_compliance_visible_to_tenants: branding.is_compliance_visible_to_tenants
-            })
-            .eq('id', branding.id);
         
-        if (error) {
-            toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
+        let response;
+        if (!branding.id) {
+            response = await supabase.schema('core')
+                .from('platform_branding_settings')
+                .insert([{
+                    document_footer_powered_by_text: branding.document_footer_powered_by_text,
+                    document_footer_presented_by_text: branding.document_footer_presented_by_text,
+                    document_footer_developed_by_text: branding.document_footer_developed_by_text,
+                    is_watermark_enabled: branding.is_watermark_enabled,
+                    watermark_text: branding.watermark_text,
+                    is_compliance_visible_to_tenants: branding.is_compliance_visible_to_tenants
+                }])
+                .select()
+                .single();
         } else {
+            response = await supabase.schema('core')
+                .from('platform_branding_settings')
+                .update({
+                    document_footer_powered_by_text: branding.document_footer_powered_by_text,
+                    document_footer_presented_by_text: branding.document_footer_presented_by_text,
+                    document_footer_developed_by_text: branding.document_footer_developed_by_text,
+                    is_watermark_enabled: branding.is_watermark_enabled,
+                    watermark_text: branding.watermark_text,
+                    is_compliance_visible_to_tenants: branding.is_compliance_visible_to_tenants
+                })
+                .eq('id', branding.id)
+                .select()
+                .single();
+        }
+        
+        if (response.error) {
+            toast({ title: 'Update Failed', description: response.error.message, variant: 'destructive' });
+        } else {
+            if (response.data) setBranding(response.data);
             toast({ title: 'Branding Updated', description: 'Platform PDF footprint has been updated globally.' });
         }
         setSavingBranding(false);
@@ -371,8 +390,8 @@ export default function AdminSettingsPage() {
                         </div>
                         <Button
                             className="bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/30"
+                            disabled={savingBranding}
                             onClick={handleSaveBranding}
-                            disabled={savingBranding || !branding.id}
                         >
                             {savingBranding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                             Update Branding
