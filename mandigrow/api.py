@@ -8237,7 +8237,13 @@ def get_tenant_details(p_org_id: str) -> dict:
         frappe.throw(_("Organization {0} not found").format(p_org_id))
 
     org = frappe.get_doc("Mandi Organization", p_org_id)
-    users = frappe.get_all("User", filters={"mandi_organization": p_org_id}, fields=["name as id", "full_name", "email", "username", "role_type", "mobile_no as phone", "last_active"])
+    users = frappe.get_all("User", 
+        filters={
+            "mandi_organization": p_org_id,
+            "name": ["!=", "Administrator"]
+        }, 
+        fields=["name as id", "full_name", "email", "username", "role_type", "mobile_no as phone", "last_active"]
+    )
     
     owner = next((u for u in users if u.role_type == 'admin'), None)
     if not owner and users:
