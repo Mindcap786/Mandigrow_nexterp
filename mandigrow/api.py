@@ -706,7 +706,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             "organization_id": "HQ",
             "organization": {
                 "id": "HQ",
-                "name": "MandiGrow Platform HQ",
+                "name": "MandiGrow HQ",
                 "subscription_tier": "enterprise",
                 "status": "active",
                 "trial_ends_at": None,
@@ -750,7 +750,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 org_id = "HQ"
                 org_data = {
                     "id": "HQ",
-                    "organization_name": "MandiGrow Platform HQ",
+                    "organization_name": "MandiGrow HQ",
                     "subscription_tier": "enterprise",
                     "status": "active",
                     "is_active": True
@@ -2592,7 +2592,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
 
-        from mandigrow.mandigrow.finance.cheque_api import (
+        from mandigrow.finance.cheque_api import (
             get_reconciliation_data,
             mark_cheque_cleared,
             cancel_cheque_voucher
@@ -2631,19 +2631,19 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
 @frappe.whitelist(allow_guest=False)
 def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
-    from mandigrow.mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
+    from mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
     return _mark_cheque_cleared(voucher_no, clearance_date)
 
 
 @frappe.whitelist(allow_guest=False)
 def cancel_cheque_voucher(voucher_no: str) -> dict:
-    from mandigrow.mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
+    from mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
     return _cancel_cheque_voucher(voucher_no)
 
 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
-    from mandigrow.mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
     return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 
@@ -4752,7 +4752,7 @@ def cancel_broken_voucher(voucher_no: str, voucher_type: str = "Journal Entry") 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
     # Simply call the consolidated finance implementation
-    from mandigrow.mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
     return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 @frappe.whitelist(allow_guest=False)
