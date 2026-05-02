@@ -693,28 +693,31 @@ def get_logged_user() -> str:
 @frappe.whitelist(allow_guest=False)
 def get_full_user_context(p_user_id: str = None) -> dict:
     user_id = p_user_id or frappe.session.user
+
+    # Level-0 Platform Owner Override:
+    # Hard-bypass ALL org/DB lookups for the platform owner.
+    # This prevents NameError crashes in _get_org_info when Mandi HQ doesn't exist.
     if user_id in ["Administrator", "mindcap786@gmail.com"]:
-        org_id = "Mandi HQ"
-        if not frappe.db.exists("Mandi Organization", org_id):
-            org_id = frappe.db.get_single_value("Global Defaults", "default_company") or "Mandi HQ"
-
-        org_data = _get_org_info(org_id)
-        if not org_data:
-            org_data = {
-                "id": "HQ",
-                "organization_name": "MandiGrow Platform HQ",
-                "subscription_tier": "enterprise",
-                "status": "active",
-                "is_active": True
-            }
-
         return {
             "id": user_id,
             "full_name": "System Administrator" if user_id == "Administrator" else "Platform Owner",
             "role": "super_admin",
             "business_domain": "mandi",
             "organization_id": "HQ",
-            "organization": org_data,
+            "organization": {
+                "id": "HQ",
+                "name": "MandiGrow Platform HQ",
+                "subscription_tier": "enterprise",
+                "status": "active",
+                "trial_ends_at": None,
+                "is_active": True,
+                "brand_color": "#6366f1",
+                "brand_color_secondary": "#0f172a",
+                "address": "",
+                "city": "",
+                "gstin": "",
+                "phone": "",
+            },
             "subscription": {"status": "active", "is_active": True},
         }
 
@@ -6290,10 +6293,11 @@ def _get_org_info(org_id: str) -> dict:
         "status": "active",
         "trial_ends_at": None,
         "is_active": True,
-        "brand_color": brand_color,
+        "brand_color": "#10b981",
+        "brand_color_secondary": "#0f172a",
         "address": "",
         "city": "",
-        "gstin": gstin,
+        "gstin": "",
         "phone": "",
     }
 
