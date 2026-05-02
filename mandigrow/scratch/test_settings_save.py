@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.api import update_settings
+from mandigrow.mandigrow.api import update_settings
 
 frappe.init(site="mandigrow.localhost")
 frappe.connect()

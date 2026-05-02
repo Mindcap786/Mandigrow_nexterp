@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.api import _get_user_org
+from mandigrow.mandigrow.api import _get_user_org
 
 def run():
     org = _get_user_org()

@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.logic.automation import _sale_status
+from mandigrow.mandigrow.logic.automation import _sale_status
 
 def test():
     print("Cleared Cheque (Partial):", _sale_status(500, 1000, "2026-04-30", "cheque", True))

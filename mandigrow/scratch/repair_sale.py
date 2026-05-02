@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.logic.automation import post_sale_ledger
+from mandigrow.mandigrow.logic.automation import post_sale_ledger
 
 def fix():
     frappe.connect()

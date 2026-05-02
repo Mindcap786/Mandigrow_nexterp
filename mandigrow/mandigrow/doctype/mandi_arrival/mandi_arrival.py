@@ -15,7 +15,7 @@ class MandiArrival(Document):
         from frappe.model.naming import make_autoname
         org_id = self.organization_id
         if not org_id:
-            from mandigrow.api import _get_user_org
+            from mandigrow.mandigrow.api import _get_user_org
             org_id = _get_user_org()
         
         # Use a tenant-specific prefix for the naming series

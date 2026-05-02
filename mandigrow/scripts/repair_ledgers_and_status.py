@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils import flt, getdate, today
-from mandigrow.logic.automation import _arrival_status, _sale_status, _is_cheque_cleared
+from mandigrow.mandigrow.logic.automation import _arrival_status, _sale_status, _is_cheque_cleared
 
 def run():
     print("Starting repair of Arrival and Sale records...")

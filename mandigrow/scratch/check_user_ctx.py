@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.api import get_full_user_context
+from mandigrow.mandigrow.api import get_full_user_context
 def run():
     # Mock user for testing if needed, or just run for current
     # But current might be Administrator in bench execute

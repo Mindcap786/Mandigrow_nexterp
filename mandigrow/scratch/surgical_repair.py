@@ -16,7 +16,7 @@ from frappe.utils import today
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), 'apps', 'mandigrow'))
-from mandigrow.logic.automation import post_arrival_ledger
+from mandigrow.mandigrow.logic.automation import post_arrival_ledger
 
 
 def _force_delete_je(je_name):

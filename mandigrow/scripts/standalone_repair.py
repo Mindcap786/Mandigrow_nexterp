@@ -8,7 +8,7 @@ def run_repair(site_name):
         frappe.init(site=site_name, sites_path="sites")
         frappe.connect()
         
-        from mandigrow.api import repair_erp_integrity
+        from mandigrow.mandigrow.api import repair_erp_integrity
         result = repair_erp_integrity()
         print(f"Result: {result}")
         

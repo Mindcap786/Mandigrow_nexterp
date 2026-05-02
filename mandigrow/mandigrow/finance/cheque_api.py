@@ -5,15 +5,15 @@ from frappe.utils import flt, today
 import re
 
 def _get_user_company() -> str:
-    from mandigrow.api import _get_user_company
+    from mandigrow.mandigrow.api import _get_user_company
     return _get_user_company()
 
 def _get_user_org() -> str:
-    from mandigrow.api import _get_user_org
+    from mandigrow.mandigrow.api import _get_user_org
     return _get_user_org()
 
 def _get_ledger_summary(*args, **kwargs):
-    from mandigrow.api import _get_ledger_summary
+    from mandigrow.mandigrow.api import _get_ledger_summary
     return _get_ledger_summary(*args, **kwargs)
 
 @frappe.whitelist(allow_guest=False)
@@ -144,7 +144,7 @@ def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
     """Mark a Journal Entry or Payment Entry as cleared."""
     if not voucher_no: frappe.throw("Voucher Number required")
     
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         company = _get_user_company()
         je_company = frappe.db.get_value("Journal Entry", voucher_no, "company")
@@ -190,7 +190,7 @@ def cancel_cheque_voucher(voucher_no: str) -> dict:
     if not voucher_no: frappe.throw("Voucher Number required")
     
     doc = frappe.get_doc("Journal Entry", voucher_no)
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         company = _get_user_company()
         if doc.company != company:

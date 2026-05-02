@@ -59,13 +59,13 @@ def restore_raju_ledger():
         je.submit()
         
         if item["sale"]:
-            from mandigrow.logic.automation import _tag_gl_entries
+            from mandigrow.mandigrow.logic.automation import _tag_gl_entries
             _tag_gl_entries(je.name, "Mandi Sale", item["sale"])
             
         print(f"Successfully restored {je.name}")
 
     # Repair settlements
-    from mandigrow.api import repair_all_settlements
+    from mandigrow.mandigrow.api import repair_all_settlements
     repair_all_settlements()
     frappe.db.commit()
 

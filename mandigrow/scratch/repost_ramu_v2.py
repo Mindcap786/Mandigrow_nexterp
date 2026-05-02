@@ -5,7 +5,7 @@ import os
 # Add apps path to sys.path
 sys.path.append(os.path.join(os.getcwd(), 'apps', 'mandigrow'))
 
-from mandigrow.logic.automation import post_arrival_ledger
+from mandigrow.mandigrow.logic.automation import post_arrival_ledger
 
 def run():
     doc_name = "ARR-ORG00003-2026-00001"

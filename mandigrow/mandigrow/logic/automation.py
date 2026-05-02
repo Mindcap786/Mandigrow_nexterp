@@ -17,7 +17,7 @@ so a warehouse misconfiguration does NOT roll back the financial entry.
 import frappe
 from frappe.utils import flt, add_days, getdate, today
 
-from mandigrow.logic.erp_bootstrap import (
+from mandigrow.mandigrow.logic.erp_bootstrap import (
     ensure_company_party_defaults,
     ensure_customer_for_contact,
     ensure_supplier_for_contact,
@@ -33,7 +33,7 @@ def _auto_settle_party(party_type, party_name, company):
     Triggers FIFO settlement for a party whenever a financial entry is submitted.
     Bridges ERPNext core (Payment/Journal) with MandiGrow custom billing.
     """
-    from mandigrow.api import settle_buyer_receipt, settle_supplier_payment
+    from mandigrow.mandigrow.api import settle_buyer_receipt, settle_supplier_payment
     
     # 1. Resolve Mandi Contact
     filters = {}
@@ -55,11 +55,11 @@ def _auto_settle_party(party_type, party_name, company):
         # Actually, simpler: find total paid (all credits) and total billed (all debits)
         # But wait, settle_buyer_receipt already handles FIFO from a given amount.
         # To truly "sync", we should use the logic from repair_all_settlements.
-        from mandigrow.api import repair_single_party_settlement
+        from mandigrow.mandigrow.api import repair_single_party_settlement
         repair_single_party_settlement(contact.name, contact.organization_id)
     
         # Same for suppliers
-        from mandigrow.api import repair_single_party_settlement
+        from mandigrow.mandigrow.api import repair_single_party_settlement
         repair_single_party_settlement(contact.name, contact.organization_id)
 
 

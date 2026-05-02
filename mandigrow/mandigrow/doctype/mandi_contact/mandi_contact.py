@@ -3,7 +3,7 @@
 
 # import frappe
 from frappe.model.document import Document
-from mandigrow.logic.erp_bootstrap import ensure_customer_for_contact, ensure_supplier_for_contact
+from mandigrow.mandigrow.logic.erp_bootstrap import ensure_customer_for_contact, ensure_supplier_for_contact
 
 
 class MandiContact(Document):

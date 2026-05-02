@@ -1,6 +1,6 @@
 import frappe
-from mandigrow.api import confirm_sale_transaction
-from mandigrow.logic.automation import _sale_status
+from mandigrow.mandigrow.api import confirm_sale_transaction
+from mandigrow.mandigrow.logic.automation import _sale_status
 
 def run():
     print("--- Testing logic ---\n")

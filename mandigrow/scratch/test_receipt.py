@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.api import confirm_sale_transaction
+from mandigrow.mandigrow.api import confirm_sale_transaction
 
 def run():
     print("Creating Sale via API directly to trace Receipt JE...")

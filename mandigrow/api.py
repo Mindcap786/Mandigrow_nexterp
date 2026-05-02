@@ -740,7 +740,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 "subscription_tier": org_data.get("subscription_tier") or "starter",
             }
             
-        from mandigrow.logic.tenancy import is_super_admin
+        from mandigrow.mandigrow.logic.tenancy import is_super_admin
         role = getattr(user, "role_type", "admin")
         
         owner_email = "mindcap786@gmail.com"
@@ -775,7 +775,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
 @frappe.whitelist(allow_guest=True)
 def force_sync_admin():
     """Manually triggers the admin account repair patch."""
-    from mandigrow.patches.v1_0.force_admin_reset import execute
+    from mandigrow.mandigrow.patches.v1_0.force_admin_reset import execute
     execute()
     return "Admin sync completed successfully."
 
@@ -1091,7 +1091,7 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
     Creates a new team member user. If organization_id is provided and the caller is a Super Admin,
     it uses that org. Otherwise, it uses the caller's organization.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     
     admin_org = organization_id if (is_super_admin() and organization_id) else _get_user_org()
     
@@ -1357,7 +1357,7 @@ def delete_commodity(id: str):
         frappe.throw("Item ID is required for deletion.")
 
     # Tenant guard: verify item belongs to user's company
-    from mandigrow.logic.tenancy import get_current_org, is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import get_current_org, is_super_admin
     if not is_super_admin():
         company = _get_user_company()
         item_company = frappe.db.get_value("Item", id, "company")
@@ -2131,7 +2131,7 @@ def repair_arrival_financials(arrival_id):
         
     doc = frappe.get_doc("Mandi Arrival", arrival_id)
     # Tenant guard
-    from mandigrow.logic.tenancy import enforce_org_match
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match
     enforce_org_match(doc)
     # Manually trigger the controller's recompute logic (even if docstatus=1)
     doc._recompute_summary()
@@ -2154,7 +2154,7 @@ def repair_arrival_financials(arrival_id):
                 pass
             
     # Post new ledger entries
-    from mandigrow.logic.automation import post_arrival_ledger
+    from mandigrow.mandigrow.logic.automation import post_arrival_ledger
     post_arrival_ledger(doc)
     
     frappe.db.commit()
@@ -2174,7 +2174,7 @@ def update_purchase_bill(arrival_id: str, data: str) -> dict:
 
         doc = frappe.get_doc("Mandi Arrival", arrival_id)
         # Tenant guard
-        from mandigrow.logic.tenancy import enforce_org_match
+        from mandigrow.mandigrow.logic.tenancy import enforce_org_match
         enforce_org_match(doc)
         
         # Update header fields
@@ -2246,7 +2246,7 @@ def get_arrival_detail(arrival_id: str = None) -> dict:
         return {"arrival": None, "lots": []}
 
     # Tenant guard
-    from mandigrow.logic.tenancy import enforce_org_match
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match
     enforce_org_match(doc)
 
     arrival = doc.as_dict()
@@ -2301,7 +2301,7 @@ def update_lot(lot_id: str, data: str) -> dict:
             return {"error": "Lot not found"}
 
         # Tenant guard: verify parent arrival belongs to user's org
-        from mandigrow.logic.tenancy import enforce_org_match_by_name
+        from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
         enforce_org_match_by_name("Mandi Arrival", parent_name)
 
         doc = frappe.get_doc("Mandi Arrival", parent_name)
@@ -2426,7 +2426,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                 if v_type == "receipt":
                     party_type = "Customer"
                     try:
-                        from mandigrow.logic.erp_bootstrap import ensure_customer_for_contact
+                        from mandigrow.mandigrow.logic.erp_bootstrap import ensure_customer_for_contact
                         party_doc_name = (contact.customer
                                           if contact.customer and frappe.db.exists("Customer", contact.customer)
                                           else ensure_customer_for_contact(p_party_id, company))
@@ -2441,7 +2441,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                 else:  # payment
                     party_type = "Supplier"
                     try:
-                        from mandigrow.logic.erp_bootstrap import ensure_supplier_for_contact
+                        from mandigrow.mandigrow.logic.erp_bootstrap import ensure_supplier_for_contact
                         party_doc_name = (contact.supplier
                                           if contact.supplier and frappe.db.exists("Supplier", contact.supplier)
                                           else ensure_supplier_for_contact(p_party_id, company))
@@ -2592,7 +2592,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
 
-        from mandigrow.finance.cheque_api import (
+        from mandigrow.mandigrow.finance.cheque_api import (
             get_reconciliation_data,
             mark_cheque_cleared,
             cancel_cheque_voucher
@@ -2631,19 +2631,19 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
 @frappe.whitelist(allow_guest=False)
 def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
-    from mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
+    from mandigrow.mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
     return _mark_cheque_cleared(voucher_no, clearance_date)
 
 
 @frappe.whitelist(allow_guest=False)
 def cancel_cheque_voucher(voucher_no: str) -> dict:
-    from mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
+    from mandigrow.mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
     return _cancel_cheque_voucher(voucher_no)
 
 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
-    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    from mandigrow.mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
     return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 
@@ -3231,7 +3231,7 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
             account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
             
         # Standard ERPNext logic: Resolving the linked party and account
-        from mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
+        from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
         
         party_type = "Customer" if contact_type == 'buyer' else "Supplier"
         if party_type == "Customer":
@@ -3304,7 +3304,7 @@ def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone
 @frappe.whitelist(allow_guest=False)
 def delete_gate_entry(id: str) -> dict:
     """Deletes a gate entry."""
-    from mandigrow.logic.tenancy import enforce_org_match_by_name
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Gate Entry", id)
     frappe.delete_doc("Mandi Gate Entry", id, ignore_permissions=True)
     return {"status": "success"}
@@ -3312,7 +3312,7 @@ def delete_gate_entry(id: str) -> dict:
 @frappe.whitelist(allow_guest=False)
 def update_gate_entry_status(id: str, status: str) -> dict:
     """Updates the status of a gate entry."""
-    from mandigrow.logic.tenancy import enforce_org_match
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match
     doc = frappe.get_doc("Mandi Gate Entry", id)
     enforce_org_match(doc)
     doc.status = status
@@ -3645,7 +3645,7 @@ def save_bank_account(**kwargs) -> dict:
 def delete_bank_account(account_id: str) -> dict:
     try:
         # Tenant guard: verify account belongs to user's company
-        from mandigrow.logic.tenancy import is_super_admin
+        from mandigrow.mandigrow.logic.tenancy import is_super_admin
         if not is_super_admin():
             company = _get_user_company()
             acc_company = frappe.db.get_value("Account", account_id, "company")
@@ -3845,8 +3845,8 @@ def process_sale_return(payload: dict) -> dict:
     3. Restore Lot Quantities.
     4. If 'exchange', trigger confirm_sale_transaction for new items.
     """
-    from mandigrow.logic.automation import get_acc, get_debtor_acc, get_stock_acc, _tag_gl_entries, _get_cost_center
-    from mandigrow.logic.erp_bootstrap import get_default_company
+    from mandigrow.mandigrow.logic.automation import get_acc, get_debtor_acc, get_stock_acc, _tag_gl_entries, _get_cost_center
+    from mandigrow.mandigrow.logic.erp_bootstrap import get_default_company
     
     org_id = _get_user_org()
     sale_id = payload.get("sale_id")
@@ -4637,7 +4637,7 @@ def delete_sale(sale_id: str = None) -> dict:
     """Delete a sale record."""
     if not sale_id:
         frappe.throw("Sale ID is required")
-    from mandigrow.logic.tenancy import enforce_org_match_by_name
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Sale", sale_id)
     frappe.delete_doc("Mandi Sale", sale_id, ignore_permissions=True)
     frappe.db.commit()
@@ -4752,7 +4752,7 @@ def cancel_broken_voucher(voucher_no: str, voucher_type: str = "Journal Entry") 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
     # Simply call the consolidated finance implementation
-    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    from mandigrow.mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
     return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 @frappe.whitelist(allow_guest=False)
@@ -4760,7 +4760,7 @@ def update_contact(contact_id: str = None, **kwargs) -> dict:
     """Update a Mandi Contact."""
     if not contact_id:
         frappe.throw("Contact ID required")
-    from mandigrow.logic.tenancy import enforce_org_match
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match
     skip_keys = {"cmd", "csrf_token", "contact_id"}
     doc = frappe.get_doc("Mandi Contact", contact_id)
     enforce_org_match(doc)
@@ -4779,7 +4779,7 @@ def delete_contact(contact_id: str = None) -> dict:
     """Delete a Mandi Contact."""
     if not contact_id:
         frappe.throw("Contact ID required")
-    from mandigrow.logic.tenancy import enforce_org_match_by_name
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Contact", contact_id)
     frappe.delete_doc("Mandi Contact", contact_id, ignore_permissions=True)
     frappe.db.commit()
@@ -4843,7 +4843,7 @@ def update_employee(employee_id: str = None, **kwargs) -> dict:
     if not employee_id:
         frappe.throw("Employee ID is required")
     # Tenant guard: verify employee belongs to user's company
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         company = _get_user_company()
         emp_company = frappe.db.get_value("Employee", employee_id, "company")
@@ -4881,7 +4881,7 @@ def delete_employee(employee_id: str = None) -> dict:
     if not employee_id:
         frappe.throw("Employee ID is required")
     # Tenant guard: verify employee belongs to user's company
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         company = _get_user_company()
         emp_company = frappe.db.get_value("Employee", employee_id, "company")
@@ -5362,7 +5362,7 @@ def _get_party_outstanding(contact_id, as_of_date=None):
         return {"signed_balance": 0.0, "to_pay": 0.0, "to_collect": 0.0, "balance_type": "nil"}
 
     # Tenant guard: verify contact belongs to user's org
-    from mandigrow.logic.tenancy import enforce_org_match_by_name
+    from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Contact", contact_id)
 
     contact = frappe.db.get_value(
@@ -6992,7 +6992,7 @@ def repair_erp_integrity() -> dict:
     2. Syncs missing GL Entries for all submitted transactions.
     """
     try:
-        from mandigrow.logic.erp_bootstrap import ensure_company_party_defaults
+        from mandigrow.mandigrow.logic.erp_bootstrap import ensure_company_party_defaults
 
         print("Starting ERP Repair...")
         
@@ -7080,7 +7080,7 @@ def backfill_gl_entries() -> dict:
 
     Safe to run multiple times (idempotent — skips docs that already have a JE).
     """
-    from mandigrow.logic.automation import on_arrival_submit, on_sale_submit
+    from mandigrow.mandigrow.logic.automation import on_arrival_submit, on_sale_submit
     from frappe.utils import flt
 
     ok_arrivals = []
@@ -7177,7 +7177,7 @@ def transfer_stock(lot_id: str, to_location: str, qty: float) -> dict:
         # Tenant guard: verify parent arrival belongs to user's org
         parent_name = frappe.db.get_value("Mandi Lot", lot_id, "parent")
         if parent_name:
-            from mandigrow.logic.tenancy import enforce_org_match_by_name
+            from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
             enforce_org_match_by_name("Mandi Arrival", parent_name)
 
         lot = frappe.get_doc("Mandi Lot", lot_id)
@@ -7272,7 +7272,7 @@ def update_storage_location(id: str, location: dict) -> dict:
 def toggle_storage_location(id: str, is_active: int) -> dict:
     """Toggles active status of a storage location."""
     try:
-        from mandigrow.logic.tenancy import enforce_org_match
+        from mandigrow.mandigrow.logic.tenancy import enforce_org_match
         doc = frappe.get_doc("Mandi Storage Location", id)
         enforce_org_match(doc)
         doc.is_active = is_active
@@ -7295,7 +7295,7 @@ def delete_storage_location(id: str) -> dict:
                 return {"status": "success", "message": "Record already gone"}
 
         # Tenant guard
-        from mandigrow.logic.tenancy import enforce_org_match_by_name
+        from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
         enforce_org_match_by_name("Mandi Storage Location", id)
 
         # Fetch the document to get the location_name
@@ -7835,7 +7835,7 @@ def get_admin_metrics() -> dict:
     Returns global platform metrics for the HQ Portal Command Center.
     Only accessible to super_admins.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
 
     SAFE_DEFAULTS = {
         "total_mandis": 0, "active_mandis": 0, "trial_mandis": 0,
@@ -7900,7 +7900,7 @@ def get_admin_tenants() -> list:
     """
     Returns list of all tenants with owner details for the Admin Portal.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
 
     try:
         user = frappe.get_doc("User", frappe.session.user)
@@ -7959,7 +7959,7 @@ def get_app_plans() -> list:
     """
     Returns list of all available subscription plans.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
         
@@ -7983,7 +7983,7 @@ def update_app_plan(plan_data: dict) -> dict:
     """
     Updates an existing app plan.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
         
@@ -8022,7 +8022,7 @@ def update_site_contact_settings(settings: dict) -> dict:
     """
     Updates the site contact settings from the admin portal.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
         
@@ -8037,7 +8037,7 @@ def get_billing_gateways() -> list:
     """
     Returns list of all billing gateways.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
         
@@ -8058,7 +8058,7 @@ def update_billing_gateway(gateway_type: str, config: dict, is_active: bool) -> 
     """
     Updates a billing gateway configuration.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
         
@@ -8078,7 +8078,7 @@ def get_admin_billing_stats() -> dict:
     """
     Returns platform-wide billing and revenue metrics.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     user = frappe.get_doc("User", frappe.session.user)
     if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
         frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
@@ -8152,7 +8152,7 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
     """
     Executes administrative billing actions on a tenant.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     user = frappe.get_doc("User", frappe.session.user)
     if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
         frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
@@ -8175,7 +8175,7 @@ def impersonate_tenant(user_id: str) -> dict:
     """
     Allows a Super Admin to view a tenant's data by switching their own mandi_organization.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can impersonate."))
 
@@ -8196,7 +8196,7 @@ def impersonate_tenant(user_id: str) -> dict:
 @frappe.whitelist(allow_guest=False)
 def restore_admin_context() -> dict:
     """Resets Administrator's organization back to NULL."""
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         return {"success": False}
         
@@ -8209,7 +8209,7 @@ def provision_tenant(orgName: str, email: str, adminName: str, password: str, us
     """
     Direct administrative provisioning of a new Mandi tenant.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can provision tenants."))
 
@@ -8228,7 +8228,7 @@ def get_tenant_details(p_org_id: str) -> dict:
     """
     Returns detailed information about a single tenant for the Admin Portal.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     user = frappe.get_doc("User", frappe.session.user)
     if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
         frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
@@ -8269,7 +8269,7 @@ def admin_user_action(action: str, user_id: str, payload: dict = None) -> dict:
     """
     Administrative actions on users (reset password, delete, etc.).
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can perform user actions."))
 
@@ -8292,7 +8292,7 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     """
     Updates a tenant's subscription and feature configuration.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can update tenant config."))
 
@@ -8324,7 +8324,7 @@ def admin_assign_tenant_owner(p_org_id: str, p_user_id: str) -> dict:
     """
     Elevates a user to 'admin' role_type for a specific organization.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can assign owners."))
 
@@ -8344,7 +8344,7 @@ def get_platform_monitoring() -> dict:
     """
     Returns platform-wide health and performance metrics for the Command Center.
     """
-    from mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
         

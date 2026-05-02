@@ -25,12 +25,12 @@ app_license = "mit"
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/mandigrow/css/mandigrow.css"
-# app_include_js = "/assets/mandigrow/js/mandigrow.js"
+# app_include_css = "/assets/mandigrow/css/mandigrow.mandigrow.css"
+# app_include_js = "/assets/mandigrow/js/mandigrow.mandigrow.js"
 
 # include js, css files in header of web template
-# web_include_css = "/assets/mandigrow/css/mandigrow.css"
-# web_include_js = "/assets/mandigrow/js/mandigrow.js"
+# web_include_css = "/assets/mandigrow/css/mandigrow.mandigrow.css"
+# web_include_js = "/assets/mandigrow/js/mandigrow.mandigrow.js"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "mandigrow/public/scss/website"
@@ -78,49 +78,49 @@ app_license = "mit"
 
 # add methods and filters to jinja environment
 # jinja = {
-# 	"methods": "mandigrow.utils.jinja_methods",
-# 	"filters": "mandigrow.utils.jinja_filters"
+# 	"methods": "mandigrow.mandigrow.utils.jinja_methods",
+# 	"filters": "mandigrow.mandigrow.utils.jinja_filters"
 # }
 
 # Installation
 # ------------
 
-# before_install = "mandigrow.install.before_install"
-# after_install = "mandigrow.install.after_install"
+# before_install = "mandigrow.mandigrow.install.before_install"
+# after_install = "mandigrow.mandigrow.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "mandigrow.uninstall.before_uninstall"
-# after_uninstall = "mandigrow.uninstall.after_uninstall"
+# before_uninstall = "mandigrow.mandigrow.uninstall.before_uninstall"
+# after_uninstall = "mandigrow.mandigrow.uninstall.after_uninstall"
 
 # Integration Setup
 # ------------------
 # To set up dependencies/integrations with other apps
 # Name of the app being installed is passed as an argument
 
-# before_app_install = "mandigrow.utils.before_app_install"
-# after_app_install = "mandigrow.utils.after_app_install"
+# before_app_install = "mandigrow.mandigrow.utils.before_app_install"
+# after_app_install = "mandigrow.mandigrow.utils.after_app_install"
 
 # Integration Cleanup
 # -------------------
 # To clean up dependencies/integrations with other apps
 # Name of the app being uninstalled is passed as an argument
 
-# before_app_uninstall = "mandigrow.utils.before_app_uninstall"
-# after_app_uninstall = "mandigrow.utils.after_app_uninstall"
+# before_app_uninstall = "mandigrow.mandigrow.utils.before_app_uninstall"
+# after_app_uninstall = "mandigrow.mandigrow.utils.after_app_uninstall"
 
 # Build
 # ------------------
 # To hook into the build process
 
-# after_build = "mandigrow.build.after_build"
+# after_build = "mandigrow.mandigrow.build.after_build"
 
 # Desk Notifications
 # ------------------
 # See frappe.core.notifications.get_notification_config
 
-# notification_config = "mandigrow.notifications.get_notification_config"
+# notification_config = "mandigrow.mandigrow.notifications.get_notification_config"
 
 # Permissions — Multi-Tenant Isolation
 # ────────────────────────────────────────────────────────────────────────────────
@@ -130,19 +130,19 @@ app_license = "mit"
 # Together, these make cross-tenant data access physically impossible.
 
 permission_query_conditions = {
-	"Mandi Arrival": "mandigrow.logic.tenancy.get_pqc_arrival",
-	"Mandi Contact": "mandigrow.logic.tenancy.get_pqc_contact",
-	"Mandi Gate Entry": "mandigrow.logic.tenancy.get_pqc_gate_entry",
-	"Mandi Sale": "mandigrow.logic.tenancy.get_pqc_sale",
-	"Mandi Storage Location": "mandigrow.logic.tenancy.get_pqc_storage_location",
+	"Mandi Arrival": "mandigrow.mandigrow.logic.tenancy.get_pqc_arrival",
+	"Mandi Contact": "mandigrow.mandigrow.logic.tenancy.get_pqc_contact",
+	"Mandi Gate Entry": "mandigrow.mandigrow.logic.tenancy.get_pqc_gate_entry",
+	"Mandi Sale": "mandigrow.mandigrow.logic.tenancy.get_pqc_sale",
+	"Mandi Storage Location": "mandigrow.mandigrow.logic.tenancy.get_pqc_storage_location",
 }
 
 has_permission = {
-	"Mandi Arrival": "mandigrow.logic.tenancy.check_has_permission",
-	"Mandi Contact": "mandigrow.logic.tenancy.check_has_permission",
-	"Mandi Gate Entry": "mandigrow.logic.tenancy.check_has_permission",
-	"Mandi Sale": "mandigrow.logic.tenancy.check_has_permission",
-	"Mandi Storage Location": "mandigrow.logic.tenancy.check_has_permission",
+	"Mandi Arrival": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
+	"Mandi Contact": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
+	"Mandi Gate Entry": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
+	"Mandi Sale": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
+	"Mandi Storage Location": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
 }
 
 # Document Events
@@ -152,33 +152,33 @@ has_permission = {
 doc_events = {
 	"Mandi Arrival": {
 		"validate": [
-			"mandigrow.logic.tenancy.stamp_organization_id",
-			"mandigrow.logic.commission.calculate_arrival_commission",
+			"mandigrow.mandigrow.logic.tenancy.stamp_organization_id",
+			"mandigrow.mandigrow.logic.commission.calculate_arrival_commission",
 		],
 		"on_submit": [
-			"mandigrow.logic.automation.on_arrival_submit"
+			"mandigrow.mandigrow.logic.automation.on_arrival_submit"
 		]
 	},
 	"Mandi Sale": {
-		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
+		"validate": "mandigrow.mandigrow.logic.tenancy.stamp_organization_id",
 		"on_submit": [
-			"mandigrow.logic.automation.on_sale_submit"
+			"mandigrow.mandigrow.logic.automation.on_sale_submit"
 		]
 	},
 	"Mandi Contact": {
-		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
+		"validate": "mandigrow.mandigrow.logic.tenancy.stamp_organization_id",
 	},
 	"Mandi Gate Entry": {
-		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
+		"validate": "mandigrow.mandigrow.logic.tenancy.stamp_organization_id",
 	},
 	"Mandi Storage Location": {
-		"validate": "mandigrow.logic.tenancy.stamp_organization_id",
+		"validate": "mandigrow.mandigrow.logic.tenancy.stamp_organization_id",
 	},
 	"Payment Entry": {
-		"on_submit": "mandigrow.logic.automation.on_payment_submit"
+		"on_submit": "mandigrow.mandigrow.logic.automation.on_payment_submit"
 	},
 	"Journal Entry": {
-		"on_submit": "mandigrow.logic.automation.on_journal_submit"
+		"on_submit": "mandigrow.mandigrow.logic.automation.on_journal_submit"
 	},
 }
 
@@ -187,33 +187,33 @@ doc_events = {
 
 # scheduler_events = {
 # 	"all": [
-# 		"mandigrow.tasks.all"
+# 		"mandigrow.mandigrow.tasks.all"
 # 	],
 # 	"daily": [
-# 		"mandigrow.tasks.daily"
+# 		"mandigrow.mandigrow.tasks.daily"
 # 	],
 # 	"hourly": [
-# 		"mandigrow.tasks.hourly"
+# 		"mandigrow.mandigrow.tasks.hourly"
 # 	],
 # 	"weekly": [
-# 		"mandigrow.tasks.weekly"
+# 		"mandigrow.mandigrow.tasks.weekly"
 # 	],
 # 	"monthly": [
-# 		"mandigrow.tasks.monthly"
+# 		"mandigrow.mandigrow.tasks.monthly"
 # 	],
 # }
 
 # Testing
 # -------
 
-# before_tests = "mandigrow.install.before_tests"
+# before_tests = "mandigrow.mandigrow.install.before_tests"
 
 # Extend DocType Class
 # ------------------------------
 #
 # Specify custom mixins to extend the standard doctype controller.
 # extend_doctype_class = {
-# 	"Task": "mandigrow.custom.task.CustomTaskMixin"
+# 	"Task": "mandigrow.mandigrow.custom.task.CustomTaskMixin"
 # }
 
 # Overriding Methods
@@ -227,7 +227,7 @@ override_whitelisted_methods = {
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-# 	"Task": "mandigrow.task.get_dashboard_data"
+# 	"Task": "mandigrow.mandigrow.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -241,13 +241,13 @@ override_whitelisted_methods = {
 
 # Request Events
 # ----------------
-# before_request = ["mandigrow.utils.before_request"]
-# after_request = ["mandigrow.utils.after_request"]
+# before_request = ["mandigrow.mandigrow.utils.before_request"]
+# after_request = ["mandigrow.mandigrow.utils.after_request"]
 
 # Job Events
 # ----------
-# before_job = ["mandigrow.utils.before_job"]
-# after_job = ["mandigrow.utils.after_job"]
+# before_job = ["mandigrow.mandigrow.utils.before_job"]
+# after_job = ["mandigrow.mandigrow.utils.after_job"]
 
 # User Data Protection
 # --------------------
@@ -277,7 +277,7 @@ override_whitelisted_methods = {
 # --------------------------------
 
 # auth_hooks = [
-# 	"mandigrow.auth.validate"
+# 	"mandigrow.mandigrow.auth.validate"
 # ]
 
 # Automatically update python controller files with type annotations for this app.

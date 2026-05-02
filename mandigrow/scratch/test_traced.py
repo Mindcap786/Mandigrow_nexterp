@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils import flt
-from mandigrow.api import confirm_sale_transaction
+from mandigrow.mandigrow.api import confirm_sale_transaction
 
 def run():
     """Test with monkey-patched on_journal_submit to see if guard works."""
@@ -10,7 +10,7 @@ def run():
     org = frappe.get_all("Mandi Organization", limit=1)[0].name
     
     # Monkey-patch on_journal_submit to trace
-    from mandigrow.logic import automation
+    from mandigrow.mandigrow.logic import automation
     original_on_journal_submit = automation.on_journal_submit
     
     def traced_on_journal_submit(doc, method=None):

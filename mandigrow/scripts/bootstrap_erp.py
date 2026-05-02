@@ -1,7 +1,7 @@
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
-from mandigrow.logic.erp_bootstrap import ensure_company_party_defaults
+from mandigrow.mandigrow.logic.erp_bootstrap import ensure_company_party_defaults
 
 def bootstrap():
     print("--- STARTING MANDIGROW BOOTSTRAP ---")

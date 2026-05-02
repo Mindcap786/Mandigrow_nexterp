@@ -1,9 +1,9 @@
 import frappe
-from mandigrow.api import _get_ledger_summary
+from mandigrow.mandigrow.api import _get_ledger_summary
 
 def run():
     frappe.session.user = "Administrator"
-    import mandigrow.api
+    import mandigrow.mandigrow.api
     mandigrow.api._get_user_org = lambda: "ORG-00002"
     mandigrow.api._get_user_company = lambda: "ssb"
 

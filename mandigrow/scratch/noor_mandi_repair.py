@@ -10,7 +10,7 @@ import frappe
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), 'apps', 'mandigrow'))
-from mandigrow.logic.automation import post_arrival_ledger
+from mandigrow.mandigrow.logic.automation import post_arrival_ledger
 
 
 def _get_or_create_company(org_id, org_name):

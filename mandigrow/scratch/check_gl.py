@@ -17,7 +17,7 @@ def run():
         print(f"[{e.voucher_no}] {e.account}: Dr={e.debit}, Cr={e.credit}, party={e.party}")
         
     print("\nChecking _get_ledger_summary:")
-    from mandigrow.api import _get_ledger_summary
+    from mandigrow.mandigrow.api import _get_ledger_summary
     from frappe.utils import today
     summary = _get_ledger_summary("Mandi Sale", sale_name, doc.invoice_total, as_of_date=today(), due_date=doc.duedate, party_id=doc.buyerid)
     print(summary)

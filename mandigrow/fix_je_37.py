@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.logic.automation import _tag_gl_entries
+from mandigrow.mandigrow.logic.automation import _tag_gl_entries
 
 def fix_je():
     frappe.init(site="mandigrow.localhost")

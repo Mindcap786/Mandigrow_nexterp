@@ -6,7 +6,7 @@ DEFAULT_COMPANY_NAME = "MandiGrow Enterprise"
 
 def get_default_company():
     # If we are in an API request, use the user's linked company
-    from mandigrow.api import _get_user_company
+    from mandigrow.mandigrow.api import _get_user_company
     try:
         user_company = _get_user_company()
         if user_company and frappe.db.exists("Company", user_company):
@@ -134,7 +134,7 @@ def ensure_mandi_accounts(company=None):
     ensure_acc("Cash", "Cash", "Cash")
 
 def ensure_mandi_locations(company=None):
-    from mandigrow.api import _get_user_org
+    from mandigrow.mandigrow.api import _get_user_org
     org_id = _get_user_org()
     if not org_id:
         return
