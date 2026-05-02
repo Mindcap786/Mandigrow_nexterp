@@ -701,22 +701,33 @@ def get_full_user_context(p_user_id: str = None) -> dict:
     # If the frontend passes a UUID (from cached auth), we might need to map it, 
     # but since this is a scratch build, all new logins will use the Frappe email.
     
-    if user_id == "Administrator":
-        org_id = frappe.db.get_value("User", "Administrator", "mandi_organization")
-        if not org_id:
-            # Last resort: use the default company but only for the super admin
-            org_id = frappe.db.get_single_value("Global Defaults", "default_company") or "MandiGrow"
-        
+        # Check if HQ Org exists, else create a virtual representation
+        org_id = "Mandi HQ"
+        if not frappe.db.exists("Mandi Organization", org_id):
+            # We don't necessarily need to insert it if we return it as a virtual object,
+            # but for link integrity, we check for a default company.
+            org_id = frappe.db.get_single_value("Global Defaults", "default_company") or "Mandi HQ"
+
         org_data = _get_org_info(org_id)
+        if not org_data:
+            org_data = {
+                "id": "HQ",
+                "organization_name": "MandiGrow Platform HQ",
+                "subscription_tier": "enterprise",
+                "status": "active",
+                "is_active": True
+            }
+
         return {
             "id": "Administrator",
             "full_name": "System Administrator",
             "role": "super_admin",
             "business_domain": "mandi",
-            "organization_id": org_id,
+            "organization_id": "HQ",
             "organization": org_data,
             "subscription": {"status": "active", "is_active": True},
         }
+
 
     try:
         user = frappe.get_doc("User", user_id)
@@ -752,17 +763,28 @@ def get_full_user_context(p_user_id: str = None) -> dict:
         owner_email = "mindcap786@gmail.com"
         if is_super_admin(user.name) or user.email == owner_email or user.name == owner_email:
             role = "super_admin"
+            # For Super Admin, if no org is linked, provide the Virtual HQ context
+            if not org_data:
+                org_id = "HQ"
+                org_data = {
+                    "id": "HQ",
+                    "organization_name": "MandiGrow Platform HQ",
+                    "subscription_tier": "enterprise",
+                    "status": "active",
+                    "is_active": True
+                }
             
         return {
             "id": user.name,
             "full_name": user.full_name,
             "role": role,
             "business_domain": getattr(user, "business_domain", "mandi") or "mandi",
-            "organization_id": org_id,
+            "organization_id": org_id or "HQ",
             "organization": org_data,
-            "subscription": subscription_data,
+            "subscription": subscription_data or {"status": "active", "is_active": True},
             "rbac_matrix": "{}"
         }
+
     except frappe.DoesNotExistError:
         frappe.throw(_("User profile not found"))
             

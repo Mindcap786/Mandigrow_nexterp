@@ -296,6 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Subscription Enforcement — Handles Trial → Grace → Lockout flow
         if (profile && !isSuperAdmin && profile.organization?.name !== "Mandi HQ") {
+
             const org = profile.organization as any;
             const now = new Date();
             const trialEnd = org.trial_ends_at ? new Date(org.trial_ends_at) : null;
