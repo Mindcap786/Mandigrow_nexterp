@@ -4,4 +4,4 @@
 
 [post_model_sync]
 mandigrow.patches.v1_0.create_super_admin
-mandigrow.patches.v1_0.force_admin_reset
+mandigrow.patches.v1_0.force_admin_resetmandigrow.patches.v1_0.platform_repair_v1
