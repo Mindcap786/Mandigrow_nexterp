@@ -3399,9 +3399,13 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         else:
             contact_filters["contact_type"] = contact_type
 
+    contact_fields = ["name as id", "full_name as name", "contact_type as type", "city"]
+    if frappe.db.has_column("Mandi Contact", "internal_id"):
+        contact_fields.append("internal_id")
+        
     contacts = frappe.get_all("Mandi Contact", 
         filters=contact_filters,
-        fields=["name as id", "full_name as name", "contact_type as type", "city", "internal_id"],
+        fields=contact_fields,
         order_by="full_name",
         ignore_permissions=True,
     )
@@ -3432,7 +3436,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
             "account_type": ["in", ["Bank", "Cash"]],
             "is_group": 0
         },
-        fields=["name as id", "account_name as name", "account_type", "account_number", "description"],
+        fields=["name as id", "account_name as name", "account_type", "account_number"] + (["description"] if frappe.db.has_column("Account", "description") else []),
         ignore_permissions=True
     )
     
@@ -5102,7 +5106,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
             "account_type": ["in", ["Bank", "Cash"]],
             "is_group": 0
         },
-        fields=["name as id", "account_name as name", "account_type", "account_number", "description"],
+        fields=["name as id", "account_name as name", "account_type", "account_number"] + (["description"] if frappe.db.has_column("Account", "description") else []),
         ignore_permissions=True
     )
 
