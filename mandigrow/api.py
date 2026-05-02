@@ -6194,11 +6194,12 @@ def _get_user_org() -> str:
     if org_id:
         return org_id
 
-    # Fallback: check Mandi Profile
-    profile_org = frappe.db.get_value("Mandi Profile", {"email": user}, "organization_id")
-    if profile_org:
-        return profile_org
-        
+    # Fallback: check Mandi Profile if it exists
+    if frappe.db.exists("DocType", "Mandi Profile"):
+        profile_org = frappe.db.get_value("Mandi Profile", {"email": user}, "organization_id")
+        if profile_org:
+            return profile_org
+            
     return None
 
 def _get_user_company() -> str:
