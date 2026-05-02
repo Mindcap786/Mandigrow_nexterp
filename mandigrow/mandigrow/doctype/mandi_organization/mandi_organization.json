@@ -16,7 +16,8 @@
   "address",
   "city",
   "gstin",
-  "phone"
+  "phone",
+  "erp_company"
  ],
  "fields": [
   {
@@ -76,12 +77,18 @@
    "fieldname": "phone",
    "fieldtype": "Data",
    "label": "Phone"
+  },
+  {
+   "fieldname": "erp_company",
+   "fieldtype": "Link",
+   "label": "ERP Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-02 17:42:33.113112",
+ "modified": "2026-05-02 18:29:07.649884",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Organization",
