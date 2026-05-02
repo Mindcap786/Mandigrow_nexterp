@@ -666,9 +666,8 @@ def get_field_governance(context: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=False)
-def get_features() -> list:
+def get_features() -> dict:
     """Returns feature flags for the MandiGrow platform."""
-    # These can be stored in Mandi Settings and fetched dynamically
     try:
         settings = frappe.get_single("Mandi Settings")
         return {
@@ -687,25 +686,17 @@ def get_features() -> list:
             "enable_whatsapp": False,
         }
 
-
 @frappe.whitelist(allow_guest=True)
 def get_logged_user() -> str:
     return frappe.session.user
 
 @frappe.whitelist(allow_guest=False)
 def get_full_user_context(p_user_id: str = None) -> dict:
-    # If Next.js sends the ID via RPC, use it, else use the currently logged in user
     user_id = p_user_id or frappe.session.user
     
-    # In Supabase, p_user_id was a UUID. In Frappe, the user_id is the email address.
-    # If the frontend passes a UUID (from cached auth), we might need to map it, 
-    # but since this is a scratch build, all new logins will use the Frappe email.
-    
-        # Check if HQ Org exists, else create a virtual representation
+    if user_id == "Administrator":
         org_id = "Mandi HQ"
         if not frappe.db.exists("Mandi Organization", org_id):
-            # We don't necessarily need to insert it if we return it as a virtual object,
-            # but for link integrity, we check for a default company.
             org_id = frappe.db.get_single_value("Global Defaults", "default_company") or "Mandi HQ"
 
         org_data = _get_org_info(org_id)
@@ -728,16 +719,11 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             "subscription": {"status": "active", "is_active": True},
         }
 
-
     try:
         user = frappe.get_doc("User", user_id)
-        
-        # If organization_id is missing, try to recover it from the email pattern or first login
         org_id = getattr(user, "mandi_organization", None)
         
         if not org_id:
-            # Fallback: check if other users with same company/domain have an org_id
-            # or use the default from Administrator if this is a test env
             org_id = _get_user_org()
             if org_id:
                 user.mandi_organization = org_id
@@ -752,18 +738,12 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 "subscription_tier": org_data.get("subscription_tier") or "starter",
             }
             
-        # Determine role based on Frappe roles
         from mandigrow.logic.tenancy import is_super_admin
-        
-        # Default role from User DocType
         role = getattr(user, "role_type", "admin")
         
-        # Platform-level Super Admin Escalation
-        # Only the literal 'Administrator' or the owner email get global HQ access.
         owner_email = "mindcap786@gmail.com"
         if is_super_admin(user.name) or user.email == owner_email or user.name == owner_email:
             role = "super_admin"
-            # For Super Admin, if no org is linked, provide the Virtual HQ context
             if not org_data:
                 org_id = "HQ"
                 org_data = {
@@ -784,7 +764,6 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             "subscription": subscription_data or {"status": "active", "is_active": True},
             "rbac_matrix": "{}"
         }
-
     except frappe.DoesNotExistError:
         frappe.throw(_("User profile not found"))
             
