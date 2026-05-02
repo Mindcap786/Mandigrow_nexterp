@@ -2297,10 +2297,17 @@ def get_arrival_detail(arrival_id: str = None) -> dict:
     item_ids = list({l.item_id for l in (doc.items or []) if l.item_id})
     item_map = {}
     if item_ids:
+        # Silicon Valley Grade: Schema-Aware Query
+        fields = ["name", "item_name", "item_group", "stock_uom", "item_code", "image", "valuation_rate"]
+        if frappe.db.has_column("Item", "internal_id"):
+            fields.append("internal_id")
+        if frappe.db.has_column("Item", "organization_id"):
+            fields.append("organization_id")
+            
         for it in frappe.get_all(
             "Item",
             filters={"name": ["in", item_ids]},
-            fields=["name", "item_name"],
+            fields=fields,
             ignore_permissions=True,
         ):
             item_map[it["name"]] = {"name": it.get("item_name") or it["name"]}
