@@ -30,22 +30,16 @@ export default function AdminBillingPlansPage() {
 
     const fetchPlans = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .schema('core')
-            .from('app_plans')
-            .select('*')
-            .eq('is_active', true)
-            .order('sort_order', { ascending: true });
-
-        if (error) {
-            toast({ title: 'Error', description: error.message, variant: 'destructive' });
-        } else {
+        try {
+            const data: any = await callApi('mandigrow.api.get_app_plans');
             const sanitizedData = (data || []).map(plan => {
-                const total = plan.max_total_users === -1 ? 999999 : (plan.max_total_users || 0);
-                return { ...plan, max_total_users: total };
+                const total = plan.max_users === -1 ? 999999 : (plan.max_users || 0);
+                return { ...plan, max_users: total, id: plan.plan_name };
             });
             setPlans(sanitizedData);
             setOriginalPlans(JSON.parse(JSON.stringify(sanitizedData)));
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
         setLoading(false);
     };
@@ -53,44 +47,10 @@ export default function AdminBillingPlansPage() {
     const handleSaveAll = async () => {
         setSaving('all');
         let successCount = 0;
-        let failCount = 0;
         
         try {
             for (const plan of plans) {
-                const updatePayload = {
-                    id: plan.id,
-                    price_monthly: plan.price_monthly === '' ? 0 : plan.price_monthly,
-                    price_yearly: plan.price_yearly === '' ? 0 : plan.price_yearly,
-                    price_per_user: plan.price_per_user === '' ? 0 : plan.price_per_user,
-                    price_per_transaction: plan.price_per_transaction === '' ? 0 : plan.price_per_transaction,
-                    storage_gb_included: plan.storage_gb_included === '' ? 0 : plan.storage_gb_included,
-                    price_per_gb: plan.price_per_gb === '' ? 0 : plan.price_per_gb,
-                    max_web_users: plan.max_web_users === '' ? 0 : plan.max_web_users,
-                    max_mobile_users: plan.max_mobile_users === '' ? 0 : plan.max_mobile_users,
-                    max_total_users: plan.max_total_users === -1 ? -1 : (plan.max_total_users || 0),
-                    max_users: plan.max_total_users === -1 ? -1 : (plan.max_total_users || 0),
-                    display_name: plan.display_name,
-                    description: plan.description,
-                    enabled_modules: plan.enabled_modules || [],
-                    features: plan.features || {}
-                };
-
-                const { data: { session } } = await supabase.auth.getSession();
-                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-                if (session?.access_token) {
-                    headers['Authorization'] = `Bearer ${session.access_token}`;
-                }
-
-                const res = await fetch('/api/admin/billing/plans', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(updatePayload)
-                });
-                
-                if (!res.ok) {
-                    const error = await res.json();
-                    throw new Error(error.error || `Failed to update ${plan.name}`);
-                }
+                await callApi('mandigrow.api.update_app_plan', { plan_data: plan });
                 successCount++;
             }
 
@@ -108,42 +68,8 @@ export default function AdminBillingPlansPage() {
         const plan = plans[index];
         setSaving(plan.id);
 
-        const updatePayload = {
-            id: plan.id,
-            price_monthly: plan.price_monthly === '' ? 0 : plan.price_monthly,
-            price_yearly: plan.price_yearly === '' ? 0 : plan.price_yearly,
-            price_per_user: plan.price_per_user === '' ? 0 : plan.price_per_user,
-            price_per_transaction: plan.price_per_transaction === '' ? 0 : plan.price_per_transaction,
-            storage_gb_included: plan.storage_gb_included === '' ? 0 : plan.storage_gb_included,
-            price_per_gb: plan.price_per_gb === '' ? 0 : plan.price_per_gb,
-            max_web_users: plan.max_web_users === '' ? 0 : plan.max_web_users,
-            max_mobile_users: plan.max_mobile_users === '' ? 0 : plan.max_mobile_users,
-            max_total_users: plan.max_total_users === -1 ? -1 : (plan.max_total_users || 0),
-            max_users: plan.max_total_users === -1 ? -1 : (plan.max_total_users || 0),
-            display_name: plan.display_name,
-            description: plan.description,
-            enabled_modules: plan.enabled_modules || [],
-            features: plan.features || {}
-        };
-
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (session?.access_token) {
-                headers['Authorization'] = `Bearer ${session.access_token}`;
-            }
-
-            const res = await fetch('/api/admin/billing/plans', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(updatePayload)
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.error || 'Update failed');
-            }
-
+            await callApi('mandigrow.api.update_app_plan', { plan_data: plan });
             toast({ title: 'Plan Updated', description: `${plan.display_name} saved and synchronized.` });
             
             // Sync original state locally to avoid race conditions

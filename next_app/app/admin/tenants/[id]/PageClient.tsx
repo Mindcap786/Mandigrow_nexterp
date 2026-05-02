@@ -203,22 +203,22 @@ export default function TenantDetailPage() {
     };
 
     const fetchPlans = async () => {
-        // Placeholder for Frappe-based plan fetching
-        setPlans([
-            { name: 'basic', max_web_users: 1, max_mobile_users: 0 },
-            { name: 'standard', max_web_users: 5, max_mobile_users: 2 },
-            { name: 'enterprise', max_web_users: 20, max_mobile_users: 10 }
-        ]);
+        try {
+            const data: any = await callApi('mandigrow.api.get_app_plans');
+            setPlans(data || []);
+        } catch (e) {
+            console.error('Failed to fetch plans:', e);
+        }
     };
 
     const handlePlanSelect = (planName: string) => {
-        const plan = plans.find(p => p.name === planName);
+        const plan = plans.find(p => p.plan_name === planName);
         if (plan) {
             setOverride(prev => ({
                 ...prev,
                 subscription_tier: planName,
-                max_web_users: plan.max_web_users ?? 1,
-                max_mobile_users: plan.max_mobile_users ?? 0,
+                max_web_users: plan.max_users ?? 1,
+                max_mobile_users: 0, // Placeholder if mobile users not in App Plan
             }));
         }
     };
@@ -451,7 +451,7 @@ export default function TenantDetailPage() {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent className="bg-white border-slate-200 text-slate-900 shadow-xl rounded-xl">
-                                                            {Array.from(new Set(plans.map(p => p.name))).map(name => (
+                                                            {Array.from(new Set(plans.map(p => p.plan_name))).map(name => (
                                                                 <SelectItem key={name} value={name} className="capitalize font-medium py-3">{name}</SelectItem>
                                                             ))}
                                                         </SelectContent>
