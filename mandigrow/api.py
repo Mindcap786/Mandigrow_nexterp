@@ -3382,7 +3382,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     
     commodities = frappe.get_all("Item",
         filters={"disabled": 0, "organization_id": org_id},
-        fields=["name as id", "item_name as name", "stock_uom as default_unit", "custom_attributes", "internal_id"],
+        fields=["name as id", "item_name as name", "stock_uom as default_unit", "internal_id"],
         order_by="item_name",
         ignore_permissions=True,
     )
@@ -8015,6 +8015,30 @@ def update_app_plan(plan_data: dict) -> dict:
     frappe.db.commit()
     
     return {"status": "success", "message": "Plan updated"}
+
+@frappe.whitelist(allow_guest=True)
+def get_site_contact_settings() -> dict:
+    """
+    Returns the public site contact settings.
+    Accessible to guests for the public contact page.
+    """
+    settings = frappe.get_doc("Site Contact Settings")
+    return settings.as_dict()
+
+@frappe.whitelist(allow_guest=False)
+def update_site_contact_settings(settings: dict) -> dict:
+    """
+    Updates the site contact settings from the admin portal.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Super Admin role required"))
+        
+    doc = frappe.get_doc("Site Contact Settings")
+    doc.update(settings)
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"status": "success"}
 
 @frappe.whitelist(allow_guest=False)
 def get_billing_gateways() -> list:

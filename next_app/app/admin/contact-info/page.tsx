@@ -46,17 +46,16 @@ export default function AdminContactInfoPage() {
 
     useEffect(() => {
         (async () => {
-            const { data, error } = await supabase
-                .schema('core')
-                .from('site_contact_settings')
-                .select('*')
-                .maybeSingle();
-            if (error) {
+            try {
+                const data: any = await callApi('mandigrow.api.get_site_contact_settings');
+                if (data) {
+                    setForm(data as ContactSettings);
+                }
+            } catch (error: any) {
                 toast({ title: 'Load failed', description: error.message, variant: 'destructive' });
-            } else if (data) {
-                setForm(data as ContactSettings);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         })();
     }, [toast]);
 
@@ -65,34 +64,13 @@ export default function AdminContactInfoPage() {
 
     const handleSave = async () => {
         setSaving(true);
-        const { id, ...rest } = form;
-        
-        let response;
-        if (!id) {
-            // Insert initial row
-            response = await supabase
-                .schema('core')
-                .from('site_contact_settings')
-                .insert([{ ...rest, updated_at: new Date().toISOString() }])
-                .select()
-                .single();
-        } else {
-            // Update existing row
-            response = await supabase
-                .schema('core')
-                .from('site_contact_settings')
-                .update({ ...rest, updated_at: new Date().toISOString() })
-                .eq('id', id)
-                .select()
-                .single();
-        }
-        
-        setSaving(false);
-        if (response.error) {
-            toast({ title: 'Save failed', description: response.error.message, variant: 'destructive' });
-        } else {
-            if (response.data) setForm(response.data as ContactSettings);
+        try {
+            await callApi('mandigrow.api.update_site_contact_settings', { settings: form });
             toast({ title: '✅ Saved', description: 'Public /contact page will reflect changes immediately.' });
+        } catch (error: any) {
+            toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+        } finally {
+            setSaving(false);
         }
     };
 

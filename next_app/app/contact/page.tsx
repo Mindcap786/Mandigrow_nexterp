@@ -62,12 +62,12 @@ export default function ContactPage() {
 
     useEffect(() => {
         (async () => {
-            const { data } = await supabase
-                .schema('core')
-                .from('site_contact_settings')
-                .select('*')
-                .maybeSingle();
-            if (data) setInfo({ ...FALLBACK, ...(data as ContactSettings) });
+            try {
+                const data: any = await callApi('mandigrow.api.get_site_contact_settings');
+                if (data) setInfo({ ...FALLBACK, ...(data as ContactSettings) });
+            } catch (e) {
+                console.error('Failed to load site contact settings:', e);
+            }
         })();
     }, []);
 
