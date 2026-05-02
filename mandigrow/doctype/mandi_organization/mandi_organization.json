@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "ORG-.#####",
+ "creation": "2026-04-24 15:04:48.871217",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "organization_name",
+  "subscription_tier",
+  "status",
+  "trial_ends_at",
+  "is_active",
+  "brand_color",
+  "address",
+  "city",
+  "gstin",
+  "phone",
+  "erp_company"
+ ],
+ "fields": [
+  {
+   "fieldname": "organization_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Organization Name",
+   "reqd": 1
+  },
+  {
+   "default": "starter",
+   "fieldname": "subscription_tier",
+   "fieldtype": "Select",
+   "label": "Subscription Tier",
+   "options": "starter\nstandard\nprofessional\nenterprise"
+  },
+  {
+   "default": "trial",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "trial\nactive\ngrace_period\nsuspended\nexpired"
+  },
+  {
+   "fieldname": "trial_ends_at",
+   "fieldtype": "Datetime",
+   "label": "Trial Ends At"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "default": "#10b981",
+   "fieldname": "brand_color",
+   "fieldtype": "Color",
+   "label": "Brand Color"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "gstin",
+   "fieldtype": "Data",
+   "label": "GSTIN"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "erp_company",
+   "fieldtype": "Link",
+   "label": "ERP Company",
+   "options": "Company"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-02 19:35:08.865208",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Organization",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
