@@ -125,9 +125,9 @@ const nextConfig = {
     },
 
     async rewrites() {
-        // mandigrow.localhost resolves to 127.0.0.1 and Frappe uses it for
-        // site routing (multi-tenant). Using the hostname here (not localhost)
-        // ensures Frappe serves the mandigrow site, not the default one.
+        // In production (Vercel), NEXT_PUBLIC_FRAPPE_URL must point to the
+        // Frappe Cloud site URL e.g. https://mandigrow.frappe.cloud
+        // In local dev it defaults to http://mandigrow.localhost:8000
         const frappeBase =
             process.env.NEXT_PUBLIC_FRAPPE_URL ||
             'http://mandigrow.localhost:8000'

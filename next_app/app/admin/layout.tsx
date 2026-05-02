@@ -81,10 +81,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const { user, profile, signOut, loading: authLoading } = useAuth();
     const [isNative, setIsNative] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [loadTimeout, setLoadTimeout] = useState(false);
 
     useEffect(() => {
         setIsNative(isNativePlatform());
     }, []);
+
+    // Safety net: if profile hasn't loaded in 6 seconds, show an error
+    // instead of spinning forever. This surfaces the real problem (API failure).
+    useEffect(() => {
+        if (authLoading || profile) return;
+        const timer = setTimeout(() => setLoadTimeout(true), 6000);
+        return () => clearTimeout(timer);
+    }, [authLoading, profile]);
 
     useEffect(() => {
         if (authLoading) return;
@@ -99,10 +108,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         router.replace('/login');
     };
 
-    if (authLoading || !profile) {
+    if (authLoading || (!profile && !loadTimeout)) {
         return (
             <div className="h-screen bg-zinc-950 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-neon-blue animate-spin" />
+                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!profile && loadTimeout) {
+        return (
+            <div className="h-screen bg-zinc-950 flex flex-col items-center justify-center gap-4 text-center p-6">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    <ShieldAlert className="w-8 h-8 text-red-400" />
+                </div>
+                <h2 className="text-white font-black text-xl">Session Failed to Load</h2>
+                <p className="text-slate-400 text-sm max-w-sm">
+                    Could not reach the backend API. The Frappe server may be unreachable or your session has expired.
+                </p>
+                <div className="flex gap-3 mt-2">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors"
+                    >
+                        Retry
+                    </button>
+                    <button
+                        onClick={() => window.location.replace('/login')}
+                        className="px-4 py-2 bg-zinc-800 text-slate-300 rounded-xl text-sm font-bold hover:bg-zinc-700 transition-colors"
+                    >
+                        Back to Login
+                    </button>
+                </div>
             </div>
         );
     }
