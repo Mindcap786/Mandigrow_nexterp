@@ -1031,16 +1031,19 @@ def repair_tenant(org_id: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=True)
-def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str) -> dict:
+def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "basic") -> dict:
     if frappe.db.exists("User", email):
         frappe.throw(_("User with this email already exists"), frappe.DuplicateEntryError)
+
+    from frappe.utils import add_days, now_datetime
 
     # 1. Create Mandi Organization (The actual tenant record)
     org = frappe.get_doc({
         "doctype": "Mandi Organization",
         "organization_name": org_name,
-        "subscription_tier": "starter",
-        "status": "active",
+        "subscription_tier": plan,
+        "status": "trial",
+        "trial_ends_at": add_days(now_datetime(), 14),
         "is_active": 1,
         "phone": phone
     })
@@ -7960,15 +7963,58 @@ def get_admin_tenants() -> list:
     return processed
 
 @frappe.whitelist(allow_guest=False)
-def get_platform_monitoring() -> dict:
+def get_app_plans() -> list:
     """
-    Returns real-time platform status and alerts.
+    Returns list of all available subscription plans.
     """
-    return {
-        "platform_status": "healthy",
-        "critical_alerts": [],
-        "warning_alerts": []
-    }
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Super Admin role required"))
+        
+    plans = frappe.get_all("App Plan", fields=["*"], order_by="sort_order asc")
+    
+    # Parse features JSON
+    for p in plans:
+        if p.features:
+            try:
+                import json
+                p.features = json.loads(p.features)
+            except Exception:
+                p.features = {}
+        else:
+            p.features = {}
+            
+    return plans
+
+@frappe.whitelist(allow_guest=False)
+def update_app_plan(plan_data: dict) -> dict:
+    """
+    Updates an existing app plan.
+    """
+    from mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Super Admin role required"))
+        
+    plan_id = plan_data.get("plan_name") or plan_data.get("id")
+    if not frappe.db.exists("App Plan", plan_id):
+        frappe.throw(_("Plan {0} not found").format(plan_id))
+        
+    doc = frappe.get_doc("App Plan", plan_id)
+    
+    # Update fields
+    fields = ["display_name", "description", "price_monthly", "price_yearly", "max_users", "is_active", "sort_order"]
+    for f in fields:
+        if f in plan_data:
+            doc.set(f, plan_data[f])
+            
+    if "features" in plan_data:
+        import json
+        doc.features = json.dumps(plan_data["features"])
+        
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    return {"status": "success", "message": "Plan updated"}
 
 @frappe.whitelist(allow_guest=False)
 def get_admin_billing_stats() -> dict:
@@ -8086,7 +8132,8 @@ def provision_tenant(orgName: str, email: str, adminName: str, password: str, us
         full_name=adminName,
         username=username or email.split('@')[0],
         org_name=orgName,
-        phone=phone
+        phone=phone,
+        plan=plan
     )
 
 @frappe.whitelist(allow_guest=False)
@@ -8162,6 +8209,8 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can update tenant config."))
 
+    from frappe.utils import add_days, get_datetime
+
     org = frappe.get_doc("Mandi Organization", organization_id)
     
     if "subscription_tier" in config:
@@ -8170,6 +8219,13 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     if "is_active" in config:
         org.is_active = config["is_active"]
         org.status = "active" if config["is_active"] else "suspended"
+
+    if "trial_ends_at" in config and config["trial_ends_at"]:
+        org.trial_ends_at = get_datetime(config["trial_ends_at"])
+    
+    if "extend_days" in config and config["extend_days"]:
+        base_date = org.trial_ends_at or frappe.utils.now_datetime()
+        org.trial_ends_at = add_days(base_date, config["extend_days"])
 
     org.save(ignore_permissions=True)
     frappe.db.commit()
