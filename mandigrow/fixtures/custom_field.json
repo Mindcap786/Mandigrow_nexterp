@@ -183,9 +183,9 @@
   "doctype": "Custom Field",
   "dt": "Bank Account",
   "fieldname": "description",
-  "label": "Description",
   "fieldtype": "Small Text",
   "insert_after": "branch_code",
+  "label": "Description",
   "module": "Mandigrow",
   "name": "Bank Account-description"
  },
@@ -193,9 +193,9 @@
   "doctype": "Custom Field",
   "dt": "Item",
   "fieldname": "internal_id",
-  "label": "Internal ID",
   "fieldtype": "Data",
   "insert_after": "item_code",
+  "label": "Internal ID",
   "module": "Mandigrow",
   "name": "Item-internal_id"
  }
