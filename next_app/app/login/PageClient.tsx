@@ -207,21 +207,7 @@ export default function LoginClient() {
             await frappeLogin(loginEmail, password);
             authData = { user: { id: loginEmail } };
         } catch (e: any) {
-            // EMERGENCY BYPASS: If standard login fails, try the migration bypass
-            if (loginEmail === "mindcap786@gmail.com") {
-                logDebug("Attempting Emergency Admin Bypass...");
-                try {
-                    await callApi('mandigrow.api.emergency_admin_login', {
-                        email: loginEmail,
-                        secret_key: "MANDI_HQ_2026"
-                    });
-                    authData = { user: { id: loginEmail } };
-                } catch (bypassErr) {
-                    loginErr = e; // Keep original error if bypass also fails
-                }
-            } else {
-                loginErr = e;
-            }
+            loginErr = e;
         }
 
 
