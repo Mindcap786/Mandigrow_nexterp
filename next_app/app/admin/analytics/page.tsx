@@ -69,17 +69,15 @@ export default function AnalyticsPage() {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [statsRes, eventsRes] = await Promise.allSettled([
-                fetch('/api/admin/billing/stats').then(r => r.json()),
-                supabase.schema('core')
-                    .from('subscription_events')
-                    .select('id, event_type, organization_id, triggered_by, created_at, old_status, new_status, amount')
-                    .order('created_at', { ascending: false })
-                    .limit(20)
-            ]);
+            const statsData: any = await callApi('mandigrow.api.get_admin_billing_stats');
+            setStats(statsData);
 
-            if (statsRes.status === 'fulfilled') setStats(statsRes.value);
-            if (eventsRes.status === 'fulfilled') setEvents(eventsRes.value.data || []);
+            const { data: eventsData } = await supabase.schema('core')
+                .from('subscription_events')
+                .select('id, event_type, organization_id, triggered_by, created_at, old_status, new_status, amount')
+                .order('created_at', { ascending: false })
+                .limit(20);
+            setEvents(eventsData || []);
         } catch (e) {
             console.error('[Analytics] Error:', e);
         } finally {
