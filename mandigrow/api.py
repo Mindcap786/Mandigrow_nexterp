@@ -764,7 +764,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             "rbac_matrix": "{}"
         }
     except frappe.DoesNotExistError:
-        frappe.throw(_("User profile not found"), frappe.NotFoundError)
+        frappe.throw(_("User profile not found"))
 
 @frappe.whitelist(allow_guest=True)
 def check_unique(email: str = None, username: str = None) -> dict:
