@@ -4,3 +4,4 @@
 mandigrow.mandigrow.patches.v1_0.create_super_admin
 mandigrow.mandigrow.patches.v1_0.force_admin_reset
 mandigrow.mandigrow.patches.v1_0.platform_repair_v1
+mandigrow.mandigrow.patches.v1_0.seed_app_plans
