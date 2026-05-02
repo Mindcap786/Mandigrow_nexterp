@@ -67,7 +67,9 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
     const url = `${FRAPPE_BASE}${path}`;
     const headers = new Headers(init.headers || {});
     headers.set('Accept', 'application/json');
-    headers.set('X-Frappe-Site-Name', 'mandigrow.localhost');
+    const siteName = process.env.NEXT_PUBLIC_FRAPPE_SITE_NAME || 
+                     (process.env.NEXT_PUBLIC_FRAPPE_URL ? new URL(process.env.NEXT_PUBLIC_FRAPPE_URL).hostname : 'mandigrow.localhost');
+    headers.set('X-Frappe-Site-Name', siteName);
 
     const csrf = readCookie('csrf_token');
     if (csrf && init.method && init.method !== 'GET') {
