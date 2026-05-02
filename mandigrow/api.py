@@ -196,7 +196,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             gl.against_voucher, gl.against_voucher_type,
             gl.cost_center, gl.creation,
             COALESCE(je.user_remark, gl.remarks) as remarks,
-            acc.account_type, acc.account_sub_type, acc.root_type,
+            acc.account_type, acc.root_type,
             je.cheque_no, je.clearance_date
         FROM `tabGL Entry` gl
         LEFT JOIN `tabJournal Entry` je
@@ -595,7 +595,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             "account": {
                 "name": account_name_clean,
                 "type": "bank" if gl.get("cheque_no") else (gl.get("account_type") or ("asset" if account_name_raw in liquid_accounts else "liability")),
-                "account_sub_type": "bank" if gl.get("cheque_no") else (gl.get("account_sub_type") or ("cash" if account_name_raw in cash_accounts else ("bank" if account_name_raw in bank_accounts else "")))
+                "account_sub_type": "bank" if gl.get("cheque_no") else ("cash" if account_name_raw in cash_accounts else ("bank" if account_name_raw in bank_accounts else ""))
             },
             "voucher": {
                 "type": gl.get("voucher_type", ""),
@@ -1488,7 +1488,7 @@ def get_accounts(account_type: str = None, sub_type: str = None) -> list:
     if sub_type:
         filters.append(["account_type", "=", (sub_type or "").title()])
         
-    accounts = frappe.get_list("Account", filters=filters, fields=["name as id", "account_name as name", "account_type", "root_type", "is_group", "is_default"], ignore_permissions=True)
+    accounts = frappe.get_list("Account", filters=filters, fields=["name as id", "account_name as name", "account_type", "root_type", "is_group"], ignore_permissions=True)
     return accounts
 
 @frappe.whitelist(allow_guest=False)
@@ -3394,7 +3394,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
             "account_type": ["in", ["Bank", "Cash"]],
             "is_group": 0
         },
-        fields=["name as id", "account_name as name", "account_type", "account_sub_type", "is_default", "account_number", "description"],
+        fields=["name as id", "account_name as name", "account_type", "account_number", "description"],
         ignore_permissions=True
     )
     
@@ -3407,8 +3407,8 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         
         acc['balance'] = float(bal_res[0]['balance'] or 0) if bal_res and bal_res[0]['balance'] else 0.0
 
-    banks = [a for a in liquid_accounts if a.account_type == "Bank" or a.account_sub_type == "Bank"]
-    cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash" or a.account_sub_type == "Cash"]
+    banks = [a for a in liquid_accounts if a.account_type == "Bank"]
+    cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash"]
 
     # Fetch storage locations
     storage_locations = frappe.get_all("Mandi Storage Location",
@@ -3536,7 +3536,7 @@ def get_bank_accounts(org_id: str = None) -> list:
             "is_group": 0, 
             "organization_id": org_id
         },
-        fields=["name as id", "account_name as name", "account_type", "is_default", "account_number", "company", "description"],
+        fields=["name as id", "account_name as name", "account_type", "account_number", "company", "description"],
         ignore_permissions=True
     )
 
@@ -5064,7 +5064,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
             "account_type": ["in", ["Bank", "Cash"]],
             "is_group": 0
         },
-        fields=["name as id", "account_name as name", "account_type", "account_sub_type", "is_default", "account_number", "description"],
+        fields=["name as id", "account_name as name", "account_type", "account_number", "description"],
         ignore_permissions=True
     )
 
@@ -6400,7 +6400,7 @@ def get_pos_master_data() -> dict:
 
         accounts = frappe.get_all("Account",
             filters=account_filters,
-            fields=["name as id", "account_name as name", "account_type", "account_sub_type", "root_type", "is_default"],
+            fields=["name as id", "account_name as name", "account_type", "root_type"],
             order_by="account_name",
         )
         for acc in accounts:
@@ -8378,4 +8378,18 @@ def get_platform_monitoring() -> dict:
             "churn": True,
             "health": True
         }
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_branding_settings() -> dict:
+    """Returns the brand settings for the current organization."""
+    org_id = _get_user_org()
+    if not org_id:
+        return {"brand_color": "#10b981", "brand_color_secondary": "#064e3b", "logo_url": None}
+        
+    org = frappe.get_doc("Mandi Organization", org_id)
+    return {
+        "brand_color": getattr(org, "brand_color", "#10b981") or "#10b981",
+        "brand_color_secondary": getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b",
+        "logo_url": getattr(org, "logo_url", None)
     }
