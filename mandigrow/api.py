@@ -9162,7 +9162,7 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
     }, update_modified=False)
     frappe.db.commit()
 
-    # ── Post Credit JE to reduce supplier payable ────────────────────────────
+    # ── Post Credit JE to reduce supplier/farmer payable ────────────────────
     return_value = round(return_qty * unit_cost, 2)
     if return_value > 0 and supplier_id:
         try:
@@ -9170,28 +9170,66 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
             company     = frappe.db.get_value("Mandi Organization", org_id, "company") or frappe.defaults.get_user_default("Company")
             narration   = f"Stock Return: {return_qty} {lot.unit or 'Units'} of {item_name} returned to supplier {supplier_id} — {reason}"
 
-            # Credit supplier (reduce payable), Debit purchase/stock account
-            creditor_acc = frappe.db.get_value("Account", {
-                "party_type": "Supplier", "company": company
-            }, "name") or frappe.db.get_value("Account", {
-                "account_type": "Payable", "company": company
-            }, "name")
+            # Resolve true ERPNext Supplier or Customer ID from party_id
+            erpnext_party = None
+            erpnext_party_type = "Supplier"
+
+            if supplier_id:
+                if frappe.db.exists("Supplier", supplier_id):
+                    erpnext_party = supplier_id
+                    erpnext_party_type = "Supplier"
+                elif frappe.db.exists("Customer", supplier_id):
+                    erpnext_party = supplier_id
+                    erpnext_party_type = "Customer"
+                elif frappe.db.exists("Mandi Contact", supplier_id):
+                    contact_doc = frappe.get_doc("Mandi Contact", supplier_id)
+                    if contact_doc.supplier and frappe.db.exists("Supplier", contact_doc.supplier):
+                        erpnext_party = contact_doc.supplier
+                        erpnext_party_type = "Supplier"
+                    elif contact_doc.customer and frappe.db.exists("Customer", contact_doc.customer):
+                        erpnext_party = contact_doc.customer
+                        erpnext_party_type = "Customer"
+                    else:
+                        matched_supp = frappe.db.get_value("Supplier", {"supplier_name": contact_doc.full_name}, "name")
+                        if matched_supp:
+                            erpnext_party = matched_supp
+                            erpnext_party_type = "Supplier"
+                        else:
+                            matched_cust = frappe.db.get_value("Customer", {"customer_name": contact_doc.full_name}, "name")
+                            if matched_cust:
+                                erpnext_party = matched_cust
+                                erpnext_party_type = "Customer"
+
+            if not erpnext_party:
+                erpnext_party = supplier_id
+                erpnext_party_type = "Supplier"
+
+            # Determine Account & Account Type based on party
+            if erpnext_party_type == "Supplier":
+                party_acc = frappe.db.get_value("Account", {"party_type": "Supplier", "company": company}, "name") \
+                         or frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
+                party_acc_type = "Supplier"
+            else:
+                party_acc = frappe.db.get_value("Account", {"party_type": "Customer", "company": company}, "name") \
+                         or frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
+                party_acc_type = "Customer"
+
             stock_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"], "company": company}, "name") \
                      or frappe.db.get_value("Account", {"account_type": "Stock", "company": company}, "name")
 
-            if creditor_acc and stock_acc:
+            if party_acc and stock_acc:
                 je = frappe.get_doc({
                     "doctype":      "Journal Entry",
-                    "voucher_type": "Debit Note",
+                    "voucher_type": "Debit Note" if erpnext_party_type == "Supplier" else "Credit Note",
                     "posting_date": today(),
                     "company":      company,
                     "user_remark":  narration,
                     "accounts": [
-                        # Dr Stock (reducing asset since goods returned)
-                        {"account": stock_acc,    "debit_in_account_currency": 0,            "credit_in_account_currency": return_value},
-                        # Cr Supplier Payable (reducing what mandi owes)
-                        {"account": creditor_acc, "debit_in_account_currency": return_value,  "credit_in_account_currency": 0,
-                         "party_type": "Supplier", "party": supplier_id},
+                        # Credit Stock (reducing asset since goods returned)
+                        {"account": stock_acc, "debit_in_account_currency": 0, "credit_in_account_currency": return_value},
+                        # Debit Supplier/Customer
+                        {"account": party_acc, "debit_in_account_currency": return_value, "credit_in_account_currency": 0,
+                         "party_type": party_acc_type, "party": erpnext_party},
                     ]
                 })
                 je.insert(ignore_permissions=True)
