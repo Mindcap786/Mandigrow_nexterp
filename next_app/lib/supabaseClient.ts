@@ -71,8 +71,13 @@ export const supabase = new Proxy({} as any, {
         }
         if (prop === 'storage') {
             return {
-                from: () => ({
+                from: (_bucket: string) => ({
+                    upload: async (_path: string, _file: any) => ({
+                        data: null,
+                        error: { message: 'Supabase storage is disabled. Use Frappe file upload instead.' }
+                    }),
                     getPublicUrl: (path: string) => ({ data: { publicUrl: path } }),
+                    remove: async (_paths: string[]) => ({ data: null, error: null }),
                 })
             };
         }

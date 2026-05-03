@@ -3568,14 +3568,20 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         ignore_permissions=True
     )
     
-    for acc in liquid_accounts:
-        bal_res = frappe.db.sql("""
-            SELECT SUM(debit) - SUM(credit) as balance
+    # Batch-fetch ALL balances in one SQL call (avoids N+1 queries, matches Finance Overview logic)
+    if liquid_accounts:
+        acc_ids = tuple(a['id'] for a in liquid_accounts)
+        bal_rows = frappe.db.sql("""
+            SELECT account, COALESCE(SUM(debit) - SUM(credit), 0) as balance
             FROM `tabGL Entry`
-            WHERE account = %s AND is_cancelled = 0
-        """, (acc['id'],), as_dict=True)
-        
-        acc['balance'] = float(bal_res[0]['balance'] or 0) if bal_res and bal_res[0]['balance'] else 0.0
+            WHERE account IN %s
+              AND is_cancelled = 0
+              AND company = %s
+            GROUP BY account
+        """, (acc_ids, company), as_dict=True)
+        bal_map = {r['account']: float(r['balance'] or 0) for r in bal_rows}
+        for acc in liquid_accounts:
+            acc['balance'] = bal_map.get(acc['id'], 0.0)
 
     banks = [a for a in liquid_accounts if a.account_type == "Bank"]
     cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash"]
@@ -3845,7 +3851,18 @@ def save_bank_account(**kwargs) -> dict:
                     je.submit()
         else:
             doc = frappe.get_doc("Account", account_id)
-            doc.update(account_payload)
+            # On update, don't pass doctype/account_name (causes rename issues in Frappe)
+            # Only update fields that are safe to change on existing accounts
+            safe_update = {
+                "description": account_payload.get("description"),
+                "account_number": account_payload.get("account_number"),
+                "is_default": account_payload.get("is_default"),
+            }
+            if frappe.db.has_column("Account", "organization_id"):
+                safe_update["organization_id"] = org_id
+            for k, v in safe_update.items():
+                if v is not None:
+                    setattr(doc, k, v)
             doc.save(ignore_permissions=True)
             
         # If this is default, unset others for this company (use company, not organization_id — safer)
