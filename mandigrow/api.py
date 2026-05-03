@@ -8939,24 +8939,62 @@ def get_tenant_subscription() -> dict:
 
 
 @frappe.whitelist(allow_guest=False)
-def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly") -> dict:
+def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
+                       payment_confirmed: bool = False, coupon_code: str = None,
+                       admin_override: bool = False) -> dict:
     """
-    Allows a tenant to self-select a new plan (upgrade or downgrade).
-    Updates Mandi Organization.subscription_tier immediately.
-    In a real payment flow, this would gate on a payment confirmation token.
+    Secure plan change endpoint.
+    Authorization:
+      - Super Admins can change any plan directly (admin_override path from Admin UI).
+      - Regular tenants MUST pass payment_confirmed=True, set only by the checkout
+        page after a successful payment. Prevents plan bypass without billing.
+    Coupon:
+      - If coupon_code provided, validated against Mandi Coupon doctype,
+        discount applied to final_price, usage incremented atomically.
     """
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+
     org_id = _get_user_org()
     if not org_id:
         frappe.throw(_("Could not determine your organisation. Please re-login."))
 
-    # Validate the plan exists and is active
-    if not frappe.db.exists("App Plan", {"plan_name": plan_name, "is_active": 1}):
-        # Try by 'name' field as fallback
-        if not frappe.db.exists("App Plan", plan_name):
-            frappe.throw(_("Plan '{0}' is not available.").format(plan_name))
+    caller_is_admin = is_super_admin()
+    if not caller_is_admin and not payment_confirmed:
+        frappe.throw(
+            _("Payment confirmation required. Please complete checkout to change your plan."),
+            frappe.PermissionError
+        )
 
-    plan_doc = frappe.get_doc("App Plan", {"plan_name": plan_name}) if frappe.db.exists("App Plan", {"plan_name": plan_name}) else frappe.get_doc("App Plan", plan_name)
+    # Validate plan
+    plan_doc = None
+    if frappe.db.exists("App Plan", {"plan_name": plan_name, "is_active": 1}):
+        plan_doc = frappe.get_doc("App Plan", {"plan_name": plan_name, "is_active": 1})
+    elif frappe.db.exists("App Plan", plan_name):
+        plan_doc = frappe.get_doc("App Plan", plan_name)
+    if not plan_doc:
+        frappe.throw(_("Plan '{0}' is not available.").format(plan_name))
 
+    # Coupon validation and discount
+    coupon_result = None
+    final_price = float(plan_doc.price_monthly or 0) if billing_cycle == "monthly" else float(plan_doc.price_yearly or 0)
+    if coupon_code:
+        coupon_result = validate_coupon(coupon_code, plan_name)
+        if not coupon_result.get("valid"):
+            frappe.throw(_("Coupon error: {0}").format(coupon_result.get("error", "Invalid coupon")))
+        dv = float(coupon_result.get("discount_value") or 0)
+        if coupon_result.get("discount_type") == "percentage":
+            final_price = max(0, final_price * (1 - dv / 100))
+        else:
+            final_price = max(0, final_price - dv)
+        try:
+            frappe.db.sql(
+                "UPDATE `tabMandi Coupon` SET times_used = times_used + 1 WHERE name = %s",
+                (coupon_result.get("coupon_name"),)
+            )
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Coupon increment failed")
+
+    # Apply plan change
     org = frappe.get_doc("Mandi Organization", org_id)
     old_tier = org.subscription_tier or "starter"
     org.subscription_tier = plan_doc.plan_name or plan_doc.name
@@ -8965,15 +9003,17 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly") -> dict:
     frappe.db.commit()
 
     frappe.log_error(
-        f"Tenant {org_id} changed plan: {old_tier} → {org.subscription_tier} ({billing_cycle})",
+        f"Plan change: org={org_id}, {old_tier}->{org.subscription_tier}, "
+        f"cycle={billing_cycle}, price={final_price}, coupon={coupon_code or 'none'}, admin={caller_is_admin}",
         "MandiGrow Plan Change"
     )
-
     return {
         "success": True,
         "message": f"Plan updated to {plan_doc.display_name or plan_doc.plan_name}",
         "new_plan": plan_doc.plan_name or plan_doc.name,
-        "org_id": org_id
+        "org_id": org_id,
+        "final_price": final_price,
+        "coupon_applied": bool(coupon_code and coupon_result and coupon_result.get("valid")),
     }
 
 

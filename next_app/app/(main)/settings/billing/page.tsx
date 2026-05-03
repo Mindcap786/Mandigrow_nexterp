@@ -76,7 +76,6 @@ export default function SaasBillingPage() {
     const [usage, setUsage] = useState<UsageStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [plansError, setPlansError] = useState<string | null>(null);
-    const [changingPlan, setChangingPlan] = useState<string | null>(null);
     const { toast } = useToast();
     const router = useRouter();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -116,22 +115,9 @@ export default function SaasBillingPage() {
         }
     };
 
-    const changePlan = async (plan: Plan, cycle: string) => {
-        const planKey = plan.plan_name || plan.name || '';
-        const confirmed = window.confirm(
-            `Switch to ${plan.display_name || planKey} (${cycle})? Your workspace will update immediately.`
-        );
-        if (!confirmed) return;
-        setChangingPlan(planKey);
-        try {
-            await callApi('mandigrow.api.change_tenant_plan', { plan_name: planKey, billing_cycle: cycle });
-            toast({ title: '✅ Plan Updated', description: `You are now on the ${plan.display_name || planKey} plan.` });
-            await fetchAll();
-        } catch (e: any) {
-            toast({ title: '❌ Plan Change Failed', description: e?.message || 'Please contact support.', variant: 'destructive' });
-        } finally {
-            setChangingPlan(null);
-        }
+    const goToCheckout = (plan: Plan, cycle: string) => {
+        const planKey = plan.plan_name || plan.name || plan.id || '';
+        router.push(`/settings/billing/checkout?plan_id=${encodeURIComponent(planKey)}&cycle=${cycle}`);
     };
 
 
@@ -316,17 +302,17 @@ export default function SaasBillingPage() {
                                 const planAction = getPlanAction(plan);
                                 const tag = plan.features?.tag as string | undefined;
                                 const totalUsers = getUserCount(plan);
-                                const isLoading = changingPlan === planKey;
+                                        const isLoading = false;
 
                                 // Button logic
                                 const getButtonConfig = () => {
                                     if (isCurrent) {
-                                        if (status === 'trial' || status === 'trialing') return { text: 'Activate Now', variant: 'purple' };
-                                        if (status === 'grace_period' || status === 'suspended') return { text: 'Renew Now', variant: 'dark' };
-                                        return { text: '✓ Current Plan', variant: 'muted' };
+                                        if (status === 'trial' || status === 'trialing') return { text: 'Activate Now', variant: 'purple', action: () => goToCheckout(plan, billingCycle) };
+                                        if (status === 'grace_period' || status === 'suspended') return { text: 'Renew Now', variant: 'dark', action: () => goToCheckout(plan, billingCycle) };
+                                        return { text: '✓ Current Plan', variant: 'muted', action: null };
                                     }
-                                    if (planAction === 'downgrade') return { text: '↓ Downgrade', variant: 'muted' };
-                                    return { text: '↑ Upgrade', variant: 'dark' };
+                                    if (planAction === 'downgrade') return { text: '↓ Downgrade', variant: 'muted', action: () => goToCheckout(plan, billingCycle) };
+                                    return { text: '↑ Upgrade', variant: 'dark', action: () => goToCheckout(plan, billingCycle) };
                                 };
                                 const btnConfig = getButtonConfig();
 
@@ -368,7 +354,7 @@ export default function SaasBillingPage() {
                                                 btnConfig.variant === 'muted' ? "bg-slate-100 text-slate-500 hover:bg-slate-200" :
                                                 "bg-slate-900 text-white hover:bg-slate-800"
                                             )}
-                                            onClick={() => !isCurrent && changePlan(plan, billingCycle)}
+                                            onClick={() => btnConfig.action && btnConfig.action()}
                                         >
                                             {isLoading ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Updating…</> : btnConfig.text}
                                         </Button>
