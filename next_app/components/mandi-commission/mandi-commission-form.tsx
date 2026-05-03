@@ -302,7 +302,7 @@ export function MandiCommissionForm() {
             </div>
 
             {/* Global Header */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-5 gap-4">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 <div>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Date</Label>
                     <Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} className="h-10 font-bold bg-slate-50 mt-1 rounded-lg" />
@@ -462,7 +462,7 @@ export function MandiCommissionForm() {
             </div>
 
             {/* Bottom Buyer Section directly based on Sci-Fi Mockup */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 p-1 border-t border-slate-200/50 pt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 p-1 border-t border-slate-200/50 pt-6">
                 <div className="bg-blue-50/50 border-2 border-blue-200 rounded-xl p-4">
                     <div className="flex justify-between items-center mb-2">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1 flex items-center gap-2">

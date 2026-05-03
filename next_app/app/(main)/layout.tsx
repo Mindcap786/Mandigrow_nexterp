@@ -120,7 +120,9 @@ export default function MainLayout({
                     className={cn(
                         "flex flex-col min-h-screen bg-slate-50 transition-all duration-300",
                         "print:block print:min-h-0 print:overflow-visible print:bg-white print:h-auto print:ml-0",
-                        "md:ml-[288px]"
+                        "md:ml-[288px]",
+                        // Mobile web: add bottom padding so content doesn't hide behind the fixed bottom nav
+                        "pb-20 md:pb-0"
                     )}
                     style={{ marginLeft: sidebarWidth }}
                 >

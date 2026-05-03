@@ -286,8 +286,8 @@ export default function Dashboard() {
                 <StockAlertSummaryCard />
             </div>
 
-            {/* Quick Actions Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-bottom duration-700 delay-150">
+            {/* Quick Actions Row - mobile: stacked, desktop: 3-col */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 animate-in slide-in-from-bottom duration-700 delay-150">
                 <button 
                     onClick={() => router.push(ROUTES.FINANCE_PAYMENTS_RECEIPT)}
                     className="group bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-[32px] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between border-b-4 border-indigo-900/40"
@@ -337,8 +337,8 @@ export default function Dashboard() {
                 </button>
             </div>
 
-            {/* Key Metrics Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Key Metrics Grid - mobile: 1-col, tablet: 2-col, desktop: 4-col */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <StatsCard
                     title="📈 SALES SUMMARY"
                     value={`₹${stats.revenue.toLocaleString()}`}
@@ -387,9 +387,10 @@ export default function Dashboard() {
                 />
             </div>
 
-            <div className="grid gap-8 md:grid-cols-7">
+            {/* Charts + Activity Feed — mobile: stacked, desktop: 7-col split */}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-7">
                 {/* Sales Chart Area */}
-                <div className="col-span-4 bg-white border border-slate-200 shadow-sm rounded-3xl p-8 relative overflow-hidden group hover:shadow-md transition-all duration-500">
+                <div className="md:col-span-4 bg-white border border-slate-200 shadow-sm rounded-3xl p-5 sm:p-8 relative overflow-hidden group hover:shadow-md transition-all duration-500">
                     <div className="flex items-center justify-between mb-8 relative z-10">
                         <div>
                             <h3 className="text-xl font-black text-slate-900">{t('dashboard.revenue_velocity')}</h3>
@@ -403,7 +404,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Recent Activity Feed */}
-                <div className="col-span-3 bg-white border border-slate-200 shadow-sm rounded-3xl p-8 relative overflow-hidden flex flex-col h-full">
+                <div className="md:col-span-3 bg-white border border-slate-200 shadow-sm rounded-3xl p-5 sm:p-8 relative overflow-hidden flex flex-col h-full">
                     <h3 className="text-xl font-bold mb-6 text-slate-800 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-purple-600" /> {t('common.live_feed')}
                     </h3>
