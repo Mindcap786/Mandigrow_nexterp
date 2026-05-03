@@ -639,7 +639,9 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                     const amt = Number(form.watch('amount')) || 0;
                                                     const magnitude = Math.abs(currentBalance);
                                                     const overpay = !isReceipt
-                                                        ? (currentBalance >= -0.01 || amt > magnitude + 0.1)
+                                                        // Payment: mandi ALWAYS owes farmer/supplier. Warn ONLY if paying MORE than outstanding.
+                                                        // Do NOT warn just because GL balance is positive (Dr sign in purchase context).
+                                                        ? amt > magnitude + 0.1
                                                         : (currentBalance <=  0.01 || amt > magnitude + 0.1);
                                                     if (!overpay) return null;
                                                     return (

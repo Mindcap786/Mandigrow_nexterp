@@ -3841,15 +3841,22 @@ def save_bank_account(**kwargs) -> dict:
             # On edit: only update safe metadata — never account_name (triggers ERPNext rename)
             safe_update = {
                 "description": account_payload.get("description"),
-                "account_number": account_payload.get("account_number"),
-                "is_default": account_payload.get("is_default"),
+                "account_number": account_payload.get("account_number") or "",
             }
+            # Only touch is_default if the caller explicitly passed it (not None)
+            # Avoids resetting the default flag on every edit
+            if is_default is not None:
+                safe_update["is_default"] = 1 if is_default else 0
             if frappe.db.has_column("Account", "organization_id"):
                 safe_update["organization_id"] = org_id
             for k, v in safe_update.items():
                 if v is not None:
                     setattr(doc, k, v)
-            doc.save(ignore_permissions=True)
+            # Ensure description is always a valid JSON string
+            if "description" in safe_update and safe_update["description"]:
+                doc.description = safe_update["description"]
+            frappe.db.set_value("Account", account_id, safe_update, update_modified=False)
+            frappe.db.commit()
             
         # Unset is_default on other accounts for this company+type (use company — always exists)
         if is_default:
@@ -8867,7 +8874,8 @@ def get_tenant_subscription() -> dict:
     }
 
     # ── Resolve Current Plan ─────────────────────────────────────────────────
-    current_plan_name = getattr(org, "plan", None) or getattr(org, "subscription_plan", None)
+    # Mandi Organization uses "subscription_tier" field for the plan name
+    current_plan_name = getattr(org, "subscription_tier", None) or getattr(org, "plan", None) or getattr(org, "subscription_plan", None)
     current_plan = None
     if current_plan_name:
         try:
@@ -8889,6 +8897,21 @@ def get_tenant_subscription() -> dict:
 
     # ── Return All Plans (for the plan picker) ───────────────────────────────
     all_plans = get_plans()  # reuse existing whitelisted function
+
+    # If no App Plans seeded yet, return a safe minimal starter plan catalog
+    # so the billing UI doesn't show a broken empty state
+    if not all_plans:
+        all_plans = [
+            {"id": "starter",      "name": "starter",      "plan_name": "Starter",      "display_name": "Starter",      "price_monthly": 0,   "price_yearly": 0,    "max_users": 2,  "max_storage_gb": 1,   "features": {}, "sort_order": 1},
+            {"id": "standard",     "name": "standard",     "plan_name": "Standard",     "display_name": "Standard",     "price_monthly": 999, "price_yearly": 9990, "max_users": 5,  "max_storage_gb": 5,   "features": {}, "sort_order": 2},
+            {"id": "professional", "name": "professional", "plan_name": "Professional", "display_name": "Professional", "price_monthly": 2999,"price_yearly": 29990,"max_users": 20, "max_storage_gb": 20,  "features": {}, "sort_order": 3},
+            {"id": "enterprise",   "name": "enterprise",   "plan_name": "Enterprise",   "display_name": "Enterprise",   "price_monthly": 9999,"price_yearly": 99990,"max_users": 999,"max_storage_gb": 999, "features": {}, "sort_order": 4},
+        ]
+
+    # If org has subscription_tier set, build plan card from that if App Plan doesn't exist
+    if not current_plan and current_plan_name:
+        matched = next((p for p in all_plans if p["name"] == current_plan_name), None)
+        current_plan = matched
 
     return {
         "subscription": subscription,
