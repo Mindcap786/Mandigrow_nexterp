@@ -76,6 +76,7 @@ export default function SaasBillingPage() {
     const [usage, setUsage] = useState<UsageStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [plansError, setPlansError] = useState<string | null>(null);
+    const [changingPlan, setChangingPlan] = useState<string | null>(null);
     const { toast } = useToast();
     const router = useRouter();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -89,33 +90,21 @@ export default function SaasBillingPage() {
         setPlansError(null);
 
         try {
-            // ── Plans: fetched from Frappe App Plan DocType (public endpoint) ──
-            const plansData: any[] = await callApi('mandigrow.api.get_plans') || [];
-            const plansList: Plan[] = plansData as Plan[];
-            if (plansList.length === 0) {
-                setPlansError("Could not load plan information. Please retry.");
-            }
+            // ── Primary: get_tenant_subscription returns current plan + all plans from Frappe DB ──
+            const subResult: any = await callApi('mandigrow.api.get_tenant_subscription');
+
+            const plansList: Plan[] = (subResult?.all_plans || []) as Plan[];
+            if (plansList.length === 0) setPlansError("Could not load plan information. Please retry.");
             setPlans(plansList);
 
-            // ── Subscription: derived from profile (already loaded by auth-provider) ──
-            // Frappe App Plan DocType uses 'plan_name' as primary key, not 'name'
-            const orgTier = profile?.organization?.subscription_tier?.toLowerCase() || 'starter';
-            const matchedPlan = plansList.find(p =>
-                (p.plan_name || p.name || '').toLowerCase() === orgTier
-            ) || plansList.find(p =>
-                (p.plan_name || p.name || '').toLowerCase() === 'starter'
-            ) || plansList[0] || null;
-
             const subData: Subscription = {
-                plan: matchedPlan || undefined,
-                status: (profile?.organization?.status || 'trial') as Subscription['status'],
-                trial_ends_at: profile?.organization?.trial_ends_at ?? null,
+                plan: (subResult?.plan) as Plan | undefined,
+                status: (subResult?.subscription?.status || 'trial') as Subscription['status'],
+                trial_ends_at: subResult?.subscription?.trial_ends_at ?? null,
                 current_period_end: null,
                 next_invoice_date: null,
             };
             setSubscription(subData);
-
-            // ── Usage: derive from profile org data (Frappe) ──
             setUsage({ lots: 0, sales: 0, payments: 0, storageGb: 0 });
             setInvoices([]);
 
@@ -124,6 +113,24 @@ export default function SaasBillingPage() {
             setPlansError("Failed to load billing information.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const changePlan = async (plan: Plan, cycle: string) => {
+        const planKey = plan.plan_name || plan.name || '';
+        const confirmed = window.confirm(
+            `Switch to ${plan.display_name || planKey} (${cycle})? Your workspace will update immediately.`
+        );
+        if (!confirmed) return;
+        setChangingPlan(planKey);
+        try {
+            await callApi('mandigrow.api.change_tenant_plan', { plan_name: planKey, billing_cycle: cycle });
+            toast({ title: '✅ Plan Updated', description: `You are now on the ${plan.display_name || planKey} plan.` });
+            await fetchAll();
+        } catch (e: any) {
+            toast({ title: '❌ Plan Change Failed', description: e?.message || 'Please contact support.', variant: 'destructive' });
+        } finally {
+            setChangingPlan(null);
         }
     };
 
@@ -303,27 +310,20 @@ export default function SaasBillingPage() {
                                     if (planKey === 'standard') return TrendingUp;
                                     return Zap;
                                 })();
-                                // isCurrent: compare plan_name/name to org's subscription_tier
-                                const orgTierKey = (profile?.organization?.subscription_tier || '').toLowerCase();
-                                const isCurrent = planKey === orgTierKey;
+                                // isCurrent: compare against live subscription from Frappe (not stale profile cache)
+                                const activeTier = (subscription?.plan?.plan_name || subscription?.plan?.name || '').toLowerCase();
+                                const isCurrent = planKey === activeTier;
                                 const planAction = getPlanAction(plan);
-                                const accentColor = plan.features?.accent_color;
                                 const tag = plan.features?.tag as string | undefined;
                                 const totalUsers = getUserCount(plan);
+                                const isLoading = changingPlan === planKey;
 
                                 // Button logic
                                 const getButtonConfig = () => {
-                                    if (isCurrent && !isCustomPlan) {
+                                    if (isCurrent) {
                                         if (status === 'trial' || status === 'trialing') return { text: 'Activate Now', variant: 'purple' };
                                         if (status === 'grace_period' || status === 'suspended') return { text: 'Renew Now', variant: 'dark' };
-                                        if (daysLeft !== null && daysLeft <= 7) return { text: 'Renew Now', variant: 'dark' };
                                         return { text: '✓ Current Plan', variant: 'muted' };
-                                    }
-                                    if (isCustomPlan) {
-                                        return {
-                                            text: expiryDateFormatted ? `Choose (from ${expiryDateFormatted})` : 'Choose Plan',
-                                            variant: 'choose'
-                                        };
                                     }
                                     if (planAction === 'downgrade') return { text: '↓ Downgrade', variant: 'muted' };
                                     return { text: '↑ Upgrade', variant: 'dark' };
@@ -362,15 +362,15 @@ export default function SaasBillingPage() {
                                             )}
                                         </div>
                                         <Button
+                                            disabled={isCurrent && status === 'active' || isLoading}
                                             className={cn("w-full rounded-xl font-black text-xs uppercase tracking-widest h-10",
                                                 btnConfig.variant === 'purple' ? "bg-purple-600/10 text-purple-600 hover:bg-purple-600/20" :
-                                                btnConfig.variant === 'choose' ? "bg-emerald-600 text-white hover:bg-emerald-700" :
                                                 btnConfig.variant === 'muted' ? "bg-slate-100 text-slate-500 hover:bg-slate-200" :
                                                 "bg-slate-900 text-white hover:bg-slate-800"
                                             )}
-                                            onClick={() => router.push(`/checkout?plan_id=${plan.id}&cycle=${billingCycle}${isCustomPlan && expiryDate ? `&starts_after=${encodeURIComponent(expiryDate)}` : ''}`)}
+                                            onClick={() => !isCurrent && changePlan(plan, billingCycle)}
                                         >
-                                            {btnConfig.text}
+                                            {isLoading ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Updating…</> : btnConfig.text}
                                         </Button>
                                     </div>
                                 );

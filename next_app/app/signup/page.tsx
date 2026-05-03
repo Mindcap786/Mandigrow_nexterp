@@ -62,8 +62,7 @@ export default function SignupPage() {
 
             setSubmitting(true);
             try {
-                const baseUrl = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.com';
-                const res = await fetch(`${baseUrl}/api/method/mandigrow.api.send_signup_otp`, {
+                const res = await fetch(`/api/method/mandigrow.api.send_signup_otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                     body: JSON.stringify({ email: form.email })
@@ -92,8 +91,7 @@ export default function SignupPage() {
         
         setSubmitting(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.com';
-            const res = await fetch(`${baseUrl}/api/method/mandigrow.api.verify_signup_otp`, {
+            const res = await fetch(`/api/method/mandigrow.api.verify_signup_otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ email: form.email, otp })

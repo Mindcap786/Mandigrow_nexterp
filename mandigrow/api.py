@@ -8756,47 +8756,183 @@ def get_branding_settings() -> dict:
     }
 
 # ── Signup OTP Endpoints ────────────────────────────────────────────────────────
-import random
+import random as _random
 
 @frappe.whitelist(allow_guest=True)
 def send_signup_otp(email: str) -> dict:
-    """Generates and sends a 6-digit OTP for signup verification."""
-    if not email:
-        return {"success": False, "message": "Email is required"}
-    
-    otp = str(random.randint(100000, 999999))
-    frappe.cache().set_value(f"signup_otp_{email}", otp, expires_in_sec=600)  # valid for 10 minutes
-    
-    subject = "MandiGrow Workspace Setup - Verification Code"
-    message = f"""
-    <h3>Welcome to MandiGrow!</h3>
-    <p>Your OTP to verify your email address and set up your workspace is:</p>
-    <h1 style="letter-spacing: 5px; color: #047857;">{otp}</h1>
-    <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
-    <br>
-    <p>Thanks,<br>The MandiGrow Team</p>
     """
+    Generates and emails a 6-digit OTP for signup verification.
+    The OTP is stored in Frappe Redis cache for 10 minutes.
+    NEVER raises — always returns success/failure JSON so the frontend never crashes.
+    """
+    if not email or "@" not in email:
+        return {"success": False, "message": "A valid email address is required"}
+
+    otp = str(_random.randint(100000, 999999))
+    cache_key = f"signup_otp_{email.strip().lower()}"
+    frappe.cache().set_value(cache_key, otp, expires_in_sec=600)
+
+    subject = "Your MandiGrow Verification Code"
+    message = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
+      <h2 style="color: #047857; margin-bottom: 4px;">MandiGrow</h2>
+      <p style="color: #64748b; font-size: 14px;">Workspace Verification</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+      <p style="font-size: 15px; color: #1e293b;">Your one-time verification code is:</p>
+      <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #047857;">{otp}</span>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">If you did not attempt to sign up, you can safely ignore this email.</p>
+    </div>
+    """
+
+    email_sent = False
     try:
-        frappe.sendmail(recipients=[email], subject=subject, message=message, delayed=False)
-        return {"success": True, "message": "OTP sent successfully"}
-    except Exception as e:
-        frappe.log_error(str(e), "MandiGrow OTP Send Failure")
-        return {"success": False, "message": f"Failed to send OTP: {str(e)}"}
+        frappe.sendmail(
+            recipients=[email.strip()],
+            subject=subject,
+            message=message,
+            delayed=False,
+            now=True
+        )
+        email_sent = True
+    except Exception as exc:
+        # Log for ops but DO NOT surface raw SMTP errors to the browser
+        frappe.log_error(f"OTP email to {email} failed: {exc}", "MandiGrow OTP Send Failure")
+        # Also log the OTP itself in Frappe Error Log for admin recovery during SMTP outages
+        frappe.log_error(f"ADMIN RECOVERY — OTP for {email} is: {otp} (valid 10 min)", "MandiGrow OTP Fallback")
+
+    return {
+        "success": True,  # Always true — OTP is cached regardless of email delivery
+        "message": "OTP sent successfully" if email_sent else "Verification code generated. Check spam folder or contact support.",
+        "email_delivered": email_sent
+    }
+
 
 @frappe.whitelist(allow_guest=True)
 def verify_signup_otp(email: str, otp: str) -> dict:
-    """Verifies the submitted OTP against the cache."""
+    """Verifies the submitted OTP against the Redis cache. Single-use — clears on success."""
     if not email or not otp:
         return {"success": False, "message": "Email and OTP are required"}
-        
-    cached_otp = frappe.cache().get_value(f"signup_otp_{email}")
+
+    cache_key = f"signup_otp_{email.strip().lower()}"
+    cached_otp = frappe.cache().get_value(cache_key)
+
     if not cached_otp:
-        return {"success": False, "message": "OTP expired or not found. Please request a new one."}
-        
+        return {"success": False, "message": "OTP has expired. Please request a new code."}
+
     if str(cached_otp).strip() != str(otp).strip():
-        return {"success": False, "message": "Invalid OTP. Please try again."}
-        
-    # Clear OTP after successful validation
-    frappe.cache().delete_value(f"signup_otp_{email}")
+        return {"success": False, "message": "Incorrect code. Please try again."}
+
+    # Invalidate immediately — single-use
+    frappe.cache().delete_value(cache_key)
     return {"success": True, "message": "Email verified successfully"}
+
+
+# ── Tenant Billing APIs ──────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_tenant_subscription() -> dict:
+    """
+    Returns the current tenant's active plan + subscription metadata.
+    Bridges the gap between Mandi Organization.subscription_tier
+    and the App Plan DocType records.
+    """
+    import json as _json
+    org_id = _get_user_org()
+    if not org_id:
+        return {"plan": None, "subscription": {"status": "trial", "plan": "starter"}}
+
+    org = frappe.get_doc("Mandi Organization", org_id)
+    tier = (getattr(org, "subscription_tier", None) or "starter").lower()
+
+    # Match the tier to the App Plan catalogue (flexible: plan_name or name)
+    plans = frappe.get_all(
+        "App Plan",
+        fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
+                "max_users", "max_storage_gb", "sort_order", "features", "description", "is_active"],
+        order_by="sort_order asc",
+        ignore_permissions=True
+    )
+
+    for p in plans:
+        p["id"] = p["name"]
+        if p.get("features"):
+            try:
+                p["features"] = _json.loads(p["features"])
+            except Exception:
+                p["features"] = {}
+        else:
+            p["features"] = {}
+
+    matched_plan = next(
+        (p for p in plans if (p.get("plan_name") or p.get("name") or "").lower() == tier),
+        plans[0] if plans else None
+    )
+
+    # Build subscription status from org
+    from frappe.utils import getdate, now_datetime
+    status = getattr(org, "status", "trial") or "trial"
+    trial_ends_at = getattr(org, "trial_ends_at", None)
+    days_left = None
+    if trial_ends_at:
+        try:
+            delta = (getdate(trial_ends_at) - getdate()).days
+            days_left = max(0, delta)
+        except Exception:
+            pass
+
+    return {
+        "plan": matched_plan,
+        "all_plans": plans,
+        "subscription": {
+            "status": status,
+            "plan": tier,
+            "days_left": days_left,
+            "trial_ends_at": str(trial_ends_at) if trial_ends_at else None,
+        },
+        "org_id": org_id,
+        "max_users": matched_plan.get("max_users") if matched_plan else 1,
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly") -> dict:
+    """
+    Allows a tenant to self-select a new plan (upgrade or downgrade).
+    Updates Mandi Organization.subscription_tier immediately.
+    In a real payment flow, this would gate on a payment confirmation token.
+    """
+    org_id = _get_user_org()
+    if not org_id:
+        frappe.throw(_("Could not determine your organisation. Please re-login."))
+
+    # Validate the plan exists and is active
+    if not frappe.db.exists("App Plan", {"plan_name": plan_name, "is_active": 1}):
+        # Try by 'name' field as fallback
+        if not frappe.db.exists("App Plan", plan_name):
+            frappe.throw(_("Plan '{0}' is not available.").format(plan_name))
+
+    plan_doc = frappe.get_doc("App Plan", {"plan_name": plan_name}) if frappe.db.exists("App Plan", {"plan_name": plan_name}) else frappe.get_doc("App Plan", plan_name)
+
+    org = frappe.get_doc("Mandi Organization", org_id)
+    old_tier = org.subscription_tier or "starter"
+    org.subscription_tier = plan_doc.plan_name or plan_doc.name
+    org.status = "active"
+    org.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    frappe.log_error(
+        f"Tenant {org_id} changed plan: {old_tier} → {org.subscription_tier} ({billing_cycle})",
+        "MandiGrow Plan Change"
+    )
+
+    return {
+        "success": True,
+        "message": f"Plan updated to {plan_doc.display_name or plan_doc.plan_name}",
+        "new_plan": plan_doc.plan_name or plan_doc.name,
+        "org_id": org_id
+    }
+
 
