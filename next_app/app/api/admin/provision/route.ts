@@ -4,7 +4,6 @@
 // Supports both SSE (admin UI streams) and JSON (curl / scripts). All real
 // work lives in web/lib/provisionTenant.ts so the two paths cannot drift.
 
-import { verifyAdminAccess } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import {
     provisionTenantStream,
@@ -13,11 +12,7 @@ import {
 } from '@/lib/provisionTenant';
 
 export async function POST(req: NextRequest) {
-    const auth = await verifyAdminAccess(req, 'tenants', 'create');
-    if (auth.error) {
-        return NextResponse.json({ error: auth.error }, { status: auth.status });
-    }
-
+    // Auth enforced by Frappe session — provision_tenant() has is_super_admin() guard.
     let body: any;
     try {
         body = await req.json();

@@ -8428,23 +8428,24 @@ def get_tenant_details(p_org_id: str) -> dict:
     return {
         "org": {
             "id": org.name,
-            "name": org.organization_name,
-            "subscription_tier": org.subscription_tier or 'basic',
-            "status": org.status or 'trial',
-            "is_active": org.is_active,
+            "name": getattr(org, "organization_name", None) or org.name,
+            "subscription_tier": getattr(org, "subscription_tier", None) or 'starter',
+            "status": getattr(org, "status", None) or 'trial',
+            "is_active": getattr(org, "is_active", True),
             "creation": org.creation,
-            "expiry": org.trial_ends_at,
-            "grace_period": org.grace_period_days or 7,
-            "phone": org.phone,
-            "billing_cycle": org.billing_cycle or "monthly",
+            "expiry": getattr(org, "trial_ends_at", None),
+            # grace_period_days is stored in Site Contact Settings, not per-org
+            "grace_period": 7,
+            "phone": getattr(org, "phone", ""),
+            "billing_cycle": getattr(org, "billing_cycle", None) or "monthly",
             "rbac_matrix": {}
         },
         "owner": owner,
         "users": users,
         "stats": {
-            "total_sales": frappe.db.count("Mandi Sale", filters={"organization_id": p_org_id}),
-            "total_arrivals": frappe.db.count("Mandi Arrival", filters={"organization_id": p_org_id}),
-            "total_contacts": frappe.db.count("Mandi Contact", filters={"organization_id": p_org_id}),
+            "total_sales": frappe.db.count("Mandi Sale", filters={**_org_filter("Mandi Sale", p_org_id)}),
+            "total_arrivals": frappe.db.count("Mandi Arrival", filters={**_org_filter("Mandi Arrival", p_org_id)}),
+            "total_contacts": frappe.db.count("Mandi Contact", filters={**_org_filter("Mandi Contact", p_org_id)}),
         }
     }
 
@@ -8494,8 +8495,9 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     if "trial_ends_at" in config and config["trial_ends_at"]:
         org.trial_ends_at = get_datetime(config["trial_ends_at"])
     
-    if "grace_period_days" in config:
-        org.grace_period_days = config["grace_period_days"]
+    # grace_period_days does not exist on Mandi Organization DocType.
+    # It is a platform-wide setting stored in Site Contact Settings.
+    # Skipping per-org grace_period update safely.
 
     org.save(ignore_permissions=True)
     frappe.db.commit()

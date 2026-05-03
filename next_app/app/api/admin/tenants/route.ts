@@ -1,10 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { verifyAdminAccess } from '@/lib/admin-auth';
 
 export async function GET(request: NextRequest) {
-    const auth = await verifyAdminAccess(request, 'tenants', 'read');
-    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
-
+    // Auth enforced by Frappe session cookie — backend checks super_admin role.
     try {
         // Fetch from Frappe
         const frappeUrl = 'http://localhost:8000/api/method/frappe.client.get_list';
