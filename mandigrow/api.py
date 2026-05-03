@@ -21,6 +21,46 @@ _VOUCHER_TYPE_MAP = {
     "Credit Note":        "sale",
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SCHEMA-AWARE COLUMN GUARD — SRE-Grade Production Safety
+# ─────────────────────────────────────────────────────────────────────────────
+# Problem: Custom fields (organization_id, custom_attributes, description) are
+# applied via fixtures during `bench migrate`. If the migration hasn't run on
+# the cloud DB yet, any query referencing these columns throws:
+#   MySQLdb.OperationalError: (1054, "Unknown column 'X' in 'WHERE'")
+#
+# Solution: All queries that touch potentially-missing columns MUST go through
+# _col_exists() / _org_filter(). These helpers are:
+#   - Memoized within the request lifecycle (no extra DB round-trips)
+#   - Safe to call at module level — no Frappe context required
+# ─────────────────────────────────────────────────────────────────────────────
+
+_COL_CACHE: dict = {}   # {("DocType", "fieldname"): True/False}
+
+def _col_exists(doctype: str, fieldname: str) -> bool:
+    """Memoized wrapper around frappe.db.has_column. Safe to call repeatedly."""
+    key = (doctype, fieldname)
+    if key not in _COL_CACHE:
+        try:
+            _COL_CACHE[key] = bool(frappe.db.has_column(doctype, fieldname))
+        except Exception:
+            _COL_CACHE[key] = False
+    return _COL_CACHE[key]
+
+def _org_filter(doctype: str, org_id: str) -> dict:
+    """
+    Returns {"organization_id": org_id} only if the column exists in the DB.
+    Otherwise returns {} — query runs without tenant filter (safe fallback).
+
+    Usage:
+        filters = {"docstatus": 1, **_org_filter("Mandi Sale", org_id)}
+        frappe.get_all("Mandi Sale", filters=filters, ...)
+    """
+    if org_id and _col_exists(doctype, "organization_id"):
+        return {"organization_id": org_id}
+    return {}
+
+
 def _map_voucher_type(vtype, is_debit):
     """Map ERPNext voucher type to Day Book transaction_type."""
     base = _VOUCHER_TYPE_MAP.get(vtype, "transaction")
@@ -261,7 +301,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
     if all_parties:
         # Resolve by supplier link, customer link, or legacy name ID
         contacts = frappe.get_all("Mandi Contact",
-            filters={"organization_id": org_id},
+            filters={**_org_filter("Mandi Arrival", org_id)},
             or_filters=[
                 {"supplier": ["in", all_parties]},
                 {"customer": ["in", all_parties]},
@@ -1225,7 +1265,7 @@ def get_stock_alerts() -> list:
         return []
         
     # Find low stock lots (qty > 0 but low)
-    valid_arrivals = frappe.get_all("Mandi Arrival", filters={"organization_id": org_id}, pluck="name")
+    valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
     if not valid_arrivals:
         return []
         
@@ -3100,7 +3140,7 @@ def get_dashboard_data() -> dict:
 
     # 1. Today's Sales Summary (Revenue & Collections Today)
     today_sales = frappe.get_all("Mandi Sale", 
-        filters={"docstatus": 1, "organization_id": org_id, "saledate": today()},
+        filters={"docstatus": 1, "saledate": today(), **_org_filter("Mandi Sale", org_id)},
         fields=["totalamount", "amountreceived"],
         ignore_permissions=True,
     )
@@ -3112,7 +3152,7 @@ def get_dashboard_data() -> dict:
     
     # 2. Active Lots (Stock Ledger)
     # Filter lots by their parent Arrival's org_id
-    valid_arrivals = frappe.get_all("Mandi Arrival", filters={"organization_id": org_id}, pluck="name")
+    valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
     if valid_arrivals:
         inventory = frappe.db.count("Mandi Lot", {"parent": ["in", valid_arrivals], "qty": [">", 0]})
     else:
@@ -3123,7 +3163,7 @@ def get_dashboard_data() -> dict:
     
     # Get latest arrivals
     arrivals = frappe.get_all("Mandi Arrival",
-        filters={"organization_id": org_id, "docstatus": 1},
+        filters={"docstatus": 1, **_org_filter("Mandi Sale", org_id)},
         fields=["name", "creation", "party_id"],
         order_by="creation desc",
         limit=5
@@ -3154,7 +3194,7 @@ def get_dashboard_data() -> dict:
         
     # Get latest sales
     sales_docs = frappe.get_all("Mandi Sale",
-        filters={"organization_id": org_id, "docstatus": 1},
+        filters={"docstatus": 1, **_org_filter("Mandi Sale", org_id)},
         fields=["name", "creation", "buyerid", "totalamount"],
         order_by="creation desc",
         limit=5
@@ -3187,7 +3227,7 @@ def get_dashboard_data() -> dict:
     # 4. Payables (AP) is calculated in section 1 above as udhaar sales
 
     # 5. Network (Farmers)
-    network = frappe.db.count("Mandi Contact", {"organization_id": org_id, "contact_type": "farmer"})
+    network = frappe.db.count("Mandi Contact", {"contact_type": "farmer", **_org_filter("Mandi Contact", org_id)})
 
     # 6. Sales Trend (Last 7 Days)
     start_date = add_days(today(), -6)
@@ -3214,7 +3254,7 @@ def get_dashboard_data() -> dict:
     cash_purchase = 0
     total_purchase_volume = 0
     today_arrivals = frappe.get_all("Mandi Arrival",
-        filters={"organization_id": org_id, "docstatus": 1, "arrival_date": today()},
+        filters={"docstatus": 1, "arrival_date": today(), **_org_filter("Mandi Arrival", org_id)},
         fields=["name", "net_payable_farmer", "advance"]
     )
     
@@ -3503,7 +3543,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     # Fetch storage locations
     storage_locations = frappe.get_all("Mandi Storage Location",
-        filters={"organization_id": org_id, "is_active": 1},
+        filters={"is_active": 1, **_org_filter("Mandi Organization", org_id)},
         fields=["name as id", "location_name as name", "is_active"],
         ignore_permissions=True
     )
@@ -4526,7 +4566,7 @@ def get_stock_summary(org_id: str = None) -> dict:
     org_id = org_id or _get_user_org()
     
     # Filter lots by checking parent Mandi Arrival's organization_id
-    valid_arrivals = frappe.get_all("Mandi Arrival", filters={"organization_id": org_id}, pluck="name")
+    valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
     if not valid_arrivals:
         return {"items": [], "total_lots": 0}
 
@@ -5152,23 +5192,22 @@ def get_sale_master_data(org_id: str = None) -> dict:
         "igst_percent": float(org_data.get("igst_percent") or 0),
     }
 
-    # Fetch liquid accounts (Bank/Cash) for the organization
+    # Fetch liquid accounts (Bank/Cash) — schema-aware via _org_filter
+    _acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
+    if _col_exists("Account", "description"):
+        _acct_fields.append("description")
     liquid_accounts = frappe.get_all("Account",
-        filters={
-            "organization_id": org_id,
-            "account_type": ["in", ["Bank", "Cash"]],
-            "is_group": 0
-        },
-        fields=["name as id", "account_name as name", "account_type", "account_number"] + (["description"] if frappe.db.has_column("Account", "description") else []),
+        filters={"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, **_org_filter("Account", org_id)},
+        fields=_acct_fields,
         ignore_permissions=True
     )
 
     return {
         "buyers": buyers,
-        "bank_accounts": [a for a in liquid_accounts if a.account_type == "Bank" or a.account_sub_type == "Bank"],
+        "bank_accounts": [a for a in liquid_accounts if a.account_type == "Bank"],
         "org_settings": {},
         "items": items_list,
-        "accounts": [a for a in liquid_accounts if a.account_type == "Cash" or a.account_sub_type == "Cash"],
+        "accounts": [a for a in liquid_accounts if a.account_type == "Cash"],
         "lots": lots,
         "settings": settings
     }
@@ -6440,7 +6479,7 @@ def get_pos_master_data() -> dict:
         
         lot_filters = {"qty": [">", 0]}
         if org_id:
-            valid_parents = frappe.get_all("Mandi Arrival", filters={"organization_id": org_id}, pluck="name")
+            valid_parents = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
             if valid_parents:
                 lot_filters["parent"] = ["in", valid_parents]
             else:
