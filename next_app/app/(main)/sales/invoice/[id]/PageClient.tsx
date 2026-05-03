@@ -20,6 +20,7 @@ export default function SaleInvoicePage() {
     const organization = profile?.organization
     const [sale, setSale] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
 
     useEffect(() => {
         if (id && profile?.organization_id) {
@@ -62,8 +63,9 @@ export default function SaleInvoicePage() {
                 }
             }
             setSale(finalSale)
-        } catch (e) {
+        } catch (e: any) {
             console.error("fetchSale Comprehensive Error:", e)
+            setFetchError(e?.message || e?.toString() || "Unknown error fetching sale")
         } finally {
             if (!isRetrying) setLoading(false)
         }
@@ -94,7 +96,11 @@ export default function SaleInvoicePage() {
 
     if (loading) return <div className="h-screen flex items-center justify-center text-white font-black animate-pulse uppercase tracking-[0.3em]">Validating Voucher...</div>
 
-    if (!sale) return <div className="h-screen flex items-center justify-center text-white font-black">Invoice Not Found</div>
+    if (!sale) return <div className="h-screen flex flex-col items-center justify-center text-white font-black gap-4">
+        <span>Invoice Not Found</span>
+        <span className="text-gray-500 font-normal text-xs font-mono">ID: {id} | Org: {profile?.organization_id}</span>
+        {fetchError && <span className="text-red-500 font-normal text-sm bg-red-950/30 px-4 py-2 rounded-lg">{fetchError}</span>}
+    </div>
 
     return (
         <div className="min-h-screen bg-zinc-950 p-8 space-y-8">

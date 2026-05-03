@@ -4891,7 +4891,10 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
         buyer_city = ""
         buyer_gstin = ""
         if doc.buyerid:
-            buyer_doc = frappe.db.get_value("Mandi Contact", doc.buyerid, ["full_name", "city", "gstin"], as_dict=True)
+            fields_to_fetch = ["full_name", "city"]
+            if frappe.db.has_column("Mandi Contact", "gstin"):
+                fields_to_fetch.append("gstin")
+            buyer_doc = frappe.db.get_value("Mandi Contact", doc.buyerid, fields_to_fetch, as_dict=True)
             if buyer_doc:
                 buyer_name = buyer_doc.get("full_name") or ""
                 buyer_city = buyer_doc.get("city") or ""
@@ -7851,7 +7854,10 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
     
     data = []
     for s in sales:
-        buyer = frappe.db.get_value("Mandi Contact", s.buyerid, ["full_name", "gstin", "city"], as_dict=True) or {}
+        contact_fields = ["full_name", "city"]
+        if frappe.db.has_column("Mandi Contact", "gstin"):
+            contact_fields.append("gstin")
+        buyer = frappe.db.get_value("Mandi Contact", s.buyerid, contact_fields, as_dict=True) or {}
         
         items = frappe.get_all(
             "Mandi Sale Item",
