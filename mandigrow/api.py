@@ -3367,70 +3367,50 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
     })
     doc.insert(ignore_permissions=True)
     
-    if opening_balance and float(opening_balance) > 0:
-        try:
-            company = _get_user_company()
-
-            # Resolve contra account (Opening Equity / Temporary Opening)
-            contra = (
-                frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
-                or frappe.db.get_value("Account", {"account_name": "Opening Balance Equity", "company": company}, "name")
-                or frappe.db.get_value("Account", {"account_type": "Equity", "is_group": 0, "company": company}, "name")
-            )
-
-            from mandigrow.mandigrow.logic.erp_bootstrap import (
-                ensure_customer_for_contact, ensure_supplier_for_contact
-            )
-            party_type = "Customer" if contact_type == 'buyer' else "Supplier"
-            if party_type == "Customer":
-                party = ensure_customer_for_contact(doc.name, company)
-                party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "is_group": 0, "company": company}, "name")
-            else:
-                party = ensure_supplier_for_contact(doc.name, company)
-                party_account = frappe.db.get_value("Account", {"account_type": "Payable", "is_group": 0, "company": company}, "name")
-
-            if party and party_account and contra:
-                amt = float(opening_balance)
-                is_receivable = (balance_type == 'receivable')
-                je = frappe.get_doc({
-                    "doctype": "Journal Entry",
-                    "voucher_type": "Opening Entry",
-                    "is_opening": "Yes",
-                    "posting_date": frappe.utils.today(),
-                    "company": company,
-                    "user_remark": f"Opening balance for {full_name} ({contact_type})",
-                    "accounts": [
-                        {
-                            "account": party_account,
-                            "party_type": party_type,
-                            "party": party,
-                            "is_advance": "No",
-                            "debit_in_account_currency": amt if is_receivable else 0,
-                            "credit_in_account_currency": 0 if is_receivable else amt,
-                        },
-                        {
-                            "account": contra,
-                            "debit_in_account_currency": 0 if is_receivable else amt,
-                            "credit_in_account_currency": amt if is_receivable else 0,
-                        }
-                    ]
-                })
-                je.flags.ignore_permissions = True
-                je.flags.ignore_mandatory = True
-                je.insert()
-                je.submit()
-                frappe.db.commit()
-            else:
-                frappe.log_error(
-                    f"Opening balance skipped for {doc.name}: party={party}, party_account={party_account}, contra={contra}",
-                    "MandiGrow Opening Balance Skip"
-                )
-        except Exception:
-            # Opening balance failure must NEVER roll back the contact creation
-            frappe.log_error(frappe.get_traceback(), f"Opening balance failed for contact {doc.name}")
+    if opening_balance > 0:
+        # Create an opening balance Journal Entry
+        company = _get_user_company()
+        account = frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
+        if not account:
+            account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+            
+        # Standard ERPNext logic: Resolving the linked party and account
+        from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
+        
+        party_type = "Customer" if contact_type == 'buyer' else "Supplier"
+        if party_type == "Customer":
+            party = ensure_customer_for_contact(doc.name, company)
+            party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
+        else:
+            party = ensure_supplier_for_contact(doc.name, company)
+            party_account = frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
+        
+        if party and party_account and account:
+            je = frappe.get_doc({
+                "doctype": "Journal Entry",
+                "voucher_type": "Journal Entry",
+                "posting_date": frappe.utils.today(),
+                "company": company,
+                "accounts": [
+                    {
+                        "account": party_account,
+                        "party_type": party_type,
+                        "party": party,
+                        "debit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
+                        "credit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
+                    },
+                    {
+                        "account": account,
+                        "debit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
+                        "credit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
+                    }
+                ]
+            })
+            je.flags.ignore_permissions = True
+            je.insert()
+            je.submit()
 
     return {"name": doc.name, "full_name": doc.full_name}
-
 
 @frappe.whitelist(allow_guest=False)
 def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
@@ -3553,10 +3533,8 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     settings = get_mandi_settings(org_id)
 
-    # Fetch liquid accounts — ALWAYS filter by company (tenant isolation boundary)
-    # organization_id is an extra guard only when the custom field exists
-    company = _get_user_company()
-    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
+    # Fetch liquid accounts — guard organization_id column
+    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0}
     if org_id and frappe.db.has_column("Account", "organization_id"):
         acct_filters["organization_id"] = org_id
     acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
@@ -3568,20 +3546,14 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         ignore_permissions=True
     )
     
-    # Batch-fetch ALL balances in one SQL call (avoids N+1 queries, matches Finance Overview logic)
-    if liquid_accounts:
-        acc_ids = tuple(a['id'] for a in liquid_accounts)
-        bal_rows = frappe.db.sql("""
-            SELECT account, COALESCE(SUM(debit) - SUM(credit), 0) as balance
+    for acc in liquid_accounts:
+        bal_res = frappe.db.sql("""
+            SELECT SUM(debit) - SUM(credit) as balance
             FROM `tabGL Entry`
-            WHERE account IN %s
-              AND is_cancelled = 0
-              AND company = %s
-            GROUP BY account
-        """, (acc_ids, company), as_dict=True)
-        bal_map = {r['account']: float(r['balance'] or 0) for r in bal_rows}
-        for acc in liquid_accounts:
-            acc['balance'] = bal_map.get(acc['id'], 0.0)
+            WHERE account = %s AND is_cancelled = 0
+        """, (acc['id'],), as_dict=True)
+        
+        acc['balance'] = float(bal_res[0]['balance'] or 0) if bal_res and bal_res[0]['balance'] else 0.0
 
     banks = [a for a in liquid_accounts if a.account_type == "Bank"]
     cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash"]
@@ -3737,20 +3709,13 @@ def cleanup_demo_accounts() -> dict:
 
 def get_bank_accounts(org_id: str = None) -> list:
     """
-    Returns bank accounts strictly scoped to the current tenant's ERPNext Company.
-    Company is always tenant-scoped (set at signup) — this is the guaranteed isolation boundary.
-    organization_id is an optional extra guard when the custom field exists.
+    Returns list of bank accounts for the given organization.
+    Schema-aware: guards organization_id and description with has_column.
     """
     org_id = org_id or _get_user_org()
-    company = _get_user_company()
-    
-    # PRIMARY isolation: filter by company (always exists, always tenant-scoped)
-    filters: dict = {"account_type": "Bank", "is_group": 0, "disabled": 0, "company": company}
-    
-    # SECONDARY: also filter by organization_id if the custom column exists
+    filters: dict = {"account_type": "Bank", "is_group": 0}
     if org_id and frappe.db.has_column("Account", "organization_id"):
         filters["organization_id"] = org_id
-
     fields = ["name as id", "account_name as name", "account_type", "account_number", "company"]
     if frappe.db.has_column("Account", "description"):
         fields.append("description")
@@ -3799,13 +3764,11 @@ def save_bank_account(**kwargs) -> dict:
             "company": company,
             "account_type": sub_type,
             "account_sub_type": sub_type,
+            "organization_id": org_id,
             "is_default": 1 if is_default else 0,
             "description": frappe.as_json(meta),
             "account_number": kwargs.get("account_number")
         }
-        # Only write organization_id if the custom column actually exists in the DB
-        if frappe.db.has_column("Account", "organization_id"):
-            account_payload["organization_id"] = org_id
 
         if not account_id:
             # Get company abbreviation to predict the generated name
@@ -3818,59 +3781,43 @@ def save_bank_account(**kwargs) -> dict:
             doc = frappe.get_doc(account_payload)
             doc.insert(ignore_permissions=True)
             
-            # Post opening balance via Opening Entry (correct ERPNext voucher type for migrations)
+            # Post opening balance via Journal Entry
             if opening_balance > 0:
-                contra = (
-                    frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
-                    or frappe.db.get_value("Account", {"account_name": "Opening Balance Equity", "company": company}, "name")
-                    or frappe.db.get_value("Account", {"account_type": "Equity", "is_group": 0, "company": company}, "name")
-                )
-                if contra:
+                equity_account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+                if not equity_account:
+                    equity_account = frappe.db.get_value("Account", {"account_name": ["like", "%Opening%"], "company": company}, "name")
+                
+                if equity_account:
                     je = frappe.get_doc({
                         "doctype": "Journal Entry",
-                        "voucher_type": "Opening Entry",
-                        "is_opening": "Yes",
+                        "voucher_type": "Journal Entry",
                         "posting_date": frappe.utils.today(),
                         "company": company,
-                        "user_remark": f"Opening Balance for {name}",
+                        "remark": f"Opening Balance for {name}",
                         "accounts": [
                             {
                                 "account": doc.name,
                                 "debit_in_account_currency": opening_balance,
-                                "is_advance": "No",
                             },
                             {
-                                "account": contra,
+                                "account": equity_account,
                                 "credit_in_account_currency": opening_balance,
                             }
                         ]
                     })
-                    je.flags.ignore_permissions = True
-                    je.flags.ignore_mandatory = True
-                    je.insert()
+                    je.insert(ignore_permissions=True)
                     je.submit()
         else:
             doc = frappe.get_doc("Account", account_id)
-            # On update, don't pass doctype/account_name (causes rename issues in Frappe)
-            # Only update fields that are safe to change on existing accounts
-            safe_update = {
-                "description": account_payload.get("description"),
-                "account_number": account_payload.get("account_number"),
-                "is_default": account_payload.get("is_default"),
-            }
-            if frappe.db.has_column("Account", "organization_id"):
-                safe_update["organization_id"] = org_id
-            for k, v in safe_update.items():
-                if v is not None:
-                    setattr(doc, k, v)
+            doc.update(account_payload)
             doc.save(ignore_permissions=True)
             
-        # If this is default, unset others for this company (use company, not organization_id — safer)
+        # If this is default, unset others for this org
         if is_default:
             frappe.db.sql("""
                 UPDATE `tabAccount` SET is_default = 0 
-                WHERE company = %s AND account_type = %s AND name != %s
-            """, (company, sub_type, doc.name))
+                WHERE organization_id = %s AND account_type = %s AND name != %s
+            """, (org_id, sub_type, doc.name))
             
         frappe.db.commit()
         return {"success": True, "id": doc.name, "message": "Account saved successfully."}
@@ -4913,13 +4860,8 @@ def get_settings_page() -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def get_bank_account_list() -> list:
-    """Get list of bank accounts scoped to the current tenant's company."""
-    company = _get_user_company()
-    filters = {"is_group": 0, "disabled": 0}
-    if company:
-        filters["company"] = company
+    """Get list of bank accounts."""
     return frappe.get_all("Bank Account",
-        filters=filters,
         fields=["name as id", "account_name", "bank", "account_type"],
         order_by="account_name asc",
         limit_page_length=50,
@@ -8344,7 +8286,7 @@ def get_plans() -> list:
         plans = frappe.get_all(
             "App Plan",
             fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
-                    "max_users", "sort_order", "features", "description"],
+                    "max_users", "max_storage_gb", "sort_order", "features", "description"],
             order_by="sort_order asc",
             ignore_permissions=True
         )
@@ -8812,225 +8754,3 @@ def get_branding_settings() -> dict:
         "brand_color_secondary": getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b",
         "logo_url": getattr(org, "logo_url", None)
     }
-
-# ── Signup OTP Endpoints ────────────────────────────────────────────────────────
-import random as _random
-
-@frappe.whitelist(allow_guest=True)
-def send_signup_otp(email: str) -> dict:
-    """
-    Generates and emails a 6-digit OTP for signup verification.
-    The OTP is stored in Frappe Redis cache for 10 minutes.
-    NEVER raises — always returns success/failure JSON so the frontend never crashes.
-    """
-    if not email or "@" not in email:
-        return {"success": False, "message": "A valid email address is required"}
-
-    otp = str(_random.randint(100000, 999999))
-    cache_key = f"signup_otp_{email.strip().lower()}"
-    frappe.cache().set_value(cache_key, otp, expires_in_sec=600)
-
-    subject = "Your MandiGrow Verification Code"
-    message = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
-      <h2 style="color: #047857; margin-bottom: 4px;">MandiGrow</h2>
-      <p style="color: #64748b; font-size: 14px;">Workspace Verification</p>
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
-      <p style="font-size: 15px; color: #1e293b;">Your one-time verification code is:</p>
-      <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
-        <span style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #047857;">{otp}</span>
-      </div>
-      <p style="font-size: 13px; color: #64748b;">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">If you did not attempt to sign up, you can safely ignore this email.</p>
-    </div>
-    """
-
-    email_sent = False
-    try:
-        frappe.sendmail(
-            recipients=[email.strip()],
-            subject=subject,
-            message=message,
-            delayed=False,
-            now=True
-        )
-        email_sent = True
-    except Exception as exc:
-        # Log for ops but DO NOT surface raw SMTP errors to the browser
-        frappe.log_error(f"OTP email to {email} failed: {exc}", "MandiGrow OTP Send Failure")
-        # Also log the OTP itself in Frappe Error Log for admin recovery during SMTP outages
-        frappe.log_error(f"ADMIN RECOVERY — OTP for {email} is: {otp} (valid 10 min)", "MandiGrow OTP Fallback")
-
-    return {
-        "success": True,  # Always true — OTP is cached regardless of email delivery
-        "message": "OTP sent successfully" if email_sent else "Verification code generated. Check spam folder or contact support.",
-        "email_delivered": email_sent
-    }
-
-
-@frappe.whitelist(allow_guest=True)
-def verify_signup_otp(email: str, otp: str) -> dict:
-    """Verifies the submitted OTP against the Redis cache. Single-use — clears on success."""
-    if not email or not otp:
-        return {"success": False, "message": "Email and OTP are required"}
-
-    cache_key = f"signup_otp_{email.strip().lower()}"
-    cached_otp = frappe.cache().get_value(cache_key)
-
-    if not cached_otp:
-        return {"success": False, "message": "OTP has expired. Please request a new code."}
-
-    if str(cached_otp).strip() != str(otp).strip():
-        return {"success": False, "message": "Incorrect code. Please try again."}
-
-    # Invalidate immediately — single-use
-    frappe.cache().delete_value(cache_key)
-    return {"success": True, "message": "Email verified successfully"}
-
-
-# ── Tenant Billing APIs ──────────────────────────────────────────────────────────
-
-@frappe.whitelist(allow_guest=False)
-def get_tenant_subscription() -> dict:
-    """
-    Returns the current tenant's active plan + subscription metadata.
-    Bridges the gap between Mandi Organization.subscription_tier
-    and the App Plan DocType records.
-    """
-    import json as _json
-    org_id = _get_user_org()
-    if not org_id:
-        return {"plan": None, "subscription": {"status": "trial", "plan": "starter"}}
-
-    org = frappe.get_doc("Mandi Organization", org_id)
-    tier = (getattr(org, "subscription_tier", None) or "starter").lower()
-
-    # Match the tier to the App Plan catalogue (flexible: plan_name or name)
-    plans = frappe.get_all(
-        "App Plan",
-        fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
-                "max_users", "sort_order", "features", "description", "is_active"],
-        order_by="sort_order asc",
-        ignore_permissions=True
-    )
-
-    for p in plans:
-        p["id"] = p["name"]
-        if p.get("features"):
-            try:
-                p["features"] = _json.loads(p["features"])
-            except Exception:
-                p["features"] = {}
-        else:
-            p["features"] = {}
-
-    matched_plan = next(
-        (p for p in plans if (p.get("plan_name") or p.get("name") or "").lower() == tier),
-        plans[0] if plans else None
-    )
-
-    # Build subscription status from org
-    from frappe.utils import getdate, now_datetime
-    status = getattr(org, "status", "trial") or "trial"
-    trial_ends_at = getattr(org, "trial_ends_at", None)
-    days_left = None
-    if trial_ends_at:
-        try:
-            delta = (getdate(trial_ends_at) - getdate()).days
-            days_left = max(0, delta)
-        except Exception:
-            pass
-
-    return {
-        "plan": matched_plan,
-        "all_plans": plans,
-        "subscription": {
-            "status": status,
-            "plan": tier,
-            "days_left": days_left,
-            "trial_ends_at": str(trial_ends_at) if trial_ends_at else None,
-        },
-        "org_id": org_id,
-        "max_users": matched_plan.get("max_users") if matched_plan else 1,
-    }
-
-
-@frappe.whitelist(allow_guest=False)
-def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
-                       payment_confirmed: bool = False, coupon_code: str = None,
-                       admin_override: bool = False) -> dict:
-    """
-    Secure plan change endpoint.
-    Authorization:
-      - Super Admins can change any plan directly (admin_override path from Admin UI).
-      - Regular tenants MUST pass payment_confirmed=True, set only by the checkout
-        page after a successful payment. Prevents plan bypass without billing.
-    Coupon:
-      - If coupon_code provided, validated against Mandi Coupon doctype,
-        discount applied to final_price, usage incremented atomically.
-    """
-    from mandigrow.mandigrow.logic.tenancy import is_super_admin
-
-    org_id = _get_user_org()
-    if not org_id:
-        frappe.throw(_("Could not determine your organisation. Please re-login."))
-
-    caller_is_admin = is_super_admin()
-    if not caller_is_admin and not payment_confirmed:
-        frappe.throw(
-            _("Payment confirmation required. Please complete checkout to change your plan."),
-            frappe.PermissionError
-        )
-
-    # Validate plan
-    plan_doc = None
-    if frappe.db.exists("App Plan", {"plan_name": plan_name, "is_active": 1}):
-        plan_doc = frappe.get_doc("App Plan", {"plan_name": plan_name, "is_active": 1})
-    elif frappe.db.exists("App Plan", plan_name):
-        plan_doc = frappe.get_doc("App Plan", plan_name)
-    if not plan_doc:
-        frappe.throw(_("Plan '{0}' is not available.").format(plan_name))
-
-    # Coupon validation and discount
-    coupon_result = None
-    final_price = float(plan_doc.price_monthly or 0) if billing_cycle == "monthly" else float(plan_doc.price_yearly or 0)
-    if coupon_code:
-        coupon_result = validate_coupon(coupon_code, plan_name)
-        if not coupon_result.get("valid"):
-            frappe.throw(_("Coupon error: {0}").format(coupon_result.get("error", "Invalid coupon")))
-        dv = float(coupon_result.get("discount_value") or 0)
-        if coupon_result.get("discount_type") == "percentage":
-            final_price = max(0, final_price * (1 - dv / 100))
-        else:
-            final_price = max(0, final_price - dv)
-        try:
-            frappe.db.sql(
-                "UPDATE `tabMandi Coupon` SET times_used = times_used + 1 WHERE name = %s",
-                (coupon_result.get("coupon_name"),)
-            )
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "Coupon increment failed")
-
-    # Apply plan change
-    org = frappe.get_doc("Mandi Organization", org_id)
-    old_tier = org.subscription_tier or "starter"
-    org.subscription_tier = plan_doc.plan_name or plan_doc.name
-    org.status = "active"
-    org.save(ignore_permissions=True)
-    frappe.db.commit()
-
-    frappe.log_error(
-        f"Plan change: org={org_id}, {old_tier}->{org.subscription_tier}, "
-        f"cycle={billing_cycle}, price={final_price}, coupon={coupon_code or 'none'}, admin={caller_is_admin}",
-        "MandiGrow Plan Change"
-    )
-    return {
-        "success": True,
-        "message": f"Plan updated to {plan_doc.display_name or plan_doc.plan_name}",
-        "new_plan": plan_doc.plan_name or plan_doc.name,
-        "org_id": org_id,
-        "final_price": final_price,
-        "coupon_applied": bool(coupon_code and coupon_result and coupon_result.get("valid")),
-    }
-
-
