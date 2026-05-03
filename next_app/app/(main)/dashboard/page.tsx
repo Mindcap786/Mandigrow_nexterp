@@ -12,6 +12,7 @@ import { callApi } from '@/lib/frappeClient'
 import { SalesChart } from '@/components/dashboard/sales-chart'
 import { isNativePlatform } from '@/lib/capacitor-utils'
 import { StockAlertSummaryCard } from '@/components/alerts/StockAlertSummaryCard'
+import { ROUTES } from '@/lib/routes'
 
 // Native Mobile components
 import { NativeSummaryCard, StatChip } from '@/components/mobile/NativeSummaryCard'
@@ -39,7 +40,7 @@ export default function Dashboard() {
         if (typeof window === 'undefined') return
         const isImpersonating = localStorage.getItem('mandi_impersonation_mode') === 'true'
         if (!authLoading && profile?.role === 'super_admin' && !isImpersonating) {
-            router.replace('/admin')
+            router.replace(ROUTES.ADMIN)
         }
     }, [profile?.role, authLoading, router])
 
@@ -288,7 +289,7 @@ export default function Dashboard() {
             {/* Quick Actions Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-bottom duration-700 delay-150">
                 <button 
-                    onClick={() => router.push('/finance/payments?mode=receipt')}
+                    onClick={() => router.push(ROUTES.FINANCE_PAYMENTS_RECEIPT)}
                     className="group bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-[32px] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between border-b-4 border-indigo-900/40"
                 >
                     <div className="flex items-center gap-4">
@@ -304,7 +305,7 @@ export default function Dashboard() {
                 </button>
 
                 <button 
-                    onClick={() => router.push('/finance/payments?mode=payment')}
+                    onClick={() => router.push(ROUTES.FINANCE_PAYMENTS_PAYMENT)}
                     className="group bg-rose-600 hover:bg-rose-700 text-white p-6 rounded-[32px] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between border-b-4 border-rose-900/40"
                 >
                     <div className="flex items-center gap-4">
@@ -320,7 +321,7 @@ export default function Dashboard() {
                 </button>
 
                 <button 
-                    onClick={() => router.push('/finance/payments?mode=expense')}
+                    onClick={() => router.push(ROUTES.FINANCE_PAYMENTS_EXPENSE)}
                     className="group bg-amber-500 hover:bg-amber-600 text-white p-6 rounded-[32px] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between border-b-4 border-amber-700/40"
                 >
                     <div className="flex items-center gap-4">
@@ -344,7 +345,7 @@ export default function Dashboard() {
                     icon={<TrendingUp className="h-6 w-6 text-indigo-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/sales"
+                    href={ROUTES.SALES}
                     subValues={[
                         { label: 'Cash Sales (Collected)', value: stats.collections, color: 'bg-emerald-500' },
                         { label: 'Udhaar Sales (Receivable)', value: stats.payables, color: 'bg-rose-500' }
@@ -356,7 +357,7 @@ export default function Dashboard() {
                     icon={<Package className="h-6 w-6 text-amber-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/purchase/bills"
+                    href={ROUTES.PURCHASE_BILLS}
                     subValues={[
                         { label: 'Cash Purchase (Paid)', value: stats.cash_purchase, color: 'bg-emerald-500' },
                         { label: 'Udhaar Purchase (Outstanding)', value: stats.udhaar_purchase, color: 'bg-rose-500' }
@@ -368,7 +369,7 @@ export default function Dashboard() {
                     icon={<ArrowUpRight className="h-6 w-6 text-emerald-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/reports/daybook"
+                    href={ROUTES.REPORT_DAYBOOK}
                     subValues={[
                         { label: 'Total Inflow', value: stats.inflow, color: 'bg-emerald-500' },
                         { label: 'Total Outflow', value: stats.outflow, color: 'bg-rose-500' }
@@ -380,7 +381,7 @@ export default function Dashboard() {
                     icon={<Activity className="h-6 w-6 text-rose-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/finance/payments?mode=expense"
+                    href={ROUTES.FINANCE_PAYMENTS_EXPENSE}
                     subtext="Operational costs recorded today"
                     subtextBg="bg-rose-50"
                 />
