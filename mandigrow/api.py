@@ -2115,18 +2115,23 @@ def get_profit_loss(p_org_id: str = None) -> dict:
             account as account_id,
             SUBSTRING_INDEX(account, ' - ', 1) as account_code,
             CASE 
-                WHEN account LIKE 'Sales%' OR account LIKE 'Income%' THEN 'revenue'
+                WHEN account LIKE 'Sales%' OR account LIKE 'Income%' OR account LIKE 'Revenue%' THEN 'revenue'
                 ELSE 'expense'
             END as account_type,
             SUM(debit) as total_debit,
             SUM(credit) as total_credit,
             SUM(credit - debit) as net_balance
         FROM `tabGL Entry`
-        WHERE (account LIKE 'Sales%' OR account LIKE 'Income%' OR account LIKE 'Expense%' OR account LIKE 'Cost%') 
+        WHERE (
+            account LIKE 'Sales%' OR account LIKE 'Income%' OR account LIKE 'Revenue%'
+            OR account LIKE 'Expense%' OR account LIKE 'Cost%'
+            OR account LIKE '%Wastage%' OR account LIKE '%Loss%' OR account LIKE '%Stock Loss%'
+            OR account LIKE '%Commission%' OR account LIKE '%Mandi%'
+        )
           AND company = %s AND is_cancelled = 0
         GROUP BY account
         HAVING SUM(debit) > 0 OR SUM(credit) > 0
-        ORDER BY account_name
+        ORDER BY account_type DESC, net_balance ASC
     """
     results = frappe.db.sql(query, (company,), as_dict=True)
     return {"data": results}
@@ -9132,63 +9137,110 @@ def report_loss(lot_id: str, loss_qty: float, reason: str = "Spoilage") -> dict:
     }, update_modified=False)
     frappe.db.commit()
 
-    # ── Post Wastage Journal Entry ──────────────────────────────────────────
-    try:
-        unit_cost = flt(lot.supplier_rate or 0)
-        loss_value = round(loss_qty * unit_cost, 2)
-        item_name  = lot.item_id or "Commodity"
-        narration  = f"Stock Loss: {loss_qty} {lot.unit or 'Units'} of {item_name} — {reason}"
+    # ── Post Wastage Journal Entry (guaranteed — auto-creates account if missing) ────
+    unit_cost  = flt(lot.supplier_rate or 0)
+    loss_value = round(loss_qty * unit_cost, 2)
+    item_name  = lot.item_id or "Commodity"
+    narration  = f"Stock Loss: {loss_qty} {lot.unit or 'Units'} of {item_name} — {reason}"
 
+    je_name = None
+    je_error = None
+    loss_acc_label  = "Stock Losses (Expense)"
+    stock_acc_label = "Stock In Hand (Asset)"
+    try:
         if loss_value > 0:
             company = frappe.db.get_value("Mandi Organization", org_id, "company") or frappe.defaults.get_user_default("Company")
-            # Debit Wastage/Loss Account, Credit Stock
-            loss_acc  = frappe.db.get_value("Account", {"account_name": ["like", "%Wastage%"], "company": company}, "name") \
-                     or frappe.db.get_value("Account", {"account_name": ["like", "%Loss%"], "company": company}, "name") \
-                     or frappe.db.get_value("Account", {"account_type": "Expense Account", "company": company}, "name")
-            stock_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"], "company": company}, "name") \
-                     or frappe.db.get_value("Account", {"account_type": "Stock", "company": company}, "name")
+
+            # Resolve Stock Losses expense account — or auto-create it
+            loss_acc = (
+                frappe.db.get_value("Account", {"account_name": ["like", "%Stock Loss%"], "company": company, "is_group": 0}, "name") or
+                frappe.db.get_value("Account", {"account_name": ["like", "%Wastage%"],    "company": company, "is_group": 0}, "name") or
+                frappe.db.get_value("Account", {"account_name": ["like", "%Loss%"],       "company": company, "is_group": 0, "root_type": "Expense"}, "name")
+            )
+            if not loss_acc:
+                parent_exp = (
+                    frappe.db.get_value("Account", {"account_name": ["like", "%Indirect Expense%"], "is_group": 1, "company": company}, "name") or
+                    frappe.db.get_value("Account", {"root_type": "Expense", "is_group": 1, "company": company}, "name")
+                )
+                if parent_exp:
+                    acc_doc = frappe.get_doc({
+                        "doctype": "Account", "account_name": "Stock Losses",
+                        "parent_account": parent_exp, "account_type": "Expense Account", "company": company,
+                    })
+                    acc_doc.insert(ignore_permissions=True)
+                    loss_acc = acc_doc.name
+
+            if loss_acc:
+                loss_acc_label = loss_acc
+
+            # Resolve Stock In Hand asset account
+            stock_acc = (
+                frappe.db.get_value("Account", {"account_name": ["like", "%Stock In Hand%"], "company": company, "is_group": 0}, "name") or
+                frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"],          "company": company, "is_group": 0, "root_type": "Asset"}, "name") or
+                frappe.db.get_value("Account", {"account_type": "Stock",                       "company": company, "is_group": 0}, "name")
+            )
+            if stock_acc:
+                stock_acc_label = stock_acc
 
             if loss_acc and stock_acc:
                 je = frappe.get_doc({
-                    "doctype":      "Journal Entry",
-                    "voucher_type": "Journal Entry",
-                    "posting_date": today(),
-                    "company":      company,
-                    "user_remark":  narration,
+                    "doctype": "Journal Entry", "voucher_type": "Journal Entry",
+                    "posting_date": today(), "company": company, "user_remark": narration,
                     "accounts": [
+                        # Dr Stock Losses (Expense ↑ → Net Profit ↓ on P&L)
                         {"account": loss_acc,  "debit_in_account_currency": loss_value, "credit_in_account_currency": 0},
+                        # Cr Stock In Hand (Asset ↓ → Balance Sheet shrinks)
                         {"account": stock_acc, "debit_in_account_currency": 0,          "credit_in_account_currency": loss_value},
                     ]
                 })
                 je.insert(ignore_permissions=True)
                 je.submit()
+                je_name = je.name
+            else:
+                je_error = f"Accounts not resolved: loss_acc={loss_acc}, stock_acc={stock_acc}"
+                frappe.log_error(je_error, "report_loss JE Skipped")
     except Exception:
-        frappe.log_error(frappe.get_traceback(), "report_loss JE Failed (non-fatal)")
-        # Non-fatal — stock deduction already committed above
+        je_error = frappe.get_traceback()
+        frappe.log_error(je_error, "report_loss JE Failed (non-fatal)")
 
-    frappe.logger().info(f"[report_loss] {lot_id}: -{loss_qty} ({reason}), new_qty={new_qty}, org={org_id}")
+    frappe.logger().info(f"[report_loss] {lot_id}: -{loss_qty} ({reason}), new_qty={new_qty}, org={org_id}, je={je_name}")
     return {
         "success": True,
         "lot_id": lot_id,
         "removed_qty": loss_qty,
         "remaining_qty": new_qty,
+        "loss_value": loss_value,
+        "unit_cost": unit_cost,
         "reason": reason,
-        "message": f"{loss_qty} units removed from stock. Remaining: {new_qty}",
+        "je_name": je_name,
+        "je_posted": bool(je_name),
+        "ledger_entry": {
+            "narration": narration,
+            "debit_account": loss_acc_label,
+            "credit_account": stock_acc_label,
+            "amount": loss_value,
+        },
+        "message": (
+            f"{loss_qty} units written off. ₹{loss_value:,.0f} posted to P&L (Stock Losses). JE: {je_name}"
+            if je_name else
+            f"{loss_qty} units removed from stock. No financial entry (zero cost or accounts not configured)."
+        ),
     }
 
 
 @frappe.whitelist(allow_guest=False)
-def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supplier") -> dict:
+def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supplier", return_rate: float = None) -> dict:
     """
     Returns stock to the supplier/farmer.
     - Reduces current_qty by return_qty using db.set_value (bypasses submission guard).
-    - Creates a credit Journal Entry to reduce the supplier's payable balance.
-    - Records the return for audit trail.
+    - Creates a Debit Note (Supplier) or Credit Note (Customer/Farmer) to reduce payable balance.
+    - Records the return with full audit trail and ledger impact data for UI display.
 
     Args:
-        lot_id:      Mandi Lot name
-        return_qty:  Quantity being returned
-        reason:      Reason/remarks for the return
+        lot_id:       Mandi Lot name
+        return_qty:   Quantity being returned
+        reason:       Reason/remarks for the return
+        return_rate:  Optional override rate (defaults to lot.supplier_rate)
     """
     from frappe.utils import flt, today
 
@@ -9219,7 +9271,7 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
 
     # Get supplier from parent arrival
     supplier_id = None
-    unit_cost   = flt(lot.supplier_rate or 0)
+    unit_cost   = flt(return_rate or 0) if return_rate else flt(lot.supplier_rate or 0)
     if parent_name:
         supplier_id = frappe.db.get_value("Mandi Arrival", parent_name, "party_id")
 
