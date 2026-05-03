@@ -8088,6 +8088,38 @@ def get_admin_tenants() -> list:
 
     return processed
 
+@frappe.whitelist(allow_guest=True)
+def get_plans() -> list:
+    """
+    PUBLIC endpoint — returns all active subscription plans.
+    Used by /subscribe (public pricing page) and /settings/billing.
+    No authentication required — plan catalog is not sensitive data.
+    """
+    import json
+    try:
+        plans = frappe.get_all(
+            "App Plan",
+            fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
+                    "max_users", "max_storage_gb", "sort_order", "features", "description"],
+            order_by="sort_order asc",
+            ignore_permissions=True
+        )
+        for p in plans:
+            # Normalize: id field for frontend
+            p["id"] = p["name"]
+            # Parse features JSON
+            if p.get("features"):
+                try:
+                    p["features"] = json.loads(p["features"])
+                except Exception:
+                    p["features"] = {}
+            else:
+                p["features"] = {}
+        return plans
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "get_plans failed")
+        return []
+
 @frappe.whitelist(allow_guest=False)
 def get_app_plans() -> list:
     """

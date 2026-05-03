@@ -155,6 +155,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                     const freshProfile = await fetchProfile(loggedInUserId);
                     if (isMounted && freshProfile) {
+                        // ── SECURITY: Invalidate cache if role changed ─────────
+                        // Prevents super_admin from seeing tenant dashboard due to stale cache
+                        const cachedRaw = localStorage.getItem('mandi_profile_cache');
+                        if (cachedRaw) {
+                            try {
+                                const cached = JSON.parse(cachedRaw);
+                                if (cached.role !== freshProfile.role) {
+                                    console.warn('[Auth] Role mismatch detected — flushing stale cache', { cached: cached.role, fresh: freshProfile.role });
+                                    cacheClearForSession();
+                                }
+                            } catch { /* ignore parse errors */ }
+                        }
+                        // ────────────────────────────────────────────────────────
                         const profileToCache = { ...freshProfile, _fetchedAt: Date.now() };
                         setProfile(profileToCache);
                         localStorage.setItem('mandi_profile_cache', JSON.stringify(profileToCache));
@@ -278,15 +291,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const isAdminPath = pathname?.startsWith('/admin');
             const isImpersonating = localStorage.getItem('mandi_impersonation_mode') === 'true';
 
+            // ── STRICT ADMIN/TENANT ISOLATION ────────────────────────────────
+            // super_admin MUST be on /admin (unless impersonating a tenant)
+            // Regular user MUST NOT access /admin paths
+            // This fires on EVERY navigation, not just login.
             if (isSuperAdmin && !isAdminPath && !isImpersonating && !isLandingPath) {
-                router.push('/admin');
+                console.info('[Auth] Super admin on tenant path — redirecting to /admin');
+                router.replace('/admin');
                 return;
             }
 
             if (!isSuperAdmin && isAdminPath && !isLandingPath) {
-                router.push('/dashboard');
+                console.warn('[Auth] Non-admin on admin path — redirecting to /dashboard');
+                router.replace('/dashboard');
                 return;
             }
+            // ────────────────────────────────────────────────────────────────
         }
 
         if (!session && !profile && !isPublicPath) {

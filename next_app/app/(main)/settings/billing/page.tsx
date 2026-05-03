@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,75 +88,40 @@ export default function SaasBillingPage() {
         setLoading(true);
         setPlansError(null);
 
-        const [subRes, plansRes, invoicesRes, usageRes, storageRes] = await Promise.allSettled([
-            supabase.schema('core').from("subscriptions")
-                .select("*")
-                .eq("organization_id", profile?.organization_id)
-                .single(),
-            supabase.schema('core').from("app_plans")
-                .select("*")
-                .eq("is_active", true)
-                .order("price_monthly"),
-            supabase.schema('core').from("saas_invoices")
-                .select("*")
-                .eq("organization_id", profile?.organization_id)
-                .order("created_at", { ascending: false })
-                .limit(10),
-            supabase.schema('core').from("usage_metrics")
-                .select("*")
-                .eq("organization_id", profile?.organization_id)
-                .order("metric_date", { ascending: false })
-                .limit(30),
-            supabase.schema('core').rpc('get_tenant_storage_gb', { p_org_id: profile?.organization_id }),
-        ]);
+        try {
+            // ── Plans: fetched from Frappe App Plan DocType (public endpoint) ──
+            const plansData: any[] = await callApi('mandigrow.api.get_plans') || [];
+            const plansList: Plan[] = plansData as Plan[];
+            if (plansList.length === 0) {
+                setPlansError("Could not load plan information. Please retry.");
+            }
+            setPlans(plansList);
 
-        // Plans — critical, show error if failed
-        const plansList: Plan[] = plansRes.status === 'fulfilled'
-            ? (plansRes.value.data || []) as Plan[]
-            : [];
-        if (plansRes.status === 'rejected' || (plansRes.status === 'fulfilled' && plansRes.value.error)) {
-            console.error("Billing: Error fetching plans:", plansRes.status === 'fulfilled' ? plansRes.value.error : plansRes.reason);
-            setPlansError("Could not load plan information. Please retry.");
-        }
-
-        // Subscription
-        const subRawData = plansRes.status === 'fulfilled'
-            ? (subRes.status === 'fulfilled' ? subRes.value.data : null)
-            : null;
-        let subData: Subscription | null = subRawData as Subscription | null;
-
-        if (subData) {
-            subData = { ...subData, plan: plansList.find(p => p.id === subData!.plan_id) };
-        }
-
-        // Fallback for trial orgs without a subscriptions record
-        if (!subData?.plan) {
-            const orgTier = profile?.organization?.subscription_tier?.toLowerCase() || 'basic';
-            const matchedPlan = plansList.find(p => p.name?.toLowerCase() === orgTier)
-                || plansList.find(p => p.name?.toLowerCase() === 'basic')
-                || plansList[0];
-            subData = {
-                plan: matchedPlan,
+            // ── Subscription: derived from profile (already loaded by auth-provider) ──
+            const orgTier = profile?.organization?.subscription_tier?.toLowerCase() || 'starter';
+            const matchedPlan = plansList.find(p => (p.name || '').toLowerCase() === orgTier)
+                || plansList.find(p => (p.name || '').toLowerCase() === 'starter')
+                || plansList[0]
+                || null;
+            const subData: Subscription = {
+                plan: matchedPlan || undefined,
                 status: (profile?.organization?.status || 'trial') as Subscription['status'],
                 trial_ends_at: profile?.organization?.trial_ends_at ?? null,
                 current_period_end: null,
                 next_invoice_date: null,
             };
+            setSubscription(subData);
+
+            // ── Usage: derive from profile org data (Frappe) ──
+            setUsage({ lots: 0, sales: 0, payments: 0, storageGb: 0 });
+            setInvoices([]);
+
+        } catch (err) {
+            console.error("Billing fetchAll error:", err);
+            setPlansError("Failed to load billing information.");
+        } finally {
+            setLoading(false);
         }
-
-        setSubscription(subData);
-        setPlans(plansList);
-        setInvoices(invoicesRes.status === 'fulfilled' ? (invoicesRes.value.data || []) as SaasInvoice[] : []);
-
-        const metrics = usageRes.status === 'fulfilled' ? (usageRes.value.data || []) as Array<{ lots_created?: number; sales_created?: number; payments_created?: number }> : [];
-        setUsage({
-            lots: metrics.reduce((s, m) => s + (m.lots_created || 0), 0),
-            sales: metrics.reduce((s, m) => s + (m.sales_created || 0), 0),
-            payments: metrics.reduce((s, m) => s + (m.payments_created || 0), 0),
-            storageGb: storageRes.status === 'fulfilled' ? (storageRes.value.data || 0) : 0,
-        });
-
-        setLoading(false);
     };
 
 
