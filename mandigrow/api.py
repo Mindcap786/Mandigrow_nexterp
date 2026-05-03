@@ -3793,11 +3793,13 @@ def save_bank_account(**kwargs) -> dict:
             "company": company,
             "account_type": sub_type,
             "account_sub_type": sub_type,
-            "organization_id": org_id,
             "is_default": 1 if is_default else 0,
             "description": frappe.as_json(meta),
             "account_number": kwargs.get("account_number")
         }
+        # Only write organization_id if the custom column actually exists in the DB
+        if frappe.db.has_column("Account", "organization_id"):
+            account_payload["organization_id"] = org_id
 
         if not account_id:
             # Get company abbreviation to predict the generated name
@@ -3810,43 +3812,48 @@ def save_bank_account(**kwargs) -> dict:
             doc = frappe.get_doc(account_payload)
             doc.insert(ignore_permissions=True)
             
-            # Post opening balance via Journal Entry
+            # Post opening balance via Opening Entry (correct ERPNext voucher type for migrations)
             if opening_balance > 0:
-                equity_account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
-                if not equity_account:
-                    equity_account = frappe.db.get_value("Account", {"account_name": ["like", "%Opening%"], "company": company}, "name")
-                
-                if equity_account:
+                contra = (
+                    frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
+                    or frappe.db.get_value("Account", {"account_name": "Opening Balance Equity", "company": company}, "name")
+                    or frappe.db.get_value("Account", {"account_type": "Equity", "is_group": 0, "company": company}, "name")
+                )
+                if contra:
                     je = frappe.get_doc({
                         "doctype": "Journal Entry",
-                        "voucher_type": "Journal Entry",
+                        "voucher_type": "Opening Entry",
+                        "is_opening": "Yes",
                         "posting_date": frappe.utils.today(),
                         "company": company,
-                        "remark": f"Opening Balance for {name}",
+                        "user_remark": f"Opening Balance for {name}",
                         "accounts": [
                             {
                                 "account": doc.name,
                                 "debit_in_account_currency": opening_balance,
+                                "is_advance": "No",
                             },
                             {
-                                "account": equity_account,
+                                "account": contra,
                                 "credit_in_account_currency": opening_balance,
                             }
                         ]
                     })
-                    je.insert(ignore_permissions=True)
+                    je.flags.ignore_permissions = True
+                    je.flags.ignore_mandatory = True
+                    je.insert()
                     je.submit()
         else:
             doc = frappe.get_doc("Account", account_id)
             doc.update(account_payload)
             doc.save(ignore_permissions=True)
             
-        # If this is default, unset others for this org
+        # If this is default, unset others for this company (use company, not organization_id — safer)
         if is_default:
             frappe.db.sql("""
                 UPDATE `tabAccount` SET is_default = 0 
-                WHERE organization_id = %s AND account_type = %s AND name != %s
-            """, (org_id, sub_type, doc.name))
+                WHERE company = %s AND account_type = %s AND name != %s
+            """, (company, sub_type, doc.name))
             
         frappe.db.commit()
         return {"success": True, "id": doc.name, "message": "Account saved successfully."}

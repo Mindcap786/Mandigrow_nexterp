@@ -68,32 +68,13 @@ export default function BanksPage() {
         setLoading(false)
     }
 
-    const fetchBalances = async (accountList: any[]) => {
-        if (!accountList.length) { setBalances({}); return; }
-        // Use Frappe GL to get real balances — no Supabase dependency
-        try {
-            const result: any = await callApi('mandigrow.api.get_liquid_asset_summary', {
-                org_id: profile?.organization_id
-            });
-            const map: Record<string, number> = {};
-            accountList.forEach(acc => { map[acc.id] = 0; });
-            // result.accounts has { id, balance } from Frappe GL
-            (result?.accounts || []).forEach((a: any) => {
-                if (map[a.id] !== undefined) map[a.id] = a.balance || 0;
-            });
-            // Fallback: use opening_balance if no GL data
-            accountList.forEach(b => {
-                if (map[b.id] === 0 && b.opening_balance) {
-                    map[b.id] = Number(b.opening_balance || 0);
-                }
-            });
-            setBalances(map);
-        } catch {
-            // Fallback to opening balance
-            const map: Record<string, number> = {};
-            accountList.forEach(b => { map[b.id] = Number(b.opening_balance || 0); });
-            setBalances(map);
-        }
+    const fetchBalances = (accountList: any[]) => {
+        // Balances are already embedded by get_master_data via GL SUM query — no extra round-trip needed
+        const map: Record<string, number> = {};
+        accountList.forEach(acc => {
+            map[acc.id] = typeof acc.balance === 'number' ? acc.balance : 0;
+        });
+        setBalances(map);
     }
 
     const setDefaultBank = async (bankId: string) => {
