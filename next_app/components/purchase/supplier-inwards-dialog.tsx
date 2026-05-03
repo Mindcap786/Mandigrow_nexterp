@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

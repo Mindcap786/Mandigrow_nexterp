@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 /**
  * NativeAuthGuard
  *

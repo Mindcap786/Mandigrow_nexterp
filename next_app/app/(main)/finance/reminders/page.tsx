@@ -1,4 +1,5 @@
 "use client";
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { NativePageWrapper } from "@/components/mobile/NativePageWrapper";
 
 import { useState, useEffect } from "react";

@@ -1,5 +1,6 @@
 "use client"
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Check, Loader2, IndianRupee, PieChart, ArrowRight, Table as TableIcon } from "lucide-react"

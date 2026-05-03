@@ -13,6 +13,7 @@
  *   7. Input hints: adds inputmode="decimal" to number inputs for Android
  */
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient'

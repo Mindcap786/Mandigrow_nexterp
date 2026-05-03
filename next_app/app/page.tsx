@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import Link from 'next/link'
 import { ArrowRight, ShieldCheck, Zap, Globe, BarChart3, Package, Users, LayoutGrid, Calculator, Workflow, CheckCircle2, Lock, FileText, ClipboardCheck, Sparkles, Menu, X } from 'lucide-react'
 import { HeroTitle } from '@/components/i18n/hero-title'

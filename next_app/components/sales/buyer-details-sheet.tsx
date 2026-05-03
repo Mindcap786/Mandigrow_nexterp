@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { format } from "date-fns";
 import { Loader2, ArrowUpRight, ArrowDownLeft, Receipt, FileText, CheckCircle2 } from "lucide-react";

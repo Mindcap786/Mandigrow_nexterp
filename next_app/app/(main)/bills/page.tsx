@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 

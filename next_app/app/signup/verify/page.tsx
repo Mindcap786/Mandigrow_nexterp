@@ -2,6 +2,7 @@
 // their email before logging in. The verification link itself is sent and
 // handled by Supabase Auth (configured in supabase.dashboard).
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import Link from 'next/link';
 import { Mail, CheckCircle2 } from 'lucide-react';
 

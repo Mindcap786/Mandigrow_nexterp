@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

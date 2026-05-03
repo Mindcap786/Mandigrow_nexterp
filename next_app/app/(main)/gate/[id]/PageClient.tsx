@@ -3,6 +3,7 @@
 
 
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { callApi } from "@/lib/frappeClient";

@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Box, Snowflake, Loader2 } from 'lucide-react'

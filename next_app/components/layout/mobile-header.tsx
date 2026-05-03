@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { usePermission } from "@/hooks/use-permission";
 import { ShieldCheck, Bell, User, Menu as MenuIcon } from "lucide-react";
 import { useState, useEffect } from "react";

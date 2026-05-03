@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useMemo } from 'react';
 
 /**

@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { callApi, callApiGet, logout as frappeLogout } from '@/lib/frappeClient'
 

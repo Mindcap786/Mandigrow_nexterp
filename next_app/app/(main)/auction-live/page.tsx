@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { callApi } from '@/lib/frappeClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Gavel, TrendingUp, Clock, Package } from 'lucide-react'

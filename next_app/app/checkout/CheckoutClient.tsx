@@ -1,5 +1,6 @@
 'use client';
 
+import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient';
