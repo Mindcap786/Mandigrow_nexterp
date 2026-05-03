@@ -712,7 +712,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
         if resolved_user:
             user_id = resolved_user
 
-    # Administrator Fallback (only for local dev/maintenance)
+    # Administrator Fallback
     if user_id == "Administrator":
         return {
             "id": user_id,
@@ -734,69 +734,96 @@ def get_full_user_context(p_user_id: str = None) -> dict:
     try:
         user = frappe.get_doc("User", user_id)
         org_id = getattr(user, "mandi_organization", None)
-        
+
         if not org_id:
             org_id = _get_user_org()
             if org_id:
-                user.mandi_organization = org_id
-                user.save(ignore_permissions=True)
+                try:
+                    user.mandi_organization = org_id
+                    user.save(ignore_permissions=True)
+                except Exception:
+                    pass  # Non-fatal — org link save failure doesn't block login
 
         org_data = _get_org_info(org_id) if org_id else None
-        subscription_data = None
-        # Silicon Valley Grade: Subscription Lifecycle Engine
+
+        # ── Subscription Lifecycle Engine ─────────────────────────────────────
+        # SRE-GRADE: Every external call is wrapped so a missing DocType field,
+        # schema mismatch, or unconfigured setting can NEVER crash the login flow.
         from frappe.utils import get_datetime, now_datetime, date_diff, add_days
-        
+
         status = "active"
         is_locked = False
         days_to_expiry = 999
-        
+
         if org_data:
             expiry_date_str = org_data.get("trial_ends_at")
             if expiry_date_str:
-                expiry_date = get_datetime(expiry_date_str)
-                now = now_datetime()
-                
-                # Fetch Global Settings for Grace/Reminder
-                settings = frappe.get_single("Site Contact Settings")
-                cycle = org_data.get("billing_cycle") or "monthly"
-                
-                grace_days = settings.grace_period_monthly if cycle == "monthly" else settings.grace_period_yearly
-                reminder_days = settings.reminder_before_expiry_monthly if cycle == "monthly" else settings.reminder_before_expiry_yearly
-                
-                days_to_expiry = date_diff(expiry_date, now)
-                
-                if now > add_days(expiry_date, grace_days):
-                    status = "locked"
-                    is_locked = True
-                elif now > expiry_date:
-                    status = "grace_period"
-                elif days_to_expiry <= reminder_days:
-                    status = "expiring_soon"
-                    
+                try:
+                    expiry_date = get_datetime(expiry_date_str)
+                    now = now_datetime()
+
+                    # Hard-coded safe defaults — no DocType dependency
+                    grace_days = 7
+                    reminder_days = 7
+
+                    # Attempt to read from SiteContactSettings, but NEVER crash if
+                    # the field doesn't exist (schema not yet migrated, fresh site, etc.)
+                    try:
+                        settings = frappe.get_single("Site Contact Settings")
+                        cycle = org_data.get("billing_cycle") or "monthly"
+                        if cycle == "monthly":
+                            grace_days = int(getattr(settings, "grace_period_monthly", None) or 7)
+                            reminder_days = int(getattr(settings, "reminder_before_expiry_monthly", None) or 7)
+                        else:
+                            grace_days = int(getattr(settings, "grace_period_yearly", None) or 15)
+                            reminder_days = int(getattr(settings, "reminder_before_expiry_yearly", None) or 30)
+                    except Exception:
+                        pass  # Use hard-coded defaults above
+
+                    days_to_expiry = date_diff(expiry_date, now)
+
+                    if now > add_days(expiry_date, grace_days):
+                        status = "locked"
+                        is_locked = True
+                    elif now > expiry_date:
+                        status = "grace_period"
+                    elif days_to_expiry <= reminder_days:
+                        status = "expiring_soon"
+                except Exception:
+                    pass  # Expiry parse failure — treat as active
+
         subscription_data = {
             "status": status,
             "is_locked": is_locked,
+            "is_active": not is_locked,
             "days_left": days_to_expiry,
             "expiry_date": org_data.get("trial_ends_at") if org_data else None,
             "plan": org_data.get("subscription_tier") or "starter"
         }
-            
-        from mandigrow.mandigrow.logic.tenancy import is_super_admin
-        role = getattr(user, "role_type", "admin")
-        
+
+        # ── Role Resolution ───────────────────────────────────────────────────
+        try:
+            from mandigrow.mandigrow.logic.tenancy import is_super_admin
+            _is_super = is_super_admin(user.name)
+        except Exception:
+            _is_super = False
+
+        role = getattr(user, "role_type", None) or "admin"
         owner_email = "mindcap786@gmail.com"
-        if is_super_admin(user.name) or user.email == owner_email or user.name == owner_email:
+
+        if _is_super or user.name == owner_email or getattr(user, "email", "") == owner_email:
             role = "super_admin"
             if not org_data:
                 org_id = "HQ"
                 org_data = {
                     "id": "HQ",
-                    "organization_name": "MandiGrow HQ",
+                    "name": "MandiGrow HQ",
                     "subscription_tier": "enterprise",
                     "status": "active",
-                    "is_active": True
+                    "is_active": True,
+                    "brand_color": "#6366f1",
                 }
-            
+
         return {
             "id": user.name,
             "full_name": user.full_name,
@@ -804,13 +831,16 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             "business_domain": getattr(user, "business_domain", "mandi") or "mandi",
             "organization_id": org_id or "HQ",
             "organization": org_data,
-            "subscription": subscription_data or {"status": "active", "is_active": True},
+            "subscription": subscription_data,
             "rbac_matrix": "{}"
         }
+
     except frappe.DoesNotExistError:
         frappe.throw(_("User profile not found"))
-            
-# Removed emergency bypass
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "get_full_user_context failed")
+        frappe.throw(_("Failed to load user profile. Please contact support."))
+
 
 
 @frappe.whitelist(allow_guest=True)

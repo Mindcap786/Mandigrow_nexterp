@@ -21,7 +21,11 @@
   "country",
   "gstin",
   "cin",
-  "support_hours"
+  "support_hours",
+  "grace_period_monthly",
+  "grace_period_yearly",
+  "reminder_before_expiry_monthly",
+  "reminder_before_expiry_yearly"
  ],
  "fields": [
   {
@@ -103,6 +107,34 @@
    "fieldname": "support_hours",
    "fieldtype": "Data",
    "label": "Support Hours"
+  },
+  {
+   "fieldname": "grace_period_monthly",
+   "fieldtype": "Int",
+   "label": "Grace Period (Days) - Monthly",
+   "default": "7",
+   "description": "Number of days after expiry before account is locked (monthly billing)"
+  },
+  {
+   "fieldname": "grace_period_yearly",
+   "fieldtype": "Int",
+   "label": "Grace Period (Days) - Yearly",
+   "default": "15",
+   "description": "Number of days after expiry before account is locked (yearly billing)"
+  },
+  {
+   "fieldname": "reminder_before_expiry_monthly",
+   "fieldtype": "Int",
+   "label": "Reminder Days Before Expiry - Monthly",
+   "default": "7",
+   "description": "Days before expiry to show 'expiring_soon' status (monthly billing)"
+  },
+  {
+   "fieldname": "reminder_before_expiry_yearly",
+   "fieldtype": "Int",
+   "label": "Reminder Days Before Expiry - Yearly",
+   "default": "30",
+   "description": "Days before expiry to show 'expiring_soon' status (yearly billing)"
   }
  ],
  "index_web_pages_for_search": 1,
