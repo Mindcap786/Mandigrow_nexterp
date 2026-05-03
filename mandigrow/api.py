@@ -694,6 +694,12 @@ def get_logged_user() -> str:
 def get_full_user_context(p_user_id: str = None) -> dict:
     user_id = p_user_id or frappe.session.user
 
+    # Resolve username to primary key (email) if an identifier is provided
+    if user_id and "@" not in user_id and user_id not in ["Administrator", "Guest"]:
+        resolved_user = frappe.db.get_value("User", {"username": user_id}, "name")
+        if resolved_user:
+            user_id = resolved_user
+
     # Level-0 Platform Owner Override:
     # Hard-bypass ALL org/DB lookups for the platform owner.
     # This prevents NameError crashes in _get_org_info when Mandi HQ doesn't exist.
@@ -824,14 +830,8 @@ def check_unique(email: str = None, username: str = None) -> dict:
     
     if username:
         trimmed = username.strip().lower()
-        # Check against User full_name or first_name (Frappe has no dedicated username field,
-        # but we store it as first_name during signup, so check both)
-        exists = frappe.db.sql("""
-            SELECT name FROM `tabUser`
-            WHERE LOWER(name) = %(u)s
-               OR LOWER(username) = %(u)s
-            LIMIT 1
-        """, {"u": trimmed})
+        # Check against User name (email) and the dedicated username field
+        exists = frappe.db.exists("User", {"username": trimmed}) or frappe.db.exists("User", trimmed)
         if exists:
             result["usernameTaken"] = True
     
@@ -1057,6 +1057,9 @@ def repair_tenant(org_id: str = None) -> dict:
 def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "basic") -> dict:
     if frappe.db.exists("User", email):
         frappe.throw(_("User with this email already exists"), frappe.DuplicateEntryError)
+    
+    if username and frappe.db.exists("User", {"username": username}):
+        frappe.throw(_("Username '{0}' is already taken").format(username), frappe.DuplicateEntryError)
 
     from frappe.utils import add_days, now_datetime
 
