@@ -3533,8 +3533,11 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     settings = get_mandi_settings(org_id)
 
-    # Fetch liquid accounts — guard organization_id column
-    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0}
+    # Fetch liquid accounts — ALWAYS filter by company (tenant isolation boundary).
+    # company = ERPNext's built-in multi-tenant field — guaranteed to exist on every Account.
+    # organization_id is only an extra guard when the custom field exists.
+    company = _get_user_company()
+    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
     if org_id and frappe.db.has_column("Account", "organization_id"):
         acct_filters["organization_id"] = org_id
     acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
@@ -3545,15 +3548,21 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         fields=acct_fields,
         ignore_permissions=True
     )
-    
-    for acc in liquid_accounts:
-        bal_res = frappe.db.sql("""
-            SELECT SUM(debit) - SUM(credit) as balance
+
+    # Batch-fetch ALL balances in one SQL call (avoids N+1 queries, matches Finance Overview)
+    if liquid_accounts:
+        acc_ids = tuple(a['id'] for a in liquid_accounts)
+        bal_rows = frappe.db.sql("""
+            SELECT account, COALESCE(SUM(debit) - SUM(credit), 0) as balance
             FROM `tabGL Entry`
-            WHERE account = %s AND is_cancelled = 0
-        """, (acc['id'],), as_dict=True)
-        
-        acc['balance'] = float(bal_res[0]['balance'] or 0) if bal_res and bal_res[0]['balance'] else 0.0
+            WHERE account IN %s
+              AND is_cancelled = 0
+              AND company = %s
+            GROUP BY account
+        """, (acc_ids, company), as_dict=True)
+        bal_map = {r['account']: float(r['balance'] or 0) for r in bal_rows}
+        for acc in liquid_accounts:
+            acc['balance'] = bal_map.get(acc['id'], 0.0)
 
     banks = [a for a in liquid_accounts if a.account_type == "Bank"]
     cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash"]
@@ -3713,7 +3722,9 @@ def get_bank_accounts(org_id: str = None) -> list:
     Schema-aware: guards organization_id and description with has_column.
     """
     org_id = org_id or _get_user_org()
-    filters: dict = {"account_type": "Bank", "is_group": 0}
+    company = _get_user_company()
+    # company is the hard tenant boundary — always required
+    filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
     if org_id and frappe.db.has_column("Account", "organization_id"):
         filters["organization_id"] = org_id
     fields = ["name as id", "account_name as name", "account_type", "account_number", "company"]
@@ -3764,11 +3775,13 @@ def save_bank_account(**kwargs) -> dict:
             "company": company,
             "account_type": sub_type,
             "account_sub_type": sub_type,
-            "organization_id": org_id,
             "is_default": 1 if is_default else 0,
             "description": frappe.as_json(meta),
             "account_number": kwargs.get("account_number")
         }
+        # Only write organization_id if the custom column actually exists in the DB
+        if frappe.db.has_column("Account", "organization_id"):
+            account_payload["organization_id"] = org_id
 
         if not account_id:
             # Get company abbreviation to predict the generated name
@@ -3790,18 +3803,21 @@ def save_bank_account(**kwargs) -> dict:
                 if equity_account:
                     je = frappe.get_doc({
                         "doctype": "Journal Entry",
-                        "voucher_type": "Journal Entry",
+                        "voucher_type": "Opening Entry",
+                        "is_opening": "Yes",
                         "posting_date": frappe.utils.today(),
                         "company": company,
-                        "remark": f"Opening Balance for {name}",
+                        "user_remark": f"Opening Balance for {name}",
                         "accounts": [
                             {
                                 "account": doc.name,
                                 "debit_in_account_currency": opening_balance,
+                                "is_advance": "No",
                             },
                             {
                                 "account": equity_account,
                                 "credit_in_account_currency": opening_balance,
+                                "is_advance": "No",
                             }
                         ]
                     })
@@ -3809,15 +3825,28 @@ def save_bank_account(**kwargs) -> dict:
                     je.submit()
         else:
             doc = frappe.get_doc("Account", account_id)
-            doc.update(account_payload)
+            # Tenant guard: ensure this account belongs to the caller's company
+            if doc.company != company:
+                return {"success": False, "error": "Access denied: account belongs to another company."}
+            # On edit: only update safe metadata — never account_name (triggers ERPNext rename)
+            safe_update = {
+                "description": account_payload.get("description"),
+                "account_number": account_payload.get("account_number"),
+                "is_default": account_payload.get("is_default"),
+            }
+            if frappe.db.has_column("Account", "organization_id"):
+                safe_update["organization_id"] = org_id
+            for k, v in safe_update.items():
+                if v is not None:
+                    setattr(doc, k, v)
             doc.save(ignore_permissions=True)
             
-        # If this is default, unset others for this org
+        # Unset is_default on other accounts for this company+type (use company — always exists)
         if is_default:
             frappe.db.sql("""
-                UPDATE `tabAccount` SET is_default = 0 
-                WHERE organization_id = %s AND account_type = %s AND name != %s
-            """, (org_id, sub_type, doc.name))
+                UPDATE `tabAccount` SET is_default = 0
+                WHERE company = %s AND account_type = %s AND name != %s
+            """, (company, sub_type, doc.name))
             
         frappe.db.commit()
         return {"success": True, "id": doc.name, "message": "Account saved successfully."}
@@ -4860,9 +4889,12 @@ def get_settings_page() -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def get_bank_account_list() -> list:
-    """Get list of bank accounts."""
+    """Get list of bank accounts scoped to current tenant company."""
+    company = _get_user_company()
+    filters = {"company": company} if company else {}
     return frappe.get_all("Bank Account",
-        fields=["name as id", "account_name", "bank", "account_type"],
+        filters=filters,
+        fields=["name as id", "account_name", "bank", "account_type", "company"],
         order_by="account_name asc",
         limit_page_length=50,
         ignore_permissions=True
