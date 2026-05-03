@@ -344,7 +344,7 @@ export default function Dashboard() {
                     icon={<TrendingUp className="h-6 w-6 text-indigo-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/finance/sales"
+                    href="/sales"
                     subValues={[
                         { label: 'Cash Sales (Collected)', value: stats.collections, color: 'bg-emerald-500' },
                         { label: 'Udhaar Sales (Receivable)', value: stats.payables, color: 'bg-rose-500' }
@@ -356,7 +356,7 @@ export default function Dashboard() {
                     icon={<Package className="h-6 w-6 text-amber-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/finance/purchases"
+                    href="/purchase/bills"
                     subValues={[
                         { label: 'Cash Purchase (Paid)', value: stats.cash_purchase, color: 'bg-emerald-500' },
                         { label: 'Udhaar Purchase (Outstanding)', value: stats.udhaar_purchase, color: 'bg-rose-500' }
@@ -368,7 +368,7 @@ export default function Dashboard() {
                     icon={<ArrowUpRight className="h-6 w-6 text-emerald-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
-                    href="/finance/day-book"
+                    href="/reports/daybook"
                     subValues={[
                         { label: 'Total Inflow', value: stats.inflow, color: 'bg-emerald-500' },
                         { label: 'Total Outflow', value: stats.outflow, color: 'bg-rose-500' }
