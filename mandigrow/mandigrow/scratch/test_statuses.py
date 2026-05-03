@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.mandigrow.api import confirm_sale_transaction
+from mandigrow.api import confirm_sale_transaction
 from mandigrow.mandigrow.logic.automation import _sale_status
 
 def run():

@@ -5,7 +5,7 @@ import frappe
 import sys, os
 sys.path.append(os.path.join(os.getcwd(), 'apps', 'mandigrow'))
 from mandigrow.mandigrow.logic.automation import post_arrival_ledger, post_sale_ledger
-from mandigrow.mandigrow.api import repair_tenant
+from mandigrow.api import repair_tenant
 
 
 def _ensure_supplier(party_id, company):

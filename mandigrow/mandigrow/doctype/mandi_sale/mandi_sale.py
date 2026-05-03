@@ -10,7 +10,7 @@ class MandiSale(Document):
         from frappe.model.naming import make_autoname
         org_id = getattr(self, "organization_id", None)
         if not org_id:
-            from mandigrow.mandigrow.api import _get_user_org
+            from mandigrow.api import _get_user_org
             org_id = _get_user_org()
         
         prefix = org_id.replace("-", "") if org_id else "MG"

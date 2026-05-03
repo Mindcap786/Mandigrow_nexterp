@@ -65,7 +65,7 @@ def restore_raju_ledger():
         print(f"Successfully restored {je.name}")
 
     # Repair settlements
-    from mandigrow.mandigrow.api import repair_all_settlements
+    from mandigrow.api import repair_all_settlements
     repair_all_settlements()
     frappe.db.commit()
 

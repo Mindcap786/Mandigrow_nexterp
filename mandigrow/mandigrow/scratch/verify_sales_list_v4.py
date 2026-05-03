@@ -1,5 +1,5 @@
 import frappe
-from mandigrow.mandigrow.api import get_sales_list
+from mandigrow.api import get_sales_list
 import json
 from frappe.utils import strfmt
 

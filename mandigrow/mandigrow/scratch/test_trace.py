@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils import flt
-from mandigrow.mandigrow.api import confirm_sale_transaction
+from mandigrow.api import confirm_sale_transaction
 
 def run():
     """Test with inline logging to trace exactly when amountreceived gets reset."""

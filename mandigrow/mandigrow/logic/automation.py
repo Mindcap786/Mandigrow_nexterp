@@ -33,7 +33,7 @@ def _auto_settle_party(party_type, party_name, company):
     Triggers FIFO settlement for a party whenever a financial entry is submitted.
     Bridges ERPNext core (Payment/Journal) with MandiGrow custom billing.
     """
-    from mandigrow.mandigrow.api import settle_buyer_receipt, settle_supplier_payment
+    from mandigrow.api import settle_buyer_receipt, settle_supplier_payment
     
     # 1. Resolve Mandi Contact
     filters = {}
@@ -55,11 +55,11 @@ def _auto_settle_party(party_type, party_name, company):
         # Actually, simpler: find total paid (all credits) and total billed (all debits)
         # But wait, settle_buyer_receipt already handles FIFO from a given amount.
         # To truly "sync", we should use the logic from repair_all_settlements.
-        from mandigrow.mandigrow.api import repair_single_party_settlement
+        from mandigrow.api import repair_single_party_settlement
         repair_single_party_settlement(contact.name, contact.organization_id)
     
         # Same for suppliers
-        from mandigrow.mandigrow.api import repair_single_party_settlement
+        from mandigrow.api import repair_single_party_settlement
         repair_single_party_settlement(contact.name, contact.organization_id)
 
 

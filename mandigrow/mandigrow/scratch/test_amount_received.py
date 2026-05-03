@@ -3,7 +3,7 @@ Simulates the exact same payload that the Multi-Buyer Invoice frontend sends
 to confirm_sale_transaction, and verifies amountreceived is correctly stored.
 """
 import frappe
-from mandigrow.mandigrow.api import confirm_sale_transaction
+from mandigrow.api import confirm_sale_transaction
 
 def run():
     # Find a valid buyer and lot
