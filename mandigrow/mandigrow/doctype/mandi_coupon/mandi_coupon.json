@@ -1,0 +1,35 @@
+{
+ "actions": [],
+ "creation": "2026-05-03 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["code","discount_type","discount_value","max_uses","times_used","is_active","plan_name","valid_until","description"],
+ "fields": [
+  {"fieldname": "code", "fieldtype": "Data", "in_list_view": 1, "label": "Coupon Code", "reqd": 1, "unique": 1},
+  {"fieldname": "discount_type", "fieldtype": "Select", "in_list_view": 1, "label": "Discount Type", "options": "percent\nflat", "reqd": 1, "default": "percent"},
+  {"fieldname": "discount_value", "fieldtype": "Float", "in_list_view": 1, "label": "Discount Value", "reqd": 1},
+  {"fieldname": "max_uses", "fieldtype": "Int", "label": "Max Uses", "default": "100"},
+  {"fieldname": "times_used", "fieldtype": "Int", "label": "Times Used", "default": "0", "read_only": 1},
+  {"fieldname": "is_active", "fieldtype": "Check", "label": "Active", "default": "1", "in_list_view": 1},
+  {"fieldname": "plan_name", "fieldtype": "Link", "label": "Restrict to Plan", "options": "App Plan"},
+  {"fieldname": "valid_until", "fieldtype": "Datetime", "label": "Valid Until"},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"}
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Coupon",
+ "naming_rule": "By fieldname",
+ "autoname": "field:code",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

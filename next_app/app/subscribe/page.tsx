@@ -24,12 +24,12 @@ const ACCENT_MAP: Record<string, any> = {
 };
 
 const getPlanVisuals = (plan: any) => {
-    const name = plan.name.toLowerCase();
-    const meta = PLAN_META[name] || PLAN_META['basic'];
-    
-    // Override with dynamic values from features
+    // Use plan_name (Frappe primary key) for lookup; fallback to name
+    const key = (plan.plan_name || plan.name || '').toLowerCase();
+    const meta = PLAN_META[key] || PLAN_META['basic'];
+
     const dynamicIcon = plan.features?.icon ? (Icons as any)[plan.features.icon] : null;
-    const accent = plan.features?.accent_color || (name === 'standard' ? 'indigo' : name === 'enterprise' ? 'purple' : 'emerald');
+    const accent = plan.features?.accent_color || (key.includes('professional') || key.includes('standard') ? 'indigo' : key.includes('enterprise') ? 'purple' : 'emerald');
     const tag = plan.features?.tag || meta.tag;
     const visuals = ACCENT_MAP[accent] || ACCENT_MAP['emerald'];
 
@@ -65,13 +65,16 @@ export default function SubscribePage() {
     const fetchPlans = async () => {
         setLoading(true);
         try {
-            // Plans are managed via Frappe Mandi Organization doctype
-            const res = await callApi('mandigrow.api.get_plans');
-            const data = res?.message || [];
-            const visiblePlans = data.filter((plan: any) => 
-                ['basic', 'standard', 'enterprise'].includes(plan.name?.toLowerCase()) || 
-                plan.features?.show_on_homepage === true
-            );
+            // callApi already unwraps Frappe's {message: ...} envelope — result is the array directly
+            const data: any[] = await callApi('mandigrow.api.get_plans') || [];
+            // Show all active plans from Frappe App Plan DocType.
+            // Filter out internal/custom plans unless they explicitly opt-in via show_on_homepage.
+            const HIDDEN_KEYS = ['vip', 'vip_plan', 'internal', 'custom'];
+            const visiblePlans = data.filter((plan: any) => {
+                const key = (plan.plan_name || plan.name || '').toLowerCase();
+                const isHidden = HIDDEN_KEYS.some(h => key === h || key.startsWith(h + '_'));
+                return !isHidden || plan.features?.show_on_homepage === true;
+            });
             setPlans(visiblePlans);
         } catch (err) {
             console.error('Error fetching plans:', err);
@@ -165,9 +168,9 @@ export default function SubscribePage() {
                     <div className="flex flex-col items-center justify-center py-40 bg-white rounded-3xl border border-slate-200 shadow-sm text-center px-6">
                         <Info className="w-10 h-10 text-slate-300 mb-4" />
                         <h3 className="text-xl font-black text-slate-900 mb-2">Custom Setup Required</h3>
-                        <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">
-                            We're currently scaling our public plan server. For immediate access, please contact our implementation team.
-                        </p>
+                         <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">
+                             No plans have been published yet. Please ask your administrator to seed the plan catalogue from the Admin Portal → Billing Engine → Subscription Plans.
+                         </p>
                         <Link href="/contact">
                             <Button variant="outline" className="px-8 py-6 rounded-xl border-slate-200 font-bold hover:bg-slate-50">
                                 Speak to a Munshi
@@ -178,14 +181,13 @@ export default function SubscribePage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {plans.map((plan) => {
                             const { Icon, color, bgColor, tag, bgActive, borderActive, ring } = getPlanVisuals(plan);
-                            const meta = PLAN_META[plan.name.toLowerCase()] || PLAN_META['basic'];
-                            
-                            // Monthly equivalent for display; yearly shows total charged
+                            const planKey = (plan.plan_name || plan.name || '').toLowerCase();
+
                             const price = billing === 'monthly' ? plan.price_monthly : Math.round(plan.price_yearly / 12);
-                            const savingsPct = plan.price_monthly > 0 
+                            const savingsPct = plan.price_monthly > 0
                                 ? Math.round(100 * (1 - (plan.price_yearly / (plan.price_monthly * 12))))
                                 : 0;
-                            const isStandard = plan.name.toLowerCase() === 'standard' || plan.features?.tag?.toLowerCase() === 'popular';
+                            const isStandard = planKey.includes('professional') || planKey.includes('standard') || plan.features?.tag?.toLowerCase() === 'popular';
 
                             return (
                                  <div 

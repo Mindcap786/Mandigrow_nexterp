@@ -1,0 +1,31 @@
+{
+ "actions": [],
+ "creation": "2026-05-03 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["flag_key","label","description","is_enabled","category"],
+ "fields": [
+  {"fieldname": "flag_key", "fieldtype": "Data", "in_list_view": 1, "label": "Flag Key", "reqd": 1, "unique": 1, "read_only": 1},
+  {"fieldname": "label", "fieldtype": "Data", "in_list_view": 1, "label": "Label", "reqd": 1},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"},
+  {"fieldname": "is_enabled", "fieldtype": "Check", "in_list_view": 1, "label": "Enabled", "default": "1"},
+  {"fieldname": "category", "fieldtype": "Select", "in_list_view": 1, "label": "Category", "options": "platform\nmodules\nbilling\nsecurity"}
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Feature Flag",
+ "naming_rule": "By fieldname",
+ "autoname": "field:flag_key",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1}
+ ],
+ "sort_field": "category",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

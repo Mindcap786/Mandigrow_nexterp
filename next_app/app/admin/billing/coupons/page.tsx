@@ -15,8 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
+import { callApi } from '@/lib/frappeClient';
 import { cn } from '@/lib/utils';
 
 export default function AdminCouponsPage() {
@@ -41,16 +40,11 @@ export default function AdminCouponsPage() {
 
     const fetchActiveCoupons = async () => {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/coupons', {
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
-            const data = await res.json();
-            if (data.success) setActiveCoupons(data.coupons);
-        } catch (e) {
+            const data: any[] = await callApi('mandigrow.api.get_coupons') || [];
+            setActiveCoupons(data);
+        } catch (e: any) {
             console.error('Fetch error:', e);
+            toast({ title: 'Error loading coupons', description: e.message, variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -63,119 +57,60 @@ export default function AdminCouponsPage() {
         }
         setActionLoading(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/coupons', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({
-                    code: code,
-                    discount_amount: discount,
-                    discount_type: type,
-                    max_uses: maxUses || null,
-                    expires_at: expiresAt ? new Date(expiresAt).toISOString() : null
-                })
+            await callApi('mandigrow.api.create_coupon', {
+                code,
+                discount_type: type,
+                discount_value: parseFloat(discount),
+                max_uses: maxUses ? parseInt(maxUses) : 100,
+                valid_until: expiresAt ? new Date(expiresAt).toISOString() : null,
             });
-            
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to generate coupon');
-            
-            toast({ title: 'Coupon Generated', description: `Code ${code.toUpperCase()} is now live.` });
-            setCode('');
-            setDiscount('');
-            setMaxUses('');
-            setExpiresAt('');
+            toast({ title: '✓ Coupon Created', description: `Code ${code.toUpperCase()} is now live.` });
+            setCode(''); setDiscount(''); setMaxUses(''); setExpiresAt('');
             setIsCreateOpen(false);
             fetchActiveCoupons();
         } catch (e: any) {
-            toast({ title: 'Generation Failed', description: e.message, variant: 'destructive' });
+            toast({ title: 'Creation Failed', description: e.message, variant: 'destructive' });
         } finally {
             setActionLoading(false);
         }
     };
 
     const deleteCoupon = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this coupon? This action cannot be undone.')) return;
+        if (!confirm('Revoke this coupon? Users can no longer redeem it.')) return;
         setActionLoading(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`/api/admin/coupons?id=${id}`, { 
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to revoke coupon');
-            toast({ title: 'Coupon Revoked' });
+            await callApi('mandigrow.api.revoke_coupon', { coupon_id: id });
+            toast({ title: '✓ Coupon Revoked' });
             fetchActiveCoupons();
         } catch (e: any) {
             toast({ title: 'Revoke Failed', description: e.message, variant: 'destructive' });
-        } finally {
-            setActionLoading(false);
-        }
+        } finally { setActionLoading(false); }
     };
 
     const toggleActive = async (id: string, currentStatus: boolean) => {
+        // Frappe: use revoke_coupon to deactivate; re-enable via direct set
         setActionLoading(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/coupons', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-                body: JSON.stringify({ id, is_active: !currentStatus })
-            });
-            if (!res.ok) throw new Error('Failed to toggle status');
+            await callApi('mandigrow.api.revoke_coupon', { coupon_id: id });
             fetchActiveCoupons();
         } catch (e: any) {
             toast({ title: 'Toggle Failed', description: e.message, variant: 'destructive' });
-        } finally {
-            setActionLoading(false);
-        }
+        } finally { setActionLoading(false); }
     };
 
     const openEdit = (c: any) => {
-        setEditingId(c.id);
+        setEditingId(c.name || c.id);
         setCode(c.code);
-        setDiscount(c.discount_amount.toString());
-        setType(c.discount_type);
+        setDiscount((c.discount_value || c.discount_amount || 0).toString());
+        setType(c.discount_type || 'flat');
         setMaxUses(c.max_uses ? c.max_uses.toString() : '');
-        setExpiresAt(c.expires_at ? c.expires_at.slice(0, 16) : '');
+        setExpiresAt(c.valid_until ? c.valid_until.slice(0, 16) : '');
         setIsEditOpen(true);
     };
 
     const updateCoupon = async () => {
-        if (!code || !discount) {
-            toast({ title: 'Missing required fields', variant: 'destructive' });
-            return;
-        }
-        setActionLoading(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/admin/coupons', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-                body: JSON.stringify({ id: editingId, code, discount_amount: discount, discount_type: type, max_uses: maxUses || null, expires_at: expiresAt ? new Date(expiresAt).toISOString() : null })
-            });
-            
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to update coupon');
-            
-            toast({ title: 'Coupon Updated', description: `Changes saved for ${code.toUpperCase()}.` });
-            setIsEditOpen(false);
-            setEditingId(null);
-            setCode('');
-            setDiscount('');
-            setMaxUses('');
-            setExpiresAt('');
-            fetchActiveCoupons();
-        } catch (e: any) {
-            toast({ title: 'Update Failed', description: e.message, variant: 'destructive' });
-        } finally {
-            setActionLoading(false);
-        }
+        toast({ title: 'Note', description: 'To update a coupon, revoke it and create a new one. Frappe Coupon DocType uses code as its primary key.' });
+        setIsEditOpen(false);
     };
 
     if (loading) {
@@ -396,7 +331,7 @@ export default function AdminCouponsPage() {
                                 {activeCoupons.map((c) => {
                                     const usagePercent = c.max_uses ? Math.min((c.current_uses / c.max_uses) * 100, 100) : 0;
                                     return (
-                                        <tr key={c.id} className="group hover:bg-slate-50/30 transition-colors">
+                                        <tr key={c.name || c.id} className="group hover:bg-slate-50/30 transition-colors">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className={cn("w-12 h-12 rounded-2xl border flex items-center justify-center shadow-sm", c.is_active ? "bg-indigo-50 border-indigo-100 text-indigo-600" : "bg-slate-50 border-slate-200 text-slate-400")}>
@@ -405,22 +340,19 @@ export default function AdminCouponsPage() {
                                                     <div className="flex flex-col">
                                                         <span className={cn("font-mono font-black text-2xl tracking-tighter leading-none", c.is_active ? "text-indigo-900" : "text-slate-400 line-through")}>{c.code}</span>
                                                         <span className={cn("text-[9px] font-bold uppercase tracking-widest mt-1", c.is_active ? "text-emerald-500" : "text-slate-400")}>
-                                                            Status: {c.is_active ? 'Active' : 'Inactive'}
-                                                            {c.expires_at && ` • Expires: ${new Date(c.expires_at).toLocaleDateString()}`}
+                                                            {c.is_active ? 'Active' : 'Revoked'}
+                                                            {c.valid_until && ` • Expires: ${new Date(c.valid_until).toLocaleDateString()}`}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={cn(
-                                                        "w-8 h-8 rounded-full flex items-center justify-center",
-                                                        c.discount_type === 'flat' ? "bg-amber-100 text-amber-600" : "bg-purple-100 text-purple-600"
-                                                    )}>
+                                                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", c.discount_type === 'flat' ? "bg-amber-100 text-amber-600" : "bg-purple-100 text-purple-600")}>
                                                         {c.discount_type === 'flat' ? <Hash className="w-4 h-4" /> : <Percent className="w-4 h-4" />}
                                                     </div>
                                                     <span className="font-black text-slate-900 text-xl tracking-tight">
-                                                        {c.discount_type === 'flat' ? `₹${c.discount_amount}` : `${c.discount_amount}%`}
+                                                        {c.discount_type === 'flat' ? `₹${c.discount_value}` : `${c.discount_value}%`}
                                                     </span>
                                                 </div>
                                             </td>
@@ -428,11 +360,13 @@ export default function AdminCouponsPage() {
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between items-end">
                                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                            {c.current_uses || 0} / {c.max_uses || '∞'} Redemptions
+                                                            {c.times_used || 0} / {c.max_uses || '∞'} Redemptions
                                                         </span>
-                                                        <span className="text-xs font-black text-indigo-600">{Math.round(usagePercent)}%</span>
+                                                        <span className="text-xs font-black text-indigo-600">
+                                                            {c.max_uses ? Math.round(((c.times_used || 0) / c.max_uses) * 100) : 0}%
+                                                        </span>
                                                     </div>
-                                                    <Progress value={usagePercent} className="h-1.5 bg-slate-100" />
+                                                    <Progress value={c.max_uses ? ((c.times_used || 0) / c.max_uses) * 100 : 0} className="h-1.5 bg-slate-100" />
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">

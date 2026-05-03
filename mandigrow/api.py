@@ -8098,6 +8098,122 @@ def get_admin_tenants() -> list:
 
     return processed
 
+
+# ─── COUPON ENGINE ────────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_coupons() -> list:
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"))
+    if not frappe.db.table_exists("Mandi Coupon"):
+        return []
+    return frappe.get_all("Mandi Coupon",
+        fields=["name","code","discount_type","discount_value","max_uses",
+                "times_used","valid_until","is_active","plan_name","description","creation"],
+        order_by="creation desc")
+
+@frappe.whitelist(allow_guest=False)
+def create_coupon(code, discount_type="percent", discount_value=0, max_uses=100, valid_until=None, plan_name=None, description=None):
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"))
+    if not frappe.db.table_exists("Mandi Coupon"):
+        frappe.throw(_("Mandi Coupon DocType not found. Run: bench migrate"))
+    if frappe.db.exists("Mandi Coupon", {"code": code.upper()}):
+        frappe.throw(_("Coupon code {0} already exists").format(code.upper()))
+    doc = frappe.get_doc({"doctype": "Mandi Coupon", "code": code.upper().strip(),
+        "discount_type": discount_type, "discount_value": discount_value,
+        "max_uses": max_uses, "times_used": 0, "is_active": 1,
+        "plan_name": plan_name or "", "description": description or "",
+        **({'valid_until': valid_until} if valid_until else {})})
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "coupon": doc.as_dict()}
+
+@frappe.whitelist(allow_guest=False)
+def validate_coupon(code, plan_name=None):
+    if not frappe.db.table_exists("Mandi Coupon"):
+        return {"valid": False, "error": "Coupon system not initialized"}
+    c = frappe.db.get_value("Mandi Coupon", {"code": code.upper(), "is_active": 1},
+        ["name","discount_type","discount_value","max_uses","times_used","valid_until","plan_name"], as_dict=True)
+    if not c:
+        return {"valid": False, "error": "Invalid or expired coupon code"}
+    if c.max_uses > 0 and c.times_used >= c.max_uses:
+        return {"valid": False, "error": "Coupon usage limit reached"}
+    from frappe.utils import now_datetime, get_datetime
+    if c.valid_until and get_datetime(c.valid_until) < now_datetime():
+        return {"valid": False, "error": "Coupon has expired"}
+    if c.plan_name and plan_name and c.plan_name != plan_name:
+        return {"valid": False, "error": "Coupon not valid for this plan"}
+    return {"valid": True, "coupon_name": c.name, "discount_type": c.discount_type, "discount_value": c.discount_value}
+
+@frappe.whitelist(allow_guest=False)
+def revoke_coupon(coupon_id):
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"))
+    frappe.db.set_value("Mandi Coupon", coupon_id, "is_active", 0)
+    frappe.db.commit()
+    return {"success": True}
+
+# ─── FEATURE FLAGS ────────────────────────────────────────────────────────────
+
+_DEFAULT_FLAGS = [
+    {"flag_key": "mobile_app_enabled",    "label": "Mobile App",            "description": "Enables iOS/Android app",                               "is_enabled": 1, "category": "platform"},
+    {"flag_key": "finance_module",        "label": "Finance Module",         "description": "Finance & Payments module",                             "is_enabled": 1, "category": "modules"},
+    {"flag_key": "crm_module",            "label": "CRM Module",             "description": "Buyer/seller contact management",                       "is_enabled": 1, "category": "modules"},
+    {"flag_key": "purchase_sale_form",    "label": "Purchase+Sale Form",     "description": "Combined purchase & sale commission entry",              "is_enabled": 1, "category": "modules"},
+    {"flag_key": "coupon_engine",         "label": "Coupon Engine",          "description": "Promo code validation at checkout",                      "is_enabled": 1, "category": "billing"},
+    {"flag_key": "yearly_billing",        "label": "Yearly Billing",         "description": "Yearly pricing toggle on /subscribe",                    "is_enabled": 1, "category": "billing"},
+    {"flag_key": "multi_tenant_isolation","label": "Multi-Tenant Guard",     "description": "Strict org-level data isolation (NEVER disable)",       "is_enabled": 1, "category": "security"},
+    {"flag_key": "payment_gateway",       "label": "Payment Gateway",        "description": "Razorpay gateway for online subscription billing",       "is_enabled": 0, "category": "billing"},
+    {"flag_key": "maintenance_mode",      "label": "Maintenance Mode",       "description": "Emergency kill switch - locks all tenant access",        "is_enabled": 0, "category": "platform"},
+]
+
+@frappe.whitelist(allow_guest=False)
+def seed_feature_flags():
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"))
+    if not frappe.db.table_exists("Mandi Feature Flag"):
+        frappe.throw(_("Mandi Feature Flag DocType not found. Run: bench migrate"))
+    seeded = 0
+    for flag in _DEFAULT_FLAGS:
+        if not frappe.db.exists("Mandi Feature Flag", {"flag_key": flag["flag_key"]}):
+            frappe.get_doc({"doctype": "Mandi Feature Flag", **flag}).insert(ignore_permissions=True)
+            seeded += 1
+    frappe.db.commit()
+    return {"success": True, "seeded": seeded, "total": len(_DEFAULT_FLAGS)}
+
+@frappe.whitelist(allow_guest=False)
+def get_feature_flags():
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"))
+    if not frappe.db.table_exists("Mandi Feature Flag"):
+        return []
+    return frappe.get_all("Mandi Feature Flag",
+        fields=["name","flag_key","label","description","is_enabled","category","modified"],
+        order_by="category asc, label asc")
+
+@frappe.whitelist(allow_guest=False)
+def toggle_feature_flag(flag_key, is_enabled):
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"))
+    if flag_key == "multi_tenant_isolation" and not is_enabled:
+        frappe.throw(_("Cannot disable multi-tenant isolation"))
+    if not frappe.db.table_exists("Mandi Feature Flag"):
+        frappe.throw(_("Feature flag system not initialized"))
+    fname = frappe.db.get_value("Mandi Feature Flag", {"flag_key": flag_key}, "name")
+    if not fname:
+        frappe.throw(_("Flag not found: {0}").format(flag_key))
+    frappe.db.set_value("Mandi Feature Flag", fname, "is_enabled", 1 if is_enabled else 0)
+    frappe.db.commit()
+    return {"success": True, "flag_key": flag_key, "is_enabled": bool(is_enabled)}
+
+
 @frappe.whitelist(allow_guest=True)
 def get_plans() -> list:
     """
