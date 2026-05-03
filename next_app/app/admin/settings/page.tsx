@@ -1,7 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabaseClient'; // Legacy stub — all calls return null safely
-mport { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Settings, Shield, Server, Globe, Bell, Database, RefreshCw, Clock,
