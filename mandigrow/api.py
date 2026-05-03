@@ -8754,3 +8754,49 @@ def get_branding_settings() -> dict:
         "brand_color_secondary": getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b",
         "logo_url": getattr(org, "logo_url", None)
     }
+
+# ── Signup OTP Endpoints ────────────────────────────────────────────────────────
+import random
+
+@frappe.whitelist(allow_guest=True)
+def send_signup_otp(email: str) -> dict:
+    """Generates and sends a 6-digit OTP for signup verification."""
+    if not email:
+        return {"success": False, "message": "Email is required"}
+    
+    otp = str(random.randint(100000, 999999))
+    frappe.cache().set_value(f"signup_otp_{email}", otp, expires_in_sec=600)  # valid for 10 minutes
+    
+    subject = "MandiGrow Workspace Setup - Verification Code"
+    message = f"""
+    <h3>Welcome to MandiGrow!</h3>
+    <p>Your OTP to verify your email address and set up your workspace is:</p>
+    <h1 style="letter-spacing: 5px; color: #047857;">{otp}</h1>
+    <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+    <br>
+    <p>Thanks,<br>The MandiGrow Team</p>
+    """
+    try:
+        frappe.sendmail(recipients=[email], subject=subject, message=message, delayed=False)
+        return {"success": True, "message": "OTP sent successfully"}
+    except Exception as e:
+        frappe.log_error(str(e), "MandiGrow OTP Send Failure")
+        return {"success": False, "message": f"Failed to send OTP: {str(e)}"}
+
+@frappe.whitelist(allow_guest=True)
+def verify_signup_otp(email: str, otp: str) -> dict:
+    """Verifies the submitted OTP against the cache."""
+    if not email or not otp:
+        return {"success": False, "message": "Email and OTP are required"}
+        
+    cached_otp = frappe.cache().get_value(f"signup_otp_{email}")
+    if not cached_otp:
+        return {"success": False, "message": "OTP expired or not found. Please request a new one."}
+        
+    if str(cached_otp).strip() != str(otp).strip():
+        return {"success": False, "message": "Invalid OTP. Please try again."}
+        
+    # Clear OTP after successful validation
+    frappe.cache().delete_value(f"signup_otp_{email}")
+    return {"success": True, "message": "Email verified successfully"}
+

@@ -28,6 +28,10 @@ export default function SignupPage() {
         password: '',
     });
     const [agreed, setAgreed] = useState(false);
+    
+    // OTP State
+    const [otpStep, setOtpStep] = useState(false);
+    const [otp, setOtp] = useState('');
 
     const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
         let v = e.target.value;
@@ -51,19 +55,64 @@ export default function SignupPage() {
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
-        const localErr = validateLocal();
-        if (localErr) { setError(localErr); return; }
+        
+        if (!otpStep) {
+            const localErr = validateLocal();
+            if (localErr) { setError(localErr); return; }
 
+            setSubmitting(true);
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.com';
+                const res = await fetch(`${baseUrl}/api/method/mandigrow.api.send_signup_otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ email: form.email })
+                });
+                const data = await res.json();
+                const msg = data.message || data;
+                
+                if (msg?.success) {
+                    setOtpStep(true);
+                } else {
+                    setError(msg?.message || 'Failed to send OTP. Please try again.');
+                }
+            } catch (err: any) {
+                setError('Could not connect to server.');
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+        // OTP Verification Step
+        if (otp.length < 6) {
+            setError('Please enter the 6-digit OTP.');
+            return;
+        }
+        
         setSubmitting(true);
-        // Hand off to the provisioning page via sessionStorage. Browser
-        // navigation is the cleanest way to "transfer" an SSE-bound
-        // payload without sticking secrets in the URL.
         try {
+            const baseUrl = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.com';
+            const res = await fetch(`${baseUrl}/api/method/mandigrow.api.verify_signup_otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ email: form.email, otp })
+            });
+            const data = await res.json();
+            const msg = data.message || data;
+            
+            if (!msg?.success) {
+                setError(msg?.message || 'Invalid OTP.');
+                setSubmitting(false);
+                return;
+            }
+
+            // Hand off to the provisioning page via sessionStorage.
             sessionStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(form));
             router.push('/signup/provisioning');
         } catch (e: any) {
             setSubmitting(false);
-            setError('Could not start signup — please try again.');
+            setError('Could not verify OTP — please try again.');
         }
     }
 
@@ -112,73 +161,98 @@ export default function SignupPage() {
                         <p className="text-sm text-slate-500 mt-1">Takes about 30 seconds. We'll set up everything for you.</p>
                     </div>
 
-                    <Field
-                        label="Mandi / Organisation name"
-                        icon={<Building2 className="w-4 h-4" />}
-                        placeholder="e.g. Sri Sai Mandi"
-                        value={form.orgName}
-                        onChange={update('orgName')}
-                        autoFocus
-                    />
+                    {!otpStep ? (
+                        <>
+                            <Field
+                                label="Mandi / Organisation name"
+                                icon={<Building2 className="w-4 h-4" />}
+                                placeholder="e.g. Sri Sai Mandi"
+                                value={form.orgName}
+                                onChange={update('orgName')}
+                                autoFocus
+                            />
 
-                    <Field
-                        label="Your full name"
-                        icon={<User className="w-4 h-4" />}
-                        placeholder="e.g. Tariq Malik"
-                        value={form.fullName}
-                        onChange={update('fullName')}
-                    />
+                            <Field
+                                label="Your full name"
+                                icon={<User className="w-4 h-4" />}
+                                placeholder="e.g. Tariq Malik"
+                                value={form.fullName}
+                                onChange={update('fullName')}
+                            />
 
-                    <Field
-                        label="Email"
-                        type="email"
-                        icon={<Mail className="w-4 h-4" />}
-                        placeholder="you@example.com"
-                        value={form.email}
-                        onChange={update('email')}
-                    />
+                            <Field
+                                label="Email"
+                                type="email"
+                                icon={<Mail className="w-4 h-4" />}
+                                placeholder="you@example.com"
+                                value={form.email}
+                                onChange={update('email')}
+                            />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <Field
-                            label="Username"
-                            icon={<AtSign className="w-4 h-4" />}
-                            placeholder="tariq786"
-                            value={form.username}
-                            onChange={update('username')}
-                            hint="Min 6, lowercase + digits"
-                        />
-                        <Field
-                            label="Mobile"
-                            icon={<Phone className="w-4 h-4" />}
-                            placeholder="9876543210"
-                            value={form.phone}
-                            onChange={update('phone')}
-                            hint="Optional"
-                        />
-                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="Username"
+                                    icon={<AtSign className="w-4 h-4" />}
+                                    placeholder="tariq786"
+                                    value={form.username}
+                                    onChange={update('username')}
+                                    hint="Min 6, lowercase + digits"
+                                />
+                                <Field
+                                    label="Mobile"
+                                    icon={<Phone className="w-4 h-4" />}
+                                    placeholder="9876543210"
+                                    value={form.phone}
+                                    onChange={update('phone')}
+                                    hint="Optional"
+                                />
+                            </div>
 
-                    <Field
-                        label="Password"
-                        type="password"
-                        icon={<Lock className="w-4 h-4" />}
-                        placeholder="At least 8 characters"
-                        value={form.password}
-                        onChange={update('password')}
-                    />
+                            <Field
+                                label="Password"
+                                type="password"
+                                icon={<Lock className="w-4 h-4" />}
+                                placeholder="At least 8 characters"
+                                value={form.password}
+                                onChange={update('password')}
+                            />
 
-                    <label className="flex items-start gap-2 text-xs text-slate-600 select-none">
-                        <input
-                            type="checkbox"
-                            checked={agreed}
-                            onChange={e => setAgreed(e.target.checked)}
-                            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span>
-                            I agree to the{' '}
-                            <Link href="/terms" className="text-emerald-700 underline">Terms</Link> and{' '}
-                            <Link href="/privacy" className="text-emerald-700 underline">Privacy Policy</Link>.
-                        </span>
-                    </label>
+                            <label className="flex items-start gap-2 text-xs text-slate-600 select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={agreed}
+                                    onChange={e => setAgreed(e.target.checked)}
+                                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span>
+                                    I agree to the{' '}
+                                    <Link href="/terms" className="text-emerald-700 underline">Terms</Link> and{' '}
+                                    <Link href="/privacy" className="text-emerald-700 underline">Privacy Policy</Link>.
+                                </span>
+                            </label>
+                        </>
+                    ) : (
+                        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+                            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-sm text-emerald-800">
+                                We sent a 6-digit verification code to <strong>{form.email}</strong>. Please enter it below to securely create your workspace.
+                            </div>
+                            <Field
+                                label="Enter OTP Code"
+                                icon={<Lock className="w-4 h-4" />}
+                                placeholder="123456"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                autoFocus
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => setOtpStep(false)}
+                                className="text-xs font-bold text-slate-500 hover:text-slate-800"
+                            >
+                                ← Back to edit details
+                            </button>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700 font-medium">
@@ -197,9 +271,9 @@ export default function SignupPage() {
                         )}
                     >
                         {submitting ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Starting…</>
+                            <><Loader2 className="w-4 h-4 animate-spin" /> {otpStep ? 'Verifying…' : 'Sending OTP…'}</>
                         ) : (
-                            <>Create workspace <ArrowRight className="w-4 h-4" /></>
+                            <>{otpStep ? 'Verify & Create Workspace' : 'Continue'} <ArrowRight className="w-4 h-4" /></>
                         )}
                     </button>
 
