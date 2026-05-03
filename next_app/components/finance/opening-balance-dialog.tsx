@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Landmark } from "lucide-react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider";
 
 export function AdjustBalanceDialog({ accountId, accountName, currentBalance, onRefresh }: { accountId: string, accountName: string, currentBalance: number, onRefresh: () => void }) {

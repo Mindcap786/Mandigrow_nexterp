@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 
 /**
  * Legacy hook — previously returned a Supabase client scoped to a domain schema.

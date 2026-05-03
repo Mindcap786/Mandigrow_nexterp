@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Truck, Loader2, Edit2, MapPin, Package, Scale, IndianRupee } from "lucide-react";
 import { format } from "date-fns";
 import { EditLotDialog } from "./edit-lot-dialog";

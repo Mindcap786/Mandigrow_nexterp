@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Unlock, Calendar, Loader2, Save, Landmark } from "lucide-react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider";
 import { AdjustBalanceDialog } from "./opening-balance-dialog";
 

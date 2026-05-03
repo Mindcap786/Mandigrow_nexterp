@@ -1,8 +1,8 @@
 "use client";
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — returns no-op
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 
 export default function AuthCallback() {
     const router = useRouter()

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache"
 import { cn } from "@/lib/utils"
 import {

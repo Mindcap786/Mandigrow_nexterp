@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Loader2, Store, MapPin, CheckCircle2, ArrowRight, UserPlus, ShieldCheck, UserCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"

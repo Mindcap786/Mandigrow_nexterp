@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Check, Search, Package, User, Clock, Loader2 } from "lucide-react"
 import { formatCommodityName } from "@/lib/utils/commodity-utils"
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import {
     Dialog,

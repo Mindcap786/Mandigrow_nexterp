@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { Loader2, Save, Layers, Users, Database, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

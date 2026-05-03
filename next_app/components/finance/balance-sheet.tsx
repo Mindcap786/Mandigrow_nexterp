@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
     Loader2, RefreshCw, Download, Building2, Scale,

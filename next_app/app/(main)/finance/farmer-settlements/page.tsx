@@ -6,7 +6,7 @@ import { Search, Wallet, ArrowUpRight, History, CheckCircle2, IndianRupee } from
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import Link from "next/link"
 

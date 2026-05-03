@@ -1,7 +1,6 @@
 'use client'
 
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Gavel, TrendingUp, Clock, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'

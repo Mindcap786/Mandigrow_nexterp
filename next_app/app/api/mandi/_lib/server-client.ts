@@ -5,11 +5,10 @@
  * Migrated from Supabase to Frappe — all auth + data goes through Frappe RPC.
  */
 import { NextResponse } from 'next/server'
-import { supabase, createClient } from '@/lib/supabaseClient'
 
 export async function createMandiServerClient() {
     // Returns the no-op proxy. All real data calls should use callApi().
-    return supabase;
+    return {}; // Frappe handles all auth via session cookies
 }
 
 /**

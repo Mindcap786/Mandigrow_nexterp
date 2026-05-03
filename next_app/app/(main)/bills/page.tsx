@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Printer, FileText, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 

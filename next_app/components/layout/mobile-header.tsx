@@ -4,7 +4,7 @@ import { usePermission } from "@/hooks/use-permission";
 import { ShieldCheck, Bell, User, Menu as MenuIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/sidebar";
 

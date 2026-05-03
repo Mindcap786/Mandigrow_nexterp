@@ -1,41 +1,29 @@
-/**
- * GET  /api/mandi/arrivals/[id]   — single arrival with full lot detail
- * PATCH /api/mandi/arrivals/[id]  — update draft arrival (pre-lot-creation only)
- */
-import { NextRequest, NextResponse } from 'next/server'
-import { createMandiServerClient, requireAuth, apiError } from '../../_lib/server-client'
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-    _request: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    const supabase = await createMandiServerClient()
-    const { profile, response: authErr } = await requireAuth(supabase)
-    if (authErr) return authErr
-
-    const { data, error } = await supabase
-        .schema('mandi')
-        .from('arrivals')
-        .select(`
-            *,
-            party:contacts(id, name, contact_type, phone, address, opening_balance),
-            commodity:commodities(id, name, default_unit, shelf_life_days),
-            gate_entry:gate_entries(id, entry_date, vehicle_number),
-            lots(id, lot_code, initial_qty, current_qty, unit, grade, status)
-        `)
-        .eq('id', params.id)
-        .single()
-
-    if (error) {
-        if (error.code === 'PGRST116') return apiError.notFound('Arrival')
-        console.error('[arrivals/[id]:GET]', error.message)
-        return apiError.server(error.message)
-    }
-
-    // Ownership check — RLS should handle but double-check at app layer for safety
-    if ((data as unknown as { organization_id: string }).organization_id !== profile!.organization_id) {
-        return apiError.forbidden()
-    }
-
-    return NextResponse.json(data)
+// This legacy Supabase/Postgres API route has been migrated to Frappe.
+// All data operations now go through /api/method/mandigrow.api.* endpoints.
+// This stub returns 410 Gone so any old calls surface a clear error.
+export async function GET(_req: NextRequest) {
+    return NextResponse.json(
+        { error: 'This endpoint has been deprecated. Use Frappe API instead: /api/method/mandigrow.api.*' },
+        { status: 410 }
+    );
+}
+export async function POST(_req: NextRequest) {
+    return NextResponse.json(
+        { error: 'This endpoint has been deprecated. Use Frappe API instead: /api/method/mandigrow.api.*' },
+        { status: 410 }
+    );
+}
+export async function PUT(_req: NextRequest) {
+    return NextResponse.json(
+        { error: 'This endpoint has been deprecated. Use Frappe API instead: /api/method/mandigrow.api.*' },
+        { status: 410 }
+    );
+}
+export async function DELETE(_req: NextRequest) {
+    return NextResponse.json(
+        { error: 'This endpoint has been deprecated. Use Frappe API instead: /api/method/mandigrow.api.*' },
+        { status: 410 }
+    );
 }

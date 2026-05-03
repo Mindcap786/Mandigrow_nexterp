@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Plus, ClipboardList, TrendingUp, Users, Loader2, Filter, Search, Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, X, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";

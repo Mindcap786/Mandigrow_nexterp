@@ -18,7 +18,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 

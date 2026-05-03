@@ -69,7 +69,6 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useAuth } from '@/components/auth/auth-provider'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'sonner'
 import { cacheGet, cacheSet, cacheIsStale } from '@/lib/data-cache'
 import { ItemDialog } from '@/components/inventory/item-dialog'

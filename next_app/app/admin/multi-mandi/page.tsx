@@ -1,8 +1,9 @@
 "use client";
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — returns null safely
 
 import { useState, useEffect } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider";
 import { Loader2, Building2, TrendingUp, Package, Users, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";

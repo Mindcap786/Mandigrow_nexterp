@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle, CheckCircle, Database, ShieldAlert, Activity } from "lucide-react";

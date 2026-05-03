@@ -3,7 +3,6 @@ import { NativePageWrapper } from "@/components/mobile/NativePageWrapper";
 
 import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/components/auth/auth-provider'
-import { supabase } from '@/lib/supabaseClient'
 import { PieChart, TrendingUp, TrendingDown, Package, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
 type SaleItem = {

@@ -3,7 +3,6 @@ import { NativePageWrapper } from "@/components/mobile/NativePageWrapper";
 
 import { useState, useEffect } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Loader2, Calendar, CheckCircle, Calculator, TrendingUp, AlertCircle, DollarSign, Filter, Search } from 'lucide-react'
 import { BillingService, BillConfig } from '@/lib/services/billing-service'

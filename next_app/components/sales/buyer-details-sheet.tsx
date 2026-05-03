@@ -6,7 +6,7 @@ import { Loader2, ArrowUpRight, ArrowDownLeft, Receipt, FileText, CheckCircle2 }
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { NewPaymentDialog } from "@/components/finance/new-payment-dialog";
 
 export function BuyerDetailsSheet({ buyer, open, onOpenChange }: { buyer: any, open: boolean, onOpenChange: (open: boolean) => void }) {

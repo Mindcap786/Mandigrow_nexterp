@@ -1,8 +1,8 @@
 'use client';
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — returns null safely
 
 import { useState, useEffect, Suspense } from 'react';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import {
     Loader2, Zap, Activity, Stethoscope, CheckCircle2, AlertTriangle, RefreshCw,
     Search, ChevronDown, ChevronRight, Package, BookOpen, ArrowUpDown,

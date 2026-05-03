@@ -24,7 +24,7 @@ type StageKey =
     | 'validate'
     | 'reserve_slug'
     | 'create_frappe_org'
-    | 'create_supabase_user'
+    | 'create_frappe_user'
     | 'link_back'
     | 'ready';
 
@@ -39,7 +39,7 @@ const STAGES: Stage[] = [
     { key: 'validate',             label: 'Verifying details',           detail: 'Checking email, username and password strength' },
     { key: 'reserve_slug',         label: 'Reserving workspace name',    detail: 'Picking a unique URL for your mandi' },
     { key: 'create_frappe_org',    label: 'Building your Mandi workspace', detail: 'Spinning up books, lots, gate entry & POS' },
-    { key: 'create_supabase_user', label: 'Creating your secure account', detail: 'Provisioning encrypted credentials' },
+    { key: 'create_frappe_user', label: 'Creating your secure account', detail: 'Setting up your Frappe account' },
     { key: 'link_back',            label: 'Linking modules',             detail: 'Wiring inventory · billing · payments' },
     { key: 'ready',                label: 'Workspace ready',             detail: 'Final checks and handoff' },
 ];

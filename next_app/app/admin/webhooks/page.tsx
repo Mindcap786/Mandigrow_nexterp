@@ -1,8 +1,8 @@
 'use client';
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — returns null safely
 
 import { useState, useEffect } from 'react';
 import { callApi } from '@/lib/frappeClient';
-import { supabase } from '@/lib/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

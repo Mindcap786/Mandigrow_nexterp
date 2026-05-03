@@ -7,7 +7,6 @@ import {
     MapPin, Smartphone, Sparkles, ArrowRight, Building2, Clock,
 } from 'lucide-react';
 import { callApi } from '@/lib/frappeClient';
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

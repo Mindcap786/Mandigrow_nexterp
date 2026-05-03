@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Plus, Search, Truck, CheckCircle2, Clock, MapPin, Navigation, User, Hash, Info, Trash2 } from 'lucide-react'
 

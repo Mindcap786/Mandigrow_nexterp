@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
 import { SearchableSelect } from "@/components/ui/searchable-select";

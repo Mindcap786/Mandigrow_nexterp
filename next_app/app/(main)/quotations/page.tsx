@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Plus, Search, Filter, ClipboardList, ArrowRight, CheckCircle2, XCircle, Clock, MoreHorizontal, Eye, FileText, Trash2, ShieldAlert } from 'lucide-react'
 import Link from 'next/link'

@@ -3,7 +3,6 @@
 import { X, Box, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 
 interface AssignLotModalProps {
     rackId: string

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Save, Loader2, Building2, Percent, Receipt, MapPin, ShieldCheck, UserPlus, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { usePermission } from "@/hooks/use-permission";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

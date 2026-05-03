@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Info, Edit, CreditCard, ChevronDown, ChevronRight, ShieldCheck, Box, X, Calendar as CalendarIcon, Search, Filter, FileText, MapPin, Truck } from "lucide-react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";

@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { Loader2, TrendingDown, TrendingUp, Users, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

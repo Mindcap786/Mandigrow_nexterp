@@ -1,8 +1,8 @@
 'use client';
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — returns null safely
 
 import { useEffect, useState } from 'react';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { Shield, Lock, UserX, UserCheck, MoreVertical, Plus, Loader2, Trash2, KeyRound, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

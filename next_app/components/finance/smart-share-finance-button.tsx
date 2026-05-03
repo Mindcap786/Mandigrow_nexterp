@@ -12,7 +12,7 @@ import {
 import { useState } from 'react';
 import { Loader2, Share2, Mail, MessageCircle, Download } from 'lucide-react';
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { isNativePlatform } from '@/lib/capacitor-utils';
 
 interface SmartShareFinanceButtonProps {

@@ -1,7 +1,7 @@
 'use client'
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — returns no-op
 
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useState } from 'react'
 
 export default function SeedPage() {

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { Plus, Search, Scale, Package, ChevronRight, User } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 

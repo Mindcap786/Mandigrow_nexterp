@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Box, Snowflake, Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
 
 import { AssignLotModal } from '@/components/inventory/assign-lot-modal'
 

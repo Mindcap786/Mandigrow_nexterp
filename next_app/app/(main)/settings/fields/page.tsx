@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { usePermission } from "@/hooks/use-permission";
 import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
 import {

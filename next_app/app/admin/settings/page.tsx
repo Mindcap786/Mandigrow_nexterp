@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient'; // Legacy stub — all calls return null safely
+mport { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Settings, Shield, Server, Globe, Bell, Database, RefreshCw, Clock,
     Loader2, CheckCircle2, Save, AlertTriangle, Printer, Calendar, CreditCard
 } from 'lucide-react';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Search, ClipboardList, CheckCircle2, Clock, XCircle, Trash2, FileText, ArrowRightLeft, MoreHorizontal, Eye } from 'lucide-react'

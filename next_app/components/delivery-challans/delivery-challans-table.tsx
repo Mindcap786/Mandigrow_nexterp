@@ -18,7 +18,7 @@ import {
 import { useLanguage } from "@/components/i18n/language-provider";
 import Link from "next/link";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useToast } from "@/hooks/use-toast";
 
 export default function DeliveryChallansTable({ data, isLoading, onStatusUpdate }: { data: any[], isLoading: boolean, onStatusUpdate: () => void }) {

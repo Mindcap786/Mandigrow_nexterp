@@ -11,7 +11,6 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { QRCodeSVG } from 'qrcode.react'
 
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabaseClient'
 
 interface PaymentSettings {
     upi_id: string

@@ -8,7 +8,6 @@ import { LanguageSwitcher } from '@/components/i18n/language-switcher'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useEffect } from 'react'
 
 export default function LandingPage() {

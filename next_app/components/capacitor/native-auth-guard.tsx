@@ -17,7 +17,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { cacheClearForSession, setActiveCacheUser } from '@/lib/data-cache'
 
 // Routes that don't require auth (mirrors middleware.ts PUBLIC_ROUTES)

@@ -16,7 +16,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { useToast } from "@/hooks/use-toast";

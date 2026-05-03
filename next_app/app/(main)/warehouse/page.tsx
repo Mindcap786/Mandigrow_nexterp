@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import {
     Plus, ArrowRight, Trash2, Package, MapPin, Loader2

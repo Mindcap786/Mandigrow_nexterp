@@ -6,7 +6,6 @@ import { AlertTriangle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/auth-provider';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 
 export function ImpersonationBanner() {
     const [isImpersonating, setIsImpersonating] = useState(false);

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Printer, ChevronLeft, Download, ShieldCheck, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
+ // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import PurchaseBillInvoice from "@/components/purchase/purchase-invoice-template"
 

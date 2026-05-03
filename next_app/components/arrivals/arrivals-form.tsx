@@ -52,7 +52,6 @@ import LotQRSlip, { LotQRData, generateQRString } from "./lot-qr-slip";
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
-import { supabase } from "@/lib/supabaseClient";
 import { ContactDialog } from "@/components/contacts/contact-dialog";
 import { ItemDialog } from "@/components/inventory/item-dialog";
 import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache";

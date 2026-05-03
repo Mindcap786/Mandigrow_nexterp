@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Save, Phone, Mail, MapPin, Building2 } from 'lucide-react';
 import { callApi } from '@/lib/frappeClient';
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

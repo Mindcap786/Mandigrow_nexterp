@@ -16,7 +16,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient';
 import { initializePush } from '@/lib/push-notifications';
 import { usePermission } from '@/hooks/use-permission';
 
