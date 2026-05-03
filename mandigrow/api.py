@@ -8306,7 +8306,7 @@ def get_plans() -> list:
         plans = frappe.get_all(
             "App Plan",
             fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
-                    "max_users", "max_storage_gb", "sort_order", "features", "description"],
+                    "max_users", "sort_order", "features", "description"],
             order_by="sort_order asc",
             ignore_permissions=True
         )
@@ -8871,7 +8871,7 @@ def get_tenant_subscription() -> dict:
     plans = frappe.get_all(
         "App Plan",
         fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
-                "max_users", "max_storage_gb", "sort_order", "features", "description", "is_active"],
+                "max_users", "sort_order", "features", "description", "is_active"],
         order_by="sort_order asc",
         ignore_permissions=True
     )
