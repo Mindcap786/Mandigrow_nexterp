@@ -896,7 +896,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
 @frappe.whitelist(allow_guest=True)
 def force_sync_admin():
     """Manually triggers the admin account repair patch."""
-    from mandigrow.patches.v1_0.force_admin_reset import execute
+    from mandigrow.mandigrow.patches.v1_0.force_admin_reset import execute
     execute()
     return "Admin sync completed successfully."
 
