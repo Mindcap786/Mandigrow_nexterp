@@ -1286,11 +1286,16 @@ def get_stock_alerts() -> list:
     if not valid_arrivals:
         return []
         
-    low_stock_lots = frappe.get_all("Mandi Lot", 
-        filters={"parent": ["in", valid_arrivals], "current_qty": [">", 0], "current_qty": ["<", 20]},
-        fields=["name", "item_id", "current_qty", "unit", "parent", "creation"],
-        limit=5
+    # Note: two filters on same field need frappe.db.sql or fetch+filter in Python
+    # Frappe get_all dict filters drop duplicate keys (Python dict behavior)
+    # Fetch all active lots and filter in-memory for threshold < 20
+    all_active_lots = frappe.get_all("Mandi Lot",
+        filters={"parent": ["in", valid_arrivals], "qty": [">", 0]},
+        fields=["name", "item_id", "current_qty", "qty", "unit", "parent", "creation", "storage_location"],
+        ignore_permissions=True,
+        limit_page_length=500,
     )
+    low_stock_lots = [l for l in all_active_lots if (l.get("current_qty") or l.get("qty") or 0) < 20 and (l.get("current_qty") or l.get("qty") or 0) > 0][:10]
     
     alerts = []
     for lot in low_stock_lots:
@@ -4687,7 +4692,7 @@ def get_stock_summary(org_id: str = None) -> dict:
         for a in frappe.get_all(
             "Mandi Arrival",
             filters={"name": ["in", arrival_ids]},
-            fields=["name", "party_id", "arrival_date", "storage_location"],
+            fields=["name", "party_id", "arrival_date", "arrival_type", "storage_location"],
             ignore_permissions=True,
         ):
             arrival_map[a["name"]] = a
@@ -4750,6 +4755,7 @@ def get_stock_summary(org_id: str = None) -> dict:
         lot["party_id"] = arrival.get("party_id")
         lot["party_name"] = party_map.get(arrival.get("party_id")) if arrival.get("party_id") else None
         lot["storage_location"] = storage_location
+        lot["arrival_type"] = arrival.get("arrival_type") or "direct"
         lot["created_at"] = creation_iso
 
         iid = lot.get("item_id") or "Unknown"
@@ -7407,46 +7413,63 @@ def backfill_gl_entries() -> dict:
 @frappe.whitelist(allow_guest=False)
 def transfer_stock(lot_id: str, to_location: str, qty: float) -> dict:
     """
-    Moves stock from one location to another. 
-    If partial qty is moved, it splits the lot.
+    Moves stock from one location to another.
+    Uses frappe.db.set_value to bypass ERPNext's post-submission field-change guard.
+    Mandi Lot is a child of submitted Mandi Arrival — calling .save() triggers
+    "Not allowed to change X after submission" for submitted parent documents.
+    db.set_value writes directly to the DB table, bypassing that validation.
     """
     try:
         qty = flt(qty)
         if qty <= 0:
             return {"error": "Quantity must be greater than zero"}
 
-        # Tenant guard: verify parent arrival belongs to user's org
+        # Tenant guard
         parent_name = frappe.db.get_value("Mandi Lot", lot_id, "parent")
         if parent_name:
             from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
             enforce_org_match_by_name("Mandi Arrival", parent_name)
 
         lot = frappe.get_doc("Mandi Lot", lot_id)
-        if qty > flt(lot.current_qty):
-            return {"error": f"Insufficient stock. Available: {lot.current_qty}"}
+        current_qty = flt(lot.current_qty)
+        if qty > current_qty:
+            return {"error": f"Insufficient stock. Available: {current_qty}"}
 
-        if qty == flt(lot.current_qty):
-            # Full move: just update location
-            lot.storage_location = to_location
-            lot.save(ignore_permissions=True)
-            return {"status": "success", "message": "Full lot moved"}
+        if qty == current_qty:
+            # Full move — db.set_value bypasses submission restriction
+            frappe.db.set_value("Mandi Lot", lot_id, "storage_location", to_location, update_modified=False)
+            frappe.db.commit()
+            return {"status": "success", "message": f"Full lot moved to {to_location}"}
         else:
-            # Partial move: split the lot
-            new_lot = frappe.copy_doc(lot)
-            new_lot.name = None # Let it auto-name
-            new_lot.initial_qty = qty
-            new_lot.current_qty = qty
-            new_lot.storage_location = to_location
-            
-            # Update original lot
-            lot.current_qty = flt(lot.current_qty) - qty
-            lot.save(ignore_permissions=True)
-            
+            # Partial move — deduct from original via db.set_value, insert new split lot
+            remaining = round(current_qty - qty, 4)
+            frappe.db.set_value("Mandi Lot", lot_id, {
+                "current_qty": remaining,
+                "status": "Partial" if remaining > 0 else "Sold"
+            }, update_modified=False)
+
+            # Insert the new split lot as a child row
+            new_lot = frappe.get_doc({
+                "doctype":        "Mandi Lot",
+                "parenttype":     lot.parenttype,
+                "parent":         lot.parent,
+                "parentfield":    lot.parentfield,
+                "item_id":        lot.item_id,
+                "unit":           lot.unit,
+                "qty":            qty,
+                "initial_qty":    qty,
+                "current_qty":    qty,
+                "supplier_rate":  lot.supplier_rate,
+                "sale_price":     lot.sale_price,
+                "storage_location": to_location,
+                "lot_code":       f"{lot.lot_code or lot.name}-SPLIT",
+            })
             new_lot.insert(ignore_permissions=True)
-            return {"status": "success", "message": "Lot split and moved", "new_lot": new_lot.name}
+            frappe.db.commit()
+            return {"status": "success", "message": f"Lot split: {qty} moved to {to_location}, {remaining} remains", "new_lot": new_lot.name}
 
     except Exception as e:
-        frappe.log_error(f"Error in transfer_stock: {str(e)}")
+        frappe.log_error(frappe.get_traceback(), "transfer_stock Failed")
         return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
@@ -8965,3 +8988,202 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "change_tenant_plan Failed")
         return {"success": False, "message": str(e)}
+
+# ── Stock Operations: Report Loss, Return to Supplier, Stock Alerts ────────────
+
+@frappe.whitelist(allow_guest=False)
+def report_loss(lot_id: str, loss_qty: float, reason: str = "Spoilage") -> dict:
+    """
+    Records a wastage/loss on a Mandi Lot.
+    - Reduces current_qty by loss_qty using db.set_value (bypasses submission guard).
+    - Creates a Journal Entry to debit Mandi's Profit & Loss (loss expense account).
+    - Triggers stock alert re-evaluation after reduction.
+
+    Args:
+        lot_id:    Mandi Lot name (e.g. "AB26QFBLSI")
+        loss_qty:  Quantity to write off
+        reason:    "Spoilage / Rot", "Theft", "Weight Loss", etc.
+    """
+    from frappe.utils import flt, today
+
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "error": "Organization not found"}
+
+    loss_qty = flt(loss_qty)
+    if loss_qty <= 0:
+        return {"success": False, "error": "Loss quantity must be greater than zero"}
+
+    # ── Load lot and validate ────────────────────────────────────────────────
+    try:
+        lot = frappe.get_doc("Mandi Lot", lot_id)
+    except Exception:
+        return {"success": False, "error": f"Lot '{lot_id}' not found"}
+
+    # Tenant guard
+    parent_name = frappe.db.get_value("Mandi Lot", lot_id, "parent")
+    if parent_name:
+        arrival_org = frappe.db.get_value("Mandi Arrival", parent_name, "organization_id")
+        if arrival_org and arrival_org != org_id:
+            frappe.throw("Access denied: This lot does not belong to your organization.")
+
+    current_qty = flt(lot.current_qty)
+    if loss_qty > current_qty:
+        return {"success": False, "error": f"Cannot remove {loss_qty} — only {current_qty} available"}
+
+    # ── Deduct stock ─────────────────────────────────────────────────────────
+    new_qty = round(current_qty - loss_qty, 4)
+    new_status = "Sold" if new_qty <= 0 else ("Partial" if new_qty < flt(lot.initial_qty or current_qty) else "Active")
+    frappe.db.set_value("Mandi Lot", lot_id, {
+        "current_qty": new_qty,
+        "status": new_status,
+    }, update_modified=False)
+    frappe.db.commit()
+
+    # ── Post Wastage Journal Entry ──────────────────────────────────────────
+    try:
+        unit_cost = flt(lot.supplier_rate or 0)
+        loss_value = round(loss_qty * unit_cost, 2)
+        item_name  = lot.item_id or "Commodity"
+        narration  = f"Stock Loss: {loss_qty} {lot.unit or 'Units'} of {item_name} — {reason}"
+
+        if loss_value > 0:
+            company = frappe.db.get_value("Mandi Organization", org_id, "company") or frappe.defaults.get_user_default("Company")
+            # Debit Wastage/Loss Account, Credit Stock
+            loss_acc  = frappe.db.get_value("Account", {"account_name": ["like", "%Wastage%"], "company": company}, "name") \
+                     or frappe.db.get_value("Account", {"account_name": ["like", "%Loss%"], "company": company}, "name") \
+                     or frappe.db.get_value("Account", {"account_type": "Expense Account", "company": company}, "name")
+            stock_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"], "company": company}, "name") \
+                     or frappe.db.get_value("Account", {"account_type": "Stock", "company": company}, "name")
+
+            if loss_acc and stock_acc:
+                je = frappe.get_doc({
+                    "doctype":      "Journal Entry",
+                    "voucher_type": "Journal Entry",
+                    "posting_date": today(),
+                    "company":      company,
+                    "user_remark":  narration,
+                    "accounts": [
+                        {"account": loss_acc,  "debit_in_account_currency": loss_value, "credit_in_account_currency": 0},
+                        {"account": stock_acc, "debit_in_account_currency": 0,          "credit_in_account_currency": loss_value},
+                    ]
+                })
+                je.insert(ignore_permissions=True)
+                je.submit()
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "report_loss JE Failed (non-fatal)")
+        # Non-fatal — stock deduction already committed above
+
+    frappe.logger().info(f"[report_loss] {lot_id}: -{loss_qty} ({reason}), new_qty={new_qty}, org={org_id}")
+    return {
+        "success": True,
+        "lot_id": lot_id,
+        "removed_qty": loss_qty,
+        "remaining_qty": new_qty,
+        "reason": reason,
+        "message": f"{loss_qty} units removed from stock. Remaining: {new_qty}",
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supplier") -> dict:
+    """
+    Returns stock to the supplier/farmer.
+    - Reduces current_qty by return_qty using db.set_value (bypasses submission guard).
+    - Creates a credit Journal Entry to reduce the supplier's payable balance.
+    - Records the return for audit trail.
+
+    Args:
+        lot_id:      Mandi Lot name
+        return_qty:  Quantity being returned
+        reason:      Reason/remarks for the return
+    """
+    from frappe.utils import flt, today
+
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "error": "Organization not found"}
+
+    return_qty = flt(return_qty)
+    if return_qty <= 0:
+        return {"success": False, "error": "Return quantity must be greater than zero"}
+
+    # ── Load and validate lot ────────────────────────────────────────────────
+    try:
+        lot = frappe.get_doc("Mandi Lot", lot_id)
+    except Exception:
+        return {"success": False, "error": f"Lot '{lot_id}' not found"}
+
+    # Tenant guard
+    parent_name = frappe.db.get_value("Mandi Lot", lot_id, "parent")
+    if parent_name:
+        arrival_org = frappe.db.get_value("Mandi Arrival", parent_name, "organization_id")
+        if arrival_org and arrival_org != org_id:
+            frappe.throw("Access denied: This lot does not belong to your organization.")
+
+    current_qty = flt(lot.current_qty)
+    if return_qty > current_qty:
+        return {"success": False, "error": f"Cannot return {return_qty} — only {current_qty} available"}
+
+    # Get supplier from parent arrival
+    supplier_id = None
+    unit_cost   = flt(lot.supplier_rate or 0)
+    if parent_name:
+        supplier_id = frappe.db.get_value("Mandi Arrival", parent_name, "party_id")
+
+    # ── Deduct stock ─────────────────────────────────────────────────────────
+    new_qty    = round(current_qty - return_qty, 4)
+    new_status = "Sold" if new_qty <= 0 else ("Partial" if new_qty < flt(lot.initial_qty or current_qty) else "Active")
+    frappe.db.set_value("Mandi Lot", lot_id, {
+        "current_qty": new_qty,
+        "status": new_status,
+    }, update_modified=False)
+    frappe.db.commit()
+
+    # ── Post Credit JE to reduce supplier payable ────────────────────────────
+    return_value = round(return_qty * unit_cost, 2)
+    if return_value > 0 and supplier_id:
+        try:
+            item_name   = lot.item_id or "Commodity"
+            company     = frappe.db.get_value("Mandi Organization", org_id, "company") or frappe.defaults.get_user_default("Company")
+            narration   = f"Stock Return: {return_qty} {lot.unit or 'Units'} of {item_name} returned to supplier {supplier_id} — {reason}"
+
+            # Credit supplier (reduce payable), Debit purchase/stock account
+            creditor_acc = frappe.db.get_value("Account", {
+                "party_type": "Supplier", "company": company
+            }, "name") or frappe.db.get_value("Account", {
+                "account_type": "Payable", "company": company
+            }, "name")
+            stock_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"], "company": company}, "name") \
+                     or frappe.db.get_value("Account", {"account_type": "Stock", "company": company}, "name")
+
+            if creditor_acc and stock_acc:
+                je = frappe.get_doc({
+                    "doctype":      "Journal Entry",
+                    "voucher_type": "Debit Note",
+                    "posting_date": today(),
+                    "company":      company,
+                    "user_remark":  narration,
+                    "accounts": [
+                        # Dr Stock (reducing asset since goods returned)
+                        {"account": stock_acc,    "debit_in_account_currency": 0,            "credit_in_account_currency": return_value},
+                        # Cr Supplier Payable (reducing what mandi owes)
+                        {"account": creditor_acc, "debit_in_account_currency": return_value,  "credit_in_account_currency": 0,
+                         "party_type": "Supplier", "party": supplier_id},
+                    ]
+                })
+                je.insert(ignore_permissions=True)
+                je.submit()
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "return_stock JE Failed (non-fatal)")
+
+    frappe.logger().info(f"[return_stock] {lot_id}: -{return_qty} ({reason}), new_qty={new_qty}, supplier={supplier_id}, org={org_id}")
+    return {
+        "success":      True,
+        "lot_id":       lot_id,
+        "returned_qty": return_qty,
+        "remaining_qty": new_qty,
+        "credit_value": return_value if supplier_id else 0,
+        "reason":       reason,
+        "message":      f"{return_qty} units returned. Remaining stock: {new_qty}. Supplier payable reduced by ₹{return_value:,.0f}.",
+    }
