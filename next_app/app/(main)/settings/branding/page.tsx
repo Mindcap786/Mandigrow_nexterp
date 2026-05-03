@@ -130,8 +130,8 @@ export default function WhiteLabelPage() {
             formData.append('folder', 'Home/Logos');
             formData.append('optimize', '1');
 
-            const baseUrl = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.com';
-            const response = await fetch(`${baseUrl}/api/method/upload_file`, {
+            // Upload via Next.js proxy rewrite to avoid CORS
+            const response = await fetch(`/api/method/upload_file`, {
                 method: 'POST',
                 credentials: 'include',   // sends Frappe session cookie
                 body: formData,
@@ -147,8 +147,8 @@ export default function WhiteLabelPage() {
 
             if (!fileUrl) throw new Error('No file URL returned from server');
 
-            // Convert relative URL to absolute if needed
-            const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+            // Convert relative URL to absolute if needed, use window.location.origin as base
+            const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${window.location.origin}${fileUrl}`;
             set("logo_url", absoluteUrl);
             toast({ title: "✅ Logo Uploaded", description: "Click Save Changes to apply permanently." });
         } catch (err: any) {
