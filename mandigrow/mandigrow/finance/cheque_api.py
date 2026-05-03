@@ -5,15 +5,15 @@ from frappe.utils import flt, today
 import re
 
 def _get_user_company() -> str:
-    from mandigrow.mandigrow.api import _get_user_company
+    from mandigrow.api import _get_user_company
     return _get_user_company()
 
 def _get_user_org() -> str:
-    from mandigrow.mandigrow.api import _get_user_org
+    from mandigrow.api import _get_user_org
     return _get_user_org()
 
 def _get_ledger_summary(*args, **kwargs):
-    from mandigrow.mandigrow.api import _get_ledger_summary
+    from mandigrow.api import _get_ledger_summary
     return _get_ledger_summary(*args, **kwargs)
 
 @frappe.whitelist(allow_guest=False)

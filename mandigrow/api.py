@@ -1356,7 +1356,9 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> list:
     if not effective_org:
         return {"records": [], "contacts": [], "total_count": 0}
 
-    filters = [["organization_id", "=", effective_org], ["full_name", "!=", "Walk-in Buyer"]]
+    filters = [["full_name", "!=", "Walk-in Buyer"]]
+    if effective_org and frappe.db.has_column("Mandi Contact", "organization_id"):
+        filters.insert(0, ["organization_id", "=", effective_org])
     if contact_type:
         # If multiple types (e.g. "farmer,supplier"), handle as IN
         if "," in contact_type:
@@ -4283,7 +4285,7 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
     page_size = int(page_size or 50)
 
     filters = [["full_name", "!=", "Walk-in Buyer"]]
-    if org_id:
+    if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         filters.append(["organization_id", "=", org_id])
     if contact_type and contact_type != "all":
         filters.append(["contact_type", "=", contact_type])
@@ -4309,7 +4311,7 @@ def search_contacts(query: str = None, contact_type: str = None, org_id: str = N
         return []
     org_id = org_id or _get_user_org()
     filters = [["full_name", "!=", "Walk-in Buyer"]]
-    if org_id:
+    if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         filters.append(["organization_id", "=", org_id])
     if contact_type:
         filters.append(["contact_type", "=", contact_type])
@@ -5052,9 +5054,9 @@ def get_sale_master_data(org_id: str = None) -> dict:
 
     # Buyers from Mandi Contact
     buyer_filters = {"contact_type": ["in", ["buyer", "staff"]]}
-    if org_id:
+    if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         buyer_filters["organization_id"] = org_id
-        
+
     buyers = frappe.get_all("Mandi Contact",
         filters=buyer_filters,
         fields=["name as id", "full_name as name", "contact_type as type", "city"],
@@ -5068,7 +5070,8 @@ def get_sale_master_data(org_id: str = None) -> dict:
     # If org_id provided, filter lots by their parent Arrival's org_id
     if org_id:
         # We fetch parents first to be safe if dot notation isn't enabled
-        valid_parents = frappe.get_all("Mandi Arrival", filters={"organization_id": org_id}, pluck="name")
+        _arr_filters = {"organization_id": org_id} if frappe.db.has_column("Mandi Arrival", "organization_id") else {}
+        valid_parents = frappe.get_all("Mandi Arrival", filters=_arr_filters, pluck="name")
         if valid_parents:
             lot_filters["parent"] = ["in", valid_parents]
         else:
@@ -6463,7 +6466,7 @@ def get_pos_master_data() -> dict:
         
         # 2. Fetch Buyers
         buyer_filters = {"contact_type": ["in", ["buyer", "staff"]], "full_name": ["!=", "Walk-in Buyer"]}
-        if org_id:
+        if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
             buyer_filters["organization_id"] = org_id
 
         buyers = frappe.get_all("Mandi Contact",
@@ -6487,7 +6490,7 @@ def get_pos_master_data() -> dict:
             "is_group": 0,
             "disabled": 0,
         }
-        if org_id:
+        if org_id and frappe.db.has_column("Account", "organization_id"):
             account_filters["organization_id"] = org_id
 
         accounts = frappe.get_all("Account",
