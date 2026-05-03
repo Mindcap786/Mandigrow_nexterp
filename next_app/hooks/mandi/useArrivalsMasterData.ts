@@ -101,8 +101,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
       setMarketFeePercent(Number(cached.settings?.market_fee_percent || 0))
       setNirashritPercent(Number(cached.settings?.nirashrit_percent || 0))
       setMiscFeePercent(Number(cached.settings?.misc_fee_percent || 0))
-      const cachedUnits = (cached.units || []).map((u: any) => u.name || u);
-      setUnits(Array.from(new Set([...STANDARD_UNITS, ...cachedUnits])).sort());
+      setUnits(STANDARD_UNITS);
       setLoading(false)
       if (!cacheIsStale(CACHE_KEY, currentOrgId)) return
     }
@@ -115,9 +114,9 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
         const data = res;
         setContacts(data.contacts || [])
         setCommodities(data.commodities || [])
-        const backendUnits = (data.units || []).map((u: any) => u.name || u);
-        const mergedUnits = Array.from(new Set([...STANDARD_UNITS, ...backendUnits])).sort();
-        setUnits(mergedUnits);
+        // Always use STANDARD_UNITS (Box, Crate, Kgs, Tons etc.) — never the full ERPNext UOM table
+        // which contains 200+ scientific units (Abampere, Acre, Ampere...) irrelevant to a mandi.
+        setUnits(STANDARD_UNITS);
         
         const settings = data.settings || {}
         setDefaultCommissionRate(Number(settings.commission_rate_default || 0))
@@ -125,7 +124,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
         setNirashritPercent(Number(settings.nirashrit_percent || 0))
         setMiscFeePercent(Number(settings.misc_fee_percent || 0))
 
-        setStorageLocations(data.storage_locations || [])
+        setStorageLocations(sortLocations(data.storage_locations || []))
         const banks = data.banks || []
         setBankAccounts(filterBanks(banks))
 

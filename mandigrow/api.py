@@ -3526,10 +3526,9 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         ignore_permissions=True,
     )
 
-    units = frappe.get_all("UOM",
-        fields=["name"],
-        ignore_permissions=True,
-    )
+    # Return only mandi-relevant units — NOT the full ERPNext UOM table (200+ scientific units)
+    MANDI_UNITS = ["Box", "Crate", "Kgs", "Tons", "Nug", "Pieces", "Carton", "Bunch", "Nos", "Kg"]
+    units = [{"name": u} for u in MANDI_UNITS]
 
     settings = get_mandi_settings(org_id)
 
@@ -3574,24 +3573,30 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         ignore_permissions=True
     )
     
-    # Robust Solution: Self-Healing Defaults
+    # Self-Healing Default: create 'Mandi' only if NONE exist (idempotent guard)
     if not storage_locations:
         try:
-            # Auto-create 'Mandi' as the default location for the tenant
-            new_loc = frappe.get_doc({
-                "doctype": "Mandi Storage Location",
-                "location_name": "Mandi",
-                "organization_id": org_id,
-                "is_active": 1
-            })
-            new_loc.insert(ignore_permissions=True)
-            frappe.db.commit()
-            
-            storage_locations = [{
-                "id": new_loc.name,
-                "name": new_loc.location_name,
-                "is_active": 1
-            }]
+            # Check if "Mandi" already exists (any name/spelling) before creating
+            existing = frappe.db.get_value(
+                "Mandi Storage Location",
+                {"location_name": "Mandi", "organization_id": org_id},
+                "name"
+            )
+            if existing:
+                # It exists but wasn't returned (maybe is_active=0) — activate it
+                frappe.db.set_value("Mandi Storage Location", existing, "is_active", 1)
+                frappe.db.commit()
+                storage_locations = [{"id": existing, "name": "Mandi", "is_active": True}]
+            else:
+                new_loc = frappe.get_doc({
+                    "doctype": "Mandi Storage Location",
+                    "location_name": "Mandi",
+                    "organization_id": org_id,
+                    "is_active": 1
+                })
+                new_loc.insert(ignore_permissions=True)
+                frappe.db.commit()
+                storage_locations = [{"id": new_loc.name, "name": "Mandi", "is_active": True}]
         except Exception as e:
             frappe.log_error(f"Failed to create default storage location for {org_id}: {str(e)}")
             storage_locations = []
