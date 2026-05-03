@@ -504,10 +504,14 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                                     : `Select ${isReceipt ? 'Buyer' : 'Party'}`}
                                                                 <ArrowUpRight className={cn(
                                                                     "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-300",
-                                                                    // Sign matches the Total Balance line below (GL convention).
-                                                                    // Dr (party owes mandi) → green up-right (asset / collect).
-                                                                    // Cr (mandi owes party) → red rotated (liability / pay).
-                                                                    (currentBalance && currentBalance > 0) ? "rotate-0 text-emerald-600" : (currentBalance && currentBalance < 0 ? "rotate-90 text-rose-600" : "")
+                                                                    // Arrow convention (Mandi pays = money OUT = UP arrow, Mandi collects = money IN = DOWN arrow):
+                                                                    // Make Payment mode → always "To Pay" → rotate-0 (ArrowUpRight ↗ = money leaving upward) in red
+                                                                    // Receive Money mode → "To Collect" → rotate-180 (↙ = money coming in) in green
+                                                                    !isReceipt
+                                                                        ? "rotate-0 text-rose-600"
+                                                                        : currentBalance && currentBalance > 0
+                                                                            ? "rotate-180 text-emerald-600"
+                                                                            : ""
                                                                 )} />
                                                             </Button>
                                                     </FormControl>
@@ -578,11 +582,28 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                           + (Dr) → party owes mandi → "To Collect" (asset / advance held)
                                                           - (Cr) → mandi owes party → "To Pay"   (liability / outstanding)
                                                         Mandi-style colour code: red for "we owe out", green for "we collect in". */}
-                                                    <div className={`text-[9px] font-bold px-2 py-1 rounded-lg flex justify-between items-center ${currentBalance < 0 ? "bg-rose-50 text-rose-600 border border-rose-100" : (currentBalance > 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-50 text-slate-500 border border-slate-200")
-                                                        }`}>
+                                                    <div className={`text-[9px] font-bold px-2 py-1 rounded-lg flex justify-between items-center ${
+                                                        // Payment mode: mandi is PAYING out → any outstanding = To Pay (red)
+                                                        // Receipt mode: mandi is COLLECTING → outstanding from buyer = To Collect (green)
+                                                        (!isReceipt && (currentBalance < 0 || (currentBalance > 0 && !!initialValues?.currentBalance)))
+                                                            ? "bg-rose-50 text-rose-600 border border-rose-100"
+                                                        : (isReceipt && currentBalance > 0)
+                                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                        : currentBalance === 0
+                                                            ? "bg-slate-50 text-slate-500 border border-slate-200"
+                                                        : "bg-rose-50 text-rose-600 border border-rose-100"
+                                                    }`}>
                                                         <span className="uppercase tracking-widest opacity-80">Total Balance</span>
                                                         <span className="font-mono font-[1000]">
-                                                            {currentBalance < 0 ? "To Pay (Cr)" : (currentBalance > 0 ? "To Collect (Dr)" : "Settled")} : {formatCurrency(Math.abs(currentBalance || 0))}
+                                                            {/* In payment mode (mandi pays farmer/supplier), any outstanding balance = To Pay */}
+                                                            {currentBalance === 0
+                                                                ? "Settled"
+                                                                : !isReceipt
+                                                                    ? `To Pay (Cr) : ${formatCurrency(Math.abs(currentBalance || 0))}`
+                                                                    : currentBalance > 0
+                                                                        ? `To Collect (Dr) : ${formatCurrency(Math.abs(currentBalance || 0))}`
+                                                                        : `To Pay (Cr) : ${formatCurrency(Math.abs(currentBalance || 0))}`
+                                                            }
                                                         </span>
                                                     </div>
                                                 </div>
