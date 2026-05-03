@@ -1138,7 +1138,14 @@ def repair_tenant(org_id: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=True)
-def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "basic") -> dict:
+def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter") -> dict:
+    # Normalize plan — guard against legacy 'basic' being sent from old clients
+    VALID_PLANS = {"starter", "standard", "professional", "enterprise"}
+    plan = plan.lower().strip() if plan else "starter"
+    if plan not in VALID_PLANS:
+        # Remap legacy/unknown names to nearest valid tier
+        remap = {"basic": "starter", "pro": "professional", "enterprise_edition": "enterprise"}
+        plan = remap.get(plan, "starter")
     if frappe.db.exists("User", email):
         frappe.throw(_("User with this email already exists"), frappe.DuplicateEntryError)
     
@@ -3666,6 +3673,40 @@ def transfer_liquid_funds(p_organization_id: str = None, p_from_account_id: str 
         return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
+def cleanup_demo_accounts() -> dict:
+    """
+    Removes 'Demo Bank Account' placeholder accounts created by setup_new_tenant.
+    Safe to call multiple times (idempotent).
+    Only removes accounts that have zero GL Entries (no real transactions).
+    """
+    company = _get_user_company()
+    if not company:
+        return {"success": False, "error": "No company found for this user"}
+
+    DEMO_NAMES = ["Demo Bank Account", "Demo Cash Account", "Demo Account"]
+    removed = []
+    disabled = []
+
+    for demo_name in DEMO_NAMES:
+        full_name = f"{demo_name} - {frappe.db.get_value('Company', company, 'abbr') or ''}"
+        candidates = frappe.get_all("Account",
+            filters={"company": company, "account_name": ["like", f"%{demo_name}%"]},
+            pluck="name"
+        )
+        for acc_id in candidates:
+            if frappe.db.exists("GL Entry", {"account": acc_id, "is_cancelled": 0}):
+                frappe.db.set_value("Account", acc_id, "disabled", 1)
+                disabled.append(acc_id)
+            else:
+                try:
+                    frappe.delete_doc("Account", acc_id, ignore_permissions=True, force=True)
+                    removed.append(acc_id)
+                except Exception as e:
+                    disabled.append(f"{acc_id} (err: {e})")
+
+    frappe.db.commit()
+    return {"success": True, "removed": removed, "disabled": disabled}
+
 def get_bank_accounts(org_id: str = None) -> list:
     """
     Returns list of bank accounts for the given organization.
@@ -3796,16 +3837,21 @@ def delete_bank_account(account_id: str) -> dict:
             if acc_company and acc_company != company:
                 frappe.throw(_("You do not have permission to delete this account."), frappe.PermissionError)
 
-        # Check if used in GL Entry
-        if frappe.db.exists("GL Entry", {"account": account_id}):
-            # Instead of deleting, just deactivate
+        # Check if used in GL Entry (has real transactions)
+        if frappe.db.exists("GL Entry", {"account": account_id, "is_cancelled": 0}):
+            # Has real transactions — disable instead of delete
             frappe.db.set_value("Account", account_id, "disabled", 1)
-            return {"success": True, "message": "Account has transactions; it was disabled instead of deleted."}
-            
-        frappe.delete_doc("Account", account_id, ignore_permissions=True)
+            frappe.db.commit()
+            return {"success": True, "message": "Account has transactions; it was disabled instead of deleted. It will no longer appear in new entries."}
+
+        # No transactions — hard delete is safe
+        frappe.delete_doc("Account", account_id, ignore_permissions=True, force=True)
         frappe.db.commit()
         return {"success": True, "message": "Account deleted."}
+    except frappe.PermissionError as e:
+        return {"success": False, "error": str(e)}
     except Exception as e:
+        frappe.log_error(f"delete_bank_account({account_id}): {e}", "Bank Delete Error")
         return {"success": False, "error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
@@ -6357,7 +6403,6 @@ def _get_user_company() -> str:
     return ""
 
 
-@frappe.whitelist(allow_guest=False)
 @frappe.whitelist(allow_guest=False)
 def get_org_settings(org_id: str = None) -> dict:
     """Return org info and settings for the UI, isolated per tenant."""

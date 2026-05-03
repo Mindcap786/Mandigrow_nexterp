@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { callApi } from "@/lib/frappeClient";
-import { supabase } from "@/lib/supabaseClient"; // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,31 +113,51 @@ export default function WhiteLabelPage() {
             toast({ title: "❌ File too large", description: "Logo must be under 2MB", variant: "destructive" });
             return;
         }
+        const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+            toast({ title: "❌ Invalid file type", description: "Only PNG, JPG, SVG, WebP allowed", variant: "destructive" });
+            return;
+        }
 
         setUploading(true);
         setLogoError(false);
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${profile.organization_id}/logo-${Math.random()}.${fileExt}`;
 
         try {
-            // Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from('logos')
-                .upload(fileName, file, { upsert: true });
+            // Upload via Frappe's native file upload endpoint (uses session cookie)
+            const formData = new FormData();
+            formData.append('file', file, file.name);
+            formData.append('is_private', '0');  // Public: accessible without auth for logos
+            formData.append('folder', 'Home/Logos');
+            formData.append('optimize', '1');
 
-            if (uploadError) throw uploadError;
+            const baseUrl = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.com';
+            const response = await fetch(`${baseUrl}/api/method/upload_file`, {
+                method: 'POST',
+                credentials: 'include',   // sends Frappe session cookie
+                body: formData,
+            });
 
-            // Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('logos')
-                .getPublicUrl(fileName);
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.message || errData.exc_type || `Upload failed (${response.status})`);
+            }
 
-            set("logo_url", publicUrl);
-            toast({ title: "✅ Logo Uploaded", description: "Click save to apply changes permanently." });
+            const result = await response.json();
+            const fileUrl: string = result?.message?.file_url || result?.file_url || '';
+
+            if (!fileUrl) throw new Error('No file URL returned from server');
+
+            // Convert relative URL to absolute if needed
+            const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+            set("logo_url", absoluteUrl);
+            toast({ title: "✅ Logo Uploaded", description: "Click Save Changes to apply permanently." });
         } catch (err: any) {
             toast({ title: "❌ Upload Failed", description: err.message, variant: "destructive" });
+            setLogoError(true);
         } finally {
             setUploading(false);
+            // Reset file input so same file can be re-uploaded
+            e.target.value = '';
         }
     };
 

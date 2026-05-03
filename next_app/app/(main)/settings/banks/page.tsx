@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { callApi } from '@/lib/frappeClient'
-import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,30 +69,31 @@ export default function BanksPage() {
     }
 
     const fetchBalances = async (accountList: any[]) => {
-        if (!accountList.length) {
-            setBalances({})
-            return
+        if (!accountList.length) { setBalances({}); return; }
+        // Use Frappe GL to get real balances — no Supabase dependency
+        try {
+            const result: any = await callApi('mandigrow.api.get_liquid_asset_summary', {
+                org_id: profile?.organization_id
+            });
+            const map: Record<string, number> = {};
+            accountList.forEach(acc => { map[acc.id] = 0; });
+            // result.accounts has { id, balance } from Frappe GL
+            (result?.accounts || []).forEach((a: any) => {
+                if (map[a.id] !== undefined) map[a.id] = a.balance || 0;
+            });
+            // Fallback: use opening_balance if no GL data
+            accountList.forEach(b => {
+                if (map[b.id] === 0 && b.opening_balance) {
+                    map[b.id] = Number(b.opening_balance || 0);
+                }
+            });
+            setBalances(map);
+        } catch {
+            // Fallback to opening balance
+            const map: Record<string, number> = {};
+            accountList.forEach(b => { map[b.id] = Number(b.opening_balance || 0); });
+            setBalances(map);
         }
-        const ids = accountList.map(b => b.id)
-        const { data } = await supabase
-            .schema(schema)
-            .from('ledger_entries')
-            .select('account_id, debit, credit')
-            .in('account_id', ids)
-            .eq('organization_id', profile!.organization_id)
-
-        const map: Record<string, number> = {}
-        ids.forEach(id => { map[id] = 0 })
-        ;(data || []).forEach((e: any) => {
-            map[e.account_id] = (map[e.account_id] || 0) + (Number(e.debit) - Number(e.credit))
-        })
-
-        // Add opening balance
-        accountList.forEach(b => {
-            map[b.id] = (map[b.id] || 0) + Number(b.opening_balance || 0)
-        })
-
-        setBalances(map)
     }
 
     const setDefaultBank = async (bankId: string) => {
@@ -126,27 +126,29 @@ export default function BanksPage() {
             toast({ title: 'Invalid amount', variant: 'destructive' })
             return
         }
-
         setAdjusting(true)
-        const { error } = await supabase.schema(schema).rpc('adjust_liquid_balance', {
-            p_organization_id: profile!.organization_id,
-            p_account_id: selectedAccount.id,
-            p_amount: amt,
-            p_adjustment_type: adjType,
-            p_description: adjForm.description.trim(),
-            p_date: adjForm.date
-        })
-
-        if (error) {
-            toast({ title: 'Adjustment failed', description: error.message, variant: 'destructive' })
-        } else {
-            toast({ 
-                title: `✅ ${adjType === 'deposit' ? 'Deposit' : 'Withdrawal'} Successful`, 
-                description: `₹${amt.toLocaleString('en-IN')} updated for ${selectedAccount.name}.` 
+        try {
+            const res: any = await callApi('mandigrow.api.adjust_liquid_balance', {
+                p_organization_id: profile!.organization_id,
+                p_account_id: selectedAccount?.id,
+                p_amount: amt,
+                p_adjustment_type: adjType,
+                p_description: adjForm.description.trim(),
+                p_date: adjForm.date
             })
-            setAdjDialogOpen(false)
-            setAdjForm({ amount: '', description: '', date: new Date().toISOString().split('T')[0] })
-            fetchBanks()
+            if (res?.success || res?.name) {
+                toast({
+                    title: `✅ ${adjType === 'deposit' ? 'Deposit' : 'Withdrawal'} Successful`,
+                    description: `₹${amt.toLocaleString('en-IN')} updated for ${selectedAccount?.name}.`
+                })
+                setAdjDialogOpen(false)
+                setAdjForm({ amount: '', description: '', date: new Date().toISOString().split('T')[0] })
+                fetchBanks()
+            } else {
+                toast({ title: 'Adjustment failed', description: res?.error || 'Unknown error', variant: 'destructive' })
+            }
+        } catch (e: any) {
+            toast({ title: 'Adjustment failed', description: e.message, variant: 'destructive' })
         }
         setAdjusting(false)
     }
@@ -172,22 +174,25 @@ export default function BanksPage() {
             return
         }
         setTransferring(true)
-        const { error } = await supabase.schema(schema).rpc('transfer_liquid_funds', {
-            p_organization_id: profile!.organization_id,
-            p_from_account_id: transferForm.from_id,
-            p_to_account_id: transferForm.to_id,
-            p_amount: amt,
-            p_remarks: transferForm.remarks || 'Cash/Bank Transfer',
-            p_transfer_date: new Date().toISOString()
-        })
-
-        if (error) {
-            toast({ title: 'Transfer failed', description: error.message, variant: 'destructive' })
-        } else {
-            toast({ title: '✅ Transfer Successful', description: `₹${amt.toLocaleString('en-IN')} moved between accounts.` })
-            setTransferDialogOpen(false)
-            setTransferForm({ from_id: '', to_id: '', amount: '', remarks: '' })
-            fetchBanks()
+        try {
+            const res: any = await callApi('mandigrow.api.transfer_liquid_funds', {
+                p_organization_id: profile!.organization_id,
+                p_from_account_id: transferForm.from_id,
+                p_to_account_id: transferForm.to_id,
+                p_amount: amt,
+                p_remarks: transferForm.remarks || 'Cash/Bank Transfer',
+                p_transfer_date: new Date().toISOString()
+            })
+            if (res?.success || res?.name) {
+                toast({ title: '✅ Transfer Successful', description: `₹${amt.toLocaleString('en-IN')} moved between accounts.` })
+                setTransferDialogOpen(false)
+                setTransferForm({ from_id: '', to_id: '', amount: '', remarks: '' })
+                fetchBanks()
+            } else {
+                toast({ title: 'Transfer failed', description: res?.error || 'Unknown error', variant: 'destructive' })
+            }
+        } catch (e: any) {
+            toast({ title: 'Transfer failed', description: e.message, variant: 'destructive' })
         }
         setTransferring(false)
     }
