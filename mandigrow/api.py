@@ -786,9 +786,41 @@ def get_full_user_context(p_user_id: str = None) -> dict:
 
         org_data = _get_org_info(org_id) if org_id else None
 
+        # ── Role Resolution (MUST RUN FIRST — sets org_data for super admin) ─────
+        # CRITICAL ORDER: This block must execute before subscription_data is built.
+        # For mindcap786@gmail.com (super admin) with no Mandi Organization linked,
+        # org_data is None after _get_org_info(). If we build subscription_data first,
+        # org_data.get(...) crashes with: NoneType has no attribute 'get'
+        try:
+            from mandigrow.mandigrow.logic.tenancy import is_super_admin
+            _is_super = is_super_admin(user.name)
+        except Exception:
+            _is_super = False
+
+        role = getattr(user, "role_type", None) or "admin"
+        owner_email = "mindcap786@gmail.com"
+
+        if _is_super or user.name == owner_email or getattr(user, "email", "") == owner_email:
+            role = "super_admin"
+            if not org_data:
+                # Super admin with no linked tenant — assign HQ org so downstream
+                # code never encounters None org_data
+                org_id = "HQ"
+                org_data = {
+                    "id": "HQ",
+                    "name": "MandiGrow HQ",
+                    "subscription_tier": "enterprise",
+                    "status": "active",
+                    "is_active": True,
+                    "brand_color": "#6366f1",
+                    "trial_ends_at": None,
+                }
+        # ─────────────────────────────────────────────────────────────────────────
+
         # ── Subscription Lifecycle Engine ─────────────────────────────────────
         # SRE-GRADE: Every external call is wrapped so a missing DocType field,
         # schema mismatch, or unconfigured setting can NEVER crash the login flow.
+        # org_data is guaranteed non-None here (either real or HQ fallback above).
         from frappe.utils import get_datetime, now_datetime, date_diff, add_days
 
         status = "active"
@@ -832,37 +864,15 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 except Exception:
                     pass  # Expiry parse failure — treat as active
 
+        # org_data is always a dict here — safe to call .get()
         subscription_data = {
             "status": status,
             "is_locked": is_locked,
             "is_active": not is_locked,
             "days_left": days_to_expiry,
-            "expiry_date": org_data.get("trial_ends_at") if org_data else None,
-            "plan": org_data.get("subscription_tier") or "starter"
+            "expiry_date": (org_data or {}).get("trial_ends_at"),
+            "plan": (org_data or {}).get("subscription_tier") or "starter"
         }
-
-        # ── Role Resolution ───────────────────────────────────────────────────
-        try:
-            from mandigrow.mandigrow.logic.tenancy import is_super_admin
-            _is_super = is_super_admin(user.name)
-        except Exception:
-            _is_super = False
-
-        role = getattr(user, "role_type", None) or "admin"
-        owner_email = "mindcap786@gmail.com"
-
-        if _is_super or user.name == owner_email or getattr(user, "email", "") == owner_email:
-            role = "super_admin"
-            if not org_data:
-                org_id = "HQ"
-                org_data = {
-                    "id": "HQ",
-                    "name": "MandiGrow HQ",
-                    "subscription_tier": "enterprise",
-                    "status": "active",
-                    "is_active": True,
-                    "brand_color": "#6366f1",
-                }
 
         return {
             "id": user.name,
