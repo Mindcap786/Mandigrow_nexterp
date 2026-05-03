@@ -692,10 +692,10 @@ def get_logged_user() -> str:
 
 @frappe.whitelist(allow_guest=True)
 def resolve_user_for_login(usr: str) -> str:
-    \"\"\"Explicitly resolve a username to an email for the login process.
+    """Explicitly resolve a username to an email for the login process.
     This ensures that even if Frappe's native resolution has issues, our UI can
     transparently handle usernames.
-    \"\"\"
+    """
     if not usr or "@" in usr or usr in ["Administrator", "Guest"]:
         return usr
         
