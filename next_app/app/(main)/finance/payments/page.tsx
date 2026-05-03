@@ -6,7 +6,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { callApi } from "@/lib/frappeClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowDownLeft, ArrowUpRight, Wallet, History, FileText, Search, Filter, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Wallet, History, FileText, Search, Filter, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Loader2, Building2, Plus } from "lucide-react";
 import { ExpenseDialog } from "@/components/finance/expense-dialog";
 import { format } from "date-fns";
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -262,6 +262,23 @@ export default function PaymentsPage() {
                         </div>
                     </button>
                 </ExpenseDialog>
+
+                {/* Add Bank Account — navigates to bank settings */}
+                <button
+                    onClick={() => router.push('/settings/banks')}
+                    className="min-w-[200px] md:min-w-0 shrink-0 snap-center group relative w-full h-40 md:h-48 rounded-[32px] bg-gradient-to-br from-slate-700 to-slate-900 p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 shadow-lg border border-white/5"
+                >
+                    <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:opacity-30 transition-opacity">
+                        <Building2 className="h-24 w-24 md:h-32 md:w-32 text-white" />
+                    </div>
+                    <div className="z-10 bg-white/20 w-fit p-3 rounded-2xl text-white group-hover:scale-110 transition-transform backdrop-blur-sm">
+                        <Plus className="h-6 w-6 md:h-8 md:w-8" />
+                    </div>
+                    <div className="z-10 text-left">
+                        <h3 className="text-xl md:text-2xl font-black text-white tracking-tight drop-shadow-lg">ADD BANK</h3>
+                        <p className="text-white/80 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-1">Link Bank Account</p>
+                    </div>
+                </button>
             </div>
 
             {/* STICKY FILTERS & DATA GRID */}

@@ -98,11 +98,14 @@ export default function SaasBillingPage() {
             setPlans(plansList);
 
             // ── Subscription: derived from profile (already loaded by auth-provider) ──
+            // Frappe App Plan DocType uses 'plan_name' as primary key, not 'name'
             const orgTier = profile?.organization?.subscription_tier?.toLowerCase() || 'starter';
-            const matchedPlan = plansList.find(p => (p.name || '').toLowerCase() === orgTier)
-                || plansList.find(p => (p.name || '').toLowerCase() === 'starter')
-                || plansList[0]
-                || null;
+            const matchedPlan = plansList.find(p =>
+                (p.plan_name || p.name || '').toLowerCase() === orgTier
+            ) || plansList.find(p =>
+                (p.plan_name || p.name || '').toLowerCase() === 'starter'
+            ) || plansList[0] || null;
+
             const subData: Subscription = {
                 plan: matchedPlan || undefined,
                 status: (profile?.organization?.status || 'trial') as Subscription['status'],
@@ -153,6 +156,17 @@ export default function SaasBillingPage() {
         if (!plan) return 0;
         const total = plan.max_total_users ?? plan.max_users ?? plan.max_web_users;
         return total === -1 ? '∞' : (total || 0);
+    };
+
+    // Plan tier ordering for upgrade/downgrade comparison
+    const PLAN_ORDER = ['starter', 'basic', 'standard', 'enterprise'];
+    const currentTierIndex = PLAN_ORDER.indexOf(
+        (currentPlan?.plan_name || currentPlan?.name || '').toLowerCase()
+    );
+    const getPlanAction = (plan: Plan): 'current' | 'upgrade' | 'downgrade' => {
+        const planIdx = PLAN_ORDER.indexOf((plan.plan_name || plan.name || '').toLowerCase());
+        if (planIdx === currentTierIndex) return 'current';
+        return planIdx > currentTierIndex ? 'upgrade' : 'downgrade';
     };
 
     if (loading) return (
@@ -273,35 +287,37 @@ export default function SaasBillingPage() {
                                 </button>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                             {plans.filter(plan => {
-                                const name = plan.name?.toLowerCase() || '';
+                                // Frappe returns plan_name as the key identifier
+                                const name = (plan.plan_name || plan.name || '').toLowerCase();
                                 const isCustom = name === 'vip_plan' || name === 'vip' || name.startsWith('custom_');
                                 return !isCustom || plan.features?.show_on_homepage === true;
                             }).map(plan => {
-                                const planName = plan.name?.toLowerCase();
+                                const planKey = (plan.plan_name || plan.name || '').toLowerCase();
                                 const Icon = (() => {
                                     const iconName = plan.features?.icon;
                                     if (iconName === 'Star') return Star;
                                     if (iconName === 'Building2') return Building2;
-                                    if (planName === 'enterprise') return Building2;
-                                    if (planName === 'standard') return TrendingUp;
+                                    if (planKey === 'enterprise') return Building2;
+                                    if (planKey === 'standard') return TrendingUp;
                                     return Zap;
                                 })();
-                                const isCurrent = currentPlan?.id === plan.id;
+                                // isCurrent: compare plan_name/name to org's subscription_tier
+                                const orgTierKey = (profile?.organization?.subscription_tier || '').toLowerCase();
+                                const isCurrent = planKey === orgTierKey;
+                                const planAction = getPlanAction(plan);
                                 const accentColor = plan.features?.accent_color;
                                 const tag = plan.features?.tag as string | undefined;
                                 const totalUsers = getUserCount(plan);
 
-                                // Button logic:
-                                // - On admin-assigned/custom plan → all plans show "Choose (from [expiry])"
-                                // - On standard plan → show Upgrade/Downgrade/Current
+                                // Button logic
                                 const getButtonConfig = () => {
                                     if (isCurrent && !isCustomPlan) {
                                         if (status === 'trial' || status === 'trialing') return { text: 'Activate Now', variant: 'purple' };
                                         if (status === 'grace_period' || status === 'suspended') return { text: 'Renew Now', variant: 'dark' };
                                         if (daysLeft !== null && daysLeft <= 7) return { text: 'Renew Now', variant: 'dark' };
-                                        return { text: 'Current Plan', variant: 'muted' };
+                                        return { text: '✓ Current Plan', variant: 'muted' };
                                     }
                                     if (isCustomPlan) {
                                         return {
@@ -309,10 +325,8 @@ export default function SaasBillingPage() {
                                             variant: 'choose'
                                         };
                                     }
-                                    if (currentPlan && plan.price_monthly < currentPlan.price_monthly) {
-                                        return { text: 'Downgrade', variant: 'muted' };
-                                    }
-                                    return { text: 'Upgrade', variant: 'dark' };
+                                    if (planAction === 'downgrade') return { text: '↓ Downgrade', variant: 'muted' };
+                                    return { text: '↑ Upgrade', variant: 'dark' };
                                 };
                                 const btnConfig = getButtonConfig();
 

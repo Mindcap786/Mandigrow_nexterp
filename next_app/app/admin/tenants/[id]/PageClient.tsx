@@ -204,7 +204,8 @@ export default function TenantDetailPage() {
 
     const fetchPlans = async () => {
         try {
-            const data: any = await callApi('mandigrow.api.get_app_plans');
+            // Use public get_plans (not get_app_plans which requires super_admin)
+            const data: any = await callApi('mandigrow.api.get_plans');
             setPlans(data || []);
         } catch (e) {
             console.error('Failed to fetch plans:', e);
@@ -212,13 +213,14 @@ export default function TenantDetailPage() {
     };
 
     const handlePlanSelect = (planName: string) => {
-        const plan = plans.find(p => p.plan_name === planName);
+        // Frappe App Plan uses plan_name OR name — try both
+        const plan = plans.find(p => (p.plan_name || p.name) === planName);
         if (plan) {
             setOverride(prev => ({
                 ...prev,
                 subscription_tier: planName,
                 max_web_users: plan.max_users ?? 1,
-                max_mobile_users: 0, // Placeholder if mobile users not in App Plan
+                max_mobile_users: 0,
             }));
         }
     };
@@ -226,22 +228,38 @@ export default function TenantDetailPage() {
     const handleSaveSubscription = async () => {
         setSaving(true);
         try {
+            // Build the final expiry date: extend_days takes priority over trial_ends_at
+            let finalExpiry = override.trial_ends_at;
+            if (override.extend_days > 0 && finalExpiry) {
+                const base = new Date(finalExpiry);
+                base.setDate(base.getDate() + override.extend_days);
+                finalExpiry = base.toISOString();
+            } else if (override.extend_days > 0) {
+                // No existing expiry — extend from today
+                const base = new Date();
+                base.setDate(base.getDate() + override.extend_days);
+                finalExpiry = base.toISOString();
+            }
+
             await callApi('mandigrow.api.update_tenant_config', {
                 organization_id: id,
                 config: {
                     subscription_tier: override.subscription_tier,
-                    is_active: org.is_active
+                    is_active: org.is_active,
+                    ...(finalExpiry ? { trial_ends_at: finalExpiry } : {}),
                 }
             });
 
-            toast({ 
-                title: 'Configuration Updated', 
-                description: 'Tenant access has been successfully reconfigured.',
+            toast({
+                title: '✓ Subscription Updated',
+                description: `${org.name} is now on the ${override.subscription_tier} plan.`,
                 className: 'bg-slate-900 text-white border-slate-800'
             });
 
             setIsManageOpen(false);
             fetchDetails();
+            // Trigger profile cache refresh so user billing page syncs immediately
+            if (refreshOrg) refreshOrg();
         } catch (err: any) {
             toast({ title: 'Error', description: err.message, variant: 'destructive' });
         } finally {
