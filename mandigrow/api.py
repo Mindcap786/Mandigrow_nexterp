@@ -3553,8 +3553,10 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     settings = get_mandi_settings(org_id)
 
-    # Fetch liquid accounts — guard organization_id column
-    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0}
+    # Fetch liquid accounts — ALWAYS filter by company (tenant isolation boundary)
+    # organization_id is an extra guard only when the custom field exists
+    company = _get_user_company()
+    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
     if org_id and frappe.db.has_column("Account", "organization_id"):
         acct_filters["organization_id"] = org_id
     acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
@@ -3729,13 +3731,20 @@ def cleanup_demo_accounts() -> dict:
 
 def get_bank_accounts(org_id: str = None) -> list:
     """
-    Returns list of bank accounts for the given organization.
-    Schema-aware: guards organization_id and description with has_column.
+    Returns bank accounts strictly scoped to the current tenant's ERPNext Company.
+    Company is always tenant-scoped (set at signup) — this is the guaranteed isolation boundary.
+    organization_id is an optional extra guard when the custom field exists.
     """
     org_id = org_id or _get_user_org()
-    filters: dict = {"account_type": "Bank", "is_group": 0}
+    company = _get_user_company()
+    
+    # PRIMARY isolation: filter by company (always exists, always tenant-scoped)
+    filters: dict = {"account_type": "Bank", "is_group": 0, "disabled": 0, "company": company}
+    
+    # SECONDARY: also filter by organization_id if the custom column exists
     if org_id and frappe.db.has_column("Account", "organization_id"):
         filters["organization_id"] = org_id
+
     fields = ["name as id", "account_name as name", "account_type", "account_number", "company"]
     if frappe.db.has_column("Account", "description"):
         fields.append("description")
@@ -4880,8 +4889,13 @@ def get_settings_page() -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def get_bank_account_list() -> list:
-    """Get list of bank accounts."""
+    """Get list of bank accounts scoped to the current tenant's company."""
+    company = _get_user_company()
+    filters = {"is_group": 0, "disabled": 0}
+    if company:
+        filters["company"] = company
     return frappe.get_all("Bank Account",
+        filters=filters,
         fields=["name as id", "account_name", "bank", "account_type"],
         order_by="account_name asc",
         limit_page_length=50,
