@@ -75,7 +75,7 @@ export const Sidebar = memo(function Sidebar({ onCollapseChange }: SidebarProps 
                             className="text-2xl font-black tracking-tighter uppercase leading-none"
                             style={{ color: profile?.organization?.brand_color || "black" }}
                         >
-                            {profile?.organization?.name || (user?.email ? user.email.split('@')[0].replace(/[0-9]/g, ' $&').trim() : 'MandiGrow')}
+                            {profile?.organization?.name || profile?.full_name || (user?.email ? user.email.split('@')[0].replace(/[0-9]/g, '').trim() : 'MandiGrow')}
                         </span>
                         
                         {/* User Email ID */}

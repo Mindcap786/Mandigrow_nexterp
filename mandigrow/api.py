@@ -690,6 +690,18 @@ def get_features() -> dict:
 def get_logged_user() -> str:
     return frappe.session.user
 
+@frappe.whitelist(allow_guest=True)
+def resolve_user_for_login(usr: str) -> str:
+    \"\"\"Explicitly resolve a username to an email for the login process.
+    This ensures that even if Frappe's native resolution has issues, our UI can
+    transparently handle usernames.
+    \"\"\"
+    if not usr or "@" in usr or usr in ["Administrator", "Guest"]:
+        return usr
+        
+    resolved = frappe.db.get_value("User", {"username": usr}, "name")
+    return resolved or usr
+
 @frappe.whitelist(allow_guest=False)
 def get_full_user_context(p_user_id: str = None) -> dict:
     user_id = p_user_id or frappe.session.user
@@ -700,13 +712,11 @@ def get_full_user_context(p_user_id: str = None) -> dict:
         if resolved_user:
             user_id = resolved_user
 
-    # Level-0 Platform Owner Override:
-    # Hard-bypass ALL org/DB lookups for the platform owner.
-    # This prevents NameError crashes in _get_org_info when Mandi HQ doesn't exist.
-    if user_id in ["Administrator", "mindcap786@gmail.com"]:
+    # Administrator Fallback (only for local dev/maintenance)
+    if user_id == "Administrator":
         return {
             "id": user_id,
-            "full_name": "System Administrator" if user_id == "Administrator" else "Platform Owner",
+            "full_name": "System Administrator",
             "role": "super_admin",
             "business_domain": "mandi",
             "organization_id": "HQ",
@@ -715,14 +725,8 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 "name": "MandiGrow HQ",
                 "subscription_tier": "enterprise",
                 "status": "active",
-                "trial_ends_at": None,
                 "is_active": True,
                 "brand_color": "#6366f1",
-                "brand_color_secondary": "#0f172a",
-                "address": "",
-                "city": "",
-                "gstin": "",
-                "phone": "",
             },
             "subscription": {"status": "active", "is_active": True},
         }

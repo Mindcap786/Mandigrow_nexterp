@@ -203,9 +203,13 @@ export default function LoginClient() {
         let loginErr: any = null;
 
         try {
+            // Resolve username to email explicitly to ensure authentication success
+            const resolvedUsr: string = await callApi('mandigrow.api.resolve_user_for_login', { usr: loginEmail });
+            logDebug(`Resolved ${loginEmail} to ${resolvedUsr}`);
+            
             // Use hardened Frappe login (sets cookies automatically)
-            await frappeLogin(loginEmail, password);
-            authData = { user: { id: loginEmail } };
+            await frappeLogin(resolvedUsr, password);
+            authData = { user: { id: resolvedUsr } };
         } catch (e: any) {
             loginErr = e;
         }
