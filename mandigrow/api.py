@@ -3853,6 +3853,16 @@ def save_bank_account(**kwargs) -> dict:
             "upi_id": kwargs.get("upi_id")
         }
         
+        if not frappe.db.has_column("Account", "description"):
+            from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+            create_custom_field("Account", {
+                "fieldname": "description",
+                "label": "Description",
+                "fieldtype": "Text",
+                "insert_after": "account_name"
+            })
+            frappe.db.commit()
+
         account_payload = {
             "doctype": "Account",
             "account_name": name,

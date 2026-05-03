@@ -328,7 +328,7 @@ export default function StockPage() {
                     total_inward: lot.qty || 0,
                     unit: lot.unit || item.unit || 'Kg',
                     storage_location: lot.storage_location || 'Mandi',
-                    arrival_type: 'commission',
+                    arrival_type: lot.arrival_type || 'commission',
                     supplier_rate: lot.supplier_rate || 0,
                     sale_price: lot.sale_price || 0,
                     total_value: (lot.qty || 0) * (lot.supplier_rate || 0),
