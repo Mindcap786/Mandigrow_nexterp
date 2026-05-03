@@ -1268,7 +1268,7 @@ def get_team_members() -> list:
         return []
         
     return frappe.get_all("User",
-        filters={"mandi_organization": org_id, "enabled": 1},
+        filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
         fields=["name as id", "full_name", "email", "role_type as role", "creation", "username"],
         order_by="creation desc"
     )
@@ -3945,28 +3945,28 @@ def get_invoices_for_return(search_term: str = None, page: int = 0) -> list:
 
     filters = [
         ["organization_id", "=", org_id],
-        ["sale_date", ">=", date_string]
+        ["saledate", ">=", date_string]
     ]
 
     if search_term:
         if search_term.isdigit():
-            filters.append(["bill_no", "=", search_term])
+            filters.append(["name", "like", f"%{search_term}%"])
         else:
             # Search by Buyer Name
             buyers = frappe.get_all("Mandi Contact", 
-                filters={"name1": ["like", f"%{search_term}%"], "organization_id": org_id}, 
+                filters={"full_name": ["like", f"%{search_term}%"], "organization_id": org_id}, 
                 fields=["name"],
                 ignore_permissions=True
             )
             if buyers:
-                filters.append(["buyer_id", "in", [b.name for b in buyers]])
+                filters.append(["buyerid", "in", [b.name for b in buyers]])
             else:
                 return []
 
     sales = frappe.get_all("Mandi Sale", 
         filters=filters,
-        fields=["name as id", "bill_no", "sale_date", "buyer_id", "total_amount"],
-        order_by="sale_date desc",
+        fields=["name as id", "name as bill_no", "saledate as sale_date", "buyerid as buyer_id", "totalamount as total_amount"],
+        order_by="saledate desc",
         limit_start=start,
         limit_page_length=page_size,
         ignore_permissions=True
@@ -5011,6 +5011,12 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
     doc.first_name = full_name
     doc.employee_name = full_name
     doc.cell_phone = phone or kwargs.get("phone", "")
+    
+    # Issue 11 Fix: Set mandatory Employee fields to prevent MandatoryError
+    doc.gender = kwargs.get("gender", "Other")
+    doc.date_of_birth = kwargs.get("date_of_birth", "1990-01-01")
+    doc.date_of_joining = kwargs.get("date_of_joining", frappe.utils.today())
+    doc.company = frappe.db.get_value("Company", {"abbr": ["like", "%"]}, "name") or "MandiGrow"
     
     designation = role or kwargs.get("role", "Worker")
     if designation and not frappe.db.exists("Designation", designation):
@@ -6791,16 +6797,25 @@ def create_commodity(**kwargs) -> dict:
             if existing_id:
                 frappe.throw(f"Internal ID '{internal_id}' is already assigned to '{existing_id}'.")
 
+        # Check if updating
+        item_id = kwargs.get("id")
+        
         # 4. Generate unique item_code based on Name + Variety + Grade
         # This makes each spec combination a unique item as requested
-        import re
-        # Use full_name (which includes specs) to generate a unique code
-        # Normalizing to lowercase for case-insensitive uniqueness
+        import re, random, string
         slug = re.sub(r'[^a-zA-Z0-9]', '', full_name).lower()
-        item_code = f"{abbr}-{slug}"
+        
+        # Issue 9: Guarantee uniqueness for item_code (and default internal_id)
+        if item_id:
+            # Updating: maintain the existing identity
+            item_code = item_id
+        else:
+            # Creating: append random 4 char suffix to prevent collisions across tenants
+            unique_suffix = ''.join(random.choices(string.digits, k=4))
+            item_code = f"{abbr}-{slug}-{unique_suffix}"
         
         # If internal_id is provided, we still store it, but item_code is the primary identity
-        internal_id = kwargs.get("internal_id") or kwargs.get("sku_code")
+        internal_id = kwargs.get("internal_id") or kwargs.get("sku_code") or item_code
 
         doc_data = {
             "doctype": "Item",

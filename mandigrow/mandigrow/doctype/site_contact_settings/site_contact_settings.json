@@ -13,6 +13,7 @@
   "email_support",
   "email_sales",
   "email_legal",
+  "playstore_app_link",
   "address_line1",
   "address_line2",
   "city",
@@ -62,6 +63,11 @@
    "fieldname": "email_legal",
    "fieldtype": "Data",
    "label": "Legal Email"
+  },
+  {
+   "fieldname": "playstore_app_link",
+   "fieldtype": "Data",
+   "label": "Playstore App Link"
   },
   {
    "fieldname": "address_line1",

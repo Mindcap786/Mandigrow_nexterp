@@ -265,7 +265,13 @@ export default function StockPage() {
     const _cached = _orgId ? cacheGet<any[]>('stock_main', _orgId) : null
 
     const [stocks, setStocks] = useState<any[]>(_cached || [])
-    const [locations, setLocations] = useState<string[]>(['All', 'Mandi', 'Cold Storage'])
+    
+    // Issue 7 Fix: Dynamically populate storage locations from fetched stock
+    const locations = useMemo(() => {
+        const locs = new Set<string>();
+        stocks.forEach(s => locs.add(s.storage_location || 'Mandi'));
+        return ['All', ...Array.from(locs).sort()];
+    }, [stocks]);
     const [loading, setLoading] = useState(() => {
         if (typeof window !== 'undefined') {
             const orgId = localStorage.getItem('mandi_profile_cache_org_id')
