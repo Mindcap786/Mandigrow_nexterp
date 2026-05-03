@@ -8791,3 +8791,177 @@ def get_branding_settings() -> dict:
         "brand_color_secondary": getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b",
         "logo_url": getattr(org, "logo_url", None)
     }
+
+# ── Subscription & Billing (Tenant-facing) ────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_tenant_subscription() -> dict:
+    """
+    Returns the current tenant's subscription status + all active plans.
+    Called by /settings/billing page on load.
+
+    Returns:
+    {
+        "subscription": {
+            "status": "trial" | "active" | "grace_period" | "suspended" | "expired",
+            "trial_ends_at": "2026-05-15" | null,
+            "current_period_end": "2026-06-01" | null,
+            "admin_assigned_by": "admin@mandigrow.com" | null
+        },
+        "plan": { ...App Plan fields... } | null,
+        "all_plans": [ ...list of active App Plans... ]
+    }
+    """
+    import json
+    from frappe.utils import today, add_days
+
+    org_id = _get_user_org()
+    if not org_id:
+        return {"subscription": {"status": "trial", "trial_ends_at": None, "current_period_end": None}, "plan": None, "all_plans": []}
+
+    org = frappe.get_doc("Mandi Organization", org_id)
+
+    # ── Resolve Status ───────────────────────────────────────────────────────
+    status = getattr(org, "status", "trial") or "trial"
+    # Normalize legacy values
+    if status not in ("trial", "trialing", "active", "grace_period", "suspended", "expired", "cancelled"):
+        status = "trial"
+
+    # Trial end date: stored on org or default to 14 days from creation
+    trial_ends_at = getattr(org, "trial_ends_at", None) or str(add_days(org.creation, 14))[:10]
+
+    # Period end (for active subscriptions)
+    current_period_end = getattr(org, "current_period_end", None)
+
+    # Admin-assigned flag
+    admin_assigned_by = getattr(org, "admin_assigned_by", None) or getattr(org, "plan_assigned_by", None)
+
+    subscription = {
+        "status": status,
+        "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
+        "current_period_end": str(current_period_end)[:10] if current_period_end else None,
+        "admin_assigned_by": admin_assigned_by,
+    }
+
+    # ── Resolve Current Plan ─────────────────────────────────────────────────
+    current_plan_name = getattr(org, "plan", None) or getattr(org, "subscription_plan", None)
+    current_plan = None
+    if current_plan_name:
+        try:
+            plan_doc = frappe.get_doc("App Plan", current_plan_name)
+            current_plan = {
+                "id":            plan_doc.name,
+                "name":          plan_doc.name,
+                "plan_name":     getattr(plan_doc, "plan_name", plan_doc.name),
+                "display_name":  getattr(plan_doc, "display_name", plan_doc.name),
+                "price_monthly": float(getattr(plan_doc, "price_monthly", 0) or 0),
+                "price_yearly":  float(getattr(plan_doc, "price_yearly", 0) or 0),
+                "max_users":     getattr(plan_doc, "max_users", None),
+                "max_total_users": getattr(plan_doc, "max_users", None),
+                "features":      json.loads(plan_doc.features) if getattr(plan_doc, "features", None) else {},
+                "description":   getattr(plan_doc, "description", None),
+            }
+        except Exception:
+            current_plan = None
+
+    # ── Return All Plans (for the plan picker) ───────────────────────────────
+    all_plans = get_plans()  # reuse existing whitelisted function
+
+    return {
+        "subscription": subscription,
+        "plan": current_plan,
+        "all_plans": all_plans,
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
+                       payment_confirmed: bool = False, coupon_code: str = None) -> dict:
+    """
+    Changes the subscription plan for the current tenant.
+
+    IMPORTANT: payment_confirmed=True MUST be passed by the checkout page
+    AFTER payment is verified. If False, this endpoint rejects the change.
+    This enforces the checkout → payment → activate flow.
+
+    Admin can still assign plans directly via admin_billing_action (no payment required).
+    """
+    import json
+    from frappe.utils import today, add_days
+
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "message": "Organization not found."}
+
+    # ── Payment Gate ─────────────────────────────────────────────────────────
+    # NEVER allow plan changes without payment confirmation.
+    # This is what was missing before — the old code allowed direct upgrade/downgrade.
+    if not payment_confirmed:
+        return {
+            "success": False,
+            "message": "Payment not confirmed. Please complete checkout to change your plan.",
+            "redirect": "/settings/billing/checkout"
+        }
+
+    # ── Validate Plan Exists ─────────────────────────────────────────────────
+    if not frappe.db.exists("App Plan", plan_name):
+        # Try by plan_name field
+        plan_by_name = frappe.db.get_value("App Plan", {"plan_name": plan_name}, "name")
+        if not plan_by_name:
+            return {"success": False, "message": f"Plan '{plan_name}' not found."}
+        plan_name = plan_by_name
+
+    # ── Validate and Apply Coupon ─────────────────────────────────────────────
+    coupon_discount = 0
+    if coupon_code:
+        coupon_result = validate_coupon(coupon_code, plan_name)
+        if not coupon_result.get("valid"):
+            return {"success": False, "message": f"Coupon invalid: {coupon_result.get('error', 'Unknown error')}"}
+        # Record coupon usage
+        try:
+            coupon_doc = frappe.get_doc("Mandi Coupon", {"code": coupon_code.upper()})
+            coupon_doc.used_count = (coupon_doc.used_count or 0) + 1
+            coupon_doc.save(ignore_permissions=True)
+        except Exception:
+            pass  # Non-fatal — coupon applied visually even if usage tracking fails
+
+    # ── Apply Plan Change ────────────────────────────────────────────────────
+    try:
+        org = frappe.get_doc("Mandi Organization", org_id)
+
+        # Compute next billing date
+        period_end = add_days(today(), 365 if billing_cycle == "yearly" else 30)
+
+        # Update org subscription fields
+        org.plan = plan_name
+        org.status = "active"
+        if hasattr(org, "subscription_plan"):
+            org.subscription_plan = plan_name
+        if hasattr(org, "billing_cycle"):
+            org.billing_cycle = billing_cycle
+        if hasattr(org, "current_period_end"):
+            org.current_period_end = str(period_end)[:10]
+        if hasattr(org, "plan_activated_on"):
+            org.plan_activated_on = today()
+        if hasattr(org, "coupon_applied"):
+            org.coupon_applied = coupon_code or ""
+
+        org.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        plan_doc = frappe.get_doc("App Plan", plan_name)
+        display = getattr(plan_doc, "display_name", plan_name)
+
+        frappe.logger().info(f"[change_tenant_plan] {org_id} → {plan_name} ({billing_cycle}), coupon={coupon_code}")
+
+        return {
+            "success": True,
+            "message": f"Plan changed to {display} successfully.",
+            "plan_name": plan_name,
+            "status": "active",
+            "current_period_end": str(period_end)[:10],
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "change_tenant_plan Failed")
+        return {"success": False, "message": str(e)}
