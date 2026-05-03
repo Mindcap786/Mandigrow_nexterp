@@ -3492,7 +3492,77 @@ def get_mandi_settings(org_id: str = None) -> dict:
     return settings
 
 @frappe.whitelist(allow_guest=False)
+def get_payment_settings() -> dict:
+    """
+    Returns the payment/UPI print settings stored in Mandi Organization.payment_settings.
+    Also returns the list of bank accounts so the UI can populate bank selectors.
+    """
+    import json
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "error": "Organization not found"}
+
+    try:
+        raw = frappe.db.get_value("Mandi Organization", org_id, "payment_settings")
+        if raw:
+            settings = json.loads(raw) if isinstance(raw, str) else (raw or {})
+        else:
+            settings = {}
+    except Exception:
+        settings = {}
+
+    # Fetch bank accounts (with description metadata)
+    banks = get_bank_accounts(org_id)
+
+    return {
+        "success": True,
+        "settings": settings,
+        "banks": banks,
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def save_payment_settings(**kwargs) -> dict:
+    """
+    Persists payment/UPI print settings into Mandi Organization.payment_settings (JSON field).
+    Accepts the full settings payload from the bank-details page.
+    """
+    import json
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "error": "Organization not found"}
+
+    try:
+        settings = {
+            "upi_id":             kwargs.get("upi_id", ""),
+            "upi_name":           kwargs.get("upi_name", ""),
+            "bank_name":          kwargs.get("bank_name", ""),
+            "account_number":     kwargs.get("account_number", ""),
+            "ifsc_code":          kwargs.get("ifsc_code", ""),
+            "account_holder":     kwargs.get("account_holder", ""),
+            "print_upi_qr":       bool(kwargs.get("print_upi_qr", False)),
+            "print_bank_details": bool(kwargs.get("print_bank_details", False)),
+            "text_bank_id":       kwargs.get("text_bank_id", ""),
+            "qr_bank_id":         kwargs.get("qr_bank_id", ""),
+        }
+
+        if frappe.db.has_column("Mandi Organization", "payment_settings"):
+            frappe.db.set_value("Mandi Organization", org_id, "payment_settings", json.dumps(settings), update_modified=False)
+        else:
+            # Graceful fallback: store in org notes/description field
+            frappe.log_error("payment_settings column missing — run bench migrate", "save_payment_settings")
+            return {"success": False, "error": "Schema not migrated. Run bench migrate on server."}
+
+        frappe.db.commit()
+        return {"success": True, "message": "Payment settings saved."}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "save_payment_settings Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
 def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
+
     """
     Returns all master data needed for forms (contacts, commodities, units, settings).
     Supports filtering contacts by type (e.g. for Arrivals vs Sales).
@@ -3839,24 +3909,24 @@ def save_bank_account(**kwargs) -> dict:
             if doc.company != company:
                 return {"success": False, "error": "Access denied: account belongs to another company."}
             # On edit: only update safe metadata — never account_name (triggers ERPNext rename)
-            safe_update = {
-                "description": account_payload.get("description"),
-                "account_number": account_payload.get("account_number") or "",
-            }
-            # Only touch is_default if the caller explicitly passed it (not None)
-            # Avoids resetting the default flag on every edit
+            # Write description via raw SQL to avoid Small Text 255-char truncation
+            meta_json = account_payload.get("description") or "{}"
+            frappe.db.sql("""
+                UPDATE `tabAccount`
+                SET `description` = %s, `account_number` = %s
+                WHERE `name` = %s
+            """, (meta_json, kwargs.get("account_number") or "", account_id))
+
+            # Handle is_default and organization_id separately via set_value
+            scalar_update = {}
             if is_default is not None:
-                safe_update["is_default"] = 1 if is_default else 0
+                scalar_update["is_default"] = 1 if is_default else 0
             if frappe.db.has_column("Account", "organization_id"):
-                safe_update["organization_id"] = org_id
-            for k, v in safe_update.items():
-                if v is not None:
-                    setattr(doc, k, v)
-            # Ensure description is always a valid JSON string
-            if "description" in safe_update and safe_update["description"]:
-                doc.description = safe_update["description"]
-            frappe.db.set_value("Account", account_id, safe_update, update_modified=False)
+                scalar_update["organization_id"] = org_id
+            if scalar_update:
+                frappe.db.set_value("Account", account_id, scalar_update, update_modified=False)
             frappe.db.commit()
+
             
         # Unset is_default on other accounts for this company+type (use company — always exists)
         if is_default:

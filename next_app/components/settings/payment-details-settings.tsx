@@ -1,16 +1,13 @@
 'use client'
 
-import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { QrCode, Landmark, Save, Loader2, CheckSquare, Square, Eye, EyeOff } from 'lucide-react'
+import { QrCode, Save, Loader2, CheckSquare, Square } from 'lucide-react'
 import { callApi } from '@/lib/frappeClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { QRCodeSVG } from 'qrcode.react'
-
 import { useToast } from '@/hooks/use-toast'
 
 interface PaymentSettings {
@@ -45,116 +42,125 @@ export default function PaymentDetailsSettings() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [payment, setPayment] = useState<PaymentSettings>(defaultSettings)
-    const [showPreview, setShowPreview] = useState(false)
     const [bankAccounts, setBankAccounts] = useState<any[]>([])
 
     useEffect(() => {
         if (profile?.organization_id) {
-            fetchSettings()
-            fetchBankAccounts()
+            fetchAll()
         }
     }, [profile])
 
-    const fetchBankAccounts = async () => {
-        const { data } = await supabase
-            .schema('mandi')
-            .from('accounts')
-            .select('id, name, description, is_default, code')
-            .eq('organization_id', profile?.organization_id)
-            .eq('account_sub_type', 'bank')
-            .eq('type', 'asset')
-            .eq('is_active', true)
-        if (data) setBankAccounts(data)
-    }
-
-    const fetchSettings = async () => {
+    const fetchAll = async () => {
         setLoading(true)
-        const { data } = await supabase
-            .schema('core')
-            .from('organizations')
-            .select('settings')
-            .eq('id', profile?.organization_id)
-            .single()
+        try {
+            // Single Frappe API call returns both settings and bank list
+            const res: any = await callApi('mandigrow.api.get_payment_settings')
+            if (res?.success) {
+                const s = res.settings || {}
+                setPayment({ ...defaultSettings, ...s })
 
-        if (data?.settings?.payment) {
-            setPayment({ ...defaultSettings, ...data.settings.payment })
+                const banks = res.banks || []
+                setBankAccounts(banks)
+            }
+        } catch (err) {
+            console.error('[PaymentDetailsSettings] fetchAll error:', err)
+            toast({ title: 'Failed to load payment settings', variant: 'destructive' })
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
-    // Auto-sync UPI ID if bank ID is set but UPI is missing in settings
-    useEffect(() => {
-        if (!loading && bankAccounts.length > 0 && payment.qr_bank_id && !payment.upi_id) {
-            const acc = bankAccounts.find(a => a.id === payment.qr_bank_id)
-            if (acc) {
-                const meta = acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                if (meta.upi_id) {
-                    setPayment(prev => ({ ...prev, upi_id: meta.upi_id }))
-                }
-            }
+    // Parse description JSON from a bank account row
+    const parseMeta = (bank: any): Record<string, string> => {
+        if (!bank?.description) return {}
+        try {
+            const raw = bank.description
+            if (typeof raw === 'string' && raw.startsWith('{')) return JSON.parse(raw)
+            if (typeof raw === 'object') return raw
+        } catch { /* ignore */ }
+        return {}
+    }
+
+    const handleTextBankChange = (bankId: string) => {
+        const acc = bankAccounts.find(a => a.id === bankId)
+        if (acc) {
+            const meta = parseMeta(acc)
+            setPayment(prev => ({
+                ...prev,
+                text_bank_id: acc.id,
+                bank_name: meta.bank_name || '',
+                account_number: meta.account_number || '',
+                ifsc_code: meta.ifsc_code || '',
+                account_holder: acc.name || '',
+            }))
+        } else {
+            setPayment(prev => ({
+                ...prev,
+                text_bank_id: '',
+                bank_name: '',
+                account_number: '',
+                ifsc_code: '',
+                account_holder: '',
+            }))
         }
-        // Also sync bank details if missing
-        if (!loading && bankAccounts.length > 0 && payment.text_bank_id && !payment.account_number) {
-            const acc = bankAccounts.find(a => a.id === payment.text_bank_id)
-            if (acc) {
-                const meta = acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                if (meta.account_number) {
-                    setPayment(prev => ({
-                        ...prev,
-                        bank_name: meta.bank_name || prev.bank_name,
-                        account_number: meta.account_number,
-                        ifsc_code: meta.ifsc_code || prev.ifsc_code,
-                        account_holder: meta.account_name || acc.name || prev.account_holder
-                    }))
-                }
-            }
+    }
+
+    const handleQrBankChange = (bankId: string) => {
+        const acc = bankAccounts.find(a => a.id === bankId)
+        if (acc) {
+            const meta = parseMeta(acc)
+            setPayment(prev => ({
+                ...prev,
+                qr_bank_id: acc.id,
+                upi_id: meta.upi_id || '',
+            }))
+        } else {
+            setPayment(prev => ({ ...prev, qr_bank_id: '', upi_id: '' }))
         }
-    }, [loading, bankAccounts, payment.qr_bank_id, payment.text_bank_id])
+    }
 
     const handleSave = async () => {
         setSaving(true)
-        // First get existing settings to merge
-        const { data: existing } = await supabase
-            .schema('core')
-            .from('organizations')
-            .select('settings')
-            .eq('id', profile?.organization_id)
-            .single()
-
-        const mergedSettings = { ...(existing?.settings || {}), payment }
-
-        const { error } = await supabase
-            .schema('core')
-            .from('organizations')
-            .update({ settings: mergedSettings })
-            .eq('id', profile?.organization_id)
-
-        if (error) {
-            toast({
-                title: "Error Saving",
-                description: error.message,
-                variant: "destructive"
+        try {
+            const res: any = await callApi('mandigrow.api.save_payment_settings', {
+                upi_id:             payment.upi_id,
+                upi_name:           payment.upi_name,
+                bank_name:          payment.bank_name,
+                account_number:     payment.account_number,
+                ifsc_code:          payment.ifsc_code,
+                account_holder:     payment.account_holder,
+                print_upi_qr:       payment.print_upi_qr,
+                print_bank_details: payment.print_bank_details,
+                text_bank_id:       payment.text_bank_id || '',
+                qr_bank_id:         payment.qr_bank_id || '',
             })
-        } else {
-            toast({
-                title: "Settings Saved",
-                description: "Payment details have been updated successfully.",
-            })
+            if (res?.success) {
+                toast({ title: '✅ Settings Saved', description: 'Payment details updated successfully.' })
+            } else {
+                toast({ title: 'Error Saving', description: res?.error || 'Unknown error', variant: 'destructive' })
+            }
+        } catch (err: any) {
+            toast({ title: 'Save Failed', description: err.message, variant: 'destructive' })
+        } finally {
+            setSaving(false)
         }
-        setSaving(false)
     }
 
     const upiLink = payment.upi_id
         ? `upi://pay?pa=${payment.upi_id}&pn=${encodeURIComponent(payment.upi_name || '')}&cu=INR`
         : ''
 
-    if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-500 w-6 h-6" /></div>
+    if (loading) return (
+        <div className="flex justify-center p-10">
+            <Loader2 className="animate-spin text-blue-500 w-6 h-6" />
+        </div>
+    )
 
     return (
         <Card className="bg-white border-slate-200 shadow-sm overflow-hidden rounded-[24px]">
             <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b border-slate-100 py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-black flex items-center gap-2">
-                    <QrCode className="w-4 h-4 text-violet-600" /> Payment Details & QR Code
+                    <QrCode className="w-4 h-4 text-violet-600" /> Payment Details &amp; QR Code
                 </CardTitle>
                 <p className="text-[11px] text-slate-500 font-medium mt-1">
                     Add your UPI or bank details to print on invoices automatically.
@@ -183,39 +189,37 @@ export default function PaymentDetailsSettings() {
                         <div className="space-y-4 pt-3 border-t border-slate-200 animate-in fade-in slide-in-from-top-2">
                             <div className="space-y-2">
                                 <Label className="text-xs font-black uppercase tracking-widest text-slate-700 block">Source Bank for Details</Label>
-                                <select 
-                                    className="w-full bg-white border border-slate-200 font-bold text-slate-800 h-10 px-3 rounded-xl shadow-sm focus:border-blue-500 outline-none"
-                                    value={payment.text_bank_id || ""}
-                                    onChange={(e) => {
-                                        const acc = bankAccounts.find(a => a.id === e.target.value)
-                                        if (acc) {
-                                            const meta = acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                                            setPayment(prev => ({
-                                                ...prev,
-                                                text_bank_id: acc.id,
-                                                bank_name: meta.bank_name || '',
-                                                account_number: meta.account_number || '',
-                                                ifsc_code: meta.ifsc_code || '',
-                                                account_holder: meta.account_name || acc.name || '',
-                                            }))
-                                        } else {
-                                            setPayment(prev => ({ ...prev, text_bank_id: '', bank_name: '', account_number: '', ifsc_code: '', account_holder: '' }))
-                                        }
-                                    }}
-                                >
-                                    <option value="" disabled>-- Select Bank --</option>
-                                    {bankAccounts.map(b => (
-                                        <option key={b.id} value={b.id}>{b.name} {b.is_default ? '(Default)' : ''}</option>
-                                    ))}
-                                </select>
+                                {bankAccounts.length === 0 ? (
+                                    <p className="text-[11px] text-amber-600 font-bold">
+                                        ⚠️ No bank accounts found. Add one at{' '}
+                                        <a href="/settings/banks" className="underline text-blue-600">Settings → Banks</a>.
+                                    </p>
+                                ) : (
+                                    <select
+                                        className="w-full bg-white border border-slate-200 font-bold text-slate-800 h-10 px-3 rounded-xl shadow-sm focus:border-blue-500 outline-none"
+                                        value={payment.text_bank_id || ''}
+                                        onChange={(e) => handleTextBankChange(e.target.value)}
+                                    >
+                                        <option value="" disabled>-- Select Bank --</option>
+                                        {bankAccounts.map(b => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name}{b.is_default ? ' (Default)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                                 {payment.text_bank_id && (!payment.account_number || !payment.bank_name) && (
-                                    <p className="text-[10px] text-amber-600 font-bold flex items-center gap-1 animate-pulse">⚠️ Missing Account No or Bank Name in Master Data.</p>
+                                    <p className="text-[10px] text-amber-600 font-bold flex items-center gap-1 animate-pulse">
+                                        ⚠️ Missing Account No or Bank Name. Edit the bank at Settings → Banks.
+                                    </p>
                                 )}
                             </div>
 
                             {payment.text_bank_id && payment.account_number && (
                                 <div className="p-4 bg-white border border-slate-200 shadow-sm rounded-xl">
-                                    <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3"><div className="w-4 h-px bg-slate-200" /> Preview Details</div>
+                                    <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                                        <div className="w-4 h-px bg-slate-200" /> Preview Details
+                                    </div>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
@@ -261,30 +265,29 @@ export default function PaymentDetailsSettings() {
                         <div className="space-y-4 pt-3 border-t border-slate-200 animate-in fade-in slide-in-from-top-2">
                             <div className="space-y-2">
                                 <Label className="text-xs font-black uppercase tracking-widest text-slate-700 block">Source Bank for UPI</Label>
-                                <select 
-                                    className="w-full bg-white border border-slate-200 font-bold text-slate-800 h-10 px-3 rounded-xl shadow-sm focus:border-violet-500 outline-none"
-                                    value={payment.qr_bank_id || ""}
-                                    onChange={(e) => {
-                                        const acc = bankAccounts.find(a => a.id === e.target.value)
-                                        if (acc) {
-                                            const meta = acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                                            setPayment(prev => ({
-                                                ...prev,
-                                                qr_bank_id: acc.id,
-                                                upi_id: meta.upi_id || ''
-                                            }))
-                                        } else {
-                                            setPayment(prev => ({ ...prev, qr_bank_id: '', upi_id: '' }))
-                                        }
-                                    }}
-                                >
-                                    <option value="" disabled>-- Select Bank --</option>
-                                    {bankAccounts.map(b => (
-                                        <option key={b.id} value={b.id}>{b.name} {b.is_default ? '(Default)' : ''}</option>
-                                    ))}
-                                </select>
+                                {bankAccounts.length === 0 ? (
+                                    <p className="text-[11px] text-amber-600 font-bold">
+                                        ⚠️ No bank accounts found. Add one at{' '}
+                                        <a href="/settings/banks" className="underline text-blue-600">Settings → Banks</a>.
+                                    </p>
+                                ) : (
+                                    <select
+                                        className="w-full bg-white border border-slate-200 font-bold text-slate-800 h-10 px-3 rounded-xl shadow-sm focus:border-violet-500 outline-none"
+                                        value={payment.qr_bank_id || ''}
+                                        onChange={(e) => handleQrBankChange(e.target.value)}
+                                    >
+                                        <option value="" disabled>-- Select Bank --</option>
+                                        {bankAccounts.map(b => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name}{b.is_default ? ' (Default)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                                 {payment.qr_bank_id && !payment.upi_id && (
-                                    <p className="text-[10px] text-amber-600 font-bold flex items-center gap-1 animate-pulse">⚠️ This bank has no UPI ID configured in Master Data.</p>
+                                    <p className="text-[10px] text-amber-600 font-bold flex items-center gap-1 animate-pulse">
+                                        ⚠️ This bank has no UPI ID. Edit it at Settings → Banks to add one.
+                                    </p>
                                 )}
                             </div>
 
@@ -300,8 +303,12 @@ export default function PaymentDetailsSettings() {
                                         />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[9px] font-black text-violet-500 uppercase tracking-widest flex items-center gap-1 mb-1"><QrCode className="w-3 h-3"/> Connected UPI</p>
-                                        <p className="font-mono font-bold text-violet-900 text-[13px] truncate" title={payment.upi_id}>{payment.upi_id}</p>
+                                        <p className="text-[9px] font-black text-violet-500 uppercase tracking-widest flex items-center gap-1 mb-1">
+                                            <QrCode className="w-3 h-3" /> Connected UPI
+                                        </p>
+                                        <p className="font-mono font-bold text-violet-900 text-[13px] truncate" title={payment.upi_id}>
+                                            {payment.upi_id}
+                                        </p>
                                     </div>
                                 </div>
                             )}
