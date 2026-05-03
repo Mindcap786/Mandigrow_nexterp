@@ -3367,50 +3367,70 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
     })
     doc.insert(ignore_permissions=True)
     
-    if opening_balance > 0:
-        # Create an opening balance Journal Entry
-        company = _get_user_company()
-        account = frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
-        if not account:
-            account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
-            
-        # Standard ERPNext logic: Resolving the linked party and account
-        from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
-        
-        party_type = "Customer" if contact_type == 'buyer' else "Supplier"
-        if party_type == "Customer":
-            party = ensure_customer_for_contact(doc.name, company)
-            party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
-        else:
-            party = ensure_supplier_for_contact(doc.name, company)
-            party_account = frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
-        
-        if party and party_account and account:
-            je = frappe.get_doc({
-                "doctype": "Journal Entry",
-                "voucher_type": "Journal Entry",
-                "posting_date": frappe.utils.today(),
-                "company": company,
-                "accounts": [
-                    {
-                        "account": party_account,
-                        "party_type": party_type,
-                        "party": party,
-                        "debit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
-                        "credit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
-                    },
-                    {
-                        "account": account,
-                        "debit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
-                        "credit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
-                    }
-                ]
-            })
-            je.flags.ignore_permissions = True
-            je.insert()
-            je.submit()
+    if opening_balance and float(opening_balance) > 0:
+        try:
+            company = _get_user_company()
+
+            # Resolve contra account (Opening Equity / Temporary Opening)
+            contra = (
+                frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
+                or frappe.db.get_value("Account", {"account_name": "Opening Balance Equity", "company": company}, "name")
+                or frappe.db.get_value("Account", {"account_type": "Equity", "is_group": 0, "company": company}, "name")
+            )
+
+            from mandigrow.mandigrow.logic.erp_bootstrap import (
+                ensure_customer_for_contact, ensure_supplier_for_contact
+            )
+            party_type = "Customer" if contact_type == 'buyer' else "Supplier"
+            if party_type == "Customer":
+                party = ensure_customer_for_contact(doc.name, company)
+                party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "is_group": 0, "company": company}, "name")
+            else:
+                party = ensure_supplier_for_contact(doc.name, company)
+                party_account = frappe.db.get_value("Account", {"account_type": "Payable", "is_group": 0, "company": company}, "name")
+
+            if party and party_account and contra:
+                amt = float(opening_balance)
+                is_receivable = (balance_type == 'receivable')
+                je = frappe.get_doc({
+                    "doctype": "Journal Entry",
+                    "voucher_type": "Opening Entry",
+                    "is_opening": "Yes",
+                    "posting_date": frappe.utils.today(),
+                    "company": company,
+                    "user_remark": f"Opening balance for {full_name} ({contact_type})",
+                    "accounts": [
+                        {
+                            "account": party_account,
+                            "party_type": party_type,
+                            "party": party,
+                            "is_advance": "No",
+                            "debit_in_account_currency": amt if is_receivable else 0,
+                            "credit_in_account_currency": 0 if is_receivable else amt,
+                        },
+                        {
+                            "account": contra,
+                            "debit_in_account_currency": 0 if is_receivable else amt,
+                            "credit_in_account_currency": amt if is_receivable else 0,
+                        }
+                    ]
+                })
+                je.flags.ignore_permissions = True
+                je.flags.ignore_mandatory = True
+                je.insert()
+                je.submit()
+                frappe.db.commit()
+            else:
+                frappe.log_error(
+                    f"Opening balance skipped for {doc.name}: party={party}, party_account={party_account}, contra={contra}",
+                    "MandiGrow Opening Balance Skip"
+                )
+        except Exception:
+            # Opening balance failure must NEVER roll back the contact creation
+            frappe.log_error(frappe.get_traceback(), f"Opening balance failed for contact {doc.name}")
 
     return {"name": doc.name, "full_name": doc.full_name}
+
 
 @frappe.whitelist(allow_guest=False)
 def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
