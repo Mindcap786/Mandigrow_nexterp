@@ -266,9 +266,9 @@ export default function StockPage() {
 
     const [stocks, setStocks] = useState<any[]>(_cached || [])
     
-    // Issue 7 Fix: Dynamically populate storage locations from fetched stock
+    // Issue 7 Fix: Dynamically populate storage locations from fetched stock, ensuring default Mandi exists
     const locations = useMemo(() => {
-        const locs = new Set<string>();
+        const locs = new Set<string>(['Mandi']);
         stocks.forEach(s => locs.add(s.storage_location || 'Mandi'));
         return ['All', ...Array.from(locs).sort()];
     }, [stocks]);
