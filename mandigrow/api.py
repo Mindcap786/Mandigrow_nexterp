@@ -1384,22 +1384,33 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> list:
 def get_commodities() -> list:
     """
     Returns available commodity/item list for the Arrivals form.
+    Schema-aware: uses has_column guards so this never crashes if custom
+    fields haven't been migrated to the cloud DB yet.
     """
+    item_filters = [["is_stock_item", "=", 1]]
+    if frappe.db.has_column("Item", "organization_id"):
+        item_filters.append(["organization_id", "=", _get_user_org()])
+
+    item_fields = [
+        "name as id",
+        "item_name as name",
+        "stock_uom as default_unit",
+        "item_group as category",
+        "item_code as sku_code",
+        "standard_rate as sale_price",
+        "shelf_life_in_days as shelf_life_days",
+    ]
+    if frappe.db.has_column("Item", "internal_id"):
+        item_fields.append("internal_id")
+    if frappe.db.has_column("Item", "custom_attributes"):
+        item_fields.append("custom_attributes")
+    if frappe.db.has_column("Item", "local_name"):
+        item_fields.append("local_name")
+
     items = frappe.get_all(
         "Item",
-        filters=[["is_stock_item", "=", 1], ["organization_id", "=", _get_user_org()]],
-        fields=[
-            "name as id", 
-            "item_name as name", 
-            "stock_uom as default_unit", 
-            "item_group as category",
-            "internal_id",
-            "item_code as sku_code",
-            "standard_rate as sale_price",
-            "shelf_life_in_days as shelf_life_days",
-            "custom_attributes",
-            "local_name"
-        ],
+        filters=item_filters,
+        fields=item_fields,
         limit=500,
         order_by="item_name asc",
         ignore_permissions=True
@@ -1408,14 +1419,13 @@ def get_commodities() -> list:
         attrs = item.get("custom_attributes")
         if attrs:
             item["custom_attributes"] = frappe.parse_json(attrs)
-            # Extract for UI convenience
             item["variety"] = item["custom_attributes"].get("Variety", "")
             item["grade"] = item["custom_attributes"].get("Grade", "")
         else:
             item["custom_attributes"] = {}
             item["variety"] = ""
             item["grade"] = ""
-            
+
     return {"commodities": items}
     
 @frappe.whitelist()
@@ -2667,7 +2677,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
 
-        from mandigrow.finance.cheque_api import (
+        from mandigrow.mandigrow.finance.cheque_api import (
             get_reconciliation_data,
             mark_cheque_cleared,
             cancel_cheque_voucher
@@ -2706,19 +2716,19 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
 @frappe.whitelist(allow_guest=False)
 def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
-    from mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
+    from mandigrow.mandigrow.finance.cheque_api import mark_cheque_cleared as _mark_cheque_cleared
     return _mark_cheque_cleared(voucher_no, clearance_date)
 
 
 @frappe.whitelist(allow_guest=False)
 def cancel_cheque_voucher(voucher_no: str) -> dict:
-    from mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
+    from mandigrow.mandigrow.finance.cheque_api import cancel_cheque_voucher as _cancel_cheque_voucher
     return _cancel_cheque_voucher(voucher_no)
 
 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
-    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    from mandigrow.mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
     return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 
@@ -3427,9 +3437,9 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     if org_id and "ORG" in org_id and "-" not in org_id:
         org_id = f"ORG-{org_id.replace('ORG', '')}"
     contact_filters = {}
-    if org_id:
+    if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         contact_filters["organization_id"] = org_id
-    
+
     if contact_type:
         if "," in contact_type:
             contact_filters["contact_type"] = ["in", contact_type.split(",")]
@@ -3439,41 +3449,41 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     contact_fields = ["name as id", "full_name as name", "contact_type as type", "city"]
     if frappe.db.has_column("Mandi Contact", "internal_id"):
         contact_fields.append("internal_id")
-        
-    contacts = frappe.get_all("Mandi Contact", 
+
+    contacts = frappe.get_all("Mandi Contact",
         filters=contact_filters,
         fields=contact_fields,
         order_by="full_name",
         ignore_permissions=True,
     )
-    # Ensure name is never null for searchability
     for c in contacts:
         if not c.get("name"):
             c["name"] = c.get("id") or "Unknown"
-    
+
     commodities = frappe.get_all("Item",
         filters={"disabled": 0},
         fields=["name as id", "item_name as name", "stock_uom as default_unit"],
         order_by="item_name",
         ignore_permissions=True,
     )
-    
+
     units = frappe.get_all("UOM",
         fields=["name"],
         ignore_permissions=True,
     )
-    
-    # Mandi Settings are now isolated per organization
+
     settings = get_mandi_settings(org_id)
 
-    # Fetch liquid accounts (Bank/Cash) for the organization
+    # Fetch liquid accounts — guard organization_id column
+    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0}
+    if org_id and frappe.db.has_column("Account", "organization_id"):
+        acct_filters["organization_id"] = org_id
+    acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
+    if frappe.db.has_column("Account", "description"):
+        acct_fields.append("description")
     liquid_accounts = frappe.get_all("Account",
-        filters={
-            "organization_id": org_id,
-            "account_type": ["in", ["Bank", "Cash"]],
-            "is_group": 0
-        },
-        fields=["name as id", "account_name as name", "account_type", "account_number"] + (["description"] if frappe.db.has_column("Account", "description") else []),
+        filters=acct_filters,
+        fields=acct_fields,
         ignore_permissions=True
     )
     
@@ -3607,15 +3617,18 @@ def transfer_liquid_funds(p_organization_id: str = None, p_from_account_id: str 
 def get_bank_accounts(org_id: str = None) -> list:
     """
     Returns list of bank accounts for the given organization.
+    Schema-aware: guards organization_id and description with has_column.
     """
     org_id = org_id or _get_user_org()
+    filters: dict = {"account_type": "Bank", "is_group": 0}
+    if org_id and frappe.db.has_column("Account", "organization_id"):
+        filters["organization_id"] = org_id
+    fields = ["name as id", "account_name as name", "account_type", "account_number", "company"]
+    if frappe.db.has_column("Account", "description"):
+        fields.append("description")
     return frappe.get_all("Account",
-        filters={
-            "account_type": "Bank", 
-            "is_group": 0, 
-            "organization_id": org_id
-        },
-        fields=["name as id", "account_name as name", "account_type", "account_number", "company", "description"],
+        filters=filters,
+        fields=fields,
         ignore_permissions=True
     )
 
@@ -4831,7 +4844,7 @@ def cancel_broken_voucher(voucher_no: str, voucher_type: str = "Journal Entry") 
 @frappe.whitelist(allow_guest=False)
 def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: str = None, status_filter: str = "All") -> dict:
     # Simply call the consolidated finance implementation
-    from mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
+    from mandigrow.mandigrow.finance.cheque_api import get_reconciliation_data as _get_reconciliation_data
     return _get_reconciliation_data(org_id, date_from, date_to, status_filter)
 
 @frappe.whitelist(allow_guest=False)
