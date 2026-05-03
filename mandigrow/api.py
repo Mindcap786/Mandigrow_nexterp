@@ -8352,8 +8352,7 @@ def get_plans() -> list:
     try:
         plans = frappe.get_all(
             "App Plan",
-            fields=["name", "plan_name", "display_name", "price_monthly", "price_yearly",
-                    "max_users", "max_storage_gb", "sort_order", "features", "description"],
+            fields=["*"],
             order_by="sort_order asc",
             ignore_permissions=True
         )

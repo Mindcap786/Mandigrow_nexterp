@@ -83,12 +83,18 @@ export function MandiCommissionForm() {
         const loadMasterData = async () => {
             try {
                 const res: any = await callApi('mandigrow.api.get_master_data');
-                const data = res.message;
+                const data = res;
                 if (!data) return;
 
                 if (data.contacts) {
-                    setFarmers(data.contacts.filter((c: any) => c.type === 'farmer' || c.type === 'supplier' || c.type === 'both'));
-                    setBuyers(data.contacts.filter((c: any) => c.type === 'buyer' || c.type === 'customer' || c.type === 'both'));
+                    setFarmers(data.contacts.filter((c: any) => {
+                        const type = (c.type || "").toLowerCase();
+                        return type === 'farmer' || type === 'supplier' || type === 'both';
+                    }));
+                    setBuyers(data.contacts.filter((c: any) => {
+                        const type = (c.type || "").toLowerCase();
+                        return type === 'buyer' || type === 'customer' || type === 'both';
+                    }));
                 }
                 if (data.commodities) setCommodities(data.commodities);
                 if (data.settings) {
@@ -279,7 +285,8 @@ export function MandiCommissionForm() {
     // Renders
     // ─────────────────────────────────────────────────────────────
     const buildItemLabel = (item: any) => {
-        return formatCommodityName(item.name, item.custom_attributes);
+        const base = item.name || item.item_name || item.id || "Unknown Item";
+        return formatCommodityName(base, item.custom_attributes);
     };
 
     if (committedSessionData) {
