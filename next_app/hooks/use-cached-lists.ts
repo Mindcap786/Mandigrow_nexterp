@@ -108,7 +108,7 @@ export function useCachedParties(orgId: string | undefined, type?: string) {
             });
             // Map frappe response to what the UI expects
             // Map frappe response to what the UI expects
-            const data = (res?.message || []).map((c: any) => ({ ...c, id: c.name }));
+            const data = (Array.isArray(res) ? res : []).map((c: any) => ({ ...c, id: c.name }));
             return { data };
         } catch (error) {
             return { data: null, error };
@@ -126,7 +126,7 @@ export function useCachedItems(orgId: string | undefined) {
                 order_by: 'item_name asc',
                 limit_page_length: 500
             });
-            return { data: res?.message || [] };
+            return { data: Array.isArray(res) ? res : [] };
         } catch (error) {
             return { data: null, error };
         }
@@ -147,7 +147,7 @@ export function useCachedFarmers(orgId: string | undefined) {
                 order_by: 'creation desc',
                 limit_page_length: 1000
             });
-            const data = (res?.message || []).map((c: any) => ({ ...c, id: c.name }));
+            const data = (Array.isArray(res) ? res : []).map((c: any) => ({ ...c, id: c.name }));
             return { data };
         } catch (error) {
             return { data: null, error };
@@ -163,12 +163,18 @@ export function useCachedEmployees(orgId: string | undefined) {
         try {
             const res = await callApi('mandigrow.api.get_list_permission_safe', {
                 doctype: 'Employee',
-                filters: { status: 'Active' },
+                filters: {}, // Removed status: 'Active' to fetch both
                 fields: ['*'],
                 order_by: 'creation desc',
                 limit_page_length: 500
             });
-            const data = (res?.message || []).map((e: any) => ({ ...e, id: e.name }));
+            const data = (Array.isArray(res) ? res : []).map((e: any) => ({ 
+                ...e, 
+                id: e.name,
+                name: e.employee_name || e.first_name || e.name,
+                role: e.designation || e.role || 'Worker',
+                phone: e.cell_phone || e.phone || ''
+            }));
             return { data };
         } catch (error) {
             return { data: null, error };
@@ -188,7 +194,7 @@ export function useCachedWarehouses(orgId: string | undefined) {
                 order_by: 'warehouse_name asc',
                 limit_page_length: 500
             });
-            return { data: res?.message || [] };
+            return { data: Array.isArray(res) ? res : [] };
         } catch (error) {
             return { data: null, error };
         }

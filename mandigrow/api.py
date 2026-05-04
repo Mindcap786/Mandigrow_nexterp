@@ -3211,10 +3211,10 @@ def get_dashboard_data() -> dict:
         # Authoritative fallback: Mandi Sale doctype (same filter as Day Book uses)
         today_sales = frappe.get_all("Mandi Sale",
             filters={"docstatus": 1, "saledate": today(), **_org_filter("Mandi Sale", org_id)},
-            fields=["totalamount", "amountreceived"],
+            fields=["invoice_total", "amountreceived"],
             ignore_permissions=True,
         )
-        revenue = sum(float(s.totalamount or 0) for s in today_sales)
+        revenue = sum(float(s.invoice_total or 0) for s in today_sales)
         collections = sum(float(s.amountreceived or 0) for s in today_sales)
 
     # Udhaar Sales = total billed minus cash collected
@@ -3265,7 +3265,7 @@ def get_dashboard_data() -> dict:
     # Get latest sales
     sales_docs = frappe.get_all("Mandi Sale",
         filters={"docstatus": 1, **_org_filter("Mandi Sale", org_id)},
-        fields=["name", "creation", "buyerid", "totalamount"],
+        fields=["name", "creation", "buyerid", "invoice_total"],
         order_by="creation desc",
         limit=5
     )
@@ -3283,7 +3283,7 @@ def get_dashboard_data() -> dict:
         recent_activity.append({
             "id": s.name,
             "created_at": s.creation,
-            "amount": s.totalamount,
+            "amount": s.invoice_total,
             "type": "sale",
             "buyer": {"name": customer_name, "id": s.buyerid},
             "lot": {"lot_code": lot_code, "item": {"name": item_name}},
@@ -3303,7 +3303,7 @@ def get_dashboard_data() -> dict:
     start_date = add_days(today(), -6)
     
     trend_data = frappe.db.sql("""
-        SELECT saledate as date, SUM(totalamount) as value
+        SELECT saledate as date, SUM(invoice_total) as value
         FROM `tabMandi Sale`
         WHERE organization_id = %s AND docstatus = 1 AND saledate >= %s
         GROUP BY saledate
@@ -3344,8 +3344,6 @@ def get_dashboard_data() -> dict:
             SUM(gl.debit) as inflow,
             SUM(gl.credit) as outflow
         FROM `tabGL Entry` gl
-        LEFT JOIN `tabJournal Entry` je 
-               ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
         WHERE gl.is_cancelled = 0 
           AND gl.posting_date = %s
           AND gl.company = %s
@@ -3356,10 +3354,10 @@ def get_dashboard_data() -> dict:
           -- EXCLUDE Expenses (Card 4 has its own logic)
           AND gl.account NOT IN (SELECT name FROM tabAccount WHERE root_type = 'Expense')
           -- EXCLUDE Initial Payments (Stay in Card 1 / Card 3)
-          AND (
-              (gl.against_voucher IS NULL OR gl.against_voucher = '')  -- Standalone movement
-              OR 
-              (je.clearance_date IS NOT NULL AND je.clearance_date != gl.posting_date) -- Later clearing ONLY
+          AND NOT EXISTS (
+              SELECT 1 FROM `tabJournal Entry Account` jea 
+              WHERE jea.parent = gl.voucher_no 
+              AND jea.reference_type IN ('Mandi Sale', 'Mandi Arrival')
           )
     """, (today(), company), as_dict=True)
     inflow = liquid_res[0].inflow if liquid_res and liquid_res[0].inflow else 0
@@ -5315,6 +5313,9 @@ def update_employee(employee_id: str = None, **kwargs) -> dict:
     if "name" in kwargs:
         doc.first_name = kwargs["name"]
         doc.employee_name = kwargs["name"]
+        
+    if "phone" in kwargs:
+        doc.cell_phone = kwargs["phone"]
 
     # Same ERPNext status normalization for updates
     _ERP_STATUS_MAP = {
