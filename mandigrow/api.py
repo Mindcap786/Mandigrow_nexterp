@@ -483,6 +483,34 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
     shaped_entries = []
     voucher_summary_cache = {}
 
+    # ── PRE-PASS: Build voucher_no → contact_id map from party legs ──────────
+    # This allows income/expense legs (Commission Income, Stock) that have no
+    # `party` field to inherit the farmer/buyer contact from the SAME voucher.
+    # Without this, Commission Income legs show the account name ("Commission
+    # Income - 5M") instead of the farmer's name.
+    voucher_to_contact = {}  # voucher_no -> contact_id
+    for gl in gl_entries:
+        party = gl.get("party") or ""
+        if not party:
+            continue
+        cid = party_to_contact_id.get(party, party)
+        if cid:
+            vno = gl.get("voucher_no")
+            if vno and vno not in voucher_to_contact:
+                voucher_to_contact[vno] = cid
+            # Also enrich from arrival/sale reference
+            ref_vtype = gl.get("against_voucher_type")
+            ref_vno = gl.get("against_voucher")
+            if ref_vno and ref_vtype == "Mandi Arrival":
+                farmer_id = arrival_to_farmer_map.get(ref_vno)
+                if farmer_id and vno:
+                    voucher_to_contact[vno] = farmer_id
+            elif ref_vno and ref_vtype == "Mandi Sale":
+                buyer_id = sale_to_buyer_map.get(ref_vno)
+                if buyer_id and vno:
+                    voucher_to_contact[vno] = buyer_id
+    # ─────────────────────────────────────────────────────────────────────────
+
     for idx, gl in enumerate(gl_entries):
         is_debit = float(gl.get("debit") or 0) > 0
         tx_type = _map_voucher_type(gl.get("voucher_type", ""), is_debit)
@@ -526,6 +554,13 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
                 contact_id = arrival_to_farmer_map.get(reference_id)
             elif against_vtype == "Mandi Sale" or voucher_vtype == "Mandi Sale":
                 contact_id = sale_to_buyer_map.get(reference_id)
+
+        # PROPAGATION FIX: If this leg has no party (e.g. Commission Income,
+        # Stock In Hand), inherit the contact from another leg of the SAME
+        # voucher so the Day Book card can show the farmer/buyer name.
+        # This is what was causing 'Commission Income - 5M' to appear.
+        if not contact_id and voucher_vno:
+            contact_id = voucher_to_contact.get(voucher_vno)
 
         # Resolve transaction type (mapped for Day Book cards)
         # 1. Goods Arrival / Sale (Initial transaction)

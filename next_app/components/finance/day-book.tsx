@@ -28,7 +28,7 @@ import { cacheGet, cacheSet } from "@/lib/data-cache";
 import { useTableKeyboard } from "@/hooks/use-table-keyboard";
 import { findImbalancedVoucherIds, summarizeVoucherHealth } from "@/lib/finance/voucher-integrity";
 
-const DAYBOOK_CACHE_VERSION = 'v2.9'; // Bumped 2026-04-25: Fix missing purchase/sale summary matching
+const DAYBOOK_CACHE_VERSION = 'v3.0'; // Bumped 2026-05-04: Fix Commission Income showing instead of farmer name (contact propagation)
 const AMOUNT_EPSILON = 0.01;
 
 // ── TRANSACTION TYPE MAP (from real DB audit — all known transaction_type values) ──────────────

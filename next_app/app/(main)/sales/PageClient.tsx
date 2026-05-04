@@ -459,7 +459,22 @@ export default function Sales() {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <Button variant="destructive" onClick={clearFilters} className="w-full h-10 rounded-lg font-black uppercase tracking-widest bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm text-xs"><X className="w-3 h-3 mr-2" /> {t("common.clear_filters")}</Button>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold uppercase text-slate-400">Date Range</label>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => { setShowAllTime(true); setIsFilterOpen(false); setPage(1); }}
+                                            className={cn("w-full h-10 rounded-lg font-bold text-xs", showAllTime ? "bg-[#0C831F] text-white border-[#0C831F]" : "bg-slate-50 border-slate-200 text-black")}
+                                        >
+                                            {showAllTime ? "✓ Showing All Time" : "Show All Time Records"}
+                                        </Button>
+                                        {showAllTime && (
+                                            <Button variant="outline" onClick={() => { setShowAllTime(false); setDateRange({ from: subDays(new Date(), 30), to: new Date() }); setPage(1); setIsFilterOpen(false); }} className="w-full h-10 rounded-lg font-bold text-xs bg-slate-50 border-slate-200 text-slate-600">
+                                                Back to 30 Days
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <Button variant="destructive" onClick={() => { clearFilters(); setIsFilterOpen(false); }} className="w-full h-10 rounded-lg font-black uppercase tracking-widest bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm text-xs"><X className="w-3 h-3 mr-2" /> {t("common.clear_filters")}</Button>
                                 </div>
                             </PopoverContent>
                         </Popover>
@@ -471,6 +486,18 @@ export default function Sales() {
                 {viewMode === "invoices" ? (
                     <>
                         <SalesTable data={sales} isLoading={loading} />
+                        {!loading && sales.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-slate-200">
+                                <FileText className="w-12 h-12 mb-3 text-slate-300" />
+                                <p className="text-sm font-bold text-slate-500 mb-1">No sales records found</p>
+                                <p className="text-xs text-slate-400 mb-4">{showAllTime ? 'No invoices exist for this organization yet.' : 'Try expanding the date range to see older records.'}</p>
+                                {!showAllTime && (
+                                    <Button onClick={showAllTimeRecords} className="px-6 h-10 rounded-xl bg-[#0C831F] text-white font-black text-sm shadow-lg shadow-emerald-200 hover:scale-105 transition-all">
+                                        Show All Time Records
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                         <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.pagination_info", { page, totalPages: Math.ceil(totalCount / pageSize), total: totalCount })}</span>
                             <div className="flex gap-2">
