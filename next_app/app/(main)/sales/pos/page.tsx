@@ -569,9 +569,19 @@ export default function POSPage() {
                 total_amount: grandTotal,
                 discount_amount: discountAmount,
                 discount_percent: discountPercent,
+                market_fee: marketFeeAmount,
+                nirashrit: nirashritAmount,
+                misc_fee: miscFeeAmount,
+                gst_total: gstTotal,
+                cgst_amount: taxSettings.gst_type === 'intra' && taxSettings.gst_enabled ? Math.round((taxableSubTotal * taxSettings.cgst_percent) / 100) : 0,
+                sgst_amount: taxSettings.gst_type === 'intra' && taxSettings.gst_enabled ? Math.round((taxableSubTotal * taxSettings.sgst_percent) / 100) : 0,
+                igst_amount: taxSettings.gst_type === 'inter' && taxSettings.gst_enabled ? globalGstAmount : 0,
+                other_expenses: extraChargesTotal,
+                additional_charges: additionalCharges,
                 bank_account_id: selectedAccountId || null,
                 cheque_no: paymentMode === 'Cheque' ? chequeDetails.no : null,
                 cheque_date: paymentMode === 'Cheque' ? chequeDetails.date : null,
+                cheque_status: chequeStatus,
                 narration: paymentMode === 'Cheque' 
                     ? `POS via Cheque. No: ${chequeDetails.no}, Bank: ${chequeDetails.bank}`
                     : `POS via ${paymentMode}`

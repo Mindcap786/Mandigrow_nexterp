@@ -37,7 +37,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
     const items = sale.sale_items || [];
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-    const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0))
+    const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
     const totalInvoiceAmount = Number(
         sale.total_amount_inc_tax ||
         (

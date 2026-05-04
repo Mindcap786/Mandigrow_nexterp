@@ -5011,7 +5011,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             })
 
         # Fetch real-time ledger-derived totals (due_date drives overdue rule).
-        summary = _get_ledger_summary("Mandi Sale", sale_id, doc.totalamount, due_date=doc.duedate)
+        summary = _get_ledger_summary("Mandi Sale", sale_id, doc.invoice_total, due_date=doc.duedate)
         
         # Calculate items total for correct subtotal rendering in UI
         items_total = sum(float(i.get("amount") or 0) for i in items)
@@ -5024,6 +5024,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "payment_mode": doc.paymentmode,
             "items_total": items_total,
             "total_amount": float(doc.totalamount or 0),
+            "total_amount_inc_tax": float(doc.invoice_total or 0),
             "amount_received": summary["paid"],
             "payment_status": summary["status"],
             "balance_due": summary["balance"],
@@ -7137,20 +7138,8 @@ def confirm_pos_sale(payload: str) -> dict:
         if not items:
             return {"success": False, "error": "No items in cart"}
 
-        # Prepare parameters for unified confirm_sale_transaction
-        params = {
-            "buyer_id": buyer_id,
-            "payment_mode": payment_mode,
-            "amount_received": amount_received,
-            "total_amount": total_amount,
-            "discount_amount": discount_amount,
-            "discount_percent": discount_percent,
-            "bank_account_id": bank_account_id,
-            "cheque_no": cheque_no,
-            "cheque_date": cheque_date,
-            "cheque_status": cheque_status,
-            "items": items
-        }
+        # Forward ALL parameters (including fees/taxes) to unified confirm_sale_transaction
+        params = data.copy()
 
         res = confirm_sale_transaction(**params)
         if not res.get("success"):
@@ -8316,7 +8305,7 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
     sales = frappe.get_all(
         "Mandi Sale",
         filters={"organization_id": org_id, "docstatus": 1, "saledate": ["between", [date_from, date_to]]},
-        fields=["name", "buyerid", "bookno", "saledate", "totalamount", "gsttotal"]
+        fields=["name", "buyerid", "bookno", "saledate", "totalamount", "invoice_total", "gsttotal"]
     )
     
     data = []
@@ -8359,8 +8348,8 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
             "bill_no": s.bookno or s.name,
             "sale_date": str(s.saledate),
             "place_of_supply": buyer.get("city") or "Local",
-            "total_amount_inc_tax": float(s.totalamount or 0),
-            "total_amount": float(s.totalamount or 0) - gst_total,
+            "total_amount_inc_tax": float(s.invoice_total or 0),
+            "total_amount": float(s.totalamount or 0),
             "igst_amount": 0.0,
             "cgst_amount": gst_total / 2,
             "sgst_amount": gst_total / 2,
