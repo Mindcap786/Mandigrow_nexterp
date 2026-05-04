@@ -6444,27 +6444,57 @@ def update_settings(**kwargs) -> dict:
 
 
 def _ensure_org_custom_fields():
-    """Idempotently ensure Mandi Organization has the required custom fields."""
+    """Auto-create ALL required columns on tabMandi Organization if missing.
+    
+    This replaces 'bench migrate' for production deployments where the
+    doctype JSON has been updated but the DB schema hasn't been synced.
+    Uses ALTER TABLE ADD COLUMN directly — idempotent and crash-safe.
+    """
+    # Every column the settings page needs, with their MariaDB types
+    REQUIRED_COLUMNS = {
+        "commission_rate_default": "DECIMAL(18,6) DEFAULT 0",
+        "market_fee_percent":     "DECIMAL(18,6) DEFAULT 0",
+        "nirashrit_percent":      "DECIMAL(18,6) DEFAULT 0",
+        "misc_fee_percent":       "DECIMAL(18,6) DEFAULT 0",
+        "default_credit_days":    "INT(11) DEFAULT 15",
+        "max_invoice_amount":     "DECIMAL(18,6) DEFAULT 0",
+        "mandi_license":          "VARCHAR(140) DEFAULT ''",
+        "gst_enabled":            "INT(1) DEFAULT 0",
+        "gst_type":               "VARCHAR(140) DEFAULT 'intra'",
+        "cgst_percent":           "DECIMAL(18,6) DEFAULT 0",
+        "sgst_percent":           "DECIMAL(18,6) DEFAULT 0",
+        "igst_percent":           "DECIMAL(18,6) DEFAULT 0",
+        "state_code":             "VARCHAR(140) DEFAULT ''",
+        "brand_color":            "VARCHAR(140) DEFAULT '#10b981'",
+        "print_upi_qr":           "INT(1) DEFAULT 0",
+        "print_bank_details":     "INT(1) DEFAULT 0",
+        "qr_bank_id":             "VARCHAR(140) DEFAULT ''",
+        "text_bank_id":           "VARCHAR(140) DEFAULT ''",
+    }
+
     try:
-        from frappe.custom.doctype.custom_field.custom_field import create_custom_field
-        if not frappe.db.exists("Custom Field", "Mandi Organization-max_invoice_amount"):
-            create_custom_field("Mandi Organization", {
-                "fieldname": "max_invoice_amount",
-                "label": "Max Invoice Amount",
-                "fieldtype": "Currency",
-                "default": "0",
-                "insert_after": "misc_fee_percent"
-            })
-        if not frappe.db.exists("Custom Field", "Mandi Organization-mandi_license"):
-            create_custom_field("Mandi Organization", {
-                "fieldname": "mandi_license",
-                "label": "Mandi License",
-                "fieldtype": "Data",
-                "insert_after": "gstin"
-            })
-    except Exception:
-        # Non-critical: fields may already exist as standard fields or on other setups
-        pass
+        # Get current columns in one query
+        existing = {r[0] for r in frappe.db.sql(
+            "SHOW COLUMNS FROM `tabMandi Organization`"
+        )}
+
+        added = []
+        for col, col_type in REQUIRED_COLUMNS.items():
+            if col not in existing:
+                try:
+                    frappe.db.sql(f"ALTER TABLE `tabMandi Organization` ADD COLUMN `{col}` {col_type}")
+                    added.append(col)
+                except Exception as e:
+                    # Column might have been added by another request (race condition)
+                    if "Duplicate column" not in str(e):
+                        frappe.log_error(f"_ensure_org_custom_fields: failed to add {col}: {e}")
+
+        if added:
+            frappe.db.commit()
+            frappe.logger().info(f"_ensure_org_custom_fields: added columns {added}")
+    except Exception as e:
+        frappe.log_error(f"_ensure_org_custom_fields failed: {e}")
+
 
 
 def _safe_get_field(doc, fieldname: str, default=None):
