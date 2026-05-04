@@ -1346,7 +1346,7 @@ function NewSaleForm() {
                                                                 <SearchableSelect
                                                                     options={items.map(i => {
                                                                         const label = [
-                                                                            i.name,
+                                                                            i.display_name || i.name,
                                                                             (language !== 'en' && i.local_name) ? `(${i.local_name})` : "",
                                                                         ].filter(Boolean).join(" ");
                                                                         return { value: i.id, label };

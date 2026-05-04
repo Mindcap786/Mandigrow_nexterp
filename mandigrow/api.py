@@ -1483,12 +1483,15 @@ def get_commodities() -> list:
         attrs = item.get("custom_attributes")
         if attrs:
             item["custom_attributes"] = frappe.parse_json(attrs)
-            item["variety"] = item["custom_attributes"].get("Variety", "")
-            item["grade"] = item["custom_attributes"].get("Grade", "")
+            item["variety"] = item["custom_attributes"].get("Variety") or item["custom_attributes"].get("variety", "")
+            item["grade"] = item["custom_attributes"].get("Grade") or item["custom_attributes"].get("grade", "")
+            item["display_name"] = item.get("name") # the full item_name
+            item["name"] = item["custom_attributes"].get("base_name") or item.get("name")
         else:
             item["custom_attributes"] = {}
             item["variety"] = ""
             item["grade"] = ""
+            item["display_name"] = item.get("name")
 
     return {"commodities": items}
     
@@ -5364,18 +5367,13 @@ def get_sale_master_data(org_id: str = None) -> dict:
             "status": lot.get("status") or "Available"
         })
 
-    # Unique items from lots
-    unique_items = {}
-    for lot in lots:
-        iid = lot.get("item_id")
-        if iid and iid not in unique_items:
-            # Try to get item details from the Item doctype
-            try:
-                item_name = frappe.db.get_value("Item", iid, "item_name") or iid
-            except Exception:
-                item_name = iid
-            unique_items[iid] = {"id": iid, "name": item_name, "local_name": "", "sku_code": "", "gst_rate": 0}
-    items_list = list(unique_items.values())
+    # Fetch all items from commodity master
+    # The UI should allow selecting any item even if there's no current stock lot
+    try:
+        commodities_res = get_commodities()
+        items_list = commodities_res.get("commodities", [])
+    except Exception:
+        items_list = []
 
     # Mandi Settings (tenant specific from Mandi Organization)
     org_data = _get_org_info(org_id)
@@ -6905,10 +6903,15 @@ def create_commodity(**kwargs) -> dict:
                 spec_parts.append(val)
         
         # Add from custom_attributes dict (if not already added)
-        for k, v in custom_attrs.items():
+        for k, v in list(custom_attrs.items()):
+            if k == "base_name":
+                continue
             val = str(v).strip()
             if val and val not in spec_parts:
                 spec_parts.append(val)
+                
+        # Store original commodity name to allow UI to reload cleanly without variety appended
+        custom_attrs["base_name"] = name
         
         if spec_parts:
             full_name = f"{name} - {' - '.join(spec_parts)}"

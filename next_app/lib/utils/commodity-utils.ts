@@ -25,7 +25,9 @@ export function formatCommodityName(name: string | null | undefined, customAttri
         if (!strValue) return;
 
         const lowerKey = key.toLowerCase().trim();
-        if (lowerKey === 'variety') {
+        if (lowerKey === 'base_name') {
+            return;
+        } else if (lowerKey === 'variety') {
             variety = strValue;
         } else if (lowerKey === 'grade') {
             grade = strValue;
