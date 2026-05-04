@@ -34,7 +34,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             Number(sale.loading_charges || 0) +
             Number(sale.unloading_charges || 0) +
             Number(sale.other_expenses || 0) +
-            totalGst
+            totalGst -
+            Number(sale.discount_amount || 0)
         )
     );
  
