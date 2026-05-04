@@ -59,10 +59,12 @@ export default function Sales() {
     const pageSize = 20;
     const [search, setSearch] = useState(searchParams.get("search") || "");
     const [statusFilter, setStatusFilter] = useState("all");
+    // Default to 30 days — 7 days was too narrow and cut off sales for many orgs
     const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: undefined | Date }>({
-        from: subDays(new Date(), 7),
+        from: subDays(new Date(), 30),
         to: new Date(),
     });
+    const [showAllTime, setShowAllTime] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"invoices" | "buyers">("invoices");
     const [statusSheetOpen, setStatusSheetOpen] = useState(false);
@@ -94,7 +96,7 @@ export default function Sales() {
         if (authLoading) return;
         if (!profile?.organization_id) { setLoading(false); return; }
         fetchSalesAndStats();
-    }, [debouncedSearch, page, statusFilter, dateRange, profile, authLoading]);
+    }, [debouncedSearch, page, statusFilter, dateRange, showAllTime, profile, authLoading]);
 
     // Realtime neutralized for Frappe — polling can be added in Phase 3
     useEffect(() => {
@@ -112,8 +114,9 @@ export default function Sales() {
                 page: page,
                 page_size: pageSize,
                 status_filter: statusFilter,
-                date_from: dateRange.from ? startOfDay(dateRange.from).toISOString() : null,
-                date_to: dateRange.to ? endOfDay(dateRange.to).toISOString() : null,
+                // When showAllTime is true, send no date filter to get ALL records
+                date_from: showAllTime ? null : (dateRange.from ? startOfDay(dateRange.from).toISOString() : null),
+                date_to: showAllTime ? null : (dateRange.to ? endOfDay(dateRange.to).toISOString() : null),
                 search: debouncedSearch || null,
             });
 
@@ -137,7 +140,8 @@ export default function Sales() {
         }
     };
 
-    const clearFilters = () => { setStatusFilter("all"); setDateRange({ from: subDays(new Date(), 7), to: new Date() }); setSearch(""); setPage(1); };
+    const clearFilters = () => { setStatusFilter("all"); setShowAllTime(false); setDateRange({ from: subDays(new Date(), 30), to: new Date() }); setSearch(""); setPage(1); };
+    const showAllTimeRecords = () => { setShowAllTime(true); setPage(1); };
 
     // ── STATUS BADGE HELPERS ─────────────────────────────────────────────────
     const statusBadge = (status: string) => {
@@ -231,6 +235,17 @@ export default function Sales() {
                             <CalendarIcon className="w-3.5 h-3.5" />
                         </button>
                         
+                        {/* All Time chip */}
+                        <button
+                            onClick={() => { setShowAllTime(true); setPage(1); }}
+                            className={cn(
+                                "flex-shrink-0 h-8 px-3 rounded-full text-xs font-medium transition-colors",
+                                showAllTime ? "bg-[#1A6B3C] text-white" : "bg-white border border-[#E5E7EB] text-[#6B7280]"
+                            )}
+                        >
+                            All Time
+                        </button>
+                        
                         {[
                             { label: "Today", days: 0 },
                             { label: "7 Days", days: 7 },
@@ -238,11 +253,11 @@ export default function Sales() {
                             { label: "90 Days", days: 90 },
                         ].map((chip) => {
                             const from = subDays(new Date(), chip.days);
-                            const isActive = dateRange.from && Math.abs(dateRange.from.getTime() - from.getTime()) < 86400000;
+                            const isActive = !showAllTime && dateRange.from && Math.abs(dateRange.from.getTime() - from.getTime()) < 86400000;
                             return (
                                 <button
                                     key={chip.label}
-                                    onClick={() => { setDateRange({ from, to: new Date() }); setPage(1); }}
+                                    onClick={() => { setShowAllTime(false); setDateRange({ from, to: new Date() }); setPage(1); }}
                                     className={cn(
                                         "flex-shrink-0 h-8 px-3 rounded-full text-xs font-medium transition-colors",
                                         isActive ? "bg-[#1A6B3C] text-white" : "bg-white border border-[#E5E7EB] text-[#6B7280]"
@@ -288,6 +303,14 @@ export default function Sales() {
                                 <div className="flex flex-col items-center justify-center py-16 text-[#9CA3AF]">
                                     <FileText className="w-12 h-12 mb-3 opacity-30" />
                                     <p className="text-sm font-medium">No invoices found</p>
+                                    {!showAllTime && (
+                                        <button
+                                            onClick={showAllTimeRecords}
+                                            className="mt-3 px-4 py-2 rounded-xl bg-[#1A6B3C] text-white text-xs font-bold"
+                                        >
+                                            Show All Time Records
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 sales.map((sale) => {

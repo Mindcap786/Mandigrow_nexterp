@@ -6275,12 +6275,48 @@ def export_arrivals_csv(org_id: str = None, date_from: str = None, date_to: str 
 
 @frappe.whitelist(allow_guest=False)
 def update_settings(**kwargs) -> dict:
-    """Update mandi settings for the current organization profile."""
+    """Update mandi settings for the current organization profile.
+    
+    CRITICAL: Mandi Organization doctype uses address_line1 / address_line2 (NOT 'address').
+    Custom fields (mandi_license, max_invoice_amount) are written directly via db.set_value
+    to bypass the meta cache issue where doc.meta.has_field() returns False for custom
+    fields created in the same request.
+    """
     org_id = _get_user_org()
     if not org_id:
         return {"status": "error", "message": "No organization context found"}
         
     skip_keys = {"cmd", "csrf_token"}
+    
+    # Fields that exist as STANDARD fields on the Mandi Organization doctype
+    # Verified against: bench execute "[f.fieldname for f in frappe.get_meta('Mandi Organization').fields]"
+    STANDARD_FIELD_MAP = {
+        "organization_name": "organization_name",
+        "gstin": "gstin",
+        "address": "address_line1",      # Frontend sends 'address' -> saves to address_line1
+        "city": "city",                  # city IS a standard field
+        "commission_rate_default": "commission_rate_default",
+        "market_fee_percent": "market_fee_percent",
+        "nirashrit_percent": "nirashrit_percent",
+        "misc_fee_percent": "misc_fee_percent",
+        "default_credit_days": "default_credit_days",
+        "gst_enabled": "gst_enabled",
+        "gst_type": "gst_type",
+        "cgst_percent": "cgst_percent",
+        "sgst_percent": "sgst_percent",
+        "igst_percent": "igst_percent",
+        "state_code": "state_code",
+        "brand_color": "brand_color",
+        "print_upi_qr": "print_upi_qr",
+        "print_bank_details": "print_bank_details",
+        "qr_bank_id": "qr_bank_id",
+        "text_bank_id": "text_bank_id",
+    }
+    
+    # Custom fields that may not exist in meta cache yet — saved via direct db.set_value
+    # These are created by _ensure_org_custom_fields() or may exist as custom fields
+    CUSTOM_FIELD_KEYS = {"mandi_license", "max_invoice_amount"}
+
     try:
         # Ensure optional custom fields exist on Mandi Organization doctype
         _ensure_org_custom_fields()
@@ -6288,40 +6324,32 @@ def update_settings(**kwargs) -> dict:
         # Fetch the organization profile
         doc = frappe.get_doc("Mandi Organization", org_id)
         
-        # Map frontend fields to profile fields
-        field_mapping = {
-            "organization_name": "organization_name",
-            "gstin": "gstin",
-            "address": "address",
-            "city": "city",
-            "mandi_license": "mandi_license",
-            "commission_rate_default": "commission_rate_default",
-            "market_fee_percent": "market_fee_percent",
-            "nirashrit_percent": "nirashrit_percent",
-            "misc_fee_percent": "misc_fee_percent",
-            "max_invoice_amount": "max_invoice_amount",
-            "default_credit_days": "default_credit_days",
-            "gst_enabled": "gst_enabled",
-            "gst_type": "gst_type",
-            "cgst_percent": "cgst_percent",
-            "sgst_percent": "sgst_percent",
-            "igst_percent": "igst_percent",
-            "brand_color": "brand_color",
-            "print_upi_qr": "print_upi_qr",
-            "print_bank_details": "print_bank_details",
-            "qr_bank_id": "qr_bank_id",
-            "text_bank_id": "text_bank_id"
-        }
-
+        custom_updates = {}
+        
         for key, val in kwargs.items():
             if key in skip_keys:
                 continue
             
-            target_field = field_mapping.get(key, key)
-            if doc.meta.has_field(target_field):
+            if key in CUSTOM_FIELD_KEYS:
+                # Store for direct DB write — bypasses meta cache issue
+                custom_updates[key] = val
+                continue
+            
+            target_field = STANDARD_FIELD_MAP.get(key)
+            if target_field and doc.meta.has_field(target_field):
                 setattr(doc, target_field, val)
         
         doc.save(ignore_permissions=True)
+        
+        # Write custom fields directly to DB to bypass meta.has_field() cache
+        if custom_updates:
+            for cf_key, cf_val in custom_updates.items():
+                try:
+                    frappe.db.set_value("Mandi Organization", org_id, cf_key, cf_val)
+                except Exception as cf_err:
+                    # Log but don't fail the whole save — column may not exist yet
+                    frappe.log_error(f"Custom field save skipped {cf_key}: {cf_err}")
+        
         frappe.db.commit()
         return {"status": "updated", "message": "Settings updated successfully"}
     except Exception as e:
@@ -6352,6 +6380,32 @@ def _ensure_org_custom_fields():
     except Exception:
         # Non-critical: fields may already exist as standard fields or on other setups
         pass
+
+
+def _safe_get_field(doc, fieldname: str, default=None):
+    """Safely read a field from a Frappe document.
+    
+    Falls back to a direct DB query if the field doesn't exist in the in-memory
+    doc (e.g. custom fields created after the meta was cached). Returns `default`
+    if the column doesn't exist in the database at all.
+    """
+    # Try the in-memory doc attribute first (fastest path)
+    val = getattr(doc, fieldname, None)
+    if val is not None:
+        return val
+    
+    # Try a direct DB read — the column may exist even if meta cache is stale
+    try:
+        result = frappe.db.get_value("Mandi Organization", doc.name, fieldname)
+        if result is not None:
+            return result
+    except Exception:
+        # Column doesn't exist yet — return default gracefully
+        pass
+    
+    return default
+
+
 
 
 
@@ -6723,7 +6777,8 @@ def _get_org_info(org_id: str) -> dict:
                 "currency_code": getattr(org, "currency_code", "INR"),
                 "locale": getattr(org, "locale", "en-IN"),
                 "timezone": getattr(org, "timezone", "Asia/Kolkata"),
-                "address": getattr(org, "address", ""),
+                # address and city are legacy aliases — use address_line1 / city as primary
+                "address": getattr(org, "address_line1", "") or getattr(org, "address", ""),
                 "city": getattr(org, "city", ""),
                 "gstin": getattr(org, "gstin", ""),
                 "phone": getattr(org, "phone", ""),
@@ -6731,9 +6786,9 @@ def _get_org_info(org_id: str) -> dict:
                 "market_fee_percent": flt(getattr(org, "market_fee_percent", 0)),
                 "nirashrit_percent": flt(getattr(org, "nirashrit_percent", 0)),
                 "misc_fee_percent": flt(getattr(org, "misc_fee_percent", 0)),
-                "max_invoice_amount": flt(getattr(org, "max_invoice_amount", 0)),
+                "max_invoice_amount": flt(_safe_get_field(org, "max_invoice_amount", 0)),
                 "default_credit_days": int(getattr(org, "default_credit_days", 15)),
-                "mandi_license": getattr(org, "mandi_license", ""),
+                "mandi_license": _safe_get_field(org, "mandi_license", ""),
                 "state_code": getattr(org, "state_code", ""),
                 "gst_enabled": bool(getattr(org, "gst_enabled", False)),
                 "gst_type": getattr(org, "gst_type", "intra"),
