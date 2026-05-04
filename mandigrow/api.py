@@ -5158,22 +5158,22 @@ def get_salary_status(org_id: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=False)
-def create_employee(name: str = None, phone: str = None, role: str = None, salary: float = 0, **kwargs) -> dict:
+def create_employee(name: str = None, phone: str = None, role: str = None, salary=0, **kwargs) -> dict:
     """Create a new employee record."""
     org_id = _get_user_org()
     doc = frappe.new_doc("Employee")
-    full_name = name or kwargs.get("name", "")
+    full_name = name or kwargs.get("name") or "Unnamed"
     doc.first_name = full_name
     doc.employee_name = full_name
     doc.cell_phone = phone or kwargs.get("phone", "")
     
     # Issue 11 Fix: Set mandatory Employee fields to prevent MandatoryError
-    doc.gender = kwargs.get("gender", "Other")
-    doc.date_of_birth = kwargs.get("date_of_birth", "1990-01-01")
-    doc.date_of_joining = kwargs.get("date_of_joining", frappe.utils.today())
-    doc.company = frappe.db.get_value("Company", {"abbr": ["like", "%"]}, "name") or "MandiGrow"
+    doc.gender = kwargs.get("gender") or "Male"
+    doc.date_of_birth = kwargs.get("date_of_birth") or "1990-01-01"
+    doc.date_of_joining = kwargs.get("date_of_joining") or frappe.utils.today()
+    doc.company = _get_user_company() or frappe.db.get_value("Company", {"abbr": ["like", "%"]}, "name") or "MandiGrow"
     
-    designation = role or kwargs.get("role", "Worker")
+    designation = role or kwargs.get("role") or "Worker"
     if designation and not frappe.db.exists("Designation", designation):
         frappe.get_doc({
             "doctype": "Designation",
@@ -9415,3 +9415,38 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
         "reason":       reason,
         "message":      f"{return_qty} units returned. Remaining stock: {new_qty}. Supplier payable reduced by ₹{return_value:,.0f}.",
     }
+
+@frappe.whitelist()
+def reset_invoice_sequence(contact_id: str):
+    """
+    Resets the invoice sequence for a specific contact.
+    It does this by appending an archived prefix to all existing numeric contact_bill_no
+    so that the MAX(CAST(contact_bill_no AS UNSIGNED)) query will start from 1 again.
+    """
+    if not contact_id:
+        return {"success": False, "error": "Contact ID is required"}
+        
+    try:
+        arrivals = frappe.db.sql("""
+            SELECT name, contact_bill_no 
+            FROM `tabMandi Arrival` 
+            WHERE party_id = %s 
+            AND contact_bill_no REGEXP '^[0-9]+$'
+        """, (contact_id,), as_dict=True)
+        
+        from frappe.utils import nowdate
+        prefix = f"S{nowdate().split('-')[0][-2:]}-"
+        
+        for arr in arrivals:
+            new_bill_no = f"{prefix}{arr['contact_bill_no']}"
+            frappe.db.set_value("Mandi Arrival", arr["name"], "contact_bill_no", new_bill_no, update_modified=False)
+            
+        # Do the same for Sales if they have a numeric sequence per buyer
+        # (Though Sales usually use the Sale ID, let's check)
+        
+        frappe.db.commit()
+        return {"success": True, "message": f"Sequence reset successfully"}
+    except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "reset_invoice_sequence Failed")
+        return {"success": False, "error": str(e)}

@@ -100,7 +100,7 @@ export default function ContactsPage() {
         if (!confirm(`Are you sure you want to reset the invoice sequence for "${contactName}"? Future invoices will start from #1.`)) return
         setIsUpdating(contactId)
         try {
-            // Sequence reset is a no-op in Frappe since bill numbers are auto-generated
+            await callApi('mandigrow.api.reset_invoice_sequence', { contact_id: contactId });
             toast.success(`Sequence reset for ${contactName}`)
         } catch (error) {
             toast.error("Failed to reset sequence")

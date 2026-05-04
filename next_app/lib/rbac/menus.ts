@@ -92,7 +92,6 @@ export const NAV_ITEMS: MenuItem[] = [
         items: [
             { tKey: 'nav.general_settings', href: ROUTES.SETTINGS, icon: Settings },
             { tKey: 'nav.team_access', href: ROUTES.SETTINGS_TEAM, icon: ShieldCheck },
-            { tKey: 'nav.field_governance', href: ROUTES.SETTINGS_FIELDS, icon: ShieldCheck },
             { tKey: 'nav.bank_details', href: ROUTES.SETTINGS_BANK_DETAILS, icon: QrCode },
             { tKey: 'nav.branding', href: ROUTES.SETTINGS_BRANDING, icon: Palette },
             { tKey: 'nav.subscription_billing', href: ROUTES.SETTINGS_BILLING, icon: CreditCard },
