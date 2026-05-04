@@ -446,12 +446,8 @@ export default function FieldSettingsPage() {
                         </Button>
                     </div>
 
-                    <Tabs defaultValue="fields" className="w-full">
+                    <Tabs defaultValue="storage" className="w-full">
                         <TabsList className="bg-slate-100/50 border border-slate-200 p-1 rounded-2xl h-11 w-full shadow-inner">
-                            <TabsTrigger value="fields"
-                                className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                                Field Logic
-                            </TabsTrigger>
                             {isMandi && (
                                 <TabsTrigger value="storage"
                                     className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] data-[state=active]:bg-blue-600 data-[state=active]:text-white">
@@ -622,12 +618,8 @@ export default function FieldSettingsPage() {
                 </div>
             </div>
  
-            <Tabs defaultValue="fields" className="space-y-8">
+            <Tabs defaultValue="storage" className="space-y-8">
                 <TabsList className="bg-slate-100/50 border border-slate-200 p-1.5 rounded-3xl h-14 w-full md:w-auto shadow-inner">
-                    <TabsTrigger value="fields"
-                        className="rounded-2xl px-10 font-bold uppercase tracking-widest text-[11px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
-                        Field Logic
-                    </TabsTrigger>
                     {isMandi && (
                         <TabsTrigger value="storage"
                             className="rounded-2xl px-10 font-bold uppercase tracking-widest text-[11px] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">

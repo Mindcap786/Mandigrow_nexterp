@@ -544,6 +544,33 @@ export default function SalesReturnForm() {
                                 <div className="space-y-8 sticky top-8">
                                     <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden">
                                         <div className="relative z-10 space-y-8">
+                                            {/* Original Invoice Detailed Summary */}
+                                            <div className="space-y-4 border-b border-white/10 pb-6">
+                                                <div className="text-[10px] font-black uppercase text-white/40 tracking-[0.2em]">Original Invoice Details</div>
+                                                <div className="grid grid-cols-2 gap-y-2 text-[10px] uppercase font-bold tracking-tight">
+                                                    <div className="text-white/60">Subtotal</div>
+                                                    <div className="text-right">₹{selectedInvoice.invoice_total?.toLocaleString()}</div>
+                                                    <div className="text-white/60">Market Fee</div>
+                                                    <div className="text-right">₹{selectedInvoice.marketfee?.toLocaleString()}</div>
+                                                    <div className="text-white/60">Nirashrit</div>
+                                                    <div className="text-right">₹{selectedInvoice.nirashrit?.toLocaleString()}</div>
+                                                    {selectedInvoice.loadingcharges > 0 && (
+                                                        <>
+                                                            <div className="text-white/60">Loading</div>
+                                                            <div className="text-right">₹{selectedInvoice.loadingcharges?.toLocaleString()}</div>
+                                                        </>
+                                                    )}
+                                                    {selectedInvoice.discount > 0 && (
+                                                        <>
+                                                            <div className="text-white/60 text-red-400">Discount</div>
+                                                            <div className="text-right text-red-400">-₹{selectedInvoice.discount?.toLocaleString()}</div>
+                                                        </>
+                                                    )}
+                                                    <div className="text-emerald-400 font-black mt-2">Grand Total</div>
+                                                    <div className="text-right text-emerald-400 font-black mt-2">₹{selectedInvoice.total_amount?.toLocaleString()}</div>
+                                                </div>
+                                            </div>
+
                                             <div className="space-y-4">
                                                 <div className="text-[10px] font-black uppercase text-white/40 tracking-[0.2em]">Transaction Type</div>
                                                 <div className="grid grid-cols-1 gap-2">

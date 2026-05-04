@@ -1607,13 +1607,12 @@ def get_financial_summary(p_org_id: str = None, _cache_bust: any = None) -> dict
         else:
             supplier_payables += bal
 
-    # Fetch total Cash
+    # Fetch total Cash (Logic aligned with get_master_data / COA standards)
     cash_res = frappe.db.sql(f"""
         SELECT SUM(gl.debit - gl.credit) 
         FROM `tabGL Entry` gl
         INNER JOIN `tabAccount` acc ON gl.account = acc.name
-        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
-        WHERE (acc.account_type = 'Cash' OR gl.account LIKE 'Cash%%')
+        WHERE acc.account_type = 'Cash'
           AND gl.company = %s AND gl.is_cancelled = 0
     """, (company,))
     cash = cash_res[0][0] if cash_res and cash_res[0][0] else 0
@@ -1624,7 +1623,7 @@ def get_financial_summary(p_org_id: str = None, _cache_bust: any = None) -> dict
         FROM `tabGL Entry` gl
         INNER JOIN `tabAccount` acc ON gl.account = acc.name
         LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
-        WHERE (acc.account_type = 'Bank' OR gl.account LIKE 'Bank%%')
+        WHERE acc.account_type = 'Bank'
           AND gl.company = %s AND gl.is_cancelled = 0
           {cheque_filter}
     """, (company,))
@@ -3657,11 +3656,8 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     # Fetch liquid accounts — ALWAYS filter by company (tenant isolation boundary).
     # company = ERPNext's built-in multi-tenant field — guaranteed to exist on every Account.
-    # organization_id is only an extra guard when the custom field exists.
     company = _get_user_company()
     acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
-    if org_id and frappe.db.has_column("Account", "organization_id"):
-        acct_filters["organization_id"] = org_id
     acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
     if frappe.db.has_column("Account", "description"):
         acct_fields.append("description")
@@ -3853,8 +3849,6 @@ def get_bank_accounts(org_id: str = None) -> list:
     company = _get_user_company()
     # company is the hard tenant boundary — always required
     filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
-    if org_id and frappe.db.has_column("Account", "organization_id"):
-        filters["organization_id"] = org_id
     fields = ["name as id", "account_name as name", "account_type", "account_number", "company"]
     if frappe.db.has_column("Account", "description"):
         fields.append("description")
@@ -4026,10 +4020,28 @@ def delete_bank_account(account_id: str) -> dict:
             if acc_company and acc_company != company:
                 frappe.throw(_("You do not have permission to delete this account."), frappe.PermissionError)
 
+        # 1. Check current balance
+        balance_res = frappe.db.sql("""
+            SELECT SUM(debit) - SUM(credit) 
+            FROM `tabGL Entry` 
+            WHERE account = %s AND is_cancelled = 0
+        """, (account_id,))
+        balance = flt(balance_res[0][0]) if balance_res and balance_res[0][0] else 0.0
+
+        if abs(balance) > 0.01:
+            return {
+                "success": False, 
+                "error": f"Cannot delete account. It has a non-zero balance of ₹{balance:,.2f}. Please empty the account by transferring or withdrawing the amount first."
+            }
+
         # Check if used in GL Entry (has real transactions)
-        if frappe.db.exists("GL Entry", {"account": account_id, "is_cancelled": 0}):
+        if frappe.db.exists("GL Entry", {"account": account_id}):
             # Has real transactions — disable instead of delete
-            frappe.db.set_value("Account", account_id, "disabled", 1)
+            doc = frappe.get_doc("Account", account_id)
+            doc.disabled = 1
+            if doc.account_number:
+                doc.account_number = f"DEL-{frappe.utils.generate_hash()[:6]}-{doc.account_number}"
+            doc.save(ignore_permissions=True)
             frappe.db.commit()
             return {"success": True, "message": "Account has transactions; it was disabled instead of deleted. It will no longer appear in new entries."}
 
@@ -4040,6 +4052,7 @@ def delete_bank_account(account_id: str) -> dict:
     except frappe.PermissionError as e:
         return {"success": False, "error": str(e)}
     except Exception as e:
+        frappe.db.rollback()
         frappe.log_error(f"delete_bank_account({account_id}): {e}", "Bank Delete Error")
         return {"success": False, "error": str(e)}
 
@@ -4124,6 +4137,10 @@ def get_invoices_for_return(search_term: str = None, page: int = 0) -> list:
     if not org_id:
         return []
 
+    # Normalization: ensure ORG-0000x format (matches get_master_data logic)
+    if org_id and "ORG" in org_id and "-" not in org_id:
+        org_id = f"ORG-{org_id.replace('ORG', '')}"
+
     page_size = 20
     start = int(page or 0) * page_size
 
@@ -4134,7 +4151,8 @@ def get_invoices_for_return(search_term: str = None, page: int = 0) -> list:
 
     filters = [
         ["organization_id", "=", org_id],
-        ["saledate", ">=", date_string]
+        ["saledate", ">=", date_string],
+        ["docstatus", "=", 1] # Only submitted invoices are returnable
     ]
 
     if search_term:
@@ -4154,7 +4172,11 @@ def get_invoices_for_return(search_term: str = None, page: int = 0) -> list:
 
     sales = frappe.get_all("Mandi Sale", 
         filters=filters,
-        fields=["name as id", "name as bill_no", "saledate as sale_date", "buyerid as buyer_id", "totalamount as total_amount"],
+        fields=[
+            "name as id", "name as bill_no", "saledate as sale_date", "buyerid as buyer_id", 
+            "totalamount as total_amount", "invoice_total", "discountamount as discount",
+            "marketfee", "nirashrit", "miscfee", "loadingcharges", "unloadingcharges", "otherexpenses", "gsttotal"
+        ],
         order_by="saledate desc",
         limit_start=start,
         limit_page_length=page_size,
@@ -4163,7 +4185,7 @@ def get_invoices_for_return(search_term: str = None, page: int = 0) -> list:
 
     # Hydrate buyer info
     for s in sales:
-        s.buyer = frappe.db.get_value("Mandi Contact", s.buyer_id, ["name as id", "name1 as name"], as_dict=1)
+        s.buyer = frappe.db.get_value("Mandi Contact", s.buyer_id, ["name as id", "full_name as name"], as_dict=1)
     
     return sales
 
