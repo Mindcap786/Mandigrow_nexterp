@@ -37,9 +37,11 @@ type SummaryData = {
     total: number;
     total_pending: number;
     total_cleared: number;
+    total_instant: number;
     total_cancelled: number;
     pending_amount: number;
     cleared_amount: number;
+    instant_amount: number;
 };
 
 export default function ChequeManagementPage() {
@@ -49,7 +51,7 @@ export default function ChequeManagementPage() {
     const [cheques, setCheques] = useState<ChequeRecord[]>([]);
     const [summary, setSummary] = useState<SummaryData | null>(null);
     const [loading, setLoading] = useState(false);
-    const [chequeFilter, setChequeFilter] = useState<"Pending" | "Cleared" | "Cancelled" | "All">("All");
+    const [chequeFilter, setChequeFilter] = useState<"Pending" | "Cleared" | "Instant" | "Cancelled" | "All">("All");
     const [startDate, setStartDate] = useState<string>(format(addDays(new Date(), -30), 'yyyy-MM-dd'));
     const [endDate, setEndDate] = useState<string>(format(addDays(new Date(), 90), 'yyyy-MM-dd'));
     const [searchQuery, setSearchQuery] = useState("");
@@ -162,6 +164,7 @@ export default function ChequeManagementPage() {
 
     const pendingCount   = summary?.total_pending  ?? cheques.filter(c => c.cheque_status === "Pending").length;
     const clearedCount   = summary?.total_cleared  ?? cheques.filter(c => c.cheque_status === "Cleared").length;
+    const instantCount   = summary?.total_instant  ?? cheques.filter(c => c.cheque_status === "Instant").length;
     const cancelledCount = summary?.total_cancelled ?? cheques.filter(c => c.cheque_status === "Cancelled").length;
     const pendingAmount  = summary?.pending_amount  ?? cheques.filter(c => c.cheque_status === "Pending").reduce((s, c) => s + c.amount, 0);
 
@@ -193,23 +196,26 @@ export default function ChequeManagementPage() {
             <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
                 {/* ── Summary Cards ── */}
                 {summary && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         {[
                             { label: "Pending", count: pendingCount, amount: summary.pending_amount, color: "amber" },
                             { label: "Cleared", count: clearedCount, amount: summary.cleared_amount, color: "emerald" },
+                            { label: "Instant", count: instantCount, amount: summary.instant_amount, color: "blue" },
                             { label: "Cancelled", count: cancelledCount, amount: 0, color: "rose" },
-                            { label: "Total", count: summary.total, amount: summary.pending_amount + summary.cleared_amount, color: "indigo" },
+                            { label: "Total", count: summary.total, amount: summary.pending_amount + summary.cleared_amount + summary.instant_amount, color: "indigo" },
                         ].map(card => (
                             <div key={card.label} className={cn(
                                 "bg-white rounded-2xl p-4 border shadow-sm",
                                 card.color === "amber" && "border-amber-100",
                                 card.color === "emerald" && "border-emerald-100",
+                                card.color === "blue" && "border-blue-100",
                                 card.color === "rose" && "border-rose-100",
                                 card.color === "indigo" && "border-indigo-100",
                             )}>
                                 <p className={cn("text-[9px] font-black uppercase tracking-widest mb-1",
                                     card.color === "amber" && "text-amber-500",
                                     card.color === "emerald" && "text-emerald-500",
+                                    card.color === "blue" && "text-blue-500",
                                     card.color === "rose" && "text-rose-500",
                                     card.color === "indigo" && "text-indigo-500",
                                 )}>{card.label}</p>
@@ -227,7 +233,7 @@ export default function ChequeManagementPage() {
                     <div className="flex items-center gap-3 flex-wrap flex-1">
                         {/* Status filter tabs */}
                         <div className="flex items-center gap-1 p-1 bg-slate-100/50 rounded-2xl border border-slate-200/50">
-                            {(["Pending", "Cleared", "Cancelled", "All"] as const).map(status => (
+                            {(["Pending", "Cleared", "Instant", "Cancelled", "All"] as const).map(status => (
                                 <button
                                     key={status}
                                     onClick={() => setChequeFilter(status)}
@@ -332,11 +338,14 @@ export default function ChequeManagementPage() {
                                             ? "bg-amber-100 text-amber-700 border border-amber-200"
                                             : cheque.cheque_status === "Cancelled"
                                             ? "bg-rose-100 text-rose-700 border border-rose-200"
+                                            : cheque.cheque_status === "Instant"
+                                            ? "bg-blue-100 text-blue-700 border border-blue-200"
                                             : "bg-emerald-100 text-emerald-700 border border-emerald-200"
                                     )}>
                                         <div className={cn("w-1.5 h-1.5 rounded-full",
                                             cheque.cheque_status === "Pending" ? "bg-amber-600 animate-pulse" :
-                                            cheque.cheque_status === "Cancelled" ? "bg-rose-600" : "bg-emerald-600"
+                                            cheque.cheque_status === "Cancelled" ? "bg-rose-600" : 
+                                            cheque.cheque_status === "Instant" ? "bg-blue-600" : "bg-emerald-600"
                                         )} />
                                         {cheque.cheque_status}
                                     </div>
@@ -469,6 +478,11 @@ export default function ChequeManagementPage() {
                                         <div className="w-full h-10 bg-rose-50 text-rose-600 font-[900] text-[10px] uppercase tracking-[0.1em] rounded-xl flex items-center justify-center gap-1.5 border border-rose-100/50 italic pointer-events-none">
                                             <X className="w-3.5 h-3.5" />
                                             Cheque Voided
+                                        </div>
+                                    ) : cheque.cheque_status === "Instant" ? (
+                                        <div className="w-full h-10 bg-blue-50 text-blue-600 font-[900] text-[10px] uppercase tracking-[0.1em] rounded-xl flex items-center justify-center gap-1.5 border border-blue-100/50 italic pointer-events-none">
+                                            <Zap className="w-3.5 h-3.5" />
+                                            Instant Transfer
                                         </div>
                                     ) : (
                                         <div className="w-full h-10 bg-emerald-50 text-emerald-600 font-[900] text-[10px] uppercase tracking-[0.1em] rounded-xl flex items-center justify-center gap-1.5 border border-emerald-100/50 italic pointer-events-none">

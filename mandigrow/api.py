@@ -3882,12 +3882,27 @@ def save_bank_account(**kwargs) -> dict:
             account_payload["organization_id"] = org_id
 
         if not account_id:
-            # Get company abbreviation to predict the generated name
+            # Predict Frappe's autoname to catch duplicates cleanly
             abbr = frappe.db.get_value("Company", company, "abbr")
-            generated_name = f"{name} - {abbr}" if abbr else name
+            if abbr and not name.endswith(f" - {abbr}"):
+                generated_name = f"{name} - {abbr}"
+            else:
+                generated_name = name
             
             if frappe.db.exists("Account", generated_name):
-                return {"success": False, "error": f"Account '{name}' already exists. Please use a unique label."}
+                existing_doc = frappe.get_doc("Account", generated_name)
+                if existing_doc.disabled:
+                    # Account was previously "deleted" (soft-disabled due to transactions)
+                    # Re-enable it instead of creating a new one
+                    existing_doc.disabled = 0
+                    existing_doc.account_name = name
+                    existing_doc.description = frappe.as_json(meta)
+                    existing_doc.account_number = kwargs.get("account_number")
+                    existing_doc.save(ignore_permissions=True)
+                    frappe.db.commit()
+                    return {"success": True, "id": generated_name, "message": "Restored previously disabled account."}
+                else:
+                    return {"success": False, "error": f"Account '{name}' already exists. Please use a unique label."}
 
             doc = frappe.get_doc(account_payload)
             doc.insert(ignore_permissions=True)
@@ -5390,16 +5405,8 @@ def get_sale_master_data(org_id: str = None) -> dict:
         "igst_percent": float(org_data.get("igst_percent") or 0),
     }
 
-    # Fetch liquid accounts (Bank/Cash) — schema-aware via _org_filter
-    _acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
-    if _col_exists("Account", "description"):
-        _acct_fields.append("description")
-    liquid_accounts = frappe.get_all("Account",
-        filters={"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, **_org_filter("Account", org_id)},
-        fields=_acct_fields,
-        ignore_permissions=True
-    )
-
+    # Fetch liquid accounts (Bank/Cash) via standard tenant-safe API
+    liquid_accounts = get_bank_accounts(org_id)
     return {
         "buyers": buyers,
         "bank_accounts": [a for a in liquid_accounts if a.account_type == "Bank"],

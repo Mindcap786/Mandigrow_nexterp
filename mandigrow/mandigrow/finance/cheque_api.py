@@ -91,7 +91,11 @@ def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: 
         if clearance_date and not isinstance(clearance_date, str): clearance_date = clearance_date.isoformat()
 
         if r.get("docstatus") == 2: cheque_status = "Cancelled"
-        elif clearance_date: cheque_status = "Cleared"
+        elif clearance_date:
+            if str(clearance_date)[:10] == str(cheque_date)[:10] or str(clearance_date)[:10] == str(posting_date)[:10]:
+                cheque_status = "Instant"
+            else:
+                cheque_status = "Cleared"
         else: cheque_status = "Pending"
 
         against_type = r.get("against_voucher_type") or ""
@@ -133,9 +137,11 @@ def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: 
             "total": len(cheques),
             "total_pending": len([c for c in cheques if c["status"] == "Pending"]),
             "total_cleared": len([c for c in cheques if c["status"] == "Cleared"]),
+            "total_instant": len([c for c in cheques if c["status"] == "Instant"]),
             "total_cancelled": len([c for c in cheques if c["status"] == "Cancelled"]),
             "pending_amount": sum([c["amount"] for c in cheques if c["status"] == "Pending"]),
             "cleared_amount": sum([c["amount"] for c in cheques if c["status"] == "Cleared"]),
+            "instant_amount": sum([c["amount"] for c in cheques if c["status"] == "Instant"]),
         }
     }
 
