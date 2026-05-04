@@ -6981,9 +6981,12 @@ def create_commodity(**kwargs) -> dict:
             "shelf_life_in_days": kwargs.get("shelf_life_days") or 0,
             "standard_rate": kwargs.get("sale_price") or 0,
             "is_stock_item": 1,
-            "local_name": kwargs.get("local_name"),
             "disabled": 0
         }
+        
+        # Only set local_name if it was explicitly provided (to avoid clearing it accidentally)
+        if "local_name" in kwargs:
+            doc_data["local_name"] = kwargs.get("local_name") or ""
         
         # Check if updating
         item_id = kwargs.get("id")
@@ -7010,6 +7013,19 @@ def create_commodity(**kwargs) -> dict:
         for k, v in doc_data.items():
             if k not in ["doctype", "item_code"]:
                 setattr(doc, k, v)
+        
+        # Dynamically append the unit to the item's UOM table
+        # This prevents "Could not find Row #1: Unit" errors during Arrivals
+        unit = kwargs.get("default_unit") or "Nos"
+        if not frappe.db.exists("UOM", unit):
+            frappe.get_doc({"doctype": "UOM", "uom_name": unit, "must_be_whole_number": 0}).insert(ignore_permissions=True)
+            
+        has_uom = any(row.uom == unit for row in doc.get("uoms", []))
+        if not has_uom:
+            doc.append("uoms", {
+                "uom": unit,
+                "conversion_factor": 1.0
+            })
         
         doc.save(ignore_permissions=True)
         frappe.db.commit()

@@ -451,32 +451,54 @@ def ensure_item(item_code, preferred_uom=None, is_stock_item=True, company=None)
     company = company or get_default_company()
     item_code = item_code or "Mandi Produce"
     
-    # Prefix item code with company abbreviation for SaaS isolation
-    abbr = frappe.db.get_value("Company", company, "abbr") or "MG"
-    scoped_item_code = f"{abbr}-{item_code}"
+    # Check if item exists exactly as provided
+    if frappe.db.exists("Item", item_code):
+        scoped_item_code = item_code
+    else:
+        # Prefix item code with company abbreviation for SaaS isolation
+        abbr = frappe.db.get_value("Company", company, "abbr") or "MG"
+        scoped_item_code = f"{abbr}-{item_code}"
 
-    if frappe.db.exists("Item", scoped_item_code):
-        return scoped_item_code
+    if not frappe.db.exists("Item", scoped_item_code):
+        item_group = (
+            frappe.db.get_value("Item Group", "Commodities", "name")
+            or frappe.db.get_value("Item Group", {"is_group": 0}, "name")
+            or frappe.db.get_value("Item Group", {}, "name")
+        )
 
-    item_group = (
-        frappe.db.get_value("Item Group", "Commodities", "name")
-        or frappe.db.get_value("Item Group", {"is_group": 0}, "name")
-        or frappe.db.get_value("Item Group", {}, "name")
-    )
+        item = frappe.get_doc(
+            {
+                "doctype": "Item",
+                "item_code": scoped_item_code,
+                "item_name": item_code,
+                "item_group": item_group,
+                "stock_uom": resolve_uom(preferred_uom),
+                "is_stock_item": 1 if is_stock_item else 0,
+            }
+        )
+        item.insert(ignore_permissions=True)
+    
+    # Ensure preferred UOM is mapped on the Item so transactions don't fail
+    if preferred_uom:
+        uom_name = resolve_uom(preferred_uom)
+        item_doc = frappe.get_doc("Item", scoped_item_code)
+        if item_doc.stock_uom != uom_name:
+            has_uom = any(row.uom == uom_name for row in item_doc.uoms)
+            if not has_uom:
+                if not frappe.db.exists("UOM", uom_name):
+                    frappe.get_doc({
+                        "doctype": "UOM",
+                        "uom_name": uom_name,
+                        "must_be_whole_number": 0
+                    }).insert(ignore_permissions=True)
+                item_doc.append("uoms", {
+                    "uom": uom_name,
+                    "conversion_factor": 1.0
+                })
+                item_doc.flags.ignore_permissions = True
+                item_doc.save()
 
-    item = frappe.get_doc(
-        {
-            "doctype": "Item",
-            "item_code": scoped_item_code,
-            "item_name": item_code,
-            "item_group": item_group,
-            "stock_uom": resolve_uom(preferred_uom),
-            "is_stock_item": 1 if is_stock_item else 0,
-        }
-    )
-    item.insert(ignore_permissions=True)
-    return item.name
-
+    return scoped_item_code
 
 def get_default_warehouse(company=None):
     company = company or get_default_company()
