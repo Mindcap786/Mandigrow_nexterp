@@ -77,7 +77,15 @@ export default function ItemsPage() {
         try {
             const res = await callApi('mandigrow.api.delete_commodity', { id });
             if (res && res.success) {
-                toast({ title: "Deleted", description: "Item removed successfully." });
+                if (res.action === 'disabled') {
+                    // Item had linked transactions — backend soft-disabled it (ERP best practice)
+                    toast({
+                        title: "Item Disabled",
+                        description: res.message || "This item is linked to transactions and has been disabled. It will no longer appear in new entries.",
+                    });
+                } else {
+                    toast({ title: "Deleted", description: "Item removed successfully." });
+                }
                 fetchItems(false);
             }
         } catch (error: any) {

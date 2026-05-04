@@ -1510,9 +1510,23 @@ def delete_commodity(id: str):
             frappe.throw(_("You do not have permission to delete this item."), frappe.PermissionError)
 
     try:
-        frappe.delete_doc("Item", id, ignore_permissions=True)
-        return {"success": True}
-    except Exception as e:
+        # Attempt hard delete first — only possible if no linked transactions exist
+        try:
+            frappe.delete_doc("Item", id, ignore_permissions=True)
+            frappe.db.commit()
+            return {"success": True, "action": "deleted"}
+        except frappe.LinkExistsError:
+            # Item is linked to sales/purchases — ERPNext best practice: SOFT DELETE (disable)
+            # This preserves audit trail and financial integrity
+            doc = frappe.get_doc("Item", id)
+            doc.disabled = 1
+            doc.save(ignore_permissions=True)
+            frappe.db.commit()
+            return {
+                "success": True,
+                "action": "disabled",
+                "message": f"'{doc.item_name}' is linked to existing transactions and cannot be permanently deleted. It has been disabled and will no longer appear in new transactions."
+            }
         frappe.throw(f"Failed to delete item: {str(e)}")
 
 
@@ -3168,17 +3182,19 @@ def get_dashboard_data() -> dict:
         
     company = _get_user_company()
 
-    # 1. Today's Sales Summary (Revenue & Collections Today)
+    # 1. Today's Sales Summary — Using Mandi Sale as single source of truth
+    # This MUST align with Day Book which reads the same doctype.
     today_sales = frappe.get_all("Mandi Sale", 
         filters={"docstatus": 1, "saledate": today(), **_org_filter("Mandi Sale", org_id)},
-        fields=["totalamount", "amountreceived"],
+        fields=["totalamount", "amountreceived", "status"],
         ignore_permissions=True,
     )
+    # Total Sales Revenue (Gross)
     revenue = sum(float(s.totalamount or 0) for s in today_sales)
+    # Cash Collected = amount actually received today
     collections = sum(float(s.amountreceived or 0) for s in today_sales)
-    
-    # Udhaar Sales (Receivable Created Today) -> Mapped to 'payables' in frontend
-    payables = max(0, revenue - collections)
+    # Udhaar / Receivable = total minus what has been paid
+    payables = max(0.0, revenue - collections)
     
     # 2. Active Lots (Stock Ledger)
     # Filter lots by their parent Arrival's org_id

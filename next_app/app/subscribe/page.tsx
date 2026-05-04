@@ -215,7 +215,7 @@ export default function SubscribePage() {
 
                                     <h3 className="text-2xl font-black text-slate-900 mb-2">{plan.display_name}</h3>
                                     <p className="text-slate-500 text-sm leading-relaxed mb-8 flex-grow">
-                                        {plan.description || meta.description}
+                                        {plan.description || 'Powerful features designed for your Mandi operations.'}
                                     </p>
 
                                     <div className="mb-10">
