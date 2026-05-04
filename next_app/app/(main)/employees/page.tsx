@@ -140,7 +140,8 @@ export default function EmployeesPage() {
     }
 
     const toggleStatus = async (emp: any) => {
-        const newStatus = emp.status === 'active' ? 'inactive' : 'active'
+        // ERPNext requires capitalized status values — map accordingly
+        const newStatus = emp.status?.toLowerCase() === 'active' ? 'Inactive' : 'Active'
         try {
             await callApi('mandigrow.api.update_employee', { employee_id: emp.id, status: newStatus });
         } catch (err) {
@@ -155,8 +156,8 @@ export default function EmployeesPage() {
         e.phone?.includes(search)
     )
 
-    const active = employees.filter(e => e.status === 'active').length
-    const totalSalary = employees.filter(e => e.status === 'active').reduce((s, e) => s + (e.salary || 0), 0)
+    const active = employees.filter(e => e.status?.toLowerCase() === 'active').length
+    const totalSalary = employees.filter(e => e.status?.toLowerCase() === 'active').reduce((s, e) => s + (e.salary || 0), 0)
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 pb-32">
@@ -254,7 +255,7 @@ export default function EmployeesPage() {
                                     {/* Status */}
                                     <div className="col-span-1">
                                         <button onClick={() => toggleStatus(emp)} title="Toggle status">
-                                            {emp.status === 'active'
+                                            {emp.status?.toLowerCase() === 'active'
                                                 ? <UserCheck className="w-5 h-5 text-emerald-500" />
                                                 : <UserX className="w-5 h-5 text-slate-300" />}
                                         </button>

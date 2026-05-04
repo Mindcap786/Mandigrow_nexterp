@@ -5183,10 +5183,31 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
     
     doc.designation = designation
     
-    # Crucially apply kwargs to properly set custom fields like organization_id, salary, etc.
-    doc.update(kwargs)
+    # ERPNext Employee.validate() strictly requires capitalized status values.
+    # Map UI lowercase values (active/inactive) to ERPNext's canonical values.
+    _ERP_STATUS_MAP = {
+        "active": "Active",
+        "inactive": "Inactive",
+        "suspended": "Suspended",
+        "left": "Left",
+        # Pass-through already-correct values
+        "Active": "Active",
+        "Inactive": "Inactive",
+        "Suspended": "Suspended",
+        "Left": "Left",
+    }
+    # Fields that must NOT be blindly copied from UI kwargs into ERP Doc
+    _BLOCKED_FIELDS = {"status", "doctype", "name", "docstatus", "modified", "creation", "owner"}
+    
+    # Apply safe custom fields from kwargs (excludes system/reserved fields)
+    safe_kwargs = {k: v for k, v in kwargs.items() if k not in _BLOCKED_FIELDS}
+    doc.update(safe_kwargs)
+    
+    # Override controlled fields explicitly and safely
     doc.organization_id = org_id
     doc.salary = salary
+    raw_status = kwargs.get("status", "active")
+    doc.status = _ERP_STATUS_MAP.get(str(raw_status).lower(), "Active")
     
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
@@ -5221,11 +5242,23 @@ def update_employee(employee_id: str = None, **kwargs) -> dict:
         doc.first_name = kwargs["name"]
         doc.employee_name = kwargs["name"]
 
+    # Same ERPNext status normalization for updates
+    _ERP_STATUS_MAP = {
+        "active": "Active", "inactive": "Inactive",
+        "suspended": "Suspended", "left": "Left",
+        "Active": "Active", "Inactive": "Inactive",
+        "Suspended": "Suspended", "Left": "Left",
+    }
+    _BLOCKED_FIELDS = {"status", "employee_id", "role", "doctype", "name", "docstatus", "modified", "creation", "owner"}
     for key, val in kwargs.items():
-        if key in ("employee_id", "role"):
+        if key in _BLOCKED_FIELDS:
             continue
         if hasattr(doc, key):
             setattr(doc, key, val)
+    # Apply status separately with normalization
+    if "status" in kwargs:
+        raw_status = kwargs["status"]
+        doc.status = _ERP_STATUS_MAP.get(str(raw_status).lower(), "Active")
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"name": doc.name, "status": "updated"}

@@ -182,8 +182,9 @@ export default function TeamPage() {
         }
     };
 
-    // Filter employees who do NOT have web access yet
-    const unlinkedEmployees = employees.filter(emp => !emp.user_id && emp.status === 'active');
+    // Filter employees who do NOT have web access yet — case-insensitive status check
+    // ERPNext returns 'Active' (capitalized), UI historically sent 'active' (lowercase)
+    const unlinkedEmployees = employees.filter(emp => !emp.user_id && emp.status?.toLowerCase() === 'active');
 
     return (
         <div className={cn(
