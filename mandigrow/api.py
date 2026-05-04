@@ -1527,6 +1527,7 @@ def delete_commodity(id: str):
                 "action": "disabled",
                 "message": f"'{doc.item_name}' is linked to existing transactions and cannot be permanently deleted. It has been disabled and will no longer appear in new transactions."
             }
+    except Exception as e:
         frappe.throw(f"Failed to delete item: {str(e)}")
 
 
@@ -4359,7 +4360,7 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
         fields=["name as id", "saledate as sale_date", "buyerid as buyer_id",
                 "paymentmode as payment_mode", "totalamount as total_amount",
                 "invoice_total", "amountreceived as amount_received", "duedate as due_date",
-                "vehiclenumber as vehicle_number", "bookno as book_no",
+                "vehiclenumber as vehicle_number", "bookno as book_no", "contact_bill_no",
                 "lotno as lot_no", "chequeno as cheque_no", "bankname as bank_name",
                 "marketfee as market_fee", "nirashrit", "miscfee as misc_fee",
                 "loadingcharges as loading_charges", "unloadingcharges as unloading_charges",
@@ -9555,6 +9556,10 @@ def reset_invoice_sequence(contact_id: str):
         return {"success": False, "error": "Contact ID is required"}
         
     try:
+        from frappe.utils import nowdate
+        prefix = f"S{nowdate().split('-')[0][-2:]}-"
+
+        # 1. Reset Farmer / Supplier sequences (Mandi Arrival)
         arrivals = frappe.db.sql("""
             SELECT name, contact_bill_no 
             FROM `tabMandi Arrival` 
@@ -9562,18 +9567,24 @@ def reset_invoice_sequence(contact_id: str):
             AND contact_bill_no REGEXP '^[0-9]+$'
         """, (contact_id,), as_dict=True)
         
-        from frappe.utils import nowdate
-        prefix = f"S{nowdate().split('-')[0][-2:]}-"
-        
         for arr in arrivals:
             new_bill_no = f"{prefix}{arr['contact_bill_no']}"
             frappe.db.set_value("Mandi Arrival", arr["name"], "contact_bill_no", new_bill_no, update_modified=False)
             
-        # Do the same for Sales if they have a numeric sequence per buyer
-        # (Though Sales usually use the Sale ID, let's check)
+        # 2. Reset Buyer sequences (Mandi Sale)
+        sales = frappe.db.sql("""
+            SELECT name, contact_bill_no
+            FROM `tabMandi Sale`
+            WHERE buyerid = %s
+            AND contact_bill_no REGEXP '^[0-9]+$'
+        """, (contact_id,), as_dict=True)
+
+        for s in sales:
+            new_bill_no = f"{prefix}{s['contact_bill_no']}"
+            frappe.db.set_value("Mandi Sale", s["name"], "contact_bill_no", new_bill_no, update_modified=False)
         
         frappe.db.commit()
-        return {"success": True, "message": f"Sequence reset successfully"}
+        return {"success": True, "message": f"Sequence reset successfully for contact."}
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "reset_invoice_sequence Failed")
