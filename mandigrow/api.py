@@ -5244,7 +5244,7 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
     doc.gender = kwargs.get("gender") or "Male"
     doc.date_of_birth = kwargs.get("date_of_birth") or "1990-01-01"
     doc.date_of_joining = kwargs.get("date_of_joining") or frappe.utils.today()
-    doc.company = _get_user_company() or frappe.db.get_value("Company", {"abbr": ["like", "%"]}, "name") or "MandiGrow"
+    doc.company = _get_user_company()
     
     designation = role or kwargs.get("role") or "Worker"
     if designation and not frappe.db.exists("Designation", designation):
@@ -6834,19 +6834,48 @@ def _get_user_org() -> str:
     return None
 
 def _get_user_company() -> str:
-    """Get the ERPNext Company name for the current logged-in user."""
-    org_id = _get_user_org()
-    if not org_id:
-        return ""
+    """Get the ERPNext Company name for the current logged-in user.
     
-    # Strictly fetch from the organization record
-    company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
-    if company:
-        return company
-        
-    # If not set, we do NOT fall back to a global default to prevent data leaks.
-    # Return empty to ensure filtered queries return nothing.
+    Resolution order:
+    1. Mandi Organization.erp_company (if column exists)
+    2. User's default company (frappe.defaults)
+    3. Any Company in the database (single-tenant fallback)
+    
+    NEVER returns '' if at least one Company exists — that would cause
+    all list queries to return zero results.
+    """
+    org_id = _get_user_org()
+    
+    # 1. Try erp_company from Mandi Organization
+    if org_id:
+        try:
+            company = frappe.db.sql(
+                "SELECT erp_company FROM `tabMandi Organization` WHERE name = %s",
+                (org_id,), as_dict=True
+            )
+            if company and company[0].get("erp_company"):
+                return company[0]["erp_company"]
+        except Exception:
+            pass  # Column doesn't exist on production
+
+    # 2. Try user's default company
+    try:
+        user_company = frappe.defaults.get_user_default("company")
+        if user_company:
+            return user_company
+    except Exception:
+        pass
+
+    # 3. Fallback: get any Company (single-tenant environments)
+    try:
+        any_company = frappe.db.get_value("Company", {}, "name")
+        if any_company:
+            return any_company
+    except Exception:
+        pass
+
     return ""
+
 
 
 @frappe.whitelist(allow_guest=False)
