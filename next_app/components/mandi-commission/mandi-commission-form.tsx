@@ -30,7 +30,6 @@ export function MandiCommissionForm() {
     // Session Metadata
     const [lotNo, setLotNo] = useState("");
     const [vehicleNo, setVehicleNo] = useState("");
-    const [bookNo, setBookNo] = useState("");
 
     // ─────────────────────────────────────────────────────────────
     // Master Data State
@@ -250,7 +249,7 @@ export function MandiCommissionForm() {
             sessionDate,
             lotNo,
             vehicleNo,
-            bookNo,
+            bookNo: "", // Book No removed from UI — kept in type for API compatibility
             farmers: validFarmers,
             buyerId,
             buyerName,
@@ -272,7 +271,6 @@ export function MandiCommissionForm() {
     const handleReset = () => {
         setLotNo("");
         setVehicleNo("");
-        setBookNo("");
         setBuyerId(null);
         setBuyerLoading(0);
         setBuyerPacking(0);
@@ -307,8 +305,8 @@ export function MandiCommissionForm() {
                 </div>
             </div>
 
-            {/* Global Header */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {/* Global Header — 4 columns: Date, Lot No, Unit, Vehicle No */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Date</Label>
                     <Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} className="h-10 font-bold bg-slate-50 mt-1 rounded-lg" />
@@ -333,10 +331,6 @@ export function MandiCommissionForm() {
                 <div>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Vehicle No</Label>
                     <Input placeholder="XX-00-YY-0000" value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} className="h-10 font-bold uppercase mt-1 rounded-lg" />
-                </div>
-                <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Book No.</Label>
-                    <Input placeholder="Book-123" value={bookNo} onChange={(e) => setBookNo(e.target.value)} className="h-10 font-bold uppercase mt-1 rounded-lg" />
                 </div>
             </div>
 

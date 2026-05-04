@@ -6282,6 +6282,9 @@ def update_settings(**kwargs) -> dict:
         
     skip_keys = {"cmd", "csrf_token"}
     try:
+        # Ensure optional custom fields exist on Mandi Organization doctype
+        _ensure_org_custom_fields()
+
         # Fetch the organization profile
         doc = frappe.get_doc("Mandi Organization", org_id)
         
@@ -6291,10 +6294,12 @@ def update_settings(**kwargs) -> dict:
             "gstin": "gstin",
             "address": "address",
             "city": "city",
+            "mandi_license": "mandi_license",
             "commission_rate_default": "commission_rate_default",
             "market_fee_percent": "market_fee_percent",
             "nirashrit_percent": "nirashrit_percent",
             "misc_fee_percent": "misc_fee_percent",
+            "max_invoice_amount": "max_invoice_amount",
             "default_credit_days": "default_credit_days",
             "gst_enabled": "gst_enabled",
             "gst_type": "gst_type",
@@ -6323,6 +6328,31 @@ def update_settings(**kwargs) -> dict:
         frappe.db.rollback()
         frappe.log_error(title="update_settings Error", message=frappe.get_traceback())
         return {"status": "error", "message": str(e)}
+
+
+def _ensure_org_custom_fields():
+    """Idempotently ensure Mandi Organization has the required custom fields."""
+    try:
+        from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+        if not frappe.db.exists("Custom Field", "Mandi Organization-max_invoice_amount"):
+            create_custom_field("Mandi Organization", {
+                "fieldname": "max_invoice_amount",
+                "label": "Max Invoice Amount",
+                "fieldtype": "Currency",
+                "default": "0",
+                "insert_after": "misc_fee_percent"
+            })
+        if not frappe.db.exists("Custom Field", "Mandi Organization-mandi_license"):
+            create_custom_field("Mandi Organization", {
+                "fieldname": "mandi_license",
+                "label": "Mandi License",
+                "fieldtype": "Data",
+                "insert_after": "gstin"
+            })
+    except Exception:
+        # Non-critical: fields may already exist as standard fields or on other setups
+        pass
+
 
 
 @frappe.whitelist(allow_guest=False)
@@ -6701,7 +6731,9 @@ def _get_org_info(org_id: str) -> dict:
                 "market_fee_percent": flt(getattr(org, "market_fee_percent", 0)),
                 "nirashrit_percent": flt(getattr(org, "nirashrit_percent", 0)),
                 "misc_fee_percent": flt(getattr(org, "misc_fee_percent", 0)),
+                "max_invoice_amount": flt(getattr(org, "max_invoice_amount", 0)),
                 "default_credit_days": int(getattr(org, "default_credit_days", 15)),
+                "mandi_license": getattr(org, "mandi_license", ""),
                 "state_code": getattr(org, "state_code", ""),
                 "gst_enabled": bool(getattr(org, "gst_enabled", False)),
                 "gst_type": getattr(org, "gst_type", "intra"),

@@ -454,6 +454,10 @@ export default function FieldSettingsPage() {
                                     Storage
                                 </TabsTrigger>
                             )}
+                            <TabsTrigger value="fields"
+                                className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                                Field Logic
+                            </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="fields" className="mt-6 space-y-8">
@@ -626,6 +630,10 @@ export default function FieldSettingsPage() {
                             Storage Points
                         </TabsTrigger>
                     )}
+                    <TabsTrigger value="fields"
+                        className="rounded-2xl px-10 font-bold uppercase tracking-widest text-[11px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
+                        Field Logic
+                    </TabsTrigger>
                 </TabsList>
  
                 {/* ─── FIELD LOGIC TAB ─── */}
