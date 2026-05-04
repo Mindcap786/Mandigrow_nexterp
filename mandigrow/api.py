@@ -5182,7 +5182,12 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
         frappe.db.commit()
     
     doc.designation = designation
-    # Store additional fields as custom fields if available
+    
+    # Crucially apply kwargs to properly set custom fields like organization_id, salary, etc.
+    doc.update(kwargs)
+    doc.organization_id = org_id
+    doc.salary = salary
+    
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
     return {"name": doc.name, "id": doc.name}
@@ -6897,6 +6902,32 @@ def create_commodity(**kwargs) -> dict:
         # - specifications: [{"label": "V", "value": "X"}] 
         # - custom_attributes: {"V": "X"}
         specs = kwargs.get("specifications") or []
+        # Ensure custom_attributes field exists in schema (critical for production deployments)
+        if not frappe.db.exists("Custom Field", "Item-custom_attributes"):
+            try:
+                from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+                create_custom_field("Item", {
+                    "fieldname": "custom_attributes",
+                    "label": "Custom Attributes",
+                    "fieldtype": "JSON",
+                    "insert_after": "internal_id"
+                })
+            except Exception as e:
+                frappe.log_error(f"Failed to create custom_attributes field: {str(e)}")
+                
+        # Ensure local_name field exists
+        if not frappe.db.exists("Custom Field", "Item-local_name"):
+            try:
+                from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+                create_custom_field("Item", {
+                    "fieldname": "local_name",
+                    "label": "Local Name",
+                    "fieldtype": "Data",
+                    "insert_after": "item_name"
+                })
+            except Exception:
+                pass
+                
         custom_attrs = kwargs.get("custom_attributes") or {}
         if isinstance(custom_attrs, str):
             custom_attrs = frappe.parse_json(custom_attrs)
