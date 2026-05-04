@@ -41,13 +41,20 @@ export default function PurchaseBillInvoice({
     const unit = lot.unit || 'Unit'
 
     const rawBillNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'N/A'
-    // Strip Frappe docname patterns if needed (e.g. INV-ARR-ORG00001-2026-00003 → 3)
+    // Display bill numbers correctly:
+    //   YYYY-N format (e.g. '2026-17') → show as-is (annual sequential)
+    //   Plain numeric (legacy, e.g. '17') → show as-is
+    //   Frappe docname (e.g. 'INV-ARR-ORG00001-2026-00003') → strip to last digits
+    //   ARC-prefixed (archived/reset) → show 'RESET' as placeholder
     const billNo = (() => {
         if (!rawBillNo || rawBillNo === 'N/A') return lot.lot_code || 'N/A';
-        if (/^\d+$/.test(String(rawBillNo))) return rawBillNo;
-        const match = String(rawBillNo).match(/-0*(\d+)$/);
-        if (match) return match[1];
-        return rawBillNo;
+        const s = String(rawBillNo);
+        if (s.startsWith('ARC')) return 'RESET';                  // archived sequence
+        if (/^\d{4}-\d+$/.test(s)) return s;                      // YYYY-N annual format
+        if (/^\d+$/.test(s)) return s;                             // legacy plain numeric
+        const match = s.match(/-0*(\d+)$/);
+        if (match) return match[1];                                 // Frappe docname → strip
+        return s;
     })()
     const referenceNo = arrival?.reference_no || arrival?.contact_bill_no || ''
     const vehicleNo = arrival?.vehicle_number || ''

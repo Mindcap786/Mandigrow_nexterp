@@ -5620,31 +5620,65 @@ def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_d
         elif not is_sale and mandi_contact.supplier:
             party_list.append(mandi_contact.supplier)
 
-    # 2. Priority A: Explicitly Linked Payments (Submitted + In-Transit)
-    # We sum Credits (for Sales) or Debits (for Arrivals) explicitly tagged with this doc_name.
-    # CRITICAL: We only count them as 'Paid' if they are cleared (for cheques).
-    linked_paid_sql = f"""
-        SELECT 
-            SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.credit ELSE 0 END) as cleared_paid,
-            SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.credit ELSE 0 END) as pending_cheque
-        FROM `tabGL Entry` gl
-        LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
-        WHERE gl.is_cancelled = 0 AND gl.company = %s
-        AND gl.party IN %s AND gl.against_voucher = %s
-        AND gl.credit > 0
-    """ if is_sale else f"""
-        SELECT 
-            SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.debit ELSE 0 END) as cleared_paid,
-            SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.debit ELSE 0 END) as pending_cheque
-        FROM `tabGL Entry` gl
-        LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
-        WHERE gl.is_cancelled = 0 AND gl.company = %s
-        AND gl.party IN %s AND gl.against_voucher = %s
-        AND gl.debit > 0
-    """
-    res = frappe.db.sql(linked_paid_sql, (company, tuple(party_list), doc_name), as_dict=True)[0]
-    linked_paid = flt(res.cleared_paid)
-    pending_cheque_linked = flt(res.pending_cheque)
+    # 2. Priority A: Explicitly Linked Payments (Submitted GL entries tagged with this voucher)
+    # CRITICAL FIX: Run TWO queries:
+    #   (a) With party filter   — exact match (fast, accurate if Customer link exists)
+    #   (b) Without party filter — against_voucher match only (fallback if party link is broken/mismatched)
+    # Take the MAX of both to handle party-link resolution failures which cause
+    # the cheque GL entry's party to not match party_list (e.g. wrong Customer docname).
+    # This fixes the bug where cheque cleared for ₹4,000 shows ₹3,325 because
+    # the party-filtered query returned 0 and FIFO ate prior invoices first.
+
+    if is_sale:
+        linked_paid_sql = """
+            SELECT
+                SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.credit ELSE 0 END) as cleared_paid,
+                SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.credit ELSE 0 END) as pending_cheque
+            FROM `tabGL Entry` gl
+            LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
+            WHERE gl.is_cancelled = 0 AND gl.company = %s
+            AND gl.party IN %s AND gl.against_voucher = %s
+            AND gl.credit > 0
+        """
+        # Fallback: match only on against_voucher (no party filter)
+        linked_paid_fallback_sql = """
+            SELECT
+                SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.credit ELSE 0 END) as cleared_paid,
+                SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.credit ELSE 0 END) as pending_cheque
+            FROM `tabGL Entry` gl
+            LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
+            WHERE gl.is_cancelled = 0 AND gl.company = %s
+            AND gl.against_voucher = %s
+            AND gl.credit > 0
+        """
+    else:
+        linked_paid_sql = """
+            SELECT
+                SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.debit ELSE 0 END) as cleared_paid,
+                SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.debit ELSE 0 END) as pending_cheque
+            FROM `tabGL Entry` gl
+            LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
+            WHERE gl.is_cancelled = 0 AND gl.company = %s
+            AND gl.party IN %s AND gl.against_voucher = %s
+            AND gl.debit > 0
+        """
+        linked_paid_fallback_sql = """
+            SELECT
+                SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.debit ELSE 0 END) as cleared_paid,
+                SUM(CASE WHEN (se.voucher_type = 'Journal Entry' AND se.clearance_date IS NULL AND se.cheque_no IS NOT NULL) THEN gl.debit ELSE 0 END) as pending_cheque
+            FROM `tabGL Entry` gl
+            LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
+            WHERE gl.is_cancelled = 0 AND gl.company = %s
+            AND gl.against_voucher = %s
+            AND gl.debit > 0
+        """
+
+    res_primary = frappe.db.sql(linked_paid_sql, (company, tuple(party_list), doc_name), as_dict=True)[0]
+    res_fallback = frappe.db.sql(linked_paid_fallback_sql, (company, doc_name), as_dict=True)[0]
+
+    # Use whichever gives a higher cleared amount (protects against party-link mismatch)
+    linked_paid = max(flt(res_primary.cleared_paid), flt(res_fallback.cleared_paid))
+    pending_cheque_linked = max(flt(res_primary.pending_cheque), flt(res_fallback.pending_cheque))
 
     linked_transit_sql = f"""
         SELECT SUM(sea.credit - sea.debit) 
@@ -6527,10 +6561,8 @@ def commit_mandi_session(**kwargs) -> dict:
             arrival.vehicle_number = vehicle_no
             arrival.status = "Pending"
             
-            # Auto-assign contact_bill_no for this party
-            next_bill = frappe.db.sql("SELECT MAX(CAST(contact_bill_no AS UNSIGNED)) FROM `tabMandi Arrival` WHERE party_id = %s AND contact_bill_no REGEXP '^[0-9]+$'", (farmer_id,))
-            next_num = (next_bill[0][0] or 0) + 1 if next_bill else 1
-            arrival.contact_bill_no = str(next_num)
+            # Auto-assign annual sequential contact_bill_no for this farmer
+            arrival.contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", farmer_id)
 
             lot = arrival.append("items", {})
             lot.item_id = row.get("item_id")
@@ -7299,21 +7331,61 @@ def create_commodity(**kwargs) -> dict:
         frappe.log_error(frappe.get_traceback(), "create_commodity Failed")
         return {"success": False, "error": str(e)}
 
+def _get_next_annual_bill_no(doctype: str, party_field: str, party_id: str) -> str:
+    """
+    SINGLE SOURCE OF TRUTH for sequential annual invoice numbering.
+
+    Returns the next bill number in YYYY-N format, scoped per party per year.
+    - Format  : 'YYYY-N'  e.g. '2026-1', '2026-17', '2026-356'
+    - Scope   : per party_id, per calendar year (auto-resets every Jan 1)
+    - Storage : stored as a string in the contact_bill_no field
+    - Parsing : scans existing records for 'YYYY-N' pattern, takes MAX(N),
+                then returns 'YYYY-{MAX_N + 1}' or 'YYYY-1' if none found
+    - Idempotent: purely derived from existing data, no counter table needed
+    - Year-safe: at Jan 1, YYYY changes, so MAX query returns 0 → starts from 1
+
+    Examples:
+        Jan 2026: records are ['2026-1','2026-2','2026-3'] → returns '2026-4'
+        Dec 2026: records are ['2026-353','2026-354','2026-355'] → returns '2026-356'
+        Jan 2027: no '2027-N' records yet → returns '2027-1'  ← AUTO ANNUAL RESET
+
+    This function also handles legacy plain-numeric records (e.g. '3', '17')
+    that existed before the YYYY-N format was introduced — they are ignored
+    for the year-scoped MAX, so the new format starts cleanly from YYYY-1.
+
+    Args:
+        doctype     : 'Mandi Arrival' or any doctype with contact_bill_no field
+        party_field : field name for party lookup, e.g. 'party_id' or 'buyerid'
+        party_id    : the Mandi Contact name for this party
+    Returns:
+        str: next bill number, e.g. '2026-4'
+    """
+    current_year = frappe.utils.now_datetime().year
+    year_prefix = f"{current_year}-"
+
+    # Find the MAX sequential number for this party in the current year only.
+    # Pattern: contact_bill_no starts with 'YYYY-' followed by digits.
+    result = frappe.db.sql(f"""
+        SELECT MAX(CAST(SUBSTRING_INDEX(contact_bill_no, '-', -1) AS UNSIGNED)) as max_n
+        FROM `tab{doctype}`
+        WHERE {party_field} = %s
+          AND contact_bill_no LIKE %s
+          AND contact_bill_no REGEXP %s
+    """, (party_id, f"{year_prefix}%", f"^{current_year}-[0-9]+$"))
+
+    max_n = result[0][0] if result and result[0][0] else 0
+    return f"{current_year}-{max_n + 1}"
+
+
 @frappe.whitelist(allow_guest=False)
 def get_next_bill_no(party_id: str = None) -> dict:
-    """Returns the next contact_bill_no for a specific party."""
+    """Returns the next annual contact_bill_no for a specific party.
+    Format: YYYY-{N}  e.g. '2026-1', '2026-2', ..., '2026-356', then '2027-1'.
+    """
     if not party_id:
-        return {"next_bill_no": 1}
-    
-    # Standard SQL aggregation via frappe.db.sql for performance
-    result = frappe.db.sql("""
-        SELECT MAX(contact_bill_no) as last_no 
-        FROM `tabMandi Arrival` 
-        WHERE party_id = %s
-    """, (party_id,), as_dict=True)
-    
-    last_no = result[0].last_no if result and result[0].last_no else 0
-    return {"next_bill_no": int(last_no) + 1}
+        return {"next_bill_no": f"{frappe.utils.now_datetime().year}-1"}
+    next_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", party_id)
+    return {"next_bill_no": next_no}
 
 @frappe.whitelist(allow_guest=False)
 def confirm_sale_transaction(**kwargs) -> dict:
@@ -7539,13 +7611,11 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         if isinstance(items, str):
             items = json.loads(items)
             
-        # Auto-assign contact_bill_no if not provided
+        # Auto-assign annual sequential contact_bill_no if not provided
         contact_bill_no = payload.get("contact_bill_no")
         party_id = payload.get("party_id") or ""
         if not contact_bill_no and party_id:
-            next_bill = frappe.db.sql("SELECT MAX(CAST(contact_bill_no AS UNSIGNED)) FROM `tabMandi Arrival` WHERE party_id = %s AND contact_bill_no REGEXP '^[0-9]+$'", (party_id,))
-            next_num = (next_bill[0][0] or 0) + 1 if next_bill else 1
-            contact_bill_no = str(next_num)
+            contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", party_id)
             
         # 1. Create Mandi Arrival Document
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
@@ -9692,26 +9762,37 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
 def reset_invoice_sequence(contact_id: str):
     """
     Resets the invoice sequence for a specific contact (farmer/supplier).
-    Works by archiving existing numeric contact_bill_no values on Mandi Arrival
-    so MAX(CAST(contact_bill_no AS UNSIGNED)) query returns NULL and the
-    next auto-assigned number starts from 1 again.
+    Works by archiving existing YYYY-N contact_bill_no values on Mandi Arrival
+    so the next auto-assigned number in the current year starts from 1 again.
 
-    NOTE: Mandi Sale does NOT have a contact_bill_no column — buyer invoices
-    are numbered using the 'bookno' field. Use reset_buyer_invoice_sequence for buyers.
+    Archive format: ARC{YY}-{original_bill_no}
+    e.g. '2026-17' becomes 'ARC26-2026-17'
+
+    After reset, the next invoice for this contact will be YYYY-1
+    (where YYYY = current year).
+
+    NOTE: Mandi Sale does NOT have a contact_bill_no column.
     """
     if not contact_id:
         return {"success": False, "error": "Contact ID is required"}
 
     try:
         from frappe.utils import nowdate
-        prefix = f"ARC{nowdate().split('-')[0][-2:]}-"
+        year2 = str(frappe.utils.now_datetime().year)[-2:]
+        prefix = f"ARC{year2}-"
+        current_year = str(frappe.utils.now_datetime().year)
 
-        # Reset Farmer / Supplier sequences (Mandi Arrival)
+        # Archive all YYYY-N bill numbers for this party (current year only)
+        # Pattern: ^YYYY-[0-9]+$ OR old plain ^[0-9]+$ (legacy)
         arrivals = frappe.db.sql("""
             SELECT name, contact_bill_no
             FROM `tabMandi Arrival`
             WHERE party_id = %s
-            AND contact_bill_no REGEXP '^[0-9]+$'
+            AND (
+                contact_bill_no REGEXP '^[0-9]+-[0-9]+$'
+                OR contact_bill_no REGEXP '^[0-9]+$'
+            )
+            AND contact_bill_no NOT LIKE 'ARC%%'
         """, (contact_id,), as_dict=True)
 
         reset_count = 0
@@ -9722,17 +9803,21 @@ def reset_invoice_sequence(contact_id: str):
 
         frappe.db.commit()
 
+        next_no = f"{current_year}-1"
+
         if reset_count == 0:
             return {
                 "success": True,
-                "message": f"No active sequences found for this contact. Next invoice will start from #1.",
-                "reset_count": 0
+                "message": f"No active sequences found. Next invoice will be {next_no}.",
+                "reset_count": 0,
+                "next_bill_no": next_no
             }
 
         return {
             "success": True,
-            "message": f"Sequence reset successfully. {reset_count} invoice(s) archived. Next invoice for this contact will start from #1.",
-            "reset_count": reset_count
+            "message": f"Sequence reset. {reset_count} invoice(s) archived. Next invoice for this contact will be {next_no}.",
+            "reset_count": reset_count,
+            "next_bill_no": next_no
         }
     except Exception as e:
         frappe.db.rollback()
