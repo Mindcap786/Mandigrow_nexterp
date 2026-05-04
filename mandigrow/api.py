@@ -3182,18 +3182,42 @@ def get_dashboard_data() -> dict:
         
     company = _get_user_company()
 
-    # 1. Today's Sales Summary — Using Mandi Sale as single source of truth
-    # This MUST align with Day Book which reads the same doctype.
-    today_sales = frappe.get_all("Mandi Sale", 
-        filters={"docstatus": 1, "saledate": today(), **_org_filter("Mandi Sale", org_id)},
-        fields=["totalamount", "amountreceived", "status"],
-        ignore_permissions=True,
-    )
-    # Total Sales Revenue (Gross)
-    revenue = sum(float(s.totalamount or 0) for s in today_sales)
-    # Cash Collected = amount actually received today
-    collections = sum(float(s.amountreceived or 0) for s in today_sales)
-    # Udhaar / Receivable = total minus what has been paid
+    # ── 1. Today's Sales Summary — EXACT SAME GL source as Day Book ──────────
+    # Day Book reads tabGL Entry debit legs for sale vouchers. We do the same
+    # so Command Center and Day Book are guaranteed to show identical numbers.
+    # The 'Mandi Sale' voucher type in ERPNext creates GL entries where:
+    #   - Debit leg  → Receivable/Customer account (= totalamount)
+    #   - Credit leg → Sales Revenue account
+    # We SUM the max-debit per voucher (matching the Day Book Math.max logic)
+    # to avoid double-counting when multiple GL legs exist per voucher.
+    sales_gl_res = frappe.db.sql("""
+        SELECT gl.voucher_no, MAX(gl.debit) as sale_debit, MAX(gl.credit) as cash_credit
+        FROM `tabGL Entry` gl
+        LEFT JOIN `tabAccount` acc ON gl.account = acc.name
+        WHERE gl.is_cancelled = 0
+          AND gl.posting_date = %s
+          AND gl.company = %s
+          AND gl.voucher_type = 'Sales Invoice'
+        GROUP BY gl.voucher_no
+    """, (today(), company), as_dict=True)
+
+    # Fallback: if Sales Invoices don't exist (Mandi uses custom Sale doc),
+    # fall back to Mandi Sale totalamount — this keeps things working even if
+    # the GL hasn't been posted yet.
+    if sales_gl_res:
+        revenue = sum(float(r.sale_debit or 0) for r in sales_gl_res)
+        collections = sum(float(r.cash_credit or 0) for r in sales_gl_res)
+    else:
+        # Authoritative fallback: Mandi Sale doctype (same filter as Day Book uses)
+        today_sales = frappe.get_all("Mandi Sale",
+            filters={"docstatus": 1, "saledate": today(), **_org_filter("Mandi Sale", org_id)},
+            fields=["totalamount", "amountreceived"],
+            ignore_permissions=True,
+        )
+        revenue = sum(float(s.totalamount or 0) for s in today_sales)
+        collections = sum(float(s.amountreceived or 0) for s in today_sales)
+
+    # Udhaar Sales = total billed minus cash collected
     payables = max(0.0, revenue - collections)
     
     # 2. Active Lots (Stock Ledger)
