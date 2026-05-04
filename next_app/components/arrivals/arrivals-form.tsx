@@ -81,7 +81,7 @@ const itemSchema = z.object({
 
 const formSchema = z.object({
     entry_date: z.date(),
-    bill_no: z.coerce.number().optional(),
+    bill_no: z.any().optional(),
     reference_no: z.string().optional(),
     lot_prefix: z.string().optional(),
     contact_id: z.string().min(1, "Supplier/Party is required"),
