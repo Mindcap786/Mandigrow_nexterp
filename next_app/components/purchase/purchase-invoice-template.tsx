@@ -40,7 +40,15 @@ export default function PurchaseBillInvoice({
     const lotCode = lot.lot_code || arrival?.lot_prefix || 'N/A'
     const unit = lot.unit || 'Unit'
 
-    const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'N/A'
+    const rawBillNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'N/A'
+    // Strip Frappe docname patterns if needed (e.g. INV-ARR-ORG00001-2026-00003 → 3)
+    const billNo = (() => {
+        if (!rawBillNo || rawBillNo === 'N/A') return lot.lot_code || 'N/A';
+        if (/^\d+$/.test(String(rawBillNo))) return rawBillNo;
+        const match = String(rawBillNo).match(/-0*(\d+)$/);
+        if (match) return match[1];
+        return rawBillNo;
+    })()
     const referenceNo = arrival?.reference_no || arrival?.contact_bill_no || ''
     const vehicleNo = arrival?.vehicle_number || ''
     const vehicleType = arrival?.vehicle_type || ''

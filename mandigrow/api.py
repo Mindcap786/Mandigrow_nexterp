@@ -9667,43 +9667,49 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
 @frappe.whitelist()
 def reset_invoice_sequence(contact_id: str):
     """
-    Resets the invoice sequence for a specific contact.
-    It does this by appending an archived prefix to all existing numeric contact_bill_no
-    so that the MAX(CAST(contact_bill_no AS UNSIGNED)) query will start from 1 again.
+    Resets the invoice sequence for a specific contact (farmer/supplier).
+    Works by archiving existing numeric contact_bill_no values on Mandi Arrival
+    so MAX(CAST(contact_bill_no AS UNSIGNED)) query returns NULL and the
+    next auto-assigned number starts from 1 again.
+
+    NOTE: Mandi Sale does NOT have a contact_bill_no column — buyer invoices
+    are numbered using the 'bookno' field. Use reset_buyer_invoice_sequence for buyers.
     """
     if not contact_id:
         return {"success": False, "error": "Contact ID is required"}
-        
+
     try:
         from frappe.utils import nowdate
-        prefix = f"S{nowdate().split('-')[0][-2:]}-"
+        prefix = f"ARC{nowdate().split('-')[0][-2:]}-"
 
-        # 1. Reset Farmer / Supplier sequences (Mandi Arrival)
+        # Reset Farmer / Supplier sequences (Mandi Arrival)
         arrivals = frappe.db.sql("""
-            SELECT name, contact_bill_no 
-            FROM `tabMandi Arrival` 
-            WHERE party_id = %s 
+            SELECT name, contact_bill_no
+            FROM `tabMandi Arrival`
+            WHERE party_id = %s
             AND contact_bill_no REGEXP '^[0-9]+$'
         """, (contact_id,), as_dict=True)
-        
+
+        reset_count = 0
         for arr in arrivals:
             new_bill_no = f"{prefix}{arr['contact_bill_no']}"
             frappe.db.set_value("Mandi Arrival", arr["name"], "contact_bill_no", new_bill_no, update_modified=False)
-            
-        # 2. Reset Buyer sequences (Mandi Sale)
-        sales = frappe.db.sql("""
-            SELECT name, contact_bill_no
-            FROM `tabMandi Sale`
-            WHERE buyerid = %s
-            AND contact_bill_no REGEXP '^[0-9]+$'
-        """, (contact_id,), as_dict=True)
+            reset_count += 1
 
-        for s in sales:
-            new_bill_no = f"{prefix}{s['contact_bill_no']}"
-            frappe.db.set_value("Mandi Sale", s["name"], "contact_bill_no", new_bill_no, update_modified=False)
-        
         frappe.db.commit()
-        return {"success": True, "message": f"Sequence reset successfully for contact."}
+
+        if reset_count == 0:
+            return {
+                "success": True,
+                "message": f"No active sequences found for this contact. Next invoice will start from #1.",
+                "reset_count": 0
+            }
+
+        return {
+            "success": True,
+            "message": f"Sequence reset successfully. {reset_count} invoice(s) archived. Next invoice for this contact will start from #1.",
+            "reset_count": reset_count
+        }
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "reset_invoice_sequence Failed")

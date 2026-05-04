@@ -20,7 +20,21 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
     if (!sale) return null
 
-    const displayBillNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
+    const rawBillNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
+    // Clean invoice number: if it's a Frappe docname like INV-SALE-ORG00001-2026-00017,
+    // strip org/year prefixes and show only the sequence number (e.g., "17")
+    const displayBillNo = (() => {
+        if (!rawBillNo || rawBillNo === 'N/A') return 'N/A';
+        // If it's already a clean short number (e.g., "3", "17"), use as-is
+        if (/^\d+$/.test(String(rawBillNo))) return rawBillNo;
+        // Strip Frappe docname patterns: INV-SALE-ORG00001-2026-00017 → 17
+        const match = String(rawBillNo).match(/-0*(\d+)$/);
+        if (match) return match[1];
+        return rawBillNo;
+    })();
+    // Sale-level lot number (the stock lot from which this sale was made)
+    const saleLotNo = sale.lot_no || sale.book_no || '';
+
     const items = sale.sale_items || [];
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0))
@@ -137,11 +151,11 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     {sale.contact?.gstin && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">GSTIN: {sale.contact.gstin}</p>}
                 </div>
 
-                {/* Right: Invoice Details */}
+                    {/* Right: Invoice Details */}
                 <div className="text-right space-y-0.5 text-xs self-end print:w-1/2 print:flex print:flex-col print:items-end">
                     <div className="flex justify-end gap-2">
                         <span className="text-gray-400 font-bold uppercase">Invoice No:</span>
-                        <span className="font-black">#INV-{displayBillNo}</span>
+                        <span className="font-black">#{displayBillNo}</span>
                     </div>
                     <div className="flex justify-end gap-2">
                         <span className="text-gray-400 font-bold uppercase">Date:</span>
@@ -159,6 +173,12 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         <span className="text-gray-400 font-bold uppercase">Payment Mode:</span>
                         <span className="font-black uppercase">{sale.payment_mode || 'Credit'}</span>
                     </div>
+                    {saleLotNo && (
+                        <div className="flex justify-end gap-2 items-center">
+                            <span className="text-gray-400 font-bold uppercase">Lot No:</span>
+                            <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest">{saleLotNo}</span>
+                        </div>
+                    )}
                     {(sale.payment_mode === 'credit' || !sale.payment_mode) && sale.due_date && (
                         <div className="flex justify-end gap-2">
                             <span className="text-red-400 font-bold uppercase">Due Date:</span>

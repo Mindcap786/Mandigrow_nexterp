@@ -97,13 +97,18 @@ export default function ContactsPage() {
     }
 
     const resetSequence = async (contactId: string, contactName: string, type: string) => {
-        if (!confirm(`Are you sure you want to reset the invoice sequence for "${contactName}"? Future invoices will start from #1.`)) return
+        if (!confirm(`Reset invoice sequence for "${contactName}"?\n\nThis will archive all existing bill numbers so the NEXT purchase/sale from this contact starts from #1.\n\nClick OK to confirm.`)) return
         setIsUpdating(contactId)
         try {
-            await callApi('mandigrow.api.reset_invoice_sequence', { contact_id: contactId });
-            toast.success(`Sequence reset for ${contactName}`)
-        } catch (error) {
-            toast.error("Failed to reset sequence")
+            const res: any = await callApi('mandigrow.api.reset_invoice_sequence', { contact_id: contactId });
+            if (res?.success === false) {
+                toast.error(`Reset failed: ${res.error || 'Unknown error'}`)
+            } else {
+                const msg = res?.message || `Sequence reset for ${contactName}. Next invoice starts from #1.`
+                toast.success(`✅ ${msg}`)
+            }
+        } catch (error: any) {
+            toast.error(`Failed to reset sequence: ${error?.message || 'Network error'}`)
             console.error(error)
         }
         setIsUpdating(null)
