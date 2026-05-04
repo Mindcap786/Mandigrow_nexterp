@@ -120,6 +120,11 @@ export default function Sales() {
                 search: debouncedSearch || null,
             });
 
+            // Production diagnostic — helps debug zero-results issues
+            if (data?._debug) {
+                console.log('[Sales Debug]', data._debug);
+            }
+
             setSales(data?.sales || []);
             setTotalCount(data?.total_count || 0);
             setTotalRevenue(data?.total_revenue || 0);

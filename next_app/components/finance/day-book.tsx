@@ -950,6 +950,16 @@ export default function DayBook() {
             const hasSaleLeg = rawLegs.some(l => inferVoucherFlow(l) === 'sale' || inferVoucherFlow(l) === 'sale_payment');
             const hasPurchaseLeg = rawLegs.some(l => inferVoucherFlow(l) === 'purchase');
             const flowType = hasPurchaseLeg ? 'purchase' : (hasSaleLeg ? 'sale' : inferVoucherFlow(rawLegs[0]));
+            
+            // ── CONTACT NAME RESOLUTION for summaryLegs ─────────────────────
+            // rawLegs come from entriesByGroup (pre-enrichment), so they lack
+            // `contact: { name }`.  Resolve the group's party name here so
+            // the card header shows "afzal" instead of "Commission Income - SM".
+            // This is purely display — it does NOT change contact_id on GL legs,
+            // so amount calculations (getPurchaseSettlementTotals etc.) are unaffected.
+            const groupContactId = rawLegs.find(l => !!l.contact_id)?.contact_id;
+            const groupContactName = groupContactId ? contactMap[groupContactId] : null;
+            
             let legs: any[] = [];
             if (flowType === 'purchase') {
                 const { cashPaid, totalValue } = getPurchaseSettlementTotals(rawLegs);
@@ -960,6 +970,7 @@ export default function DayBook() {
                     // 1. Bill Leg (Credit - Goods Received)
                     legs.push({
                         ...baseLeg,
+                        contact: { name: groupContactName || baseLeg.contact?.name },
                         displayDebit: 0,
                         displayCredit: totalValue,
                         displayLabel: 'Purchase',
@@ -973,6 +984,7 @@ export default function DayBook() {
                         const bNo = extractBillNo(baseLeg);
                         legs.push({
                             ...(actualPaymentLeg || baseLeg),
+                            contact: { name: groupContactName || baseLeg.contact?.name },
                             displayDebit: cashPaid,
                             displayCredit: 0,
                             displayLabel: '',
@@ -996,6 +1008,7 @@ export default function DayBook() {
                 if (baseLeg) {
                     legs.push({
                         ...baseLeg,
+                        contact: { name: groupContactName || baseLeg.contact?.name },
                         displayDebit: totalSaleValue,
                         displayCredit: 0,
                         displayLabel: 'Sale',
@@ -1009,6 +1022,7 @@ export default function DayBook() {
                         const bNo = refId ? saleReferenceMap?.[String(refId)] : extractBillNo(baseLeg);
                         legs.push({
                             ...(actualReceiptLeg || baseLeg),
+                            contact: { name: groupContactName || baseLeg.contact?.name },
                             displayDebit: 0,
                             displayCredit: totalPaidValue,
                             displayLabel: '',
@@ -1046,6 +1060,7 @@ export default function DayBook() {
 
                     legs.push({
                         ...mainLeg,
+                        contact: { name: groupContactName || mainLeg.contact?.name },
                         displayDebit: (isPayment || isExpense) ? finalSanitizedVal : 0,
                         displayCredit: isReceipt ? finalSanitizedVal : 0,
                         displayLabel: label,
