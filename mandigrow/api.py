@@ -3602,12 +3602,11 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         if not c.get("name"):
             c["name"] = c.get("id") or "Unknown"
 
-    commodities = frappe.get_all("Item",
-        filters={"disabled": 0},
-        fields=["name as id", "item_name as name", "stock_uom as default_unit"],
-        order_by="item_name",
-        ignore_permissions=True,
-    )
+    try:
+        commodities_res = get_commodities()
+        commodities = commodities_res.get("commodities", [])
+    except Exception:
+        commodities = []
 
     # Return only mandi-relevant units — NOT the full ERPNext UOM table (200+ scientific units)
     MANDI_UNITS = ["Box", "Crate", "Kgs", "Tons", "Nug", "Pieces", "Carton", "Bunch", "Nos", "Kg"]
@@ -6899,6 +6898,8 @@ def create_commodity(**kwargs) -> dict:
         # - custom_attributes: {"V": "X"}
         specs = kwargs.get("specifications") or []
         custom_attrs = kwargs.get("custom_attributes") or {}
+        if isinstance(custom_attrs, str):
+            custom_attrs = frappe.parse_json(custom_attrs)
         
         full_name = name
         spec_parts = []
@@ -6921,7 +6922,10 @@ def create_commodity(**kwargs) -> dict:
         custom_attrs["base_name"] = name
         
         if spec_parts:
-            full_name = f"{name} - {' - '.join(spec_parts)}"
+            # Check if name already contains the spec parts (from a previous improper edit)
+            suffix = f" - {' - '.join(spec_parts)}"
+            if suffix.lower() not in name.lower() and not any(part.lower() in name.lower() for part in spec_parts):
+                full_name = f"{name}{suffix}"
         
         org_id = _get_user_org()
         abbr = frappe.db.get_value("Company", _get_user_company(), "abbr") or "MG"
