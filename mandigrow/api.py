@@ -6217,7 +6217,7 @@ def update_settings(**kwargs) -> dict:
         
         doc.save(ignore_permissions=True)
         frappe.db.commit()
-        return {"status": "success"}
+        return {"status": "updated", "message": "Settings updated successfully"}
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(title="update_settings Error", message=frappe.get_traceback())

@@ -20,7 +20,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
     if (!sale) return null
 
-    const displayBillNo = sale.contact_bill_no || sale.bill_no || 'N/A';
+    const displayBillNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
     const items = sale.sale_items || [];
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0))

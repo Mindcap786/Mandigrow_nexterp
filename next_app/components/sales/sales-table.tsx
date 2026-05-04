@@ -122,7 +122,7 @@ export default function SalesTable({ data, isLoading }: { data: any[], isLoading
                                 </td>
                             </tr>
                         ) : filteredData.map((row) => {
-                            const displayBillNo = row.contact_bill_no || row.bill_no;
+                            const displayBillNo = row.contact_bill_no || row.bill_no || row.id;
                             // Use total_amount_inc_tax from database if available (it should be now), else fallback.
                             // Database computes this with all charges correctly.
                             const grandTotal = Number(row.total_amount_inc_tax) || Number(row.total_amount) || 0;
@@ -136,7 +136,7 @@ export default function SalesTable({ data, isLoading }: { data: any[], isLoading
                             return (
                                 <tr key={row.id} className="group hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0">
                                     <td className="pl-6 text-left font-mono font-black text-black group-hover:text-blue-600 transition-colors">
-                                        #{row.contact_bill_no || row.bill_no}
+                                        #{displayBillNo}
                                     </td>
                                     <td className="pl-4 text-left text-black font-black">
                                         {row.sale_date ? format(new Date(row.sale_date), 'dd MMM yyyy') : 'N/A'}

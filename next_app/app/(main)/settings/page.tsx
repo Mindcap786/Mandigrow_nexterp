@@ -420,9 +420,9 @@ export default function Settings() {
                     <div className={cn("p-12 text-white flex flex-col items-center text-center relative overflow-hidden", dialogConfig.type === "success" ? "bg-emerald-500" : "bg-red-500")}>
                         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 to-transparent opacity-50" />
                         <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl relative z-10 mb-6">{dialogConfig.type === "success" ? <CheckCircle2 className="w-12 h-12 text-emerald-500" /> : <AlertTriangle className="w-12 h-12 text-red-500" />}</div>
-                        <h2 className="text-3xl font-black tracking-tight uppercase relative z-10">{dialogConfig.title}</h2>
+                        <DialogTitle className="text-3xl font-black tracking-tight uppercase relative z-10">{dialogConfig.title}</DialogTitle>
                     </div>
-                    <div className="p-10 space-y-8 text-center bg-white"><p className="text-slate-600 font-bold leading-relaxed">{dialogConfig.message}</p><Button className={cn("w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl active:scale-95", dialogConfig.type === "success" ? "bg-slate-900 hover:bg-black text-white" : "bg-red-500 hover:bg-red-600 text-white")} onClick={() => setShowSuccessDialog(false)}>{dialogConfig.type === "success" ? "Got it, Thanks" : "Dismiss"}</Button></div>
+                    <div className="p-10 space-y-8 text-center bg-white"><DialogDescription className="text-slate-600 font-bold leading-relaxed">{dialogConfig.message}</DialogDescription><Button className={cn("w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl active:scale-95", dialogConfig.type === "success" ? "bg-slate-900 hover:bg-black text-white" : "bg-red-500 hover:bg-red-600 text-white")} onClick={() => setShowSuccessDialog(false)}>{dialogConfig.type === "success" ? "Got it, Thanks" : "Dismiss"}</Button></div>
                 </DialogContent>
             </Dialog>
         </ProtectedRoute>
