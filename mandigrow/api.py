@@ -6925,6 +6925,16 @@ def _get_org_info(org_id: str) -> dict:
         address_val = org.get("address_line1") or org.get("address") or ""
         city_val = org.get("address_line2") or org.get("city") or ""
 
+        # Parse payment settings JSON
+        import json
+        payment_settings = {}
+        raw_payment = org.get("payment_settings")
+        if raw_payment:
+            try:
+                payment_settings = json.loads(raw_payment) if isinstance(raw_payment, str) else raw_payment
+            except Exception:
+                pass
+
         return {
             "id": org.get("name"),
             "name": org.get("organization_name") or org.get("name") or "",
@@ -6966,11 +6976,10 @@ def _get_org_info(org_id: str) -> dict:
             "cgst_percent": flt(org.get("cgst_percent") or 0),
             "sgst_percent": flt(org.get("sgst_percent") or 0),
             "igst_percent": flt(org.get("igst_percent") or 0),
-            "qr_bank_id": org.get("qr_bank_id") or "",
-            "print_upi_qr": int(org.get("print_upi_qr") or 0),
-            "text_bank_id": org.get("text_bank_id") or "",
-            "print_bank_details": int(org.get("print_bank_details") or 0),
             "erp_company": org.get("erp_company") or "",
+            "settings": {
+                "payment": payment_settings
+            }
         }
     except Exception as e:
         frappe.log_error(f"Error in _get_org_info for {org_id}: {str(e)}")

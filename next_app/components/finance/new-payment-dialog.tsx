@@ -208,7 +208,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
     const fetchBankAccounts = async () => {
         setLoadingBanks(true);
         try {
-            const data = await callApi('mandigrow.api.get_accounts', { sub_type: 'Bank' });
+            const data = await callApi('mandigrow.api.get_bank_accounts');
             if (data) {
                 setBankAccounts(data);
                 const def = data.find((b: any) => b.is_default) || data[0];

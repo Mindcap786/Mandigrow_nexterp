@@ -64,9 +64,12 @@ export function AdvanceDialog({
         if (!profile?.organization_id) return;
         setFetchingAccounts(true);
         try {
-            const data = await callApi('mandigrow.api.get_accounts', {
-                sub_type: paymentMode === 'cash' ? 'Cash' : 'Bank'
-            });
+            let data;
+            if (paymentMode === 'cash') {
+                data = await callApi('mandigrow.api.get_accounts', { sub_type: 'Cash' });
+            } else {
+                data = await callApi('mandigrow.api.get_bank_accounts');
+            }
 
             setAccounts(data || []);
             const autoSelect = data?.find((a: any) => a.name?.toLowerCase().includes(paymentMode)) || data?.[0];

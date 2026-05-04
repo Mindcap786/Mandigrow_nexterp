@@ -311,10 +311,10 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                             </div>
                         )}
                         {/* Legacy fallback: if only gst_total stored without breakdown */}
-                        {totalGst === 0 && Number(sale.gst_total || 0) > 0 && (
+                        {Number(sale.cgst_amount || 0) === 0 && Number(sale.sgst_amount || 0) === 0 && Number(sale.igst_amount || 0) === 0 && Number(sale.gst_total || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400 font-bold uppercase tracking-widest">GST</span>
-                                <span className="font-bold">₹{Number(sale.gst_total).toLocaleString()}</span>
+                                <span className="font-bold text-slate-500 uppercase">GST</span>
+                                <span className="font-bold text-slate-700">+ ₹{Number(sale.gst_total).toLocaleString()}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-2">
