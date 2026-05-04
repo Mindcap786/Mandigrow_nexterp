@@ -441,10 +441,20 @@ def ensure_customer_for_contact(contact_id, company=None):
 
 
 def resolve_uom(preferred_uom=None):
-    if preferred_uom and frappe.db.exists("UOM", preferred_uom):
-        return preferred_uom
+    if not preferred_uom:
+        return frappe.db.get_value("UOM", {}, "name") or "Nos"
+        
+    if not frappe.db.exists("UOM", preferred_uom):
+        try:
+            frappe.get_doc({
+                "doctype": "UOM", 
+                "uom_name": preferred_uom, 
+                "must_be_whole_number": 0
+            }).insert(ignore_permissions=True)
+        except Exception:
+            pass
 
-    return frappe.db.get_value("UOM", {}, "name") or preferred_uom or "Nos"
+    return preferred_uom
 
 
 def ensure_item(item_code, preferred_uom=None, is_stock_item=True, company=None):

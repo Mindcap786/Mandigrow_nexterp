@@ -7324,6 +7324,14 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         total_commission = 0
         
         for item in items:
+            unit = item.get("unit") or "Kg"
+            # Explicitly ensure the UOM exists before assigning to a Link field
+            if not frappe.db.exists("UOM", unit):
+                try:
+                    frappe.get_doc({"doctype": "UOM", "uom_name": unit, "must_be_whole_number": 0}).insert(ignore_permissions=True)
+                except Exception:
+                    pass
+            
             # Map item fields to Mandi Lot with defaults
             lot_data = {
                 "doctype": "Mandi Lot",
@@ -7331,7 +7339,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 "qty": float(item.get("qty", 0)),
                 "initial_qty": float(item.get("qty", 0)),
                 "current_qty": float(item.get("qty", 0)),
-                "unit": item.get("unit") or "Kg",
+                "unit": unit,
                 "supplier_rate": float(item.get("supplier_rate") or item.get("rate") or 0),
                 "sale_price": float(item.get("sale_price") or 0),
                 "commission_percent": float(item.get("commission_percent") or 0),

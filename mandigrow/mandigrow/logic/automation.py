@@ -858,7 +858,6 @@ def _create_purchase_receipt(doc):
                 "qty":         net_qty,
                 "rate":        rate,
                 "uom":         uom,
-                "stock_uom":   uom,
                 "warehouse":   warehouse,
             })
 
