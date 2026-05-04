@@ -6918,14 +6918,28 @@ def create_commodity(**kwargs) -> dict:
             if val and val not in spec_parts:
                 spec_parts.append(val)
                 
+        # Recover base_name robustly
+        base_name = name
+        existing_base = custom_attrs.get("base_name")
+        
+        item_id = kwargs.get("id")
+        if item_id and not existing_base and frappe.db.exists("Item", item_id):
+            # Fallback to DB
+            old_attrs = frappe.parse_json(frappe.db.get_value("Item", item_id, "custom_attributes") or "{}")
+            existing_base = old_attrs.get("base_name")
+            
+        if existing_base and name.startswith(existing_base):
+            base_name = existing_base
+
         # Store original commodity name to allow UI to reload cleanly without variety appended
-        custom_attrs["base_name"] = name
+        custom_attrs["base_name"] = base_name
+        full_name = base_name
         
         if spec_parts:
             # Check if name already contains the spec parts (from a previous improper edit)
             suffix = f" - {' - '.join(spec_parts)}"
-            if suffix.lower() not in name.lower() and not any(part.lower() in name.lower() for part in spec_parts):
-                full_name = f"{name}{suffix}"
+            if suffix.lower() not in base_name.lower() and not any(part.lower() in base_name.lower() for part in spec_parts):
+                full_name = f"{base_name}{suffix}"
         
         org_id = _get_user_org()
         abbr = frappe.db.get_value("Company", _get_user_company(), "abbr") or "MG"
@@ -7009,10 +7023,8 @@ def create_commodity(**kwargs) -> dict:
             doc = frappe.new_doc("Item")
             doc.item_code = item_code
 
-        # Sync all fields
-        for k, v in doc_data.items():
-            if k not in ["doctype", "item_code"]:
-                setattr(doc, k, v)
+        # Sync all fields using doc.update to guarantee custom fields (like local_name) are dirtied/saved
+        doc.update(doc_data)
         
         # Dynamically append the unit to the item's UOM table
         # This prevents "Could not find Row #1: Unit" errors during Arrivals
