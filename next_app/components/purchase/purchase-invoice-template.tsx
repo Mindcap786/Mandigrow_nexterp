@@ -250,16 +250,22 @@ export default function PurchaseBillInvoice({
                             </span>
                         )}
                     </div>
-                    <div className="flex justify-end gap-2">
-                        <span className="text-gray-400 font-bold uppercase">Date:</span>
-                        <span className="font-black">{formattedDate}</span>
-                    </div>
                     {lotCode && lotCode !== 'N/A' && (
                         <div className="flex justify-end gap-2 items-center">
                             <span className="text-gray-400 font-bold uppercase">Lot No:</span>
                             <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest">{lotCode}</span>
                         </div>
                     )}
+                    {vehicleNo && (
+                        <div className="flex justify-end gap-2 items-center">
+                            <span className="text-gray-400 font-bold uppercase">Vehicle:</span>
+                            <span className="font-black tracking-widest">{vehicleNo}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-end gap-2 mt-1">
+                        <span className="text-gray-400 font-bold uppercase">Date:</span>
+                        <span className="font-black">{formattedDate}</span>
+                    </div>
                 </div>
             </div>
 

@@ -26,13 +26,14 @@ class MandiSale(Document):
         buyer_id = getattr(self, "buyerid", None)
         
         if not contact_bill_no and buyer_id and hasattr(self, "contact_bill_no"):
-            last_bill_no = frappe.db.get_value(
-                "Mandi Sale",
-                {"buyerid": buyer_id, "name": ["!=", self.name]},
-                "contact_bill_no",
-                order_by="contact_bill_no desc",
-            )
-            self.contact_bill_no = (flt(last_bill_no) or 0) + 1
+            last_bill_no = frappe.db.sql("""
+                SELECT MAX(CAST(contact_bill_no AS UNSIGNED)) 
+                FROM `tabMandi Sale` 
+                WHERE buyerid = %s 
+                AND contact_bill_no NOT LIKE 'ARC%%'
+            """, (buyer_id,))
+            max_val = last_bill_no[0][0] if last_bill_no and last_bill_no[0][0] else 0
+            self.contact_bill_no = int(max_val) + 1
 
     def get_invoice_total(self):
         """The definitive formula for a Mandi Sale total."""

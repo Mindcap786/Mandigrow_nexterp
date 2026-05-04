@@ -29,13 +29,14 @@ class MandiArrival(Document):
     def _ensure_bill_no(self):
         """Auto-increment contact_bill_no per party if not set."""
         if not self.contact_bill_no and self.party_id:
-            last_bill_no = frappe.db.get_value(
-                "Mandi Arrival",
-                {"party_id": self.party_id, "name": ["!=", self.name]},
-                "contact_bill_no",
-                order_by="contact_bill_no desc",
-            )
-            self.contact_bill_no = (flt(last_bill_no) or 0) + 1
+            last_bill_no = frappe.db.sql("""
+                SELECT MAX(CAST(contact_bill_no AS UNSIGNED)) 
+                FROM `tabMandi Arrival` 
+                WHERE party_id = %s 
+                AND contact_bill_no NOT LIKE 'ARC%%'
+            """, (self.party_id,))
+            max_val = last_bill_no[0][0] if last_bill_no and last_bill_no[0][0] else 0
+            self.contact_bill_no = int(max_val) + 1
 
     def before_save(self):
         self._recompute_summary()

@@ -157,7 +157,13 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         <span className="text-gray-400 font-bold uppercase">Invoice No:</span>
                         <span className="font-black">#{displayBillNo}</span>
                     </div>
-                    <div className="flex justify-end gap-2">
+                    {saleLotNo && (
+                        <div className="flex justify-end gap-2 items-center">
+                            <span className="text-gray-400 font-bold uppercase">Lot No:</span>
+                            <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest">{saleLotNo}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-end gap-2 mt-1">
                         <span className="text-gray-400 font-bold uppercase">Date:</span>
                         <span className="font-black">
                             {(() => {
@@ -173,12 +179,6 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         <span className="text-gray-400 font-bold uppercase">Payment Mode:</span>
                         <span className="font-black uppercase">{sale.payment_mode || 'Credit'}</span>
                     </div>
-                    {saleLotNo && (
-                        <div className="flex justify-end gap-2 items-center">
-                            <span className="text-gray-400 font-bold uppercase">Lot No:</span>
-                            <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest">{saleLotNo}</span>
-                        </div>
-                    )}
                     {(sale.payment_mode === 'credit' || !sale.payment_mode) && sale.due_date && (
                         <div className="flex justify-end gap-2">
                             <span className="text-red-400 font-bold uppercase">Due Date:</span>
@@ -215,13 +215,6 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                     <p className="font-black text-xs tracking-tight uppercase leading-none">
                                         {formatCommodityName(item.lot?.item?.name || item.item_name || 'Item', item.lot?.item?.custom_attributes)}
                                     </p>
-                                    {item.lot?.lot_code && item.lot.lot_code !== 'N/A' && (
-                                        <div className="flex flex-col gap-0 mt-0">
-                                            <p className="text-[8px] font-black text-orange-600 tracking-tighter uppercase tabular-nums">
-                                                {item.lot.lot_code}
-                                            </p>
-                                        </div>
-                                    )}
                                 </td>
                                 <td className="py-0.5 text-center font-bold text-sm tracking-tighter">
                                     {item.qty || 0} <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{item.unit || 'Unit'}</span>

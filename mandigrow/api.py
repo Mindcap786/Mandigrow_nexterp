@@ -9882,6 +9882,10 @@ def reset_invoice_sequence(contact_id: str):
 
         # Archive all YYYY-N bill numbers for this party (current year only)
         # Pattern: ^YYYY-[0-9]+$ OR old plain ^[0-9]+$ (legacy)
+        
+        reset_count = 0
+        
+        # 1. Reset Mandi Arrivals
         arrivals = frappe.db.sql("""
             SELECT name, contact_bill_no
             FROM `tabMandi Arrival`
@@ -9893,10 +9897,26 @@ def reset_invoice_sequence(contact_id: str):
             AND contact_bill_no NOT LIKE 'ARC%%'
         """, (contact_id,), as_dict=True)
 
-        reset_count = 0
         for arr in arrivals:
             new_bill_no = f"{prefix}{arr['contact_bill_no']}"
             frappe.db.set_value("Mandi Arrival", arr["name"], "contact_bill_no", new_bill_no, update_modified=False)
+            reset_count += 1
+
+        # 2. Reset Mandi Sales
+        sales = frappe.db.sql("""
+            SELECT name, contact_bill_no
+            FROM `tabMandi Sale`
+            WHERE buyerid = %s
+            AND (
+                contact_bill_no REGEXP '^[0-9]+-[0-9]+$'
+                OR contact_bill_no REGEXP '^[0-9]+$'
+            )
+            AND contact_bill_no NOT LIKE 'ARC%%'
+        """, (contact_id,), as_dict=True)
+
+        for s in sales:
+            new_bill_no = f"{prefix}{s['contact_bill_no']}"
+            frappe.db.set_value("Mandi Sale", s["name"], "contact_bill_no", new_bill_no, update_modified=False)
             reset_count += 1
 
         frappe.db.commit()
