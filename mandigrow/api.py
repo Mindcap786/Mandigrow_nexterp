@@ -6321,108 +6321,115 @@ def export_arrivals_csv(org_id: str = None, date_from: str = None, date_to: str 
 def update_settings(**kwargs) -> dict:
     """Update mandi settings for the current organization profile.
 
-    Uses direct frappe.db.set_value for every field to completely bypass
-    the doc.meta.has_field() cache issue where fields created at runtime
-    (or with mixed naming conventions) are incorrectly skipped.
+    NUCLEAR approach: Uses a single raw SQL UPDATE query to guarantee
+    the write hits the DB. No frappe.db.set_value(), no has_column(),
+    no meta cache — just a direct parameterized SQL UPDATE.
+
+    After commit, reads back every value and returns them so the
+    frontend can verify the save actually persisted.
     """
     org_id = _get_user_org()
     if not org_id:
+        frappe.log_error("update_settings: _get_user_org() returned None", "Settings Save Fail")
         return {"status": "error", "message": "No organization context found"}
+
+    if not frappe.db.exists("Mandi Organization", org_id):
+        frappe.log_error(f"update_settings: org {org_id} not found in DB", "Settings Save Fail")
+        return {"status": "error", "message": f"Organization {org_id} not found"}
 
     skip_keys = {"cmd", "csrf_token"}
 
-    # Verified field names against:
-    # bench execute "[f.fieldname for f in frappe.get_meta('Mandi Organization').fields]"
-    # Result: ['address_line2','address_line1','address','city','gstin','phone',
-    #          'organization_name','commission_rate_default','market_fee_percent',
-    #          'nirashrit_percent','misc_fee_percent','default_credit_days',
-    #          'state_code','gst_enabled','gst_type','cgst_percent','sgst_percent',
-    #          'igst_percent','brand_color','qr_bank_id','print_upi_qr',
-    #          'text_bank_id','print_bank_details',...]
-    #
-    # Frontend key  ->  actual Frappe fieldname on Mandi Organization
+    # Map frontend keys -> actual DB column names (verified via SHOW COLUMNS)
     FIELD_MAP = {
-        "organization_name":     "organization_name",
-        "gstin":                 "gstin",
-        "phone":                 "phone",
-        # Frontend calls the first address line 'address' — the doctype has
-        # BOTH 'address' AND 'address_line1'. Write to both to stay safe.
-        "address":               "address",       # direct field on doctype
-        "city":                  "city",
+        "organization_name":       "organization_name",
+        "gstin":                   "gstin",
+        "phone":                   "phone",
+        "address":                 "address",
+        "city":                    "city",
         "commission_rate_default": "commission_rate_default",
-        "market_fee_percent":    "market_fee_percent",
-        "nirashrit_percent":     "nirashrit_percent",
-        "misc_fee_percent":      "misc_fee_percent",
-        "default_credit_days":   "default_credit_days",
-        "gst_enabled":           "gst_enabled",
-        "gst_type":              "gst_type",
-        "cgst_percent":          "cgst_percent",
-        "sgst_percent":          "sgst_percent",
-        "igst_percent":          "igst_percent",
-        "state_code":            "state_code",
-        "brand_color":           "brand_color",
-        "print_upi_qr":          "print_upi_qr",
-        "print_bank_details":    "print_bank_details",
-        "qr_bank_id":            "qr_bank_id",
-        "text_bank_id":          "text_bank_id",
-        # Custom fields — may or may not exist depending on deployment
-        "mandi_license":         "mandi_license",
-        "max_invoice_amount":    "max_invoice_amount",
+        "market_fee_percent":      "market_fee_percent",
+        "nirashrit_percent":       "nirashrit_percent",
+        "misc_fee_percent":        "misc_fee_percent",
+        "default_credit_days":     "default_credit_days",
+        "gst_enabled":             "gst_enabled",
+        "gst_type":                "gst_type",
+        "cgst_percent":            "cgst_percent",
+        "sgst_percent":            "sgst_percent",
+        "igst_percent":            "igst_percent",
+        "state_code":              "state_code",
+        "brand_color":             "brand_color",
+        "print_upi_qr":           "print_upi_qr",
+        "print_bank_details":      "print_bank_details",
+        "qr_bank_id":              "qr_bank_id",
+        "text_bank_id":            "text_bank_id",
+        "mandi_license":           "mandi_license",
+        "max_invoice_amount":      "max_invoice_amount",
     }
 
     try:
-        # Ensure optional custom fields exist on Mandi Organization doctype
+        # Ensure custom fields exist
         _ensure_org_custom_fields()
 
-        # Verify the organization exists
-        if not frappe.db.exists("Mandi Organization", org_id):
-            return {"status": "error", "message": f"Organization {org_id} not found"}
-
+        # Build SET clause for raw SQL UPDATE
+        set_parts = []
+        values = []
         saved_fields = []
-        skipped_fields = []
 
         for key, val in kwargs.items():
             if key in skip_keys:
                 continue
-
-            target_field = FIELD_MAP.get(key)
-            if not target_field:
-                # Unknown field — ignore silently
+            col = FIELD_MAP.get(key)
+            if not col:
                 continue
+            set_parts.append(f"`{col}` = %s")
+            values.append(val)
+            saved_fields.append(col)
 
-            # Use direct DB write — completely bypasses meta.has_field() cache
-            # and works for both standard and custom fields.
-            try:
-                # Check if column actually exists in DB before writing
-                if frappe.db.has_column("Mandi Organization", target_field):
-                    frappe.db.set_value(
-                        "Mandi Organization", org_id,
-                        target_field, val,
-                        update_modified=True
-                    )
-                    saved_fields.append(target_field)
-                    # Special case: keep address_line1 in sync with address field
-                    if target_field == "address" and frappe.db.has_column("Mandi Organization", "address_line1"):
-                        frappe.db.set_value("Mandi Organization", org_id, "address_line1", val, update_modified=False)
-                else:
-                    skipped_fields.append(target_field)
-                    frappe.log_error(f"update_settings: column '{target_field}' not found in Mandi Organization, skipping.")
-            except Exception as field_err:
-                skipped_fields.append(target_field)
-                frappe.log_error(f"update_settings: failed to set {target_field}={val}: {field_err}")
+            # Mirror address -> address_line1
+            if col == "address":
+                set_parts.append("`address_line1` = %s")
+                values.append(val)
 
+        if not set_parts:
+            return {"status": "error", "message": "No valid fields to update"}
+
+        # Add modified timestamp
+        set_parts.append("`modified` = NOW()")
+        set_parts.append("`modified_by` = %s")
+        values.append(frappe.session.user)
+
+        # Single atomic SQL UPDATE — no ORM, no cache, no abstraction
+        sql = f"UPDATE `tabMandi Organization` SET {', '.join(set_parts)} WHERE `name` = %s"
+        values.append(org_id)
+
+        frappe.db.sql(sql, tuple(values))
         frappe.db.commit()
+
+        # Clear all caches so next read gets fresh data
         frappe.clear_cache(doctype="Mandi Organization")
+        frappe.local.cache = {}
+
+        # VERIFICATION: Read back every field we just wrote
+        readback_cols = list(set(saved_fields))
+        if readback_cols:
+            readback = frappe.db.get_value(
+                "Mandi Organization", org_id, readback_cols, as_dict=True
+            ) or {}
+        else:
+            readback = {}
+
+        # Log for debugging
+        frappe.logger().info(f"update_settings OK: org={org_id}, saved={saved_fields}, readback={readback}")
 
         return {
             "status": "updated",
             "message": "Settings updated successfully",
             "saved": saved_fields,
-            "skipped": skipped_fields
+            "readback": {k: readback.get(k) for k in saved_fields if k in readback},
         }
     except Exception as e:
         frappe.db.rollback()
-        frappe.log_error(title="update_settings Error", message=frappe.get_traceback())
+        frappe.log_error(title="update_settings CRASH", message=frappe.get_traceback())
         return {"status": "error", "message": str(e)}
 
 
@@ -6810,58 +6817,116 @@ def get_org_settings(org_id: str = None) -> dict:
 def _get_org_info(org_id: str) -> dict:
     """Return the organization profile and settings for the current tenant.
     
-    Data isolation is strictly enforced by looking up the 'Mandi Organization'
-    linked to the user's current session.
+    Uses direct frappe.db.get_value (raw SQL) instead of frappe.get_doc()
+    to avoid request-level doc cache returning stale data after saves.
     """
     if not org_id:
         return {}
 
     try:
-        if frappe.db.exists("Mandi Organization", org_id):
-            org = frappe.get_doc("Mandi Organization", org_id)
-            return {
-                "id": org.name,
-                "name": getattr(org, "organization_name", None) or org.name,
-                "subscription_tier": getattr(org, "subscription_tier", "starter"),
-                "status": getattr(org, "status", "active"),
-                "trial_ends_at": getattr(org, "trial_ends_at", None),
-                "is_active": bool(getattr(org, "is_active", True)),
-                "brand_color": getattr(org, "brand_color", "#10b981"),
-                "address_line1": getattr(org, "address_line1", ""),
-                "address_line2": getattr(org, "address_line2", ""),
-                "pincode": getattr(org, "pincode", ""),
-                "slug": getattr(org, "slug", ""),
-                "pan_number": getattr(org, "pan_number", ""),
-                "email": getattr(org, "email", ""),
-                "whatsapp_number": getattr(org, "whatsapp_number", ""),
-                "website": getattr(org, "website", ""),
-                "logo_url": getattr(org, "logo_url", ""),
-                "brand_color_secondary": getattr(org, "brand_color_secondary", "#0f172a"),
-                "header_color": getattr(org, "header_color", "#0f172a"),
-                "footer_text": getattr(org, "footer_text", ""),
-                "custom_domain": getattr(org, "custom_domain", ""),
-                "currency_code": getattr(org, "currency_code", "INR"),
-                "locale": getattr(org, "locale", "en-IN"),
-                "timezone": getattr(org, "timezone", "Asia/Kolkata"),
-                # address and city are legacy aliases — use address_line1 / city as primary
-                "address": getattr(org, "address_line1", "") or getattr(org, "address", ""),
-                "city": getattr(org, "city", ""),
-                "gstin": getattr(org, "gstin", ""),
-                "phone": getattr(org, "phone", ""),
-                "commission_rate_default": flt(getattr(org, "commission_rate_default", 0)),
-                "market_fee_percent": flt(getattr(org, "market_fee_percent", 0)),
-                "nirashrit_percent": flt(getattr(org, "nirashrit_percent", 0)),
-                "misc_fee_percent": flt(getattr(org, "misc_fee_percent", 0)),
-                "max_invoice_amount": flt(_safe_get_field(org, "max_invoice_amount", 0)),
-                "default_credit_days": int(getattr(org, "default_credit_days", 15)),
-                "mandi_license": _safe_get_field(org, "mandi_license", ""),
-                "state_code": getattr(org, "state_code", ""),
-                "gst_enabled": bool(getattr(org, "gst_enabled", False)),
-                "gst_type": getattr(org, "gst_type", "intra"),
-                "cgst_percent": flt(getattr(org, "cgst_percent", 0)),
-                "sgst_percent": flt(getattr(org, "sgst_percent", 0)),
-                "igst_percent": flt(getattr(org, "igst_percent", 0)),
-            }
+        if not frappe.db.exists("Mandi Organization", org_id):
+            # Fallback below
+            raise ValueError(f"Org {org_id} not found")
+
+        # Direct DB read — bypasses all doc caching layers
+        fields = [
+            "name", "organization_name", "subscription_tier", "status",
+            "trial_ends_at", "is_active", "brand_color",
+            "address_line1", "address_line2", "address", "city",
+            "pincode", "slug", "pan_number", "email",
+            "whatsapp_number", "website", "logo_url",
+            "brand_color_secondary", "header_color", "footer_text",
+            "custom_domain", "currency_code", "locale", "timezone",
+            "gstin", "phone",
+            "commission_rate_default", "market_fee_percent",
+            "nirashrit_percent", "misc_fee_percent",
+            "default_credit_days", "state_code",
+            "gst_enabled", "gst_type", "cgst_percent", "sgst_percent", "igst_percent",
+            "erp_company",
+        ]
+
+        org = frappe.db.get_value("Mandi Organization", org_id, fields, as_dict=True)
+        if not org:
+            raise ValueError(f"Org {org_id} not found in DB")
+
+        # Safely get custom fields that may not exist as columns
+        mandi_license = ""
+        max_invoice_amount = 0
+        try:
+            extra = frappe.db.sql(
+                "SELECT mandi_license, max_invoice_amount FROM `tabMandi Organization` WHERE name = %s",
+                (org_id,), as_dict=True
+            )
+            if extra:
+                mandi_license = extra[0].get("mandi_license") or ""
+                max_invoice_amount = float(extra[0].get("max_invoice_amount") or 0)
+        except Exception:
+            pass
+
+        qr_bank_id = ""
+        print_upi_qr = 0
+        text_bank_id = ""
+        print_bank_details = 0
+        try:
+            bank_fields = frappe.db.sql(
+                "SELECT qr_bank_id, print_upi_qr, text_bank_id, print_bank_details FROM `tabMandi Organization` WHERE name = %s",
+                (org_id,), as_dict=True
+            )
+            if bank_fields:
+                qr_bank_id = bank_fields[0].get("qr_bank_id") or ""
+                print_upi_qr = int(bank_fields[0].get("print_upi_qr") or 0)
+                text_bank_id = bank_fields[0].get("text_bank_id") or ""
+                print_bank_details = int(bank_fields[0].get("print_bank_details") or 0)
+        except Exception:
+            pass
+
+        return {
+            "id": org.name,
+            "name": org.get("organization_name") or org.name,
+            "subscription_tier": org.get("subscription_tier") or "starter",
+            "status": org.get("status") or "active",
+            "trial_ends_at": org.get("trial_ends_at"),
+            "is_active": bool(org.get("is_active", True)),
+            "brand_color": org.get("brand_color") or "#10b981",
+            "address_line1": org.get("address_line1") or org.get("address") or "",
+            "address_line2": org.get("address_line2") or "",
+            "pincode": org.get("pincode") or "",
+            "slug": org.get("slug") or "",
+            "pan_number": org.get("pan_number") or "",
+            "email": org.get("email") or "",
+            "whatsapp_number": org.get("whatsapp_number") or "",
+            "website": org.get("website") or "",
+            "logo_url": org.get("logo_url") or "",
+            "brand_color_secondary": org.get("brand_color_secondary") or "#0f172a",
+            "header_color": org.get("header_color") or "#0f172a",
+            "footer_text": org.get("footer_text") or "",
+            "custom_domain": org.get("custom_domain") or "",
+            "currency_code": org.get("currency_code") or "INR",
+            "locale": org.get("locale") or "en-IN",
+            "timezone": org.get("timezone") or "Asia/Kolkata",
+            # address: prefer address_line1, fallback to address column
+            "address": org.get("address_line1") or org.get("address") or "",
+            "city": org.get("city") or "",
+            "gstin": org.get("gstin") or "",
+            "phone": org.get("phone") or "",
+            "commission_rate_default": flt(org.get("commission_rate_default") or 0),
+            "market_fee_percent": flt(org.get("market_fee_percent") or 0),
+            "nirashrit_percent": flt(org.get("nirashrit_percent") or 0),
+            "misc_fee_percent": flt(org.get("misc_fee_percent") or 0),
+            "max_invoice_amount": flt(max_invoice_amount),
+            "default_credit_days": int(org.get("default_credit_days") or 15),
+            "mandi_license": mandi_license,
+            "state_code": org.get("state_code") or "",
+            "gst_enabled": bool(org.get("gst_enabled")),
+            "gst_type": org.get("gst_type") or "intra",
+            "cgst_percent": flt(org.get("cgst_percent") or 0),
+            "sgst_percent": flt(org.get("sgst_percent") or 0),
+            "igst_percent": flt(org.get("igst_percent") or 0),
+            "qr_bank_id": qr_bank_id,
+            "print_upi_qr": print_upi_qr,
+            "text_bank_id": text_bank_id,
+            "print_bank_details": print_bank_details,
+        }
     except Exception as e:
         frappe.log_error(f"Error in _get_org_info for {org_id}: {str(e)}")
 

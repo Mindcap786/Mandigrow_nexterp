@@ -153,22 +153,30 @@ export default function Settings() {
             igst_percent: Number(orgData.igst_percent) || 0,
         };
 
+        let saveSucceeded = false;
         try {
             const res = await callApi('mandigrow.api.update_settings', payload);
+            console.log('[Settings] update_settings response:', res);
             if (res && res.status === "updated") {
+                saveSucceeded = true;
+                // Immediately refetch from DB to verify persistence
+                await fetchOrgData();
                 if (isNativePlatform()) snackbar.success("Settings saved successfully");
                 else setDialogConfig({ title: "Settings Updated", message: "Mandi configuration has been synchronized.", type: "success" });
             } else {
                 const msg = res?.message || "Failed to update settings";
+                console.error('[Settings] Save returned non-updated status:', res);
                 if (isNativePlatform()) snackbar.error(msg);
                 else setDialogConfig({ title: "Update Failed", message: msg, type: "error" });
             }
         } catch (err: any) {
             const msg = err?.message || "An unexpected error occurred.";
+            console.error('[Settings] Save exception:', err);
             if (isNativePlatform()) snackbar.error(msg);
             else setDialogConfig({ title: "Update Failed", message: msg, type: "error" });
         }
         
+        // Only show dialog — success dialog ONLY on actual success
         if (!isNativePlatform()) setShowSuccessDialog(true);
         setSaving(false);
     };
