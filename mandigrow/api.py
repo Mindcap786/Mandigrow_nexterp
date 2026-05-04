@@ -1501,12 +1501,12 @@ def delete_commodity(id: str):
     if not id:
         frappe.throw("Item ID is required for deletion.")
 
-    # Tenant guard: verify item belongs to user's company
-    from mandigrow.mandigrow.logic.tenancy import get_current_org, is_super_admin
+    # Tenant guard: verify item belongs to user's organization
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
-        company = _get_user_company()
-        item_company = frappe.db.get_value("Item", id, "company")
-        if item_company and item_company != company:
+        org_id = _get_user_org()
+        item_org = frappe.db.get_value("Item", id, "organization_id")
+        if not item_org or item_org != org_id:
             frappe.throw(_("You do not have permission to delete this item."), frappe.PermissionError)
 
     try:
@@ -5236,12 +5236,12 @@ def delete_employee(employee_id: str = None) -> dict:
     """Delete an employee."""
     if not employee_id:
         frappe.throw("Employee ID is required")
-    # Tenant guard: verify employee belongs to user's company
+    # Tenant guard: verify employee belongs to user's organization
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
-        company = _get_user_company()
-        emp_company = frappe.db.get_value("Employee", employee_id, "company")
-        if emp_company and emp_company != company:
+        org_id = _get_user_org()
+        emp_org = frappe.db.get_value("Employee", employee_id, "organization_id")
+        if not emp_org or emp_org != org_id:
             frappe.throw(_("You do not have permission to delete this employee."), frappe.PermissionError)
     frappe.delete_doc("Employee", employee_id, ignore_permissions=True)
     frappe.db.commit()
@@ -7053,6 +7053,10 @@ def create_commodity(**kwargs) -> dict:
         else:
             doc = frappe.new_doc("Item")
             doc.item_code = item_code
+
+        # TENANT ISOLATION GUARD: Ensure the user cannot mutate another tenant's Item
+        if not doc.is_new() and hasattr(doc, "organization_id") and doc.organization_id != org_id:
+            frappe.throw(_("Not authorized to modify this commodity"), frappe.PermissionError)
 
         # Sync all fields using doc.update to guarantee custom fields (like local_name) are dirtied/saved
         doc.update(doc_data)
