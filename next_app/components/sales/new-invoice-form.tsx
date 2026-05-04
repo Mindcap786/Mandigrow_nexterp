@@ -639,7 +639,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                          <FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">📥 Settle To (Bank Account)</FormLabel>
                                                                          <Select value={f.value || ''} onValueChange={f.onChange}>
                                                                              <SelectTrigger className="bg-white h-10 font-bold mt-1 shadow-sm"><SelectValue placeholder="Select deposit account..." /></SelectTrigger>
-                                                                             <SelectContent className="bg-white">{bankAccounts.map(b => <SelectItem key={b.id} value={b.id} className="font-bold py-2">{b.name}</SelectItem>)}</SelectContent>
+                                                                             <SelectContent className="bg-white">{bankAccounts.map(b => <SelectItem key={b.id} value={b.id} className="font-bold py-2">{b.name}{b.is_default ? ' ⭐' : ''}</SelectItem>)}</SelectContent>
                                                                          </Select>
                                                                      </FormItem>
                                                                  )}/>
@@ -657,7 +657,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                 </div>
                                                                 <div className="grid grid-cols-2 gap-4">
                                                                     <FormField control={form.control} name={`distributions.${index}.bank_account_id`} render={({ field: f }) => (
-                                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">Settle To</FormLabel><Select value={f.value || ''} onValueChange={f.onChange}><SelectTrigger className="bg-white h-10 font-bold shadow-sm"><SelectValue placeholder="Bank account" /></SelectTrigger><SelectContent className="bg-white">{bankAccounts.map(b => <SelectItem key={b.id} value={b.id} className="font-bold">{b.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">Settle To</FormLabel><Select value={f.value || ''} onValueChange={f.onChange}><SelectTrigger className="bg-white h-10 font-bold shadow-sm"><SelectValue placeholder="Bank account" /></SelectTrigger><SelectContent className="bg-white">{bankAccounts.map(b => <SelectItem key={b.id} value={b.id} className="font-bold">{b.name}{b.is_default ? ' ⭐' : ''}</SelectItem>)}</SelectContent></Select></FormItem>
                                                                     )}/>
                                                                     <FormField control={form.control} name={`distributions.${index}.cheque_no`} render={({ field: f }) => (
                                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">Cheque No</FormLabel><Input {...f} value={f.value || ''} className="h-10 bg-white font-bold"/></FormItem>

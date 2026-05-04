@@ -191,22 +191,16 @@ export function BulkLotSaleForm() {
                 .order("name");
             if (cData) setCommodities(cData.map(c => ({ ...c, label: formatCommodityName(c.name, c.custom_attributes), value: c.id })));
 
-            // Fetch Bank Accounts - EXPLICIT MANDI SCHEMA
-            const { data: bankData } = await supabase
-                .schema('mandi')
-                .from("accounts")
-                .select("id, name, is_default")
-                .eq("organization_id", profile.organization_id)
-                .eq("account_sub_type", "bank")
-                .eq("type", "asset")
-                .eq("is_active", true);
-            
-            if (bankData) {
-                const filteredBanks = bankData.filter(b => 
-                    !b.name.toLowerCase().includes('cheques in hand') && 
-                    !b.name.toLowerCase().includes('transit')
-                );
-                setBankAccounts(filteredBanks.map(b => ({ label: b.name, value: b.id, isDefault: b.is_default })));
+            // Fetch Bank Accounts via Frappe (SSOT - same as /settings/banks)
+            try {
+                const bankData: any = await callApi('mandigrow.api.get_bank_accounts', {});
+                if (bankData && bankData.length > 0) {
+                    setBankAccounts(bankData
+                        .filter((b: any) => b.account_type === 'Bank')
+                        .map((b: any) => ({ label: b.name, value: b.id, isDefault: !!b.is_default })));
+                }
+            } catch (bankErr) {
+                console.warn('[BulkSaleForm] Could not fetch bank accounts:', bankErr);
             }
 
             // Fetch Mandi Settings - EXPLICIT MANDI SCHEMA
@@ -703,7 +697,7 @@ export function BulkLotSaleForm() {
                                                                                             >
                                                                                                 <option value="">Select Bank...</option>
                                                                                                 {bankAccounts.map(acc => (
-                                                                                                    <option key={acc.value} value={acc.value}>{acc.label}</option>
+                                                                                                    <option key={acc.value} value={acc.value}>{acc.label}{acc.isDefault ? ' ⭐' : ''}</option>
                                                                                                 ))}
                                                                                             </select>
                                                                                         </div>

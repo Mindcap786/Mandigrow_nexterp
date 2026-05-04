@@ -3652,36 +3652,18 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     settings = get_mandi_settings(org_id)
 
-    # Fetch liquid accounts — ALWAYS filter by company (tenant isolation boundary).
-    # company = ERPNext's built-in multi-tenant field — guaranteed to exist on every Account.
-    company = _get_user_company()
-    acct_filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
-    acct_fields = ["name as id", "account_name as name", "account_type", "account_number"]
-    if frappe.db.has_column("Account", "description"):
-        acct_fields.append("description")
-    liquid_accounts = frappe.get_all("Account",
-        filters=acct_filters,
-        fields=acct_fields,
-        ignore_permissions=True
-    )
+    # Fetch liquid accounts via the shared get_bank_accounts helper.
+    # This ensures get_master_data (used by all payment forms) and
+    # get_bank_accounts (used by finance-dashboard) return IDENTICAL data.
+    # Only user-created accounts (with JSON description) are returned.
+    all_liquid = get_bank_accounts(org_id)
 
-    # Batch-fetch ALL balances in one SQL call (avoids N+1 queries, matches Finance Overview)
-    if liquid_accounts:
-        acc_ids = tuple(a['id'] for a in liquid_accounts)
-        bal_rows = frappe.db.sql("""
-            SELECT account, COALESCE(SUM(debit) - SUM(credit), 0) as balance
-            FROM `tabGL Entry`
-            WHERE account IN %s
-              AND is_cancelled = 0
-              AND company = %s
-            GROUP BY account
-        """, (acc_ids, company), as_dict=True)
-        bal_map = {r['account']: float(r['balance'] or 0) for r in bal_rows}
-        for acc in liquid_accounts:
-            acc['balance'] = bal_map.get(acc['id'], 0.0)
+    # Ensure is_default is a proper boolean for the frontend
+    for acc in all_liquid:
+        acc['is_default'] = bool(acc.get('is_default'))
 
-    banks = [a for a in liquid_accounts if a.account_type == "Bank"]
-    cash_accounts = [a for a in liquid_accounts if a.account_type == "Cash"]
+    banks = [a for a in all_liquid if a.get('account_type') == "Bank"]
+    cash_accounts = [a for a in all_liquid if a.get('account_type') == "Cash"]
 
     # Fetch storage locations
     storage_locations = frappe.get_all("Mandi Storage Location",
@@ -3840,21 +3822,52 @@ def cleanup_demo_accounts() -> dict:
 
 def get_bank_accounts(org_id: str = None) -> list:
     """
-    Returns list of bank accounts for the given organization.
-    Schema-aware: guards organization_id and description with has_column.
+    Returns only USER-CREATED bank/cash accounts (those saved via /settings/banks).
+    Filters to accounts with a JSON description (set by save_bank_account) — this
+    cleanly excludes system default COA accounts (Cheques in Hand, Bank, etc.).
+    Returns is_default and current GL balance so both finance-dashboard and
+    /settings/banks show the EXACT SAME data (single source of truth).
     """
     org_id = org_id or _get_user_org()
     company = _get_user_company()
-    # company is the hard tenant boundary — always required
-    filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
+
+    has_desc = frappe.db.has_column("Account", "description")
+    has_is_def = frappe.db.has_column("Account", "is_default")
+
     fields = ["name as id", "account_name as name", "account_type", "account_number", "company"]
-    if frappe.db.has_column("Account", "description"):
+    if has_desc:
         fields.append("description")
-    return frappe.get_all("Account",
-        filters=filters,
-        fields=fields,
-        ignore_permissions=True
-    )
+    if has_is_def:
+        fields.append("is_default")
+
+    filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
+    accounts = frappe.get_all("Account", filters=filters, fields=fields, ignore_permissions=True)
+
+    # Only return user-created accounts (those with a JSON description from save_bank_account)
+    user_accounts = [
+        a for a in accounts
+        if a.get("description") and str(a["description"]).strip().startswith("{")
+    ]
+
+    if not user_accounts:
+        # Fallback: if no user-created accounts found, return all (graceful degradation)
+        user_accounts = accounts
+
+    # Batch-fetch GL balances in one SQL call
+    if user_accounts:
+        acc_ids = tuple(a["id"] for a in user_accounts)
+        bal_rows = frappe.db.sql("""
+            SELECT account, COALESCE(SUM(debit) - SUM(credit), 0) as balance
+            FROM `tabGL Entry`
+            WHERE account IN %s AND is_cancelled = 0 AND company = %s
+            GROUP BY account
+        """, (acc_ids, company), as_dict=True)
+        bal_map = {r["account"]: float(r["balance"] or 0) for r in bal_rows}
+        for acc in user_accounts:
+            acc["balance"] = bal_map.get(acc["id"], 0.0)
+            acc["is_default"] = 1 if acc.get("is_default") else 0
+
+    return user_accounts
 
 @frappe.whitelist(allow_guest=False)
 def save_bank_account(**kwargs) -> dict:
@@ -5521,10 +5534,10 @@ def get_sale_master_data(org_id: str = None) -> dict:
     liquid_accounts = get_bank_accounts(org_id)
     return {
         "buyers": buyers,
-        "bank_accounts": [a for a in liquid_accounts if a.account_type == "Bank"],
+        "bank_accounts": [a for a in liquid_accounts if a.get("account_type") == "Bank"],
         "org_settings": {},
         "items": items_list,
-        "accounts": [a for a in liquid_accounts if a.account_type == "Cash"],
+        "accounts": [a for a in liquid_accounts if a.get("account_type") == "Cash"],
         "lots": lots,
         "settings": settings
     }

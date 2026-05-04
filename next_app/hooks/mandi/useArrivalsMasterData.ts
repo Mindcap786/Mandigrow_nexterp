@@ -176,8 +176,11 @@ function sortLocations(locs: StorageLocation[]): StorageLocation[] {
 }
 
 function filterBanks(banks: BankAccount[]): BankAccount[] {
-  return banks.filter(b =>
-    !b.name.toLowerCase().includes('cheques in hand') &&
-    !b.name.toLowerCase().includes('transit')
-  )
+  // Backend (get_bank_accounts) now returns ONLY user-created accounts.
+  // Just sort the default bank to the top so it shows first in all dropdowns.
+  return [...banks].sort((a, b) => {
+    if (a.is_default && !b.is_default) return -1;
+    if (b.is_default && !a.is_default) return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
 }
