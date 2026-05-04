@@ -6370,10 +6370,16 @@ def update_settings(**kwargs) -> dict:
         # Ensure custom fields exist
         _ensure_org_custom_fields()
 
-        # Build SET clause for raw SQL UPDATE
+        # STEP 1: Query actual DB columns once — the ONLY source of truth
+        existing_cols = {r[0] for r in frappe.db.sql(
+            "SHOW COLUMNS FROM `tabMandi Organization`"
+        )}
+
+        # Build SET clause — ONLY for columns that actually exist in DB
         set_parts = []
         values = []
         saved_fields = []
+        skipped_fields = []
 
         for key, val in kwargs.items():
             if key in skip_keys:
@@ -6381,24 +6387,28 @@ def update_settings(**kwargs) -> dict:
             col = FIELD_MAP.get(key)
             if not col:
                 continue
+            if col not in existing_cols:
+                skipped_fields.append(col)
+                continue
             set_parts.append(f"`{col}` = %s")
             values.append(val)
             saved_fields.append(col)
 
-            # Mirror address -> address_line1
-            if col == "address":
+            # Mirror address -> address_line1 ONLY if column exists
+            if col == "address" and "address_line1" in existing_cols:
                 set_parts.append("`address_line1` = %s")
                 values.append(val)
 
         if not set_parts:
-            return {"status": "error", "message": "No valid fields to update"}
+            return {"status": "error", "message": "No valid fields to update",
+                    "skipped": skipped_fields, "existing_cols": sorted(existing_cols)}
 
         # Add modified timestamp
         set_parts.append("`modified` = NOW()")
         set_parts.append("`modified_by` = %s")
         values.append(frappe.session.user)
 
-        # Single atomic SQL UPDATE — no ORM, no cache, no abstraction
+        # Single atomic SQL UPDATE
         sql = f"UPDATE `tabMandi Organization` SET {', '.join(set_parts)} WHERE `name` = %s"
         values.append(org_id)
 
@@ -6817,79 +6827,40 @@ def get_org_settings(org_id: str = None) -> dict:
 def _get_org_info(org_id: str) -> dict:
     """Return the organization profile and settings for the current tenant.
     
-    Uses direct frappe.db.get_value (raw SQL) instead of frappe.get_doc()
-    to avoid request-level doc cache returning stale data after saves.
+    Uses SELECT * to avoid 'Unknown column' errors when local vs production
+    schemas differ. Every field is read via .get() with a safe default.
     """
     if not org_id:
         return {}
 
     try:
         if not frappe.db.exists("Mandi Organization", org_id):
-            # Fallback below
             raise ValueError(f"Org {org_id} not found")
 
-        # Direct DB read — bypasses all doc caching layers
-        fields = [
-            "name", "organization_name", "subscription_tier", "status",
-            "trial_ends_at", "is_active", "brand_color",
-            "address_line1", "address_line2", "address", "city",
-            "pincode", "slug", "pan_number", "email",
-            "whatsapp_number", "website", "logo_url",
-            "brand_color_secondary", "header_color", "footer_text",
-            "custom_domain", "currency_code", "locale", "timezone",
-            "gstin", "phone",
-            "commission_rate_default", "market_fee_percent",
-            "nirashrit_percent", "misc_fee_percent",
-            "default_credit_days", "state_code",
-            "gst_enabled", "gst_type", "cgst_percent", "sgst_percent", "igst_percent",
-            "erp_company",
-        ]
-
-        org = frappe.db.get_value("Mandi Organization", org_id, fields, as_dict=True)
-        if not org:
+        # SELECT * — reads whatever columns exist, never crashes on missing columns
+        rows = frappe.db.sql(
+            "SELECT * FROM `tabMandi Organization` WHERE name = %s LIMIT 1",
+            (org_id,), as_dict=True
+        )
+        if not rows:
             raise ValueError(f"Org {org_id} not found in DB")
 
-        # Safely get custom fields that may not exist as columns
-        mandi_license = ""
-        max_invoice_amount = 0
-        try:
-            extra = frappe.db.sql(
-                "SELECT mandi_license, max_invoice_amount FROM `tabMandi Organization` WHERE name = %s",
-                (org_id,), as_dict=True
-            )
-            if extra:
-                mandi_license = extra[0].get("mandi_license") or ""
-                max_invoice_amount = float(extra[0].get("max_invoice_amount") or 0)
-        except Exception:
-            pass
+        org = rows[0]
 
-        qr_bank_id = ""
-        print_upi_qr = 0
-        text_bank_id = ""
-        print_bank_details = 0
-        try:
-            bank_fields = frappe.db.sql(
-                "SELECT qr_bank_id, print_upi_qr, text_bank_id, print_bank_details FROM `tabMandi Organization` WHERE name = %s",
-                (org_id,), as_dict=True
-            )
-            if bank_fields:
-                qr_bank_id = bank_fields[0].get("qr_bank_id") or ""
-                print_upi_qr = int(bank_fields[0].get("print_upi_qr") or 0)
-                text_bank_id = bank_fields[0].get("text_bank_id") or ""
-                print_bank_details = int(bank_fields[0].get("print_bank_details") or 0)
-        except Exception:
-            pass
+        # Resolve address: production may have only 'address', local may have 'address_line1'
+        address_val = org.get("address_line1") or org.get("address") or ""
+        city_val = org.get("address_line2") or org.get("city") or ""
 
         return {
-            "id": org.name,
-            "name": org.get("organization_name") or org.name,
+            "id": org.get("name"),
+            "name": org.get("organization_name") or org.get("name") or "",
             "subscription_tier": org.get("subscription_tier") or "starter",
             "status": org.get("status") or "active",
             "trial_ends_at": org.get("trial_ends_at"),
             "is_active": bool(org.get("is_active", True)),
             "brand_color": org.get("brand_color") or "#10b981",
-            "address_line1": org.get("address_line1") or org.get("address") or "",
-            "address_line2": org.get("address_line2") or "",
+            "address_line1": address_val,
+            "address_line2": city_val,
             "pincode": org.get("pincode") or "",
             "slug": org.get("slug") or "",
             "pan_number": org.get("pan_number") or "",
@@ -6904,8 +6875,7 @@ def _get_org_info(org_id: str) -> dict:
             "currency_code": org.get("currency_code") or "INR",
             "locale": org.get("locale") or "en-IN",
             "timezone": org.get("timezone") or "Asia/Kolkata",
-            # address: prefer address_line1, fallback to address column
-            "address": org.get("address_line1") or org.get("address") or "",
+            "address": address_val,
             "city": org.get("city") or "",
             "gstin": org.get("gstin") or "",
             "phone": org.get("phone") or "",
@@ -6913,19 +6883,20 @@ def _get_org_info(org_id: str) -> dict:
             "market_fee_percent": flt(org.get("market_fee_percent") or 0),
             "nirashrit_percent": flt(org.get("nirashrit_percent") or 0),
             "misc_fee_percent": flt(org.get("misc_fee_percent") or 0),
-            "max_invoice_amount": flt(max_invoice_amount),
+            "max_invoice_amount": flt(org.get("max_invoice_amount") or 0),
             "default_credit_days": int(org.get("default_credit_days") or 15),
-            "mandi_license": mandi_license,
+            "mandi_license": org.get("mandi_license") or "",
             "state_code": org.get("state_code") or "",
             "gst_enabled": bool(org.get("gst_enabled")),
             "gst_type": org.get("gst_type") or "intra",
             "cgst_percent": flt(org.get("cgst_percent") or 0),
             "sgst_percent": flt(org.get("sgst_percent") or 0),
             "igst_percent": flt(org.get("igst_percent") or 0),
-            "qr_bank_id": qr_bank_id,
-            "print_upi_qr": print_upi_qr,
-            "text_bank_id": text_bank_id,
-            "print_bank_details": print_bank_details,
+            "qr_bank_id": org.get("qr_bank_id") or "",
+            "print_upi_qr": int(org.get("print_upi_qr") or 0),
+            "text_bank_id": org.get("text_bank_id") or "",
+            "print_bank_details": int(org.get("print_bank_details") or 0),
+            "erp_company": org.get("erp_company") or "",
         }
     except Exception as e:
         frappe.log_error(f"Error in _get_org_info for {org_id}: {str(e)}")
