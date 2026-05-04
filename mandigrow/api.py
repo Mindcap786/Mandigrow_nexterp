@@ -6286,82 +6286,106 @@ def export_arrivals_csv(org_id: str = None, date_from: str = None, date_to: str 
 @frappe.whitelist(allow_guest=False)
 def update_settings(**kwargs) -> dict:
     """Update mandi settings for the current organization profile.
-    
-    CRITICAL: Mandi Organization doctype uses address_line1 / address_line2 (NOT 'address').
-    Custom fields (mandi_license, max_invoice_amount) are written directly via db.set_value
-    to bypass the meta cache issue where doc.meta.has_field() returns False for custom
-    fields created in the same request.
+
+    Uses direct frappe.db.set_value for every field to completely bypass
+    the doc.meta.has_field() cache issue where fields created at runtime
+    (or with mixed naming conventions) are incorrectly skipped.
     """
     org_id = _get_user_org()
     if not org_id:
         return {"status": "error", "message": "No organization context found"}
-        
+
     skip_keys = {"cmd", "csrf_token"}
-    
-    # Fields that exist as STANDARD fields on the Mandi Organization doctype
-    # Verified against: bench execute "[f.fieldname for f in frappe.get_meta('Mandi Organization').fields]"
-    STANDARD_FIELD_MAP = {
-        "organization_name": "organization_name",
-        "gstin": "gstin",
-        "address": "address_line1",      # Frontend sends 'address' -> saves to address_line1
-        "city": "city",                  # city IS a standard field
+
+    # Verified field names against:
+    # bench execute "[f.fieldname for f in frappe.get_meta('Mandi Organization').fields]"
+    # Result: ['address_line2','address_line1','address','city','gstin','phone',
+    #          'organization_name','commission_rate_default','market_fee_percent',
+    #          'nirashrit_percent','misc_fee_percent','default_credit_days',
+    #          'state_code','gst_enabled','gst_type','cgst_percent','sgst_percent',
+    #          'igst_percent','brand_color','qr_bank_id','print_upi_qr',
+    #          'text_bank_id','print_bank_details',...]
+    #
+    # Frontend key  ->  actual Frappe fieldname on Mandi Organization
+    FIELD_MAP = {
+        "organization_name":     "organization_name",
+        "gstin":                 "gstin",
+        "phone":                 "phone",
+        # Frontend calls the first address line 'address' — the doctype has
+        # BOTH 'address' AND 'address_line1'. Write to both to stay safe.
+        "address":               "address",       # direct field on doctype
+        "city":                  "city",
         "commission_rate_default": "commission_rate_default",
-        "market_fee_percent": "market_fee_percent",
-        "nirashrit_percent": "nirashrit_percent",
-        "misc_fee_percent": "misc_fee_percent",
-        "default_credit_days": "default_credit_days",
-        "gst_enabled": "gst_enabled",
-        "gst_type": "gst_type",
-        "cgst_percent": "cgst_percent",
-        "sgst_percent": "sgst_percent",
-        "igst_percent": "igst_percent",
-        "state_code": "state_code",
-        "brand_color": "brand_color",
-        "print_upi_qr": "print_upi_qr",
-        "print_bank_details": "print_bank_details",
-        "qr_bank_id": "qr_bank_id",
-        "text_bank_id": "text_bank_id",
+        "market_fee_percent":    "market_fee_percent",
+        "nirashrit_percent":     "nirashrit_percent",
+        "misc_fee_percent":      "misc_fee_percent",
+        "default_credit_days":   "default_credit_days",
+        "gst_enabled":           "gst_enabled",
+        "gst_type":              "gst_type",
+        "cgst_percent":          "cgst_percent",
+        "sgst_percent":          "sgst_percent",
+        "igst_percent":          "igst_percent",
+        "state_code":            "state_code",
+        "brand_color":           "brand_color",
+        "print_upi_qr":          "print_upi_qr",
+        "print_bank_details":    "print_bank_details",
+        "qr_bank_id":            "qr_bank_id",
+        "text_bank_id":          "text_bank_id",
+        # Custom fields — may or may not exist depending on deployment
+        "mandi_license":         "mandi_license",
+        "max_invoice_amount":    "max_invoice_amount",
     }
-    
-    # Custom fields that may not exist in meta cache yet — saved via direct db.set_value
-    # These are created by _ensure_org_custom_fields() or may exist as custom fields
-    CUSTOM_FIELD_KEYS = {"mandi_license", "max_invoice_amount"}
 
     try:
         # Ensure optional custom fields exist on Mandi Organization doctype
         _ensure_org_custom_fields()
 
-        # Fetch the organization profile
-        doc = frappe.get_doc("Mandi Organization", org_id)
-        
-        custom_updates = {}
-        
+        # Verify the organization exists
+        if not frappe.db.exists("Mandi Organization", org_id):
+            return {"status": "error", "message": f"Organization {org_id} not found"}
+
+        saved_fields = []
+        skipped_fields = []
+
         for key, val in kwargs.items():
             if key in skip_keys:
                 continue
-            
-            if key in CUSTOM_FIELD_KEYS:
-                # Store for direct DB write — bypasses meta cache issue
-                custom_updates[key] = val
+
+            target_field = FIELD_MAP.get(key)
+            if not target_field:
+                # Unknown field — ignore silently
                 continue
-            
-            target_field = STANDARD_FIELD_MAP.get(key)
-            if target_field and doc.meta.has_field(target_field):
-                setattr(doc, target_field, val)
-        
-        doc.save(ignore_permissions=True)
-        
-        # Write custom fields directly to DB to bypass meta.has_field() cache
-        if custom_updates:
-            for cf_key, cf_val in custom_updates.items():
-                try:
-                    frappe.db.set_value("Mandi Organization", org_id, cf_key, cf_val)
-                except Exception as cf_err:
-                    # Log but don't fail the whole save — column may not exist yet
-                    frappe.log_error(f"Custom field save skipped {cf_key}: {cf_err}")
-        
+
+            # Use direct DB write — completely bypasses meta.has_field() cache
+            # and works for both standard and custom fields.
+            try:
+                # Check if column actually exists in DB before writing
+                if frappe.db.has_column("Mandi Organization", target_field):
+                    frappe.db.set_value(
+                        "Mandi Organization", org_id,
+                        target_field, val,
+                        update_modified=True
+                    )
+                    saved_fields.append(target_field)
+                    # Special case: keep address_line1 in sync with address field
+                    if target_field == "address" and frappe.db.has_column("Mandi Organization", "address_line1"):
+                        frappe.db.set_value("Mandi Organization", org_id, "address_line1", val, update_modified=False)
+                else:
+                    skipped_fields.append(target_field)
+                    frappe.log_error(f"update_settings: column '{target_field}' not found in Mandi Organization, skipping.")
+            except Exception as field_err:
+                skipped_fields.append(target_field)
+                frappe.log_error(f"update_settings: failed to set {target_field}={val}: {field_err}")
+
         frappe.db.commit()
-        return {"status": "updated", "message": "Settings updated successfully"}
+        frappe.clear_cache(doctype="Mandi Organization")
+
+        return {
+            "status": "updated",
+            "message": "Settings updated successfully",
+            "saved": saved_fields,
+            "skipped": skipped_fields
+        }
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(title="update_settings Error", message=frappe.get_traceback())
