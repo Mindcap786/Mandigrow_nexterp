@@ -326,7 +326,7 @@ export default function ChequeManagementPage() {
                             >
                                 {/* Accent blob */}
                                 <div className={cn(
-                                    "absolute -bottom-10 -right-10 w-32 h-32 rounded-full opacity-[0.03] transition-transform duration-700 group-hover:scale-150",
+                                    "absolute -bottom-10 -right-10 w-32 h-32 rounded-full opacity-[0.03] transition-transform duration-700 group-hover:scale-150 pointer-events-none",
                                     cheque.voucher_type === "payment" ? "bg-rose-600" : "bg-emerald-600"
                                 )} />
 
@@ -440,7 +440,7 @@ export default function ChequeManagementPage() {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="mt-auto">
+                                <div className="mt-auto relative z-10">
                                     {cheque.cheque_status === "Pending" ? (
                                         <div className="flex gap-2">
                                             <button
@@ -464,7 +464,7 @@ export default function ChequeManagementPage() {
                                                 onClick={() => openCancelDialog(cheque)}
                                                 disabled={!!clearingId || !!cancellingId}
                                                 className={cn(
-                                                    "px-4 h-10 border-2 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95 flex items-center justify-center",
+                                                    "cursor-pointer px-4 h-10 border-2 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95 flex items-center justify-center",
                                                     cancellingId === cheque.id && "animate-pulse"
                                                 )}
                                             >

@@ -158,11 +158,10 @@ export default function FinancialDashboard() {
 
     const fetchBankAccounts = async () => {
         if (!profile?.organization_id) return;
-        const timestamp = Date.now();
 
         try {
-            const res = await callApi('mandigrow.api.get_bank_accounts', {});
-            const accounts = res?.message || [];
+            const res: any = await callApi('mandigrow.api.get_bank_accounts', {});
+            const accounts = Array.isArray(res) ? res : (res?.message || res?.data || []);
 
             if (!accounts || accounts.length === 0) {
                 setBankAccounts([]);
@@ -171,16 +170,12 @@ export default function FinancialDashboard() {
             }
 
             setBankAccounts(accounts);
-            const ids = accounts.map((a: any) => a.id);
-            const healthRes = await callApi('mandigrow.api.get_voucher_health', {
-                days: 365 // Get bank history for balance calculation
-            });
-            const entries = healthRes?.message || [];
-
+            
+            // API get_bank_accounts already returns exact GL-computed balance for each account.
+            // Using get_voucher_health was incorrect as it misses opening balances and entries > 365 days old.
             const map: Record<string, number> = {};
-            ids.forEach((id: string) => { map[id] = 0; });
-            entries.forEach((e: any) => {
-                map[e.account_id] = (map[e.account_id] || 0) + (Number(e.debit) - Number(e.credit));
+            accounts.forEach((a: any) => {
+                map[a.id] = typeof a.balance === 'number' ? a.balance : 0;
             });
 
             setBankBalances(map);
