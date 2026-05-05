@@ -199,15 +199,15 @@ export function QuickPurchaseForm() {
             rows: [{
                 item_id: '',
                 unit: 'Box',
-                qty: 0,
-                rate: 0,
-                commission: 0,
+                qty: '',
+                rate: '',
+                commission: '',
                 commission_type: 'farmer',
-                weight_loss: 0,
-                less_units: 0,
-                packing_cost: 0,
-                loading_cost: 0,
-                other_cut: 0,
+                weight_loss: '',
+                less_units: '',
+                packing_cost: '',
+                loading_cost: '',
+                other_cut: '',
             }]
         }
     })
@@ -443,18 +443,18 @@ export function QuickPurchaseForm() {
             form.reset({
                 ...form.getValues(),
                 rows: [{
-                                    item_id: '',
-                                    unit: 'Box',
-                                    qty: 0,
-                                    rate: 0,
-                                    commission: 0,
-                                    weight_loss: 0,
-                                    less_units: 0,
-                                    commission_type: 'farmer',
-                                    packing_cost: 0,
-                                    loading_cost: 0,
-                                    other_cut: 0,
-                                }],
+                    item_id: '',
+                    unit: 'Box',
+                    qty: '',
+                    rate: '',
+                    commission: '',
+                    weight_loss: '',
+                    less_units: '',
+                    commission_type: 'farmer',
+                    packing_cost: '',
+                    loading_cost: '',
+                    other_cut: '',
+                }],
                 advance: 0,
                 notes: ''
             })
@@ -680,14 +680,14 @@ export function QuickPurchaseForm() {
                             onClick={() => append({
                                 item_id: '',
                                 unit: 'Box',
-                                qty: 0,
-                                rate: 0,
-                                weight_loss: 0,
-                                commission: arrivalType === 'direct' ? 0 : 6,
+                                qty: '',
+                                rate: '',
+                                weight_loss: '',
+                                commission: '',
                                 commission_type: arrivalType === 'commission_supplier' ? 'supplier' : 'farmer',
-                                packing_cost: 0,
-                                loading_cost: 0,
-                                other_cut: 0,
+                                packing_cost: '',
+                                loading_cost: '',
+                                other_cut: '',
                             })}
                             className="bg-slate-900 text-white hover:bg-black rounded-2xl h-12 px-6 font-black tracking-widest text-[10px] shadow-xl shadow-slate-200 uppercase flex items-center gap-2 group transition-all"
                         >
@@ -871,34 +871,6 @@ export function QuickPurchaseForm() {
                                                                 </FormItem>
                                                             )
                                                         }}
-                                                    />
-                                                    
-                                                    {/* Farmer/Supplier Tabs - Always show in commission mode */}
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`rows.${index}.commission_type`}
-                                                        render={({ field }) => (
-                                                            <FormItem className="animate-in fade-in slide-in-from-top-1 duration-300">
-                                                                <div className="flex bg-slate-50 border border-slate-100 rounded-lg p-0.5 gap-0.5 h-8">
-                                                                    {[
-                                                                        { value: 'farmer', label: 'Farmer' },
-                                                                        { value: 'supplier', label: 'Supplier' },
-                                                                    ].map(type => (
-                                                                        <button
-                                                                            key={type.value}
-                                                                            type="button"
-                                                                            onClick={() => field.onChange(type.value)}
-                                                                            className={cn(
-                                                                                "flex-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all",
-                                                                                field.value === type.value ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500"
-                                                                            )}
-                                                                        >
-                                                                            {type.label}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </FormItem>
-                                                        )}
                                                     />
                                                 </div>
                                             )}
