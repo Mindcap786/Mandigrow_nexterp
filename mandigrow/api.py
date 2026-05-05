@@ -7621,6 +7621,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
             "vehiclenumber": payload.get("p_vehicle_number") or payload.get("vehicle_number") or "",
             "bookno": payload.get("p_book_no") or payload.get("book_no") or "",
             "lotno": payload.get("p_lot_no") or payload.get("lot_no") or "",
+            "contact_bill_no": _get_next_contact_bill_no("Mandi Sale", "buyerid", buyer_id) if buyer_id else None,
             "items": []
         })
         
@@ -7649,6 +7650,15 @@ def confirm_sale_transaction(**kwargs) -> dict:
             })
             
         doc.insert(ignore_permissions=True)
+
+        # Auto-populate lotno from first item's lot_code if not provided manually
+        if not getattr(doc, 'lotno', None) and doc.get('items'):
+            first_lot_id = doc.items[0].lot_id if doc.items else None
+            if first_lot_id:
+                first_lot_code = frappe.db.get_value("Mandi Lot", first_lot_id, "lot_code")
+                if first_lot_code:
+                    frappe.db.set_value("Mandi Sale", doc.name, "lotno", first_lot_code, update_modified=False)
+                    doc.lotno = first_lot_code
         
         # Robust flag setting for cheque status: pick first non-None value
         raw_cheque_status = None

@@ -35,6 +35,8 @@ export default function ContactsPage() {
     const [statusFilter, setStatusFilter] = useState("all")
     const [isUpdating, setIsUpdating] = useState<string | null>(null)
     const [contactToDelete, setContactToDelete] = useState<{ id: string, name: string } | null>(null)
+    const [resetConfirm, setResetConfirm] = useState<{ id: string, name: string, type: string } | null>(null)
+    const [resetSuccess, setResetSuccess] = useState<{ name: string, count: number } | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [mounted, setMounted] = useState(false)
     const itemsPerPage = 20
@@ -97,15 +99,20 @@ export default function ContactsPage() {
     }
 
     const resetSequence = async (contactId: string, contactName: string, type: string) => {
-        if (!confirm(`Reset invoice sequence for "${contactName}"?\n\nThis will archive all existing bill numbers so the NEXT purchase/sale from this contact starts from #1.\n\nClick OK to confirm.`)) return
+        setResetConfirm({ id: contactId, name: contactName, type })
+    }
+
+    const doResetSequence = async () => {
+        if (!resetConfirm) return
+        const { id: contactId, name: contactName } = resetConfirm
+        setResetConfirm(null)
         setIsUpdating(contactId)
         try {
             const res: any = await callApi('mandigrow.api.reset_invoice_sequence', { contact_id: contactId });
             if (res?.success === false) {
                 toast.error(`Reset failed: ${res.error || 'Unknown error'}`)
             } else {
-                const msg = res?.message || `Sequence reset for ${contactName}. Next invoice starts from #1.`
-                toast.success(`✅ ${msg}`)
+                setResetSuccess({ name: contactName, count: res?.reset_count ?? 0 })
             }
         } catch (error: any) {
             toast.error(`Failed to reset sequence: ${error?.message || 'Network error'}`)
@@ -529,6 +536,7 @@ export default function ContactsPage() {
                 )}
             </div>
 
+            {/* Delete Contact Dialog */}
             <Dialog open={!!contactToDelete} onOpenChange={(open) => !open && setContactToDelete(null)}>
                 <DialogContent className="sm:max-w-md bg-white border-slate-200">
                     <DialogHeader>
@@ -538,6 +546,44 @@ export default function ContactsPage() {
                     <DialogFooter className="mt-6 flex gap-3 sm:justify-end">
                         <Button variant="outline" onClick={() => setContactToDelete(null)} className="font-bold">Cancel</Button>
                         <Button className="bg-red-500 hover:bg-red-600 text-white font-bold" onClick={() => { if (contactToDelete) { deleteContact(contactToDelete.id, contactToDelete.name); setContactToDelete(null) } }}>Delete Contact</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Reset Sequence Confirmation Dialog */}
+            <Dialog open={!!resetConfirm} onOpenChange={(open) => !open && setResetConfirm(null)}>
+                <DialogContent className="sm:max-w-md bg-white border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-slate-900">Reset Invoice Sequence</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium pt-2">
+                            Reset invoice numbering for <span className="font-bold text-slate-900">"{resetConfirm?.name}"</span>?<br /><br />
+                            All existing bill numbers will be archived. The <strong>next invoice for this contact will start from #1</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-6 flex gap-3 sm:justify-end">
+                        <Button variant="outline" onClick={() => setResetConfirm(null)} className="font-bold">Cancel</Button>
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white font-bold" onClick={doResetSequence}>
+                            <RotateCcw className="w-4 h-4 mr-2" /> Confirm Reset
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Reset Sequence Success Dialog */}
+            <Dialog open={!!resetSuccess} onOpenChange={(open) => !open && setResetSuccess(null)}>
+                <DialogContent className="sm:max-w-md bg-white border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-emerald-600">✅ Sequence Reset Done</DialogTitle>
+                        <DialogDescription className="text-slate-600 font-medium pt-2">
+                            Invoice sequence for <span className="font-bold text-slate-900">"{resetSuccess?.name}"</span> has been reset.<br /><br />
+                            {resetSuccess?.count === 0
+                                ? 'No previous invoices found — sequence was already clear.'
+                                : <>{resetSuccess?.count} invoice(s) archived. </>}
+                            The <strong>next invoice will be #1</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-6">
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full" onClick={() => setResetSuccess(null)}>Got It</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

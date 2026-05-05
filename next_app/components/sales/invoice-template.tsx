@@ -33,8 +33,10 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
         return rawBillNo;
     })();
     const items = sale.sale_items || [];
-    // Sale-level lot number (the stock lot from which this sale was made)
-    const saleLotNo = sale.lot_no || sale.book_no || (items.length > 0 ? items[0].lot?.lot_code : '') || '';
+    // Sale-level lot number: read from lotno DB column (aliased as lot_no in API),
+    // then book_no, then fall back to first item's lot code
+    const saleLotNo = sale.lot_no || sale.lotno || sale.book_no || sale.bookno || 
+        (items.length > 0 ? (items[0].lot?.lot_code || items[0].lot_code || items[0].lot_no) : '') || '';
 
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);

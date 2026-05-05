@@ -25,7 +25,7 @@ class MandiSale(Document):
         contact_bill_no = getattr(self, "contact_bill_no", None)
         buyer_id = getattr(self, "buyerid", None)
         
-        if not contact_bill_no and buyer_id and hasattr(self, "contact_bill_no"):
+        if not contact_bill_no and buyer_id and self.meta.has_field("contact_bill_no"):
             last_bill_no = frappe.db.sql("""
                 SELECT MAX(CAST(contact_bill_no AS UNSIGNED)) 
                 FROM `tabMandi Sale` 
