@@ -2138,27 +2138,23 @@ def get_profit_loss(p_org_id: str = None) -> dict:
 
     query = """
         SELECT 
-            account as account_name,
-            account as account_id,
-            SUBSTRING_INDEX(account, ' - ', 1) as account_code,
+            gl.account as account_name,
+            gl.account as account_id,
+            SUBSTRING_INDEX(gl.account, ' - ', 1) as account_code,
             CASE 
-                WHEN account LIKE 'Sales%' OR account LIKE 'Income%' OR account LIKE 'Revenue%' THEN 'revenue'
+                WHEN acc.root_type = 'Income' THEN 'revenue'
                 ELSE 'expense'
             END as account_type,
-            SUM(debit) as total_debit,
-            SUM(credit) as total_credit,
-            SUM(credit - debit) as net_balance
-        FROM `tabGL Entry`
-        WHERE (
-            account LIKE 'Sales%' OR account LIKE 'Income%' OR account LIKE 'Revenue%'
-            OR account LIKE 'Expense%' OR account LIKE 'Cost%'
-            OR account LIKE '%Wastage%' OR account LIKE '%Loss%' OR account LIKE '%Stock Loss%'
-            OR account LIKE '%Commission%' OR account LIKE '%Mandi%'
-        )
-          AND company = %s AND is_cancelled = 0
-        GROUP BY account
-        HAVING SUM(debit) > 0 OR SUM(credit) > 0
-        ORDER BY account_type DESC, net_balance ASC
+            SUM(gl.debit) as total_debit,
+            SUM(gl.credit) as total_credit,
+            SUM(gl.credit - gl.debit) as net_balance
+        FROM `tabGL Entry` gl
+        JOIN `tabAccount` acc ON gl.account = acc.name
+        WHERE acc.root_type IN ('Income', 'Expense')
+          AND gl.company = %s AND gl.is_cancelled = 0
+        GROUP BY gl.account
+        HAVING SUM(gl.debit) > 0 OR SUM(gl.credit) > 0
+        ORDER BY acc.root_type DESC, net_balance ASC
     """
     results = frappe.db.sql(query, (company,), as_dict=True)
     return {"data": results}
@@ -9973,14 +9969,15 @@ def report_loss(lot_id: str, loss_qty: float, reason: str = "Spoilage") -> dict:
                 stock_acc_label = stock_acc
 
             if loss_acc and stock_acc:
+                cost_center = frappe.db.get_value("Company", company, "cost_center")
                 je = frappe.get_doc({
                     "doctype": "Journal Entry", "voucher_type": "Journal Entry",
                     "posting_date": today(), "company": company, "user_remark": narration,
                     "accounts": [
                         # Dr Stock Losses (Expense ↑ → Net Profit ↓ on P&L)
-                        {"account": loss_acc,  "debit_in_account_currency": loss_value, "credit_in_account_currency": 0},
+                        {"account": loss_acc,  "debit_in_account_currency": loss_value, "credit_in_account_currency": 0, "cost_center": cost_center},
                         # Cr Stock In Hand (Asset ↓ → Balance Sheet shrinks)
-                        {"account": stock_acc, "debit_in_account_currency": 0,          "credit_in_account_currency": loss_value},
+                        {"account": stock_acc, "debit_in_account_currency": 0,          "credit_in_account_currency": loss_value, "cost_center": cost_center},
                     ]
                 })
                 je.insert(ignore_permissions=True)
