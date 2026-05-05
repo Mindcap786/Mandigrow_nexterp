@@ -252,36 +252,41 @@ export function ExpenseDialog({
         }
     };
     
-    const getPersonalDrawingsAccount = async () => {
-        // In Frappe, we can just return the account name directly or query it
-        const res = await callApi('frappe.client.get_value', {
-            doctype: 'Account',
-            filters: { account_name: 'Personal Drawings' },
-            fieldname: 'name'
-        });
-        return res?.message?.name || null;
+    const getPersonalDrawingsAccount = async (): Promise<string | null> => {
+        // Use our dedicated whitelisted API — avoids the 403 from frappe.client.get_value
+        const res: any = await callApi('mandigrow.api.get_drawings_account');
+        if (res?.error) {
+            throw new Error(res.error);
+        }
+        return res?.account || null;
     };
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
         try {
             let targetAccountId = values.account_id;
+            let voucherType = 'expense';
             
-            // If it's a personal withdrawal, switch to the Drawings account
             if (isPersonal) {
-                targetAccountId = await getPersonalDrawingsAccount() || values.account_id;
+                // Personal Withdrawal: Debit Drawings (Equity), Credit Cash/Bank
+                // Use 'contra' so it does NOT hit P&L
+                const drawingsAcc = await getPersonalDrawingsAccount();
+                if (!drawingsAcc) throw new Error("Personal Drawings account not found. Please contact support.");
+                targetAccountId = drawingsAcc;
+                voucherType = 'contra';
             }
 
-            if (!targetAccountId) throw new Error("Target account not found.");
+            if (!targetAccountId) throw new Error("Expense category is required.");
 
             const res = await callApi('mandigrow.api.create_voucher', {
                 p_organization_id: profile?.organization_id,
-                p_voucher_type: 'payment',
+                p_voucher_type: voucherType,
                 p_date: values.payment_date.toISOString(),
                 p_amount: parseFloat(values.amount),
                 p_payment_mode: values.payment_mode,
-                p_account_id: targetAccountId,
-                p_remarks: values.remarks || (isPersonal ? 'Personal Withdrawal' : 'Shop Expense'),
+                // Always use p_expense_account — this is what the backend expects
+                p_expense_account: targetAccountId,
+                p_remarks: values.remarks || (isPersonal ? 'Owner Withdrawal' : 'Business Expense'),
                 p_cheque_no: values.cheque_no,
                 p_cheque_date: values.cheque_date ? values.cheque_date.toISOString() : null,
                 p_bank_name: values.bank_name,
@@ -290,7 +295,7 @@ export function ExpenseDialog({
                 p_bank_account_id: (values.payment_mode === 'bank' || values.payment_mode === 'cheque') ? values.bank_account_id : null
             });
 
-            if (res.error) throw new Error(res.error);
+            if (res?.error) throw new Error(res.error);
 
             setOpen(false);
             form.reset();

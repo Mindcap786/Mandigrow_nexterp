@@ -2514,7 +2514,16 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                    p_payment_mode: str = None, p_date: str = None, p_remarks: str = None, p_cheque_no: str = None,
                    p_cheque_date: str = None, p_bank_name: str = None, p_expense_account: str = None,
                    p_cheque_status: str = None, p_invoice_id: str = None, p_arrival_id: str = None,
-                   p_lot_id: str = None, p_bank_account_id: str = None, p_discount: float = None) -> dict:
+                   p_lot_id: str = None, p_bank_account_id: str = None, p_discount: float = None,
+                   p_account_id: str = None) -> dict:
+    # p_account_id is the canonical alias used by the expense-dialog frontend.
+    # Merge it into p_expense_account if not already set.
+    if p_account_id and not p_expense_account:
+        p_expense_account = p_account_id
+    # Auto-detect expense voucher type: if an account is provided but no party,
+    # caller almost certainly means 'expense', even if they omitted the type.
+    if p_expense_account and not p_party_id and (p_voucher_type or 'expense').lower() not in ('receipt', 'payment', 'contra'):
+        p_voucher_type = 'expense'
     """
     Create a Payment / Receipt / Expense voucher (Journal Entry) and link it
     to the relevant party and bill so the daybook, party ledger, and bill
@@ -2692,14 +2701,16 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             accounts.extend([party_leg, cash_leg])
 
         elif v_type == "expense":
+            # Resolve: prefer explicitly passed account; fall back to General Expenses
             expense_acc = p_expense_account or p_party_id
             if not (expense_acc and frappe.db.exists("Account", expense_acc)):
                 expense_acc = (
                     frappe.db.get_value("Account", {"account_name": "General Expenses", "company": company}, "name")
+                    or frappe.db.get_value("Account", {"account_name": ["like", "%Expense%"], "root_type": "Expense", "company": company, "is_group": 0}, "name")
                     or frappe.db.get_value("Account", {"root_type": "Expense", "company": company, "is_group": 0}, "name")
                 )
             if not expense_acc:
-                return {"error": "Valid Expense Account required"}
+                return {"error": "Valid Expense Account required. Please create an expense category first."}
 
             accounts.append({
                 "account": expense_acc,
@@ -4486,6 +4497,56 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
     }
 
 @frappe.whitelist(allow_guest=False)
+def get_drawings_account() -> dict:
+    """
+    Returns the 'Personal Drawings' equity account for the current user's company.
+    Auto-creates it under the Capital Accounts group if missing.
+    Used by the expense-dialog frontend for Owner Withdrawal — replaces the
+    forbidden frappe.client.get_value cross-origin call.
+    """
+    try:
+        company = _get_user_company()
+        if not company:
+            return {"error": "No company found"}
+
+        # Try to find an existing drawings/equity account
+        account_name = (
+            frappe.db.get_value("Account", {"account_name": ["like", "%Drawing%"], "company": company, "is_group": 0}, "name") or
+            frappe.db.get_value("Account", {"account_name": ["like", "%Withdrawal%"], "company": company, "root_type": "Equity", "is_group": 0}, "name")
+        )
+
+        if not account_name:
+            # Auto-create under Capital / Equity parent
+            parent_acc = (
+                frappe.db.get_value("Account", {"root_type": "Equity", "is_group": 1, "company": company}, "name") or
+                frappe.db.get_value("Account", {"account_name": ["like", "%Capital%"], "is_group": 1, "company": company}, "name")
+            )
+            if parent_acc:
+                try:
+                    acc = frappe.get_doc({
+                        "doctype": "Account",
+                        "account_name": "Personal Drawings",
+                        "parent_account": parent_acc,
+                        "account_type": "Equity",
+                        "company": company,
+                        "is_group": 0
+                    })
+                    acc.flags.ignore_permissions = True
+                    acc.insert()
+                    account_name = acc.name
+                except Exception:
+                    pass
+
+        if not account_name:
+            return {"error": "Personal Drawings account not found and could not be created. Please create it manually in Chart of Accounts."}
+
+        return {"account": account_name, "success": True}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_drawings_account Failed")
+        return {"error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
 def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     """
     Returns summarized Trading P&L data for a period.
@@ -4607,8 +4668,102 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         pl_items.append(data)
 
     pl_items.sort(key=lambda x: str(x["date"]), reverse=True)
-    
-    total_profit = total_revenue - total_cost - total_expenses + total_commission
+
+    # ── Trading Loss: goods sold below purchase price ─────────────────────────
+    # When sale_rate < supplier_rate, the shortfall per unit is a trading loss.
+    total_trading_loss = 0.0
+    for entry in pl_items:
+        # If an item's per-unit cost > per-unit revenue, the difference is a loss
+        qty_sold = entry.get("qty") or 0
+        if qty_sold > 0:
+            per_unit_revenue = entry["revenue"] / qty_sold
+            per_unit_cost    = entry["cost"]    / qty_sold
+            if per_unit_cost > per_unit_revenue:
+                total_trading_loss += (per_unit_cost - per_unit_revenue) * qty_sold
+
+    # ── Stock Losses: from report_loss GL entries (Debit: Stock Losses account) ──
+    total_stock_loss = 0.0
+    try:
+        company = _get_user_company()
+        if company:
+            # Find the Stock Losses expense account for this company
+            loss_accs = frappe.get_all("Account",
+                filters={"company": company, "is_group": 0,
+                         "account_name": ["like", "%Stock Loss%"]},
+                fields=["name"], ignore_permissions=True
+            )
+            if not loss_accs:
+                loss_accs = frappe.get_all("Account",
+                    filters={"company": company, "is_group": 0,
+                             "account_name": ["like", "%Wastage%"]},
+                    fields=["name"], ignore_permissions=True
+                )
+            if loss_accs:
+                gl_filters = {
+                    "account": ["in", [a.name for a in loss_accs]],
+                    "company": company,
+                    "is_cancelled": 0
+                }
+                if date_from and date_to:
+                    gl_filters["posting_date"] = ["between", [date_from, date_to]]
+                elif date_from:
+                    gl_filters["posting_date"] = [">=", date_from]
+                elif date_to:
+                    gl_filters["posting_date"] = ["<=", date_to]
+                gl_rows = frappe.get_all("GL Entry",
+                    filters=gl_filters,
+                    fields=["debit"],
+                    ignore_permissions=True
+                )
+                total_stock_loss = sum(flt(r.debit) for r in gl_rows)
+    except Exception:
+        pass
+
+    # ── Business Expenses: all GL debits to Expense-type accounts ─────────────
+    # Excludes Stock Losses (already counted above) and the lot-level expenses
+    # already in total_expenses (packing/loading/farmer charges are cost-of-goods).
+    total_business_expenses = 0.0
+    try:
+        company = company if 'company' in dir() else _get_user_company()
+        if company:
+            # Get all non-group Expense accounts excluding stock-loss accounts
+            expense_accs = frappe.get_all("Account",
+                filters={"company": company, "is_group": 0, "root_type": "Expense"},
+                fields=["name", "account_name"],
+                ignore_permissions=True
+            )
+            # Exclude stock loss accounts (already counted)
+            stock_loss_names = {a.name for a in (loss_accs if 'loss_accs' in dir() else [])}
+            # Exclude commission/market-fee accounts (already in totalCommission)
+            exclude_keywords = ["commission", "market fee", "market_fee", "nirashrit", "stock loss", "wastage"]
+            business_exp_accs = [
+                a.name for a in expense_accs
+                if a.name not in stock_loss_names
+                and not any(kw in (a.account_name or "").lower() for kw in exclude_keywords)
+            ]
+            if business_exp_accs:
+                be_filters = {
+                    "account": ["in", business_exp_accs],
+                    "company": company,
+                    "is_cancelled": 0
+                }
+                if date_from and date_to:
+                    be_filters["posting_date"] = ["between", [date_from, date_to]]
+                elif date_from:
+                    be_filters["posting_date"] = [">=", date_from]
+                elif date_to:
+                    be_filters["posting_date"] = ["<=", date_to]
+                be_rows = frappe.get_all("GL Entry",
+                    filters=be_filters,
+                    fields=["debit"],
+                    ignore_permissions=True
+                )
+                total_business_expenses = sum(flt(r.debit) for r in be_rows)
+    except Exception:
+        pass
+
+    total_profit = (total_revenue - total_cost - total_expenses - total_trading_loss
+                    - total_stock_loss - total_business_expenses + total_commission)
     net_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
 
     return {
@@ -4617,6 +4772,9 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         "totalCost": total_cost,
         "totalExpenses": total_expenses,
         "totalCommission": total_commission,
+        "totalTradingLoss": round(total_trading_loss, 2),
+        "totalStockLoss": round(total_stock_loss, 2),
+        "totalBusinessExpenses": round(total_business_expenses, 2),
         "totalProfit": total_profit,
         "margin": net_margin
     }
@@ -7784,7 +7942,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         total_realized = 0
         total_commission = 0
         
-        for item in items:
+        for idx, item in enumerate(items):
             unit = item.get("unit") or "Kg"
             # Explicitly ensure the UOM exists before assigning to a Link field
             if not frappe.db.exists("UOM", unit):
@@ -7794,6 +7952,16 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                     pass
             
             # Map item fields to Mandi Lot with defaults
+            # Auto-generate lot_code from lot_prefix when user hasn't provided a per-item code.
+            # Single item → use prefix as-is (e.g. "LOT-250505").
+            # Multiple items → append zero-padded index (e.g. "LOT-250505-01").
+            item_lot_code = (item.get("lot_code") or "").strip()
+            if not item_lot_code:
+                lot_prefix = (payload.get("lot_prefix") or "").strip()
+                if lot_prefix:
+                    n_items = len(items)
+                    item_lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(idx + 1).zfill(2)}"
+                # If no prefix either, leave empty (Frappe doc name used as fallback elsewhere)
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item.get("item_id") or _get_default_item(),
@@ -7809,7 +7977,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 "packing_cost": float(item.get("packing_cost") or 0),
                 "loading_cost": float(item.get("loading_cost") or 0),
                 "farmer_charges": float(item.get("farmer_charges") or 0),
-                "lot_code": item.get("lot_code") or "",
+                "lot_code": item_lot_code,
                 "status": "Available"
             }
             doc.append("items", lot_data)

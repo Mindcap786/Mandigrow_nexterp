@@ -324,10 +324,16 @@ export default function ProfitLossPage() {
 
                         <Button
                             onClick={() => {
+                                const tradingLoss = stats?.totalTradingLoss || 0;
+                                const stockLoss = stats?.totalStockLoss || 0;
+                                const bizExp = stats?.totalBusinessExpenses || 0;
                                 const text = `*Trading P&L Summary*\n\n` +
                                     `Revenue: ₹${(stats?.totalRevenue || 0).toLocaleString()}\n` +
                                     `Less: Cost: ₹${(stats?.totalCost || 0).toLocaleString()}\n` +
                                     `Less: Expenses: ₹${(stats?.totalExpenses || 0).toLocaleString()}\n` +
+                                    (tradingLoss > 0 ? `Less: Trading Loss: ₹${tradingLoss.toLocaleString()}\n` : '') +
+                                    (stockLoss > 0 ? `Less: Stock Losses: ₹${stockLoss.toLocaleString()}\n` : '') +
+                                    (bizExp > 0 ? `Less: Business Expenses: ₹${bizExp.toLocaleString()}\n` : '') +
                                     `Plus: Commission: ₹${(stats?.totalCommission || 0).toLocaleString()}\n\n` +
                                     `Net Profit: ₹${(stats?.totalProfit || 0).toLocaleString()}\n` +
                                     `Margin: ${(stats?.margin || 0).toFixed(1)}%`;
@@ -432,6 +438,31 @@ export default function ProfitLossPage() {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Less: Expenses</p>
                                         <div className="font-black text-slate-700 text-lg">{stats?.totalExpenses > 0 ? `₹${(stats?.totalExpenses || 0).toLocaleString()}` : '—'}</div>
                                     </div>
+                                    {/* Trading Loss: sold below purchase price */}
+                                    {(stats?.totalTradingLoss || 0) > 0 && (
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1">
+                                                <TrendingDown className="w-3 h-3" /> Less: Trading Loss
+                                            </p>
+                                            <div className="font-black text-rose-600 text-lg">₹{(stats?.totalTradingLoss || 0).toLocaleString()}</div>
+                                        </div>
+                                    )}
+                                    {/* Stock Loss: from report_loss (spoilage / theft) */}
+                                    {(stats?.totalStockLoss || 0) > 0 && (
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-1">
+                                                <TrendingDown className="w-3 h-3" /> Less: Stock Losses
+                                            </p>
+                                            <div className="font-black text-rose-500 text-lg">₹{(stats?.totalStockLoss || 0).toLocaleString()}</div>
+                                        </div>
+                                    )}
+                                    {/* Business Expenses: rent, fuel, salaries, etc. */}
+                                    {(stats?.totalBusinessExpenses || 0) > 0 && (
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Less: Business Expenses</p>
+                                            <div className="font-black text-orange-600 text-lg">₹{(stats?.totalBusinessExpenses || 0).toLocaleString()}</div>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-baseline">
                                         <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Plus: Commission</p>
                                         <div className="font-black text-amber-600 text-lg">{stats?.totalCommission > 0 ? `₹${(stats?.totalCommission || 0).toLocaleString()}` : '—'}</div>
