@@ -3820,6 +3820,7 @@ def cleanup_demo_accounts() -> dict:
     frappe.db.commit()
     return {"success": True, "removed": removed, "disabled": disabled}
 
+@frappe.whitelist()
 def get_bank_accounts(org_id: str = None) -> list:
     """
     Returns only USER-CREATED bank/cash accounts (those saved via /settings/banks).
@@ -5263,12 +5264,12 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
     full_name = name or kwargs.get("name") or "Unnamed"
     doc.first_name = full_name
     doc.employee_name = full_name
-    doc.cell_phone = phone or kwargs.get("phone", "")
+    doc.cell_number = phone or kwargs.get("phone", "")
     
     # Issue 11 Fix: Set mandatory Employee fields to prevent MandatoryError
     doc.gender = kwargs.get("gender") or "Male"
     doc.date_of_birth = kwargs.get("date_of_birth") or "1990-01-01"
-    doc.date_of_joining = kwargs.get("date_of_joining") or frappe.utils.today()
+    doc.date_of_joining = kwargs.get("join_date") or kwargs.get("date_of_joining") or frappe.utils.today()
     doc.company = _get_user_company()
     
     designation = role or kwargs.get("role") or "Worker"
@@ -5301,9 +5302,18 @@ def create_employee(name: str = None, phone: str = None, role: str = None, salar
     safe_kwargs = {k: v for k, v in kwargs.items() if k not in _BLOCKED_FIELDS}
     doc.update(safe_kwargs)
     
+    # Map frontend keys to proper Frappe standard fields
+    if kwargs.get("address"): doc.current_address = kwargs.get("address")
+    if kwargs.get("email"): doc.personal_email = kwargs.get("email")
+    if kwargs.get("notes"): doc.bio = kwargs.get("notes")
+    if kwargs.get("salary_type"): doc.salary_mode = "Bank" if str(kwargs.get("salary_type")).lower() == "bank" else "Cash"
+    
     # Override controlled fields explicitly and safely
     doc.organization_id = org_id
-    doc.salary = salary
+    doc.ctc = salary or kwargs.get("salary", 0)  # Standard field for salary
+    # Custom fields if they exist
+    if frappe.db.has_column("Employee", "salary"): doc.salary = doc.ctc
+    
     raw_status = kwargs.get("status", "active")
     doc.status = _ERP_STATUS_MAP.get(str(raw_status).lower(), "Active")
     
@@ -5341,7 +5351,16 @@ def update_employee(employee_id: str = None, **kwargs) -> dict:
         doc.employee_name = kwargs["name"]
         
     if "phone" in kwargs:
-        doc.cell_phone = kwargs["phone"]
+        doc.cell_number = kwargs["phone"]
+        
+    if "address" in kwargs: doc.current_address = kwargs["address"]
+    if "email" in kwargs: doc.personal_email = kwargs["email"]
+    if "notes" in kwargs: doc.bio = kwargs["notes"]
+    if "salary" in kwargs: 
+        doc.ctc = kwargs["salary"]
+        if frappe.db.has_column("Employee", "salary"): doc.salary = kwargs["salary"]
+    if "salary_type" in kwargs: doc.salary_mode = "Bank" if str(kwargs["salary_type"]).lower() == "bank" else "Cash"
+    if "join_date" in kwargs: doc.date_of_joining = kwargs["join_date"]
 
     # Same ERPNext status normalization for updates
     _ERP_STATUS_MAP = {

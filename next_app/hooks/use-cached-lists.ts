@@ -173,7 +173,13 @@ export function useCachedEmployees(orgId: string | undefined) {
                 id: e.name,
                 name: e.employee_name || e.first_name || e.name,
                 role: e.designation || e.role || 'Worker',
-                phone: e.cell_phone || e.phone || ''
+                phone: e.cell_number || e.cell_phone || e.phone || '',
+                email: e.personal_email || e.company_email || e.email || '',
+                address: e.current_address || e.address || '',
+                salary: e.ctc || e.salary || 0,
+                salary_type: (e.salary_mode || '').toLowerCase() === 'bank' ? 'bank' : 'cash',
+                join_date: e.date_of_joining || e.join_date || '',
+                notes: e.bio || e.notes || ''
             }));
             return { data };
         } catch (error) {
