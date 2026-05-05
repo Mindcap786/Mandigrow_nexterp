@@ -3784,10 +3784,13 @@ def adjust_liquid_balance(p_organization_id: str = None, p_account_id: str = Non
         if not equity_account:
             return {"error": "Equity/Opening balance account not found in Chart of Accounts"}
             
+        # Normalize date: strip any ISO 8601 time component (e.g. "2026-05-05T08:09:11.228Z" → "2026-05-05")
+        posting_date = str(p_date).split("T")[0] if p_date else frappe.utils.today()
+
         je = frappe.get_doc({
             "doctype": "Journal Entry",
             "voucher_type": "Journal Entry",
-            "posting_date": p_date or frappe.utils.today(),
+            "posting_date": posting_date,
             "company": company,
             "remark": p_description,
             "accounts": [
@@ -3819,11 +3822,18 @@ def transfer_liquid_funds(p_organization_id: str = None, p_from_account_id: str 
         amount = flt(p_amount or 0)
         if amount <= 0:
             return {"error": "Amount must be greater than 0"}
-            
+
+        # Normalize date: frontend sends ISO 8601 like "2026-05-05T08:09:11.228Z"
+        # MySQL DATE column only accepts YYYY-MM-DD — strip the time component.
+        if p_transfer_date:
+            posting_date = str(p_transfer_date).split("T")[0]
+        else:
+            posting_date = frappe.utils.today()
+
         je = frappe.get_doc({
             "doctype": "Journal Entry",
             "voucher_type": "Journal Entry",
-            "posting_date": p_transfer_date or frappe.utils.today(),
+            "posting_date": posting_date,
             "company": company,
             "remark": p_remarks or "Cash/Bank Transfer",
             "accounts": [
@@ -3844,6 +3854,7 @@ def transfer_liquid_funds(p_organization_id: str = None, p_from_account_id: str 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "transfer_liquid_funds Failed")
         return {"error": str(e)}
+
 
 @frappe.whitelist(allow_guest=False)
 def cleanup_demo_accounts() -> dict:
