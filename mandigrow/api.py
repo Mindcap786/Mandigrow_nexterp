@@ -3883,11 +3883,16 @@ def cleanup_demo_accounts() -> dict:
 @frappe.whitelist()
 def get_bank_accounts(org_id: str = None) -> list:
     """
-    Returns only USER-CREATED bank/cash accounts (those saved via /settings/banks).
-    Filters to accounts with a JSON description (set by save_bank_account) — this
-    cleanly excludes system default COA accounts (Cheques in Hand, Bank, etc.).
-    Returns is_default and current GL balance so both finance-dashboard and
-    /settings/banks show the EXACT SAME data (single source of truth).
+    Returns liquid accounts for use on the Banks page and Finance Dashboard.
+
+    Strategy:
+    - BANK accounts: Only return user-created ones (JSON description from save_bank_account).
+      This excludes system default COA nodes like "Bank - SY".
+    - CASH accounts: Always return ALL cash accounts for the company, including the system
+      "Cash In Hand" account created during company setup. This ensures the Banks page
+      "Total Cash in Hand" matches the Finance Dashboard exactly (single source of truth).
+
+    Returns is_default and current GL balance for all accounts.
     """
     org_id = org_id or _get_user_org()
     company = _get_user_company()
@@ -3901,18 +3906,37 @@ def get_bank_accounts(org_id: str = None) -> list:
     if has_is_def:
         fields.append("is_default")
 
-    filters: dict = {"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company}
-    accounts = frappe.get_all("Account", filters=filters, fields=fields, ignore_permissions=True)
+    all_accounts = frappe.get_all("Account",
+        filters={"account_type": ["in", ["Bank", "Cash"]], "is_group": 0, "disabled": 0, "company": company},
+        fields=fields,
+        ignore_permissions=True
+    )
 
-    # Only return user-created accounts (those with a JSON description from save_bank_account)
-    user_accounts = [
-        a for a in accounts
+    bank_accounts = [a for a in all_accounts if a.get("account_type") == "Bank"]
+    cash_accounts = [a for a in all_accounts if a.get("account_type") == "Cash"]
+
+    # For BANK accounts: only show user-created ones (have a JSON description)
+    user_banks = [
+        a for a in bank_accounts
         if a.get("description") and str(a["description"]).strip().startswith("{")
     ]
+    if not user_banks:
+        # Fallback: if no user-created banks found, return all bank accounts
+        user_banks = bank_accounts
 
-    if not user_accounts:
-        # Fallback: if no user-created accounts found, return all (graceful degradation)
-        user_accounts = accounts
+    # For CASH accounts: always include ALL cash accounts (system + user-created).
+    # This ensures "Cash In Hand" system account is never excluded even if it lacks a JSON desc.
+    # Sort: user-created cash accounts first (have JSON desc), then system ones
+    user_cash_ids = {
+        a["id"] for a in cash_accounts
+        if a.get("description") and str(a["description"]).strip().startswith("{")
+    }
+    user_cash = (
+        [a for a in cash_accounts if a["id"] in user_cash_ids] +
+        [a for a in cash_accounts if a["id"] not in user_cash_ids]
+    )
+
+    user_accounts = user_banks + user_cash
 
     # Batch-fetch GL balances in one SQL call
     if user_accounts:

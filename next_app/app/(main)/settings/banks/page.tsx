@@ -245,9 +245,18 @@ export default function BanksPage() {
     }
 
     const totalBalance = banks.reduce((sum, bank) => sum + (balances[bank.id] || 0), 0)
+    const totalCashBalance = cashAccounts.reduce((acc, c) => acc + (balances[c.id] || 0), 0)
+    // Friendly display name: strip ERPNext company suffix like " - SY" or " - Syed Mandi"
+    const friendlyName = (acc: any) => {
+        if (!acc) return ''
+        // If it has a JSON description, use the stored name directly
+        if (acc.description && String(acc.description).trim().startsWith('{')) return acc.name
+        // System account: strip the " - <Abbr>" suffix for cleaner UI
+        return acc.name.replace(/\s*-\s*[A-Z]{1,6}$/, '') || acc.name
+    }
     const transferAccounts = [...cashAccounts, ...banks]
     const hasMultipleBanks = banks.length > 1
-    const hasTransferAccounts = transferAccounts.length > 1
+    const hasTransferAccounts = cashAccounts.length >= 1 && banks.length >= 1
     const hasNegativeBank = banks.some(b => (balances[b.id] || 0) < 0)
 
     return (
@@ -313,18 +322,33 @@ export default function BanksPage() {
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Cash in Hand</p>
                                     <p className={cn(
                                         "text-3xl font-[1000] tracking-tighter mt-1",
-                                        cashAccounts.reduce((acc, c) => acc + (balances[c.id] || 0), 0) < 0 ? "text-rose-600" : "text-slate-800"
+                                        totalCashBalance < 0 ? "text-rose-600" : "text-slate-800"
                                     )}>
-                                        ₹{cashAccounts.reduce((acc, c) => acc + (balances[c.id] || 0), 0).toLocaleString('en-IN')}
+                                        ₹{totalCashBalance.toLocaleString('en-IN')}
                                     </p>
                                     {cashAccounts.length > 1 && (
                                         <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Across {cashAccounts.length} Cash Accounts</p>
+                                    )}
+                                    {cashAccounts.length === 0 && (
+                                        <p className="text-[9px] text-amber-500 font-bold uppercase mt-1">No cash accounts found</p>
                                     )}
                                 </div>
                                 <div className="bg-emerald-50 p-2.5 rounded-2xl">
                                     <IndianRupee className="w-5 h-5 text-emerald-600" />
                                 </div>
                             </div>
+                            {cashAccounts.length > 0 && (
+                                <div className="mt-3 space-y-1">
+                                    {cashAccounts.map(c => (
+                                        <div key={c.id} className="flex justify-between items-center text-[11px] font-bold text-slate-500">
+                                            <span>{friendlyName(c)}</span>
+                                            <span className={balances[c.id] < 0 ? 'text-rose-500' : 'text-slate-700'}>
+                                                ₹{(balances[c.id] || 0).toLocaleString('en-IN')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <p className="text-[9px] text-slate-400 font-medium uppercase mt-2">Synced with Finance Dashboard</p>
                         </div>
                     </div>
@@ -527,7 +551,7 @@ export default function BanksPage() {
                                 <SelectContent className="bg-white">
                                     {transferAccounts.map(b => (
                                         <SelectItem key={b.id} value={b.id} disabled={b.id === transferForm.to_id}>
-                                            {b.name} — ₹{(balances[b.id] || 0).toLocaleString('en-IN')}
+                                            {friendlyName(b)} — ₹{(balances[b.id] || 0).toLocaleString('en-IN')}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -547,7 +571,7 @@ export default function BanksPage() {
                                 <SelectContent className="bg-white">
                                     {transferAccounts.map(b => (
                                         <SelectItem key={b.id} value={b.id} disabled={b.id === transferForm.from_id}>
-                                            {b.name} — ₹{(balances[b.id] || 0).toLocaleString('en-IN')}
+                                            {friendlyName(b)} — ₹{(balances[b.id] || 0).toLocaleString('en-IN')}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -614,7 +638,7 @@ export default function BanksPage() {
                                 <SelectContent className="bg-white">
                                     {transferAccounts.map(acc => (
                                         <SelectItem key={acc.id} value={acc.id}>
-                                            {acc.name} — ₹{(balances[acc.id] || 0) < 0 ? '-' : ''}₹{Math.abs(balances[acc.id] || 0).toLocaleString('en-IN')}
+                                            {friendlyName(acc)} — ₹{(balances[acc.id] || 0) < 0 ? '-' : ''}₹{Math.abs(balances[acc.id] || 0).toLocaleString('en-IN')}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
