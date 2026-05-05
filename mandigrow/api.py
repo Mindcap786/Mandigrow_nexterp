@@ -9927,7 +9927,8 @@ def report_loss(lot_id: str, loss_qty: float, reason: str = "Spoilage") -> dict:
     stock_acc_label = "Stock In Hand (Asset)"
     try:
         if loss_value > 0:
-            company = frappe.db.get_value("Mandi Organization", org_id, "company") or frappe.defaults.get_user_default("Company")
+            company = (frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+                        or frappe.defaults.get_user_default("Company"))
 
             # Resolve Stock Losses expense account — or auto-create it
             loss_acc = (
@@ -10081,7 +10082,9 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
     if return_value > 0 and supplier_id:
         try:
             item_name   = lot.item_id or "Commodity"
-            company     = frappe.db.get_value("Mandi Organization", org_id, "company") or frappe.defaults.get_user_default("Company")
+            # CRITICAL FIX: DB column is erp_company, NOT company
+            company     = (frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+                           or frappe.defaults.get_user_default("Company"))
             narration   = f"Stock Return: {return_qty} {lot.unit or 'Units'} of {item_name} returned to supplier {supplier_id} — {reason}"
 
             # Resolve true ERPNext Supplier or Customer ID from party_id
@@ -10120,41 +10123,63 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
 
             # Determine Account & Account Type based on party
             if erpnext_party_type == "Supplier":
-                party_acc = frappe.db.get_value("Account", {"party_type": "Supplier", "company": company}, "name") \
-                         or frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
+                party_acc = (
+                    frappe.db.get_value("Account", {"account_type": "Payable", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"account_name": ["like", "%Creditor%"], "company": company, "is_group": 0}, "name")
+                )
                 party_acc_type = "Supplier"
             else:
-                party_acc = frappe.db.get_value("Account", {"party_type": "Customer", "company": company}, "name") \
-                         or frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
+                party_acc = (
+                    frappe.db.get_value("Account", {"account_type": "Receivable", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"account_name": ["like", "%Debtor%"], "company": company, "is_group": 0}, "name")
+                )
                 party_acc_type = "Customer"
 
-            stock_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"], "company": company}, "name") \
-                     or frappe.db.get_value("Account", {"account_type": "Stock", "company": company}, "name")
+            stock_acc = (
+                frappe.db.get_value("Account", {"account_type": "Stock", "company": company, "is_group": 0}, "name")
+                or frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"], "company": company, "is_group": 0}, "name")
+            )
+            cost_center = frappe.db.get_value("Company", company, "cost_center")
+
+            frappe.logger().info(
+                f"[return_stock] JE prep: company={company}, party={erpnext_party}({erpnext_party_type}), "
+                f"party_acc={party_acc}, stock_acc={stock_acc}, value={return_value}"
+            )
 
             if party_acc and stock_acc:
-                try:
-                    je = frappe.get_doc({
-                        "doctype":      "Journal Entry",
-                        "voucher_type": "Journal Entry",
-                        "posting_date": today(),
-                        "company":      company,
-                        "user_remark":  narration,
-                        "accounts": [
-                            # Credit Stock (reducing asset since goods returned)
-                            {"account": stock_acc, "debit_in_account_currency": 0, "credit_in_account_currency": return_value},
-                            # Debit Supplier/Customer
-                            {"account": party_acc, "debit_in_account_currency": return_value, "credit_in_account_currency": 0,
-                             "party_type": party_acc_type, "party": erpnext_party},
-                        ]
-                    })
-                    je.insert(ignore_permissions=True)
-                    je.submit()
-                except Exception as e:
-                    frappe.log_error(f"{frappe.get_traceback()}\n{str(e)}", "return_stock JE Failed (non-fatal)")
+                je = frappe.get_doc({
+                    "doctype":      "Journal Entry",
+                    "voucher_type": "Journal Entry",
+                    "posting_date": today(),
+                    "company":      company,
+                    "user_remark":  narration,
+                    "accounts": [
+                        {
+                            "account": party_acc,
+                            "debit_in_account_currency": return_value,
+                            "credit_in_account_currency": 0,
+                            "party_type": party_acc_type,
+                            "party": erpnext_party,
+                            "cost_center": cost_center,
+                        },
+                        {
+                            "account": stock_acc,
+                            "debit_in_account_currency": 0,
+                            "credit_in_account_currency": return_value,
+                            "cost_center": cost_center,
+                        },
+                    ]
+                })
+                je.insert(ignore_permissions=True)
+                je.submit()
+                frappe.logger().info(f"[return_stock] JE created: {je.name}")
             else:
-                frappe.log_error(f"party_acc={party_acc}, stock_acc={stock_acc}", "return_stock JE Accounts Missing")
+                frappe.log_error(
+                    f"company={company}, party_acc={party_acc}, stock_acc={stock_acc}",
+                    "return_stock: Accounts Missing"
+                )
         except Exception:
-            frappe.log_error(frappe.get_traceback(), "return_stock JE Failed (Outer)")
+            frappe.log_error(frappe.get_traceback(), "return_stock: JE Failed")
 
 
     frappe.logger().info(f"[return_stock] {lot_id}: -{return_qty} ({reason}), new_qty={new_qty}, supplier={supplier_id}, org={org_id}")
