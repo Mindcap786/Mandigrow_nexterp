@@ -179,7 +179,9 @@ export function useCachedEmployees(orgId: string | undefined) {
                 salary: e.ctc || e.salary || 0,
                 salary_type: (e.salary_mode || '').toLowerCase() === 'bank' ? 'bank' : 'cash',
                 join_date: e.date_of_joining || e.join_date || '',
-                notes: e.bio || e.notes || ''
+                notes: e.bio || e.notes || '',
+                status: e.status || 'Active',
+                user_id: e.user_id || null
             }));
             return { data };
         } catch (error) {
