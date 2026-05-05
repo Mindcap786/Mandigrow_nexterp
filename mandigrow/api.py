@@ -9153,14 +9153,16 @@ def toggle_feature_flag(flag_key, is_enabled):
 @frappe.whitelist(allow_guest=True)
 def get_plans() -> list:
     """
-    PUBLIC endpoint — returns all active subscription plans.
+    PUBLIC endpoint — returns all ACTIVE subscription plans.
     Used by /subscribe (public pricing page) and /settings/billing.
     No authentication required — plan catalog is not sensitive data.
+    SINGLE SOURCE OF TRUTH: Superadmin edits App Plan → is_active=1 → shows here.
     """
     import json
     try:
         plans = frappe.get_all(
             "App Plan",
+            filters={"is_active": 1},          # ← ONLY superadmin-activated plans
             fields=["*"],
             order_by="sort_order asc",
             ignore_permissions=True
@@ -9176,6 +9178,11 @@ def get_plans() -> list:
                     p["features"] = {}
             else:
                 p["features"] = {}
+            # Normalize max_users: -1 means unlimited (display as 999999)
+            if p.get("max_users") == -1:
+                p["max_total_users"] = -1
+            else:
+                p["max_total_users"] = p.get("max_users") or p.get("max_total_users")
         return plans
     except Exception:
         frappe.log_error(frappe.get_traceback(), "get_plans failed")
@@ -9220,8 +9227,9 @@ def update_app_plan(plan_data: dict) -> dict:
         
     doc = frappe.get_doc("App Plan", plan_id)
     
-    # Update fields
-    fields = ["display_name", "description", "price_monthly", "price_yearly", "max_users", "is_active", "sort_order"]
+    # Update fields — includes is_active so admin can toggle plan visibility for tenants
+    fields = ["display_name", "description", "price_monthly", "price_yearly", "max_users",
+              "is_active", "sort_order", "max_total_users", "max_web_users", "price_per_user"]
     for f in fields:
         if f in plan_data:
             doc.set(f, plan_data[f])
@@ -9706,15 +9714,11 @@ def get_tenant_subscription() -> dict:
     # ── Return All Plans (for the plan picker) ───────────────────────────────
     all_plans = get_plans()  # reuse existing whitelisted function
 
-    # If no App Plans seeded yet, return a safe minimal starter plan catalog
-    # so the billing UI doesn't show a broken empty state
-    if not all_plans:
-        all_plans = [
-            {"id": "starter",      "name": "starter",      "plan_name": "Starter",      "display_name": "Starter",      "price_monthly": 0,   "price_yearly": 0,    "max_users": 2,  "max_storage_gb": 1,   "features": {}, "sort_order": 1},
-            {"id": "standard",     "name": "standard",     "plan_name": "Standard",     "display_name": "Standard",     "price_monthly": 999, "price_yearly": 9990, "max_users": 5,  "max_storage_gb": 5,   "features": {}, "sort_order": 2},
-            {"id": "professional", "name": "professional", "plan_name": "Professional", "display_name": "Professional", "price_monthly": 2999,"price_yearly": 29990,"max_users": 20, "max_storage_gb": 20,  "features": {}, "sort_order": 3},
-            {"id": "enterprise",   "name": "enterprise",   "plan_name": "Enterprise",   "display_name": "Enterprise",   "price_monthly": 9999,"price_yearly": 99990,"max_users": 999,"max_storage_gb": 999, "features": {}, "sort_order": 4},
-        ]
+    # If no active App Plans found in DB, return empty list.
+    # DO NOT inject hardcoded plans — that would mask the real DB state and prevent
+    # superadmin changes from taking effect. The billing UI shows an empty-state
+    # prompt to contact admin when all_plans is empty.
+    # Superadmin must seed plans via /admin/billing/plans and set is_active=1.
 
     # If org has subscription_tier set, build plan card from that if App Plan doesn't exist
     if not current_plan and current_plan_name:
