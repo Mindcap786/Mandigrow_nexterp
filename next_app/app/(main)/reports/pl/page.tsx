@@ -331,7 +331,7 @@ export default function ProfitLossPage() {
                                     `Revenue: ₹${(stats?.totalRevenue || 0).toLocaleString()}\n` +
                                     `Less: Cost: ₹${(stats?.totalCost || 0).toLocaleString()}\n` +
                                     `Less: Expenses: ₹${(stats?.totalExpenses || 0).toLocaleString()}\n` +
-                                    (tradingLoss > 0 ? `Less: Trading Loss: ₹${tradingLoss.toLocaleString()}\n` : '') +
+                                    (tradingLoss > 0 ? `(Includes Trading Loss: ₹${tradingLoss.toLocaleString()})\n` : '') +
                                     (stockLoss > 0 ? `Less: Stock Losses: ₹${stockLoss.toLocaleString()}\n` : '') +
                                     (bizExp > 0 ? `Less: Business Expenses: ₹${bizExp.toLocaleString()}\n` : '') +
                                     `Plus: Commission: ₹${(stats?.totalCommission || 0).toLocaleString()}\n\n` +
@@ -438,13 +438,12 @@ export default function ProfitLossPage() {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Less: Expenses</p>
                                         <div className="font-black text-slate-700 text-lg">{stats?.totalExpenses > 0 ? `₹${(stats?.totalExpenses || 0).toLocaleString()}` : '—'}</div>
                                     </div>
-                                    {/* Trading Loss: sold below purchase price */}
                                     {(stats?.totalTradingLoss || 0) > 0 && (
-                                        <div className="flex justify-between items-baseline">
-                                            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1">
-                                                <TrendingDown className="w-3 h-3" /> Less: Trading Loss
+                                        <div className="flex justify-between items-baseline opacity-70">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                <Info className="w-3 h-3" /> Includes Trading Loss
                                             </p>
-                                            <div className="font-black text-rose-600 text-lg">₹{(stats?.totalTradingLoss || 0).toLocaleString()}</div>
+                                            <div className="font-bold text-slate-500 text-sm">₹{(stats?.totalTradingLoss || 0).toLocaleString()}</div>
                                         </div>
                                     )}
                                     {/* Stock Loss: from report_loss (spoilage / theft) */}
