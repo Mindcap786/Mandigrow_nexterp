@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { Loader2, Share2, Mail, MessageCircle, Download } from 'lucide-react';
 import { callApi } from "@/lib/frappeClient";
  // proxy fallback
-import { isNativePlatform } from '@/lib/capacitor-utils';
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 
 interface SmartShareFinanceButtonProps {
     orgId: string;
@@ -133,7 +133,7 @@ export default function SmartShareFinanceButton({
     const isLoading = loadingId !== null;
 
     // Native Capacitor: single button → system share sheet
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <Button
                 onClick={handleNativeShare}

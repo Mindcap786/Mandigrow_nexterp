@@ -61,16 +61,18 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         onChange(val)
         justSelectedRef.current = true   // suppress the next onFocus re-open
         setOpen(false)
-        onSelected?.(val)
         
-        // After selection, move focus to the next field in the form
-        // Small timeout to allow the popover to close and focus to return to the button
-        setTimeout(() => {
-            justSelectedRef.current = false  // re-enable focus-to-open after navigation
-            if (internalRef.current) {
-                focusNext(internalRef.current);
-            }
-        }, 100);
+        if (onSelected) {
+            onSelected(val)
+        } else {
+            // After selection, move focus to the next field in the form if no explicit handler
+            setTimeout(() => {
+                justSelectedRef.current = false  // re-enable focus-to-open after navigation
+                if (internalRef.current) {
+                    focusNext(internalRef.current);
+                }
+            }, 50);
+        }
     }
 
     return (
@@ -82,7 +84,8 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                     role="combobox"
                     aria-expanded={open}
                     onFocus={() => {
-                        if (!disabled && !justSelectedRef.current) setOpen(true)
+                        // Removed auto setOpen(true) on focus as requested by users.
+                        // Users can press Enter or click to open.
                     }}
                     className={cn(
                         "w-full justify-between bg-white border-slate-200 text-black font-black hover:bg-slate-50 transition-all shadow-sm overflow-hidden",

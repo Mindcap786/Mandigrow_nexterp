@@ -12,7 +12,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { NativeCard } from "@/components/mobile/NativeCard";
 import { NativeSectionLabel } from "@/components/mobile/NativeInput";
 import { BottomSheet } from "@/components/mobile/BottomSheet";
@@ -1296,7 +1296,7 @@ export default function DayBook() {
         containerRef: tableContainerRef
     });
 
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <div className="space-y-6 pb-24">
                 {/* Mobile Header: Date Selection */}

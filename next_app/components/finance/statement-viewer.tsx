@@ -11,7 +11,7 @@ import { CalendarIcon, Download, Printer, Search, ArrowLeft, MessageCircle, X, A
 import { useAuth } from "@/components/auth/auth-provider";
 // @react-pdf/renderer loaded on-demand — not on initial mount
 import { usePlatformBranding } from "@/hooks/use-platform-branding";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { NativeCard } from "@/components/mobile/NativeCard";
 import { NativeSectionLabel } from "@/components/mobile/NativeInput";
 import { cn } from "@/lib/utils";
@@ -258,7 +258,7 @@ export default function StatementViewer({ contactId, contactName, contactType, o
         return Number.isFinite(num) ? num : 0;
     };
 
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <div className="flex flex-col h-full bg-[#F2F2F7]">
                 {/* ── Mobile Header ─────────────────────────────────────────── */}

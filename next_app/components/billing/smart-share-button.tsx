@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { Loader2, Share2, Mail, MessageCircle, Download } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useLanguage } from '@/components/i18n/language-provider';
-import { isNativePlatform } from '@/lib/capacitor-utils';
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 
 export default function SmartShareButton({ sale, organization }: { sale: any, organization?: any }) {
     const auth = useAuth?.();
@@ -110,7 +110,7 @@ export default function SmartShareButton({ sale, organization }: { sale: any, or
     const isLoading = loadingId !== null;
 
     // Native: single button → system share sheet
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <Button
                 onClick={handleNativeShare}

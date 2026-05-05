@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { isNativePlatform } from '@/lib/capacitor-utils';
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 
 export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any, organization?: any }) {
     const auth = useAuth?.();
@@ -88,7 +88,7 @@ export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any
     const isLoading = loadingId !== null;
 
     // Native: single tap → system share sheet
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <div onClick={handleNativeShare} className="flex items-center w-full cursor-pointer hover:bg-slate-50 px-2 py-1.5 rounded-lg transition-colors group">
                 {isLoading

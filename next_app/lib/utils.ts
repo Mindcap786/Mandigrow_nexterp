@@ -15,7 +15,7 @@ export function focusNext(currentElement: HTMLElement | null) {
     // Find all focusable elements in the document
     const focusableElements = Array.from(
         document.querySelectorAll(
-            'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])[tabindex]:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])'
+            'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])'
         )
     ) as HTMLElement[];
 

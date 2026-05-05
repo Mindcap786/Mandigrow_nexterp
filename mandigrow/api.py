@@ -5944,7 +5944,7 @@ def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_d
             AND gl.party IN %s AND gl.against_voucher = %s
             AND gl.credit > 0
         """
-        # Fallback: match only on against_voucher (no party filter)
+        # Fallback: match only on against_voucher (no party filter, but MUST have a party to exclude Stock legs)
         linked_paid_fallback_sql = """
             SELECT
                 SUM(CASE WHEN (se.voucher_type != 'Journal Entry' OR se.clearance_date IS NOT NULL) THEN gl.credit ELSE 0 END) as cleared_paid,
@@ -5953,6 +5953,7 @@ def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_d
             LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
             WHERE gl.is_cancelled = 0 AND gl.company = %s
             AND gl.against_voucher = %s
+            AND gl.party IS NOT NULL AND gl.party != ''
             AND gl.credit > 0
         """
     else:
@@ -5974,6 +5975,7 @@ def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_d
             LEFT JOIN `tabJournal Entry` se ON gl.voucher_no = se.name
             WHERE gl.is_cancelled = 0 AND gl.company = %s
             AND gl.against_voucher = %s
+            AND gl.party IS NOT NULL AND gl.party != ''
             AND gl.debit > 0
         """
 
@@ -6884,7 +6886,8 @@ def commit_mandi_session(**kwargs) -> dict:
     total_net_qty = 0.0
 
     try:
-        for row in farmers:
+        n_items = len(farmers)
+        for idx, row in enumerate(farmers):
             farmer_id = row.get("farmer_id")
             if not farmer_id:
                 continue
@@ -6920,6 +6923,8 @@ def commit_mandi_session(**kwargs) -> dict:
             lot.qty = qty
             lot.initial_qty = qty
             lot.current_qty = net_qty
+            if lot_prefix:
+                lot.lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(idx + 1).zfill(2)}"
             lot.unit = row.get("unit")
             lot.supplier_rate = rate
             lot.commission_percent = commission_pct
