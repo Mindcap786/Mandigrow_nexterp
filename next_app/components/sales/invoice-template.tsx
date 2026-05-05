@@ -32,10 +32,10 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
         if (match) return match[1];
         return rawBillNo;
     })();
-    // Sale-level lot number (the stock lot from which this sale was made)
-    const saleLotNo = sale.lot_no || sale.book_no || '';
-
     const items = sale.sale_items || [];
+    // Sale-level lot number (the stock lot from which this sale was made)
+    const saleLotNo = sale.lot_no || sale.book_no || (items.length > 0 ? items[0].lot?.lot_code : '') || '';
+
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
     const totalInvoiceAmount = Number(
@@ -215,6 +215,11 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                     <p className="font-black text-xs tracking-tight uppercase leading-none">
                                         {formatCommodityName(item.lot?.item?.name || item.item_name || 'Item', item.lot?.item?.custom_attributes)}
                                     </p>
+                                    {(item.lot?.lot_code || item.lot_no) && (
+                                        <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-wider">
+                                            Lot: {item.lot?.lot_code || item.lot_no}
+                                        </p>
+                                    )}
                                 </td>
                                 <td className="py-0.5 text-center font-bold text-sm tracking-tighter">
                                     {item.qty || 0} <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{item.unit || 'Unit'}</span>

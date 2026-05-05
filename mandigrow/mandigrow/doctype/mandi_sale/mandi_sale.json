@@ -7,7 +7,7 @@
  "editable_grid": 1,
  "is_submittable": 1,
  "engine": "InnoDB",
-  "field_order": [
+ "field_order": [
   "saledate",
   "buyerid",
   "organization_id",
@@ -120,6 +120,27 @@
    "label": "Total GST"
   },
   {
+   "fieldname": "cgst_amount",
+   "fieldtype": "Currency",
+   "label": "CGST Amount",
+   "read_only": 0,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "sgst_amount",
+   "fieldtype": "Currency",
+   "label": "SGST Amount",
+   "read_only": 0,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "igst_amount",
+   "fieldtype": "Currency",
+   "label": "IGST Amount",
+   "read_only": 0,
+   "allow_on_submit": 1
+  },
+  {
    "fieldname": "amountreceived",
    "fieldtype": "Currency",
    "label": "Amount Received"
@@ -166,6 +187,15 @@
    "label": "Lot No"
   },
   {
+   "fieldname": "contact_bill_no",
+   "fieldtype": "Data",
+   "label": "Contact Bill No",
+   "in_list_view": 0,
+   "in_standard_filter": 0,
+   "read_only": 0,
+   "allow_on_submit": 1
+  },
+  {
    "default": "Pending",
    "fieldname": "status",
    "fieldtype": "Select",
@@ -189,7 +219,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-24 14:41:09.247478",
+ "modified": "2026-05-05 02:36:00.000000",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Sale",
