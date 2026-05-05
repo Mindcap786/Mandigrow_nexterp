@@ -269,12 +269,6 @@ function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn,
                                     className="flex items-center justify-center gap-2 h-11 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 text-sm font-semibold active:bg-orange-100 transition-colors">
                                     <ArrowRightLeft className="w-4 h-4" /> Return Stock
                                 </button>
-                                {lot.arrival_type === 'direct' && (
-                                    <button onClick={(e) => { e.stopPropagation(); onAdjust() }}
-                                        className="flex items-center justify-center gap-2 h-11 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm font-semibold active:bg-indigo-100 transition-colors">
-                                        <Percent className="w-4 h-4" /> Adjust Rate
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </motion.div>
@@ -334,9 +328,11 @@ export function LotStockDialog({ itemId, itemName, itemDetails, isOpen, onClose,
     }
 
     const filteredLots = lots.filter(lot =>
-        (lot.farmer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (lot.farmer_city?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        ((lot.storage_location || 'Mandi').toLowerCase().includes(searchTerm.toLowerCase()))
+        Number(lot.current_qty || 0) > 0 && (
+            (lot.farmer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (lot.farmer_city?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            ((lot.storage_location || 'Mandi').toLowerCase().includes(searchTerm.toLowerCase()))
+        )
     )
 
     return (
