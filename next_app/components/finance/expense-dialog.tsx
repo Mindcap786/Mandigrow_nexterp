@@ -284,8 +284,9 @@ export function ExpenseDialog({
                 p_date: values.payment_date.toISOString(),
                 p_amount: parseFloat(values.amount),
                 p_payment_mode: values.payment_mode,
-                // Always use p_expense_account — this is what the backend expects
-                p_expense_account: targetAccountId,
+                // Send it as p_party_id for contra, and p_expense_account for expense
+                p_party_id: voucherType === 'contra' ? targetAccountId : null,
+                p_expense_account: voucherType === 'expense' ? targetAccountId : null,
                 p_remarks: values.remarks || (isPersonal ? 'Owner Withdrawal' : 'Business Expense'),
                 p_cheque_no: values.cheque_no,
                 p_cheque_date: values.cheque_date ? values.cheque_date.toISOString() : null,
@@ -321,13 +322,13 @@ export function ExpenseDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] bg-white border-none rounded-[32px] shadow-2xl p-0 overflow-hidden text-slate-900">
+            <DialogContent className="sm:max-w-[500px] bg-white border-none rounded-[32px] shadow-2xl p-0 overflow-hidden text-slate-900 max-h-[90vh] flex flex-col">
                 <DialogHeader className="sr-only">
                     <DialogTitle>{isPersonal ? 'Record Withdrawal' : 'Record Expense'}</DialogTitle>
                     <DialogDescription>Form to record business expenses or personal withdrawals</DialogDescription>
                 </DialogHeader>
                 <div className={cn(
-                    "p-8 text-white relative overflow-hidden transition-all duration-500",
+                    "p-8 text-white relative overflow-hidden transition-all duration-500 shrink-0",
                     isPersonal ? "bg-gradient-to-br from-indigo-500 to-purple-600" : "bg-gradient-to-br from-orange-500 to-rose-600"
                 )}>
                     <div className="relative z-10">
@@ -378,7 +379,7 @@ export function ExpenseDialog({
                     <div className="absolute left-[-20px] bottom-[-20px] w-40 h-40 bg-black/10 rounded-full blur-3xl"></div>
                 </div>
 
-                <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div className="p-8 space-y-6 flex-1 overflow-y-auto">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                             {/* Expense Category / Personal Header */}

@@ -98,7 +98,7 @@ export default function Dashboard() {
 
                 if (!data) return;
 
-                const newStats = data.stats || { 
+                let newStats = data.stats || { 
                     revenue: 0, inventory: 0, collections: 0, payables: 0, network: 0, purchases: 0,
                     cash_purchase: 0, udhaar_purchase: 0, inflow: 0, outflow: 0, daily_expenses: 0
                 };

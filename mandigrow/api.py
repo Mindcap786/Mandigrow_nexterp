@@ -2779,10 +2779,14 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             else ("Cash Entry" if (p_payment_mode or "").lower() == "cash" else "Bank Entry")
         )
         if is_cheque:
-            je.cheque_no   = p_cheque_no or je.name or ""
+            je.cheque_no   = p_cheque_no or "CHQ-" + frappe.generate_hash(length=8)
             je.cheque_date = cheque_norm
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
+        elif je.voucher_type == "Bank Entry":
+            je.cheque_no = "TRF-" + frappe.generate_hash(length=8)
+            je.cheque_date = posting_date
+            je.clearance_date = posting_date
 
         from mandigrow.mandigrow.finance.cheque_api import (
             get_reconciliation_data,
@@ -4379,7 +4383,7 @@ def process_sale_return(payload: dict) -> dict:
     # Credit: Debtors (reducing what buyer owes or creating a refund obligation) OR Cash (if cash return)
     credit_account = get_debtor_acc(company)
     party_type = "Customer"
-    party = frappe.db.get_value("Mandi Contact", sale.buyer_id, "customer")
+    party = frappe.db.get_value("Mandi Contact", sale.buyerid, "customer")
 
     if return_type == "cash":
         credit_account = get_acc("Cash", company)
@@ -4428,26 +4432,10 @@ def process_sale_return(payload: dict) -> dict:
                 WHERE name = %s
             """, (qty, lot_id))
             
-    # 3. Handle Exchange
-    new_sale_id = None
-    if payload.get("exchange_items"):
-        exchange_payload = {
-            "p_buyer_id": sale.buyer_id,
-            "p_sale_date": today(),
-            "p_payment_mode": "credit",
-            "p_items": payload.get("exchange_items"),
-            "organization_id": org_id,
-            "remarks": f"Exchange for Return of {sale.name}"
-        }
-        res = confirm_sale_transaction(**exchange_payload)
-        if not res.get("success"):
-            frappe.throw(_("Exchange sale failed: {0}").format(res.get("error")))
-        new_sale_id = res.get("sale_id")
-
     return {
         "success": True,
         "return_je": je.name,
-        "new_sale_id": new_sale_id,
+        "new_sale_id": None,
         "message": "Return processed and stock restored."
     }
 

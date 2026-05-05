@@ -576,8 +576,7 @@ export default function SalesReturnForm() {
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {[
                                                         { id: 'credit', label: 'UDHAAR', sub: 'Reduce User Bal', color: 'bg-indigo-600' },
-                                                        { id: 'cash', label: 'CASH', sub: 'Immediate Payout', color: 'bg-emerald-600' },
-                                                        { id: 'exchange', label: 'EXCHANGE', sub: 'New Bill Adj.', color: 'bg-orange-600' }
+                                                        { id: 'cash', label: 'CASH', sub: 'Immediate Payout', color: 'bg-emerald-600' }
                                                     ].map((opt) => {
                                                         const isDisabled = opt.id === 'cash' && (buyerBalance || 0) > 0;
                                                         return (
@@ -610,12 +609,6 @@ export default function SalesReturnForm() {
                                                     <span>Sales Reversal</span>
                                                     <span className="text-red-400">-₹{totalRefundAmount.toLocaleString()}</span>
                                                 </div>
-                                                {returnType === 'exchange' && (
-                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40">
-                                                        <span>New Acquisition</span>
-                                                        <span className="text-emerald-400">+₹{totalNewSaleAmount.toLocaleString()}</span>
-                                                    </div>
-                                                )}
 
                                                 <div className="pt-4">
                                                     <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-1">Final Settlement</div>
