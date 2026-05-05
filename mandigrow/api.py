@@ -10148,6 +10148,9 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
                     frappe.log_error(f"{frappe.get_traceback()}\n{str(e)}", "return_stock JE Failed (non-fatal)")
             else:
                 frappe.log_error(f"party_acc={party_acc}, stock_acc={stock_acc}", "return_stock JE Accounts Missing")
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "return_stock JE Failed (Outer)")
+
 
     frappe.logger().info(f"[return_stock] {lot_id}: -{return_qty} ({reason}), new_qty={new_qty}, supplier={supplier_id}, org={org_id}")
     return {
