@@ -6906,12 +6906,12 @@ def commit_mandi_session(**kwargs) -> dict:
             arrival.party_id = farmer_id
             arrival.organization_id = kwargs.get("organization_id")
             arrival.arrival_type = kwargs.get("arrival_type") or "commission"
-            arrival.advance_payment_mode = "credit" # Strict Udhaar purchase
+            arrival.advance_payment_mode = "credit"  # Always Udhaar in commission session
             arrival.advance = 0
             arrival.lot_prefix = lot_prefix
             arrival.vehicle_number = vehicle_no
             arrival.status = "Pending"
-            
+
             # Auto-assign sequential contact_bill_no for this farmer
             arrival.contact_bill_no = _get_next_contact_bill_no("Mandi Arrival", "party_id", farmer_id)
 
@@ -6931,7 +6931,15 @@ def commit_mandi_session(**kwargs) -> dict:
             lot.net_amount = net_amount
             lot.commission_amount = commission_amount
 
+            # Insert + Submit: the on_submit hook (automation.on_arrival_submit)
+            # fires post_arrival_ledger which creates:
+            #   Dr Stock In Hand  (total_realized)
+            #   Cr Creditors      (net_payable_farmer — farmer ledger)
+            #   Cr Commission Income
+            #   Cr Expense Recovery
             arrival.insert(ignore_permissions=True)
+            arrival.submit()  # ← THIS posts the GL entries and farmer ledger
+
             purchase_bill_ids.append(arrival.name)
             if arrival.items:
                 lot_names.append(arrival.items[0].name)
@@ -6946,23 +6954,25 @@ def commit_mandi_session(**kwargs) -> dict:
             sale.saledate = session_date
             sale.buyerid = buyer_id
             sale.organization_id = kwargs.get("organization_id")
-            sale.paymentmode = "credit"
+            sale.paymentmode = "credit"     # Always Udhaar — buyer pays later
             sale.amountreceived = 0
             sale.loadingcharges = buyer_loading
             sale.unloadingcharges = buyer_packing
-            
+            # lot_no from the frontend screen → printed on buyer invoice
+            sale.lotno = lot_prefix
+
             total_gross_amount = 0.0
             total_less_amount = 0.0
-            
+
             for idx, row in enumerate(farmers):
                 if not row.get("item_id"):
                     continue
-                
-                qty = float(row.get("qty") or 0) # Gross Qty
+
+                qty = float(row.get("qty") or 0)   # Gross Qty
                 rate = float(row.get("rate") or 0)
                 less_amt = float(row.get("less_amount") or 0)
                 item_gross = qty * rate
-                
+
                 item = sale.append("items", {})
                 item.item_id = row.get("item_id")
                 item.qty = qty
@@ -6970,16 +6980,24 @@ def commit_mandi_session(**kwargs) -> dict:
                 item.amount = item_gross
                 if idx < len(lot_names):
                     item.lot_id = lot_names[idx]
-                
+
                 total_gross_amount += item_gross
                 total_less_amount += less_amt
-            
+
             sale.totalamount = total_gross_amount
             sale.discountamount = total_less_amount
             sale.invoice_total = buyer_payable
-            sale.status = "Paid"
-            
+            # Udhaar sale — status is Pending until buyer pays
+            sale.status = "Pending"
+
+            # Insert + Submit: the on_submit hook (automation.on_sale_submit)
+            # fires post_sale_ledger which creates:
+            #   Dr Debtors (buyer_payable — buyer ledger)
+            #   Cr Stock In Hand
+            # No Receipt JE since payment_mode = "credit" (Udhaar)
             sale.insert(ignore_permissions=True)
+            sale.submit()  # ← THIS posts the GL entries and buyer ledger
+
             sale_bill_id = sale.name
 
         frappe.db.commit()
