@@ -1106,14 +1106,14 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     return;
                 }
 
-                if (type === 'payment' || type === 'paid_receipt') {
+                if (type === 'payment' || type === 'paid_receipt' || type === 'expense_receipt') {
                     if (isBank) digitalOutflow += val; else totalOutflow += val;
-                    return;
+                    if (type !== 'expense_receipt') return;
                 }
 
                 // 5. EXPENSE → Only Daily Expenses
                 if (type === 'expense_receipt') {
-                    totalExpenses += Math.max(leg.displayDebit || 0, leg.displayCredit || 0);
+                    totalExpenses += val;
                 }
             });
         });
