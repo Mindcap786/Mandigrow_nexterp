@@ -548,7 +548,15 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                                                 className="flex flex-col px-4 py-2 hover:bg-slate-50 cursor-pointer rounded-lg transition-colors group"
                                                                             >
                                                                                 <span className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{contact.name}</span>
-                                                                                <span className="text-[10px] text-slate-700 uppercase tracking-widest">{contact.type}</span>
+                                                                                <span className={cn(
+                                                                                    "text-[9px] uppercase tracking-widest font-black w-fit px-1.5 py-0.5 rounded",
+                                                                                    (contact.type || contact.contact_type)?.toLowerCase() === 'buyer' ? 'bg-blue-50 text-blue-600' :
+                                                                                    (contact.type || contact.contact_type)?.toLowerCase() === 'farmer' ? 'bg-emerald-50 text-emerald-600' :
+                                                                                    (contact.type || contact.contact_type)?.toLowerCase() === 'supplier' ? 'bg-purple-50 text-purple-600' :
+                                                                                    'bg-slate-100 text-slate-500'
+                                                                                )}>
+                                                                                    {contact.type || contact.contact_type || "Unknown"}
+                                                                                </span>
                                                                             </div>
                                                                         ))}
                                                                     {contacts.filter(c => (c.name || "").toLowerCase().includes((searchQuery || "").toLowerCase())).length === 0 && (
