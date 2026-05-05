@@ -614,6 +614,11 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                             }
                                                         </span>
                                                     </div>
+                                                    {isReceipt && currentBalance < -0.01 && (
+                                                        <div className="mt-2 text-[10px] font-bold p-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 leading-tight">
+                                                            ⚠️ <strong>Warning:</strong> You owe this party money. Receiving money from them will INCREASE the amount you owe. To reduce this balance, please use the <strong className="text-red-600">Make Payment</strong> button instead.
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </FormItem>
