@@ -649,8 +649,6 @@ def post_sale_ledger(doc, method=None):
         is_cleared = doc.get("clear_instantly")
         if is_cleared is None: is_cleared = doc.flags.get("cheque_status")
         if is_cleared is None: is_cleared = frappe.flags.get(f"cheque_status_{doc.name}")
-        if is_cleared is None: is_cleared = frappe.flags.get("last_cheque_status")
-        if is_cleared is None and doc.buyerid: is_cleared = frappe.flags.get(f"cheque_status_{doc.buyerid}")
         if is_cleared is None: is_cleared = _is_cheque_cleared(payment_mode, cheque_date)
     else:
         # Cash, UPI, Bank Transfer are always cleared instantly
