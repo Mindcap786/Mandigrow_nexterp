@@ -371,8 +371,8 @@ export default function Dashboard() {
                     borderColor="border-slate-100"
                     href={ROUTES.REPORT_DAYBOOK}
                     subValues={[
-                        { label: 'Total Inflow', value: stats.inflow, color: 'bg-emerald-500' },
-                        { label: 'Total Outflow', value: stats.outflow, color: 'bg-rose-500' }
+                        { label: 'Inflow', value: stats.inflow, color: 'bg-emerald-500' },
+                        { label: 'Outflow', value: stats.outflow, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
@@ -382,7 +382,7 @@ export default function Dashboard() {
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.FINANCE_PAYMENTS_EXPENSE}
-                    subtext="Operational costs recorded today"
+                    subtext="Total volume of operational expenses paid out today (Labor, Transport, Petty Cash)"
                     subtextBg="bg-rose-50"
                 />
             </div>

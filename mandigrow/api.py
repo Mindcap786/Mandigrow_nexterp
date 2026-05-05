@@ -3355,34 +3355,58 @@ def get_dashboard_data() -> dict:
         
     udhaar_purchase = max(0, total_purchase_volume - cash_purchase)
 
-    # 8. Liquid Assets: Today's Inflow/Outflow (Financial Movements only)
-    # Isolation Rule (The "Business Tycoon" Rule):
-    # - Standalone Receive Money / Make Payment -> Card 2
-    # - Later Cheque Clearing (Old transaction) -> Card 2
-    # - Today's Purchase/Sale/Expense payment -> EXCLUDED (stay in Card 1/3/4)
+    # 8. Liquid Assets: EXACT SAME LOGIC as Day Book summary card ─────────────
+    # Day Book liquid_assets = cash movements from STANDALONE Journal Entries only.
+    # Specifically: Journal Entry legs on Cash/Bank accounts that are NOT tagged
+    # against a Mandi Sale or Mandi Arrival (those belong to Cards 1 & 3).
+    #
+    # Day Book math (from day-book.tsx):
+    #   inflow  = sum of Cash/Bank GL legs where credit > 0 (money flowing INTO the account)
+    #             EXCLUDING: sale-payment legs, purchase-payment legs
+    #   outflow = sum of Cash/Bank GL legs where debit > 0 (money flowing OUT)
+    #             EXCLUDING: same
+    #
+    # The Daybook shows: Inflow = cash RECEIVED (credit on cash leg = cash comes in),
+    # Outflow = cash PAID OUT (debit on cash leg = cash goes out)
+    # Wait — in double-entry: Cash Dr = money IN; Cash Cr = money OUT.
+    # Day Book: isLiquidAccountEntry → debit = inflow, credit = outflow.
+    #
+    # ISOLATION RULE:
+    # - Standalone Receive Money / Make Payment entries → Liquid Assets
+    # - Entries tagged against Mandi Sale / Arrival → stay in Card 1/3
+    # - Expense entries → stay in Card 4
+    # - Pending (uncleared) cheques → excluded (not cash yet)
     liquid_res = frappe.db.sql("""
         SELECT 
-            SUM(gl.debit) as inflow,
-            SUM(gl.credit) as outflow
+            COALESCE(SUM(CASE WHEN gl.debit > 0 THEN gl.debit ELSE 0 END), 0) as inflow,
+            COALESCE(SUM(CASE WHEN gl.credit > 0 THEN gl.credit ELSE 0 END), 0) as outflow
         FROM `tabGL Entry` gl
-        WHERE gl.is_cancelled = 0 
+        LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+        LEFT JOIN `tabAccount` acc ON gl.account = acc.name
+        WHERE gl.is_cancelled = 0
           AND gl.posting_date = %s
           AND gl.company = %s
-          AND gl.account IN (
-              SELECT name FROM tabAccount 
-              WHERE account_type IN ('Cash', 'Bank') OR account_name LIKE '%%Cash%%' OR account_name LIKE '%%Bank%%'
+          -- Only Cash/Bank accounts (actual liquid movement)
+          AND acc.account_type IN ('Cash', 'Bank')
+          -- Only Journal Entries (standalone payments/receipts)
+          AND gl.voucher_type = 'Journal Entry'
+          -- EXCLUDE entries tagged against a Sale or Arrival (those are Card 1/3)
+          AND gl.voucher_no NOT IN (
+              SELECT DISTINCT parent FROM `tabJournal Entry Account`
+              WHERE reference_type IN ('Mandi Sale', 'Mandi Arrival')
           )
-          -- EXCLUDE Expenses (Card 4 has its own logic)
-          AND gl.account NOT IN (SELECT name FROM tabAccount WHERE root_type = 'Expense')
-          -- EXCLUDE Initial Payments (Stay in Card 1 / Card 3)
-          AND NOT EXISTS (
-              SELECT 1 FROM `tabJournal Entry Account` jea 
-              WHERE jea.parent = gl.voucher_no 
-              AND jea.reference_type IN ('Mandi Sale', 'Mandi Arrival')
+          AND (gl.against_voucher_type IS NULL OR gl.against_voucher_type NOT IN ('Mandi Sale', 'Mandi Arrival'))
+          -- EXCLUDE expense-side entries (Card 4)
+          AND gl.voucher_no NOT IN (
+              SELECT DISTINCT gl2.voucher_no FROM `tabGL Entry` gl2
+              JOIN `tabAccount` acc2 ON gl2.account = acc2.name
+              WHERE acc2.root_type = 'Expense' AND gl2.is_cancelled = 0
           )
+          -- EXCLUDE pending (uncleared) cheques — not cash yet
+          AND (je.cheque_no IS NULL OR je.cheque_no = '' OR je.clearance_date IS NOT NULL)
     """, (today(), company), as_dict=True)
-    inflow = liquid_res[0].inflow if liquid_res and liquid_res[0].inflow else 0
-    outflow = liquid_res[0].outflow if liquid_res and liquid_res[0].outflow else 0
+    inflow  = float(liquid_res[0].inflow  if liquid_res and liquid_res[0].inflow  else 0)
+    outflow = float(liquid_res[0].outflow if liquid_res and liquid_res[0].outflow else 0)
 
     # 9. Daily Expenses: Sum of Expense debits today
     expense_res = frappe.db.sql("""
@@ -3394,6 +3418,20 @@ def get_dashboard_data() -> dict:
           AND account IN (SELECT name FROM tabAccount WHERE root_type = 'Expense')
     """, (today(), company), as_dict=True)
     daily_expenses = expense_res[0].total if expense_res and expense_res[0].total else 0
+
+    # Also compute Mandi Sale-level cash/udhaar for Sales Summary card
+    # to guarantee parity with Day Book (which uses amountreceived from Mandi Sale)
+    today_sales_docs = frappe.get_all("Mandi Sale",
+        filters={"docstatus": 1, "saledate": today(), **_org_filter("Mandi Sale", org_id)},
+        fields=["invoice_total", "amountreceived"],
+        ignore_permissions=True,
+    )
+    # Use invoice_total as the authoritative total (what was billed)
+    # Use amountreceived as cash collected (matches Day Book "Cash Sales Collected")
+    if today_sales_docs:
+        revenue     = sum(float(s.invoice_total     or 0) for s in today_sales_docs)
+        collections = sum(float(s.amountreceived    or 0) for s in today_sales_docs)
+    # payables (udhaar) already computed above
 
     return {
         "stats": {
@@ -3412,6 +3450,7 @@ def get_dashboard_data() -> dict:
         "recentActivity": recent_activity,
         "salesTrend": sales_trend
     }
+
 
 @frappe.whitelist(allow_guest=False)
 def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
