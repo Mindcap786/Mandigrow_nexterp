@@ -4847,7 +4847,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     except Exception:
         pass
 
-    total_profit = (total_revenue - total_cost - total_expenses - total_trading_loss
+    total_profit = (total_revenue - total_cost - total_expenses
                     - total_stock_loss - total_business_expenses + total_commission)
     net_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
 
@@ -9959,12 +9959,25 @@ def report_loss(lot_id: str, loss_qty: float, reason: str = "Spoilage") -> dict:
             if loss_acc:
                 loss_acc_label = loss_acc
 
-            # Resolve Stock In Hand asset account
+            # Resolve Stock In Hand asset account — or auto-create it
             stock_acc = (
                 frappe.db.get_value("Account", {"account_name": ["like", "%Stock In Hand%"], "company": company, "is_group": 0}, "name") or
                 frappe.db.get_value("Account", {"account_name": ["like", "%Stock%"],          "company": company, "is_group": 0, "root_type": "Asset"}, "name") or
                 frappe.db.get_value("Account", {"account_type": "Stock",                       "company": company, "is_group": 0}, "name")
             )
+            if not stock_acc:
+                parent_asset = (
+                    frappe.db.get_value("Account", {"account_name": ["like", "%Current Asset%"], "is_group": 1, "company": company}, "name") or
+                    frappe.db.get_value("Account", {"root_type": "Asset", "is_group": 1, "company": company}, "name")
+                )
+                if parent_asset:
+                    acc_doc = frappe.get_doc({
+                        "doctype": "Account", "account_name": "Stock In Hand",
+                        "parent_account": parent_asset, "account_type": "Stock", "company": company,
+                    })
+                    acc_doc.insert(ignore_permissions=True)
+                    stock_acc = acc_doc.name
+
             if stock_acc:
                 stock_acc_label = stock_acc
 
@@ -10241,3 +10254,23 @@ def reset_invoice_sequence(contact_id: str):
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "reset_invoice_sequence Failed")
         return {"success": False, "error": str(e)}
+
+@frappe.whitelist(allow_guest=True)
+def on_login(login_manager):
+    """
+    Called after a user successfully logins.
+    Enforces 'Single Session per User' by deleting any previous sessions.
+    """
+    user = login_manager.user
+    if user == "Administrator":
+        return
+
+    # Delete all other active sessions for this user
+    # Note: frappe.session.sid is already established for the new session
+    frappe.db.sql("""
+        DELETE FROM `tabSessions` 
+        WHERE `user` = %s AND `sid` != %s
+    """, (user, frappe.session.sid))
+    
+    frappe.db.commit()
+    frappe.logger().info(f"[on_login] Cleared previous sessions for {user}")

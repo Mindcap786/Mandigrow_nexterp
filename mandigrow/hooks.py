@@ -276,6 +276,8 @@ override_whitelisted_methods = {
 # Authentication and authorization
 # --------------------------------
 
+on_login = "mandigrow.api.on_login"
+
 # auth_hooks = [
 # 	"mandigrow.mandigrow.auth.validate"
 # ]
