@@ -830,7 +830,11 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
         });
 
         const visibleEntries = normalizedEntries.filter((entry: any) => {
-            if (isPendingChequeEntry(entry)) return false;
+            // Hide pending cheques from the list UNLESS they are expenses 
+            // (so the user can track the incurred expense even before the cheque clears).
+            // Liquid summaries explicitly exclude pending cheques, so this is safe.
+            if (isPendingChequeEntry(entry) && inferVoucherFlow(entry) !== 'expense_receipt') return false;
+            
             const gkey = getEntryGroupKey(entry);
             return groupRepMap.get(gkey) === entry.id;
         });
