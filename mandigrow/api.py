@@ -2780,7 +2780,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
         elif je.voucher_type == "Bank Entry":
-            je.cheque_no = "TRF-" + frappe.generate_hash(length=8)
+            je.cheque_no = p_cheque_no or ("TRF-" + frappe.generate_hash(length=8))
             je.cheque_date = posting_date
             je.clearance_date = posting_date
 
@@ -2804,8 +2804,13 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         je.submit()
 
         # ERPNext fix: clearance_date is read-only and stripped on insert/submit.
-        if is_cheque and is_cheque_cleared:
+        # We MUST forcefully bypass the ORM and write the clearance date for ALL cleared cheques
+        # AND all instantaneous Bank/UPI transfers. Otherwise, they get trapped in the Daybook's
+        # "uncleared cheque" filter and disappear from liquid balances.
+        if (is_cheque and is_cheque_cleared):
             je.db_set("clearance_date", cheque_norm or date_norm)
+        elif je.voucher_type == "Bank Entry":
+            je.db_set("clearance_date", posting_date)
 
         return {
             "success": True,
