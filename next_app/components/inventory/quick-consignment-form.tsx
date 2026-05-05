@@ -478,20 +478,31 @@ export function QuickPurchaseForm() {
             <form 
                 onSubmit={form.handleSubmit(onSubmit as any, (errors) => {
                     console.error("QuickPurchase Validation Errors:", errors);
-                    const firstError = Object.values(errors)[0];
-                    if (firstError) {
-                        if ((firstError as any).message) {
-                            toast.error((firstError as any).message);
-                        } else if (Array.isArray(firstError)) {
-                            // Handle row-level errors
-                            const rowError = firstError.find(e => e);
-                            if (rowError) {
-                                const fieldError = Object.values(rowError)[0] as any;
-                                toast.error(`Line Item Error: ${fieldError?.message || "Invalid input"}`);
+                    
+                    // Filter out any weird empty string keys that Zod/RHF sometimes injects
+                    const realErrors = Object.entries(errors).filter(([key]) => key !== "");
+                    
+                    if (realErrors.length > 0) {
+                        const [field, error] = realErrors[0];
+                        
+                        if (field === 'rows' && Array.isArray((error as any).message || error)) {
+                            // Find the first row that has an error
+                            const rowErrors = (error as any).message || error;
+                            const firstErroneousRowIndex = rowErrors.findIndex((e: any) => e !== undefined && e !== null);
+                            
+                            if (firstErroneousRowIndex !== -1) {
+                                const rowError = rowErrors[firstErroneousRowIndex];
+                                const fieldName = Object.keys(rowError)[0];
+                                const fieldError = rowError[fieldName] as any;
+                                toast.error(`Row ${firstErroneousRowIndex + 1}: ${fieldName.replace('_', ' ')} is ${fieldError?.message?.toLowerCase() || "invalid"}`);
                             }
+                        } else if ((error as any).message) {
+                            toast.error(`Validation Error: ${(error as any).message}`);
                         } else {
                             toast.error("Please fill all required fields correctly.");
                         }
+                    } else if (errors[""]) {
+                         toast.error(String((errors[""] as any).message || "Validation failed"));
                     }
                 })} 
                 className="space-y-8 pb-32"

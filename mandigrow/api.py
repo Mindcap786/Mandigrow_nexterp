@@ -6943,6 +6943,13 @@ def commit_mandi_session(**kwargs) -> dict:
             #   Cr Commission Income
             #   Cr Expense Recovery
             arrival.insert(ignore_permissions=True)
+            
+            # Auto-generate lot_code if not provided from UI
+            if not lot_prefix and arrival.items:
+                auto_code = f"LOT-{arrival.name.split('-')[-1]}-{str(idx + 1).zfill(2)}"
+                arrival.items[0].lot_code = auto_code
+                arrival.items[0].db_update()
+                
             arrival.submit()  # ← THIS posts the GL entries and farmer ledger
 
             purchase_bill_ids.append(arrival.name)
@@ -7420,16 +7427,22 @@ def get_pos_master_data() -> dict:
         if org_id and frappe.db.has_column("Account", "organization_id"):
             account_filters["organization_id"] = org_id
 
+        account_fields = ["name as id", "account_name as name", "account_type", "root_type"]
+        if frappe.db.has_column("Account", "is_default"):
+            account_fields.append("is_default")
+        if frappe.db.has_column("Account", "description"):
+            account_fields.append("description")
+
         accounts = frappe.get_all("Account",
             filters=account_filters,
-            fields=["name as id", "account_name as name", "account_type", "root_type"],
+            fields=account_fields,
             order_by="account_name",
         )
         for acc in accounts:
             acc["type"] = (acc.get("root_type") or "Asset").lower()
             acc["account_sub_type"] = (acc.get("account_type") or "Bank").lower()
             acc["is_default"] = 1 if acc.get("is_default") else 0
-            acc["description"] = ""
+            acc["description"] = acc.get("description") or ""
 
         
         # 4. Fetch Settings
@@ -8101,6 +8114,15 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         if raw_advance_status is not None and str(raw_advance_status).strip() != "":
             doc.flags.advance_cheque_status = str(raw_advance_status).lower() in ["true", "1", "yes"]
         doc.insert()
+        
+        # Auto-generate lot_code if missing
+        needs_update = False
+        for idx, item in enumerate(doc.items):
+            if not item.lot_code:
+                item.lot_code = f"LOT-{doc.name.split('-')[-1]}-{str(idx + 1).zfill(2)}"
+                item.db_update()
+                needs_update = True
+                
         doc.submit()
         for item in doc.items or []:
             _normalize_lot_stock(item, persist=True)
