@@ -68,11 +68,11 @@ export const inferVoucherFlow = (entry: any) => {
     if (TX_TYPE_FLOW_MAP[rawType]) {
         const mapped = TX_TYPE_FLOW_MAP[rawType];
         // For 'receive_receipt', check if it's actually an expense
-        if (mapped === 'receive_receipt' && (text.includes('expense') || entry.account?.type === 'expense')) {
+        if (mapped === 'receive_receipt' && (text.includes('expense') || text.includes('stock loss') || entry.account?.type === 'expense' || entry.account?.root_type === 'Expense')) {
             return 'expense_receipt';
         }
         // For 'paid_receipt', check if it's an expense outflow
-        if (mapped === 'paid_receipt' && (text.includes('expense') || entry.account?.type === 'expense')) {
+        if (mapped === 'paid_receipt' && (text.includes('expense') || text.includes('stock loss') || entry.account?.type === 'expense' || entry.account?.root_type === 'Expense')) {
             return 'expense_receipt';
         }
         return mapped;
@@ -110,15 +110,17 @@ export const inferVoucherFlow = (entry: any) => {
         rawType.includes('payment') ||
         rawType.includes('expense') ||
         text.includes('expense') ||
-        text.includes('paid to')
+        text.includes('paid to') ||
+        text.includes('stock loss') ||
+        text.includes('wastage')
     ) {
-        if (text.includes('expense') || entry.account?.type === 'expense') return 'expense_receipt';
+        if (text.includes('expense') || text.includes('stock loss') || text.includes('wastage') || entry.account?.type === 'expense' || entry.account?.root_type === 'Expense') return 'expense_receipt';
         return 'paid_receipt';
     }
 
     // Receipt / money in
     if (rawType.includes('receipt')) {
-        if (text.includes('expense') || entry.account?.type === 'expense') return 'expense_receipt';
+        if (text.includes('expense') || text.includes('stock loss') || entry.account?.type === 'expense' || entry.account?.root_type === 'Expense') return 'expense_receipt';
         return 'receive_receipt';
     }
 
@@ -763,84 +765,6 @@ export const getEntryDescription = (
     return baseDescription;
 };
 
-export default function DayBook() {
-    const { profile } = useAuth();
-    const { t } = useLanguage();
-    
-    const [date, setDate] = useState<Date>(new Date());
-    const [datePickerOpen, setDatePickerOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'cash' | 'all'>('all');
-    const [cashFilter, setCashFilter] = useState<'all' | 'inflow' | 'outflow' | 'sales' | 'purchases' | 'liquid' | 'expenses'>('all');
-    const tableContainerRef = React.useRef<HTMLDivElement>(null);
-    
-    const orgId = profile?.organization_id;
-    // Cache is now shared across views for the same date
-    const dateKey = `${DAYBOOK_CACHE_VERSION}_${format(date, 'yyyy-MM-dd')}`;
-    const cachedData = orgId ? cacheGet<any>(`day_book_${dateKey}`, orgId) : null;
-
-    const [rawData, setRawData] = useState<{
-        entries: any[];
-        arrivalTimestampMap: Record<string, string>;
-        arrivalLotMap: Record<string, any>;
-        arrivalLotPrefixMap: Record<string, string>;
-        arrivalReferenceMap: Record<string, string>;
-        saleReferenceMap: Record<string, string>;
-        saleItemMap: Record<string, any>;
-        contactMap: Record<string, string>;
-        billToSaleMap?: Record<string, string>;
-        billToArrivalMap?: Record<string, string>;
-        saleToBuyerMap?: Record<string, string>;
-        arrivalToFarmerMap?: Record<string, string>;
-    } | null>(cachedData?.rawData || null);
-
-    const [loading, setLoading] = useState(!cachedData);
-
-    useEffect(() => {
-        fetchDayBook();
-    }, [profile?.organization_id, profile?.business_domain, date]);
-
-    const fetchDayBook = async (isManualRefresh = false) => {
-        const orgId = profile?.organization_id;
-        if (!orgId) return;
-        if (!rawData) setLoading(true);
-        try {
-            const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-            // ── Fetch from Frappe ERPNext GL Entries via our custom API ──
-            const res = await callApi('mandigrow.api.get_daybook', { date: dateString, org_id: orgId });
-            const data = (res as any)?.message || res; // handle both shapes
-
-            if (!data || !data.entries) return;
-
-            const entries = data.entries || [];
-
-            const newRawData = {
-                entries: entries,
-                arrivalTimestampMap: data.arrivalTimestampMap || {},
-                arrivalLotMap: data.arrivalLotMap || {},
-                arrivalLotPrefixMap: data.arrivalLotPrefixMap || {},
-                arrivalReferenceMap: data.arrivalReferenceMap || {},
-                saleReferenceMap: data.saleReferenceMap || {},
-                saleItemMap: data.saleItemMap || {},
-                contactMap: data.contactMap || {},
-                billToSaleMap: data.billToSaleMap || {},
-                billToArrivalMap: data.billToArrivalMap || {},
-                saleToBuyerMap: data.saleToBuyerMap || {},
-                saleDiscountMap: {}, // Handled natively in Frappe now
-                arrivalToFarmerMap: data.arrivalToFarmerMap || {}
-            };
-
-            setRawData(newRawData);
-            setLoading(false);
-            if (orgId) {
-                cacheSet(`day_book_${dateKey}`, orgId, { rawData: newRawData });
-            }
-        } catch (error) {
-            console.error("DayBook Fetch Error:", error);
-            setLoading(false);
-        }
-    };
-
 export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
 
         if (!rawData) return {
@@ -1218,6 +1142,86 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
 
         return { transactionGroups: processedGroups, summary: newSummary };
 }
+
+export default function DayBook() {
+    const { profile } = useAuth();
+    const { t } = useLanguage();
+    
+    const [date, setDate] = useState<Date>(new Date());
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'cash' | 'all'>('all');
+    const [cashFilter, setCashFilter] = useState<'all' | 'inflow' | 'outflow' | 'sales' | 'purchases' | 'liquid' | 'expenses'>('all');
+    const tableContainerRef = React.useRef<HTMLDivElement>(null);
+    
+    const orgId = profile?.organization_id;
+    // Cache is now shared across views for the same date
+    const dateKey = `${DAYBOOK_CACHE_VERSION}_${format(date, 'yyyy-MM-dd')}`;
+    const cachedData = orgId ? cacheGet<any>(`day_book_${dateKey}`, orgId) : null;
+
+    const [rawData, setRawData] = useState<{
+        entries: any[];
+        arrivalTimestampMap: Record<string, string>;
+        arrivalLotMap: Record<string, any>;
+        arrivalLotPrefixMap: Record<string, string>;
+        arrivalReferenceMap: Record<string, string>;
+        saleReferenceMap: Record<string, string>;
+        saleItemMap: Record<string, any>;
+        contactMap: Record<string, string>;
+        billToSaleMap?: Record<string, string>;
+        billToArrivalMap?: Record<string, string>;
+        saleToBuyerMap?: Record<string, string>;
+        arrivalToFarmerMap?: Record<string, string>;
+    } | null>(cachedData?.rawData || null);
+
+    const [loading, setLoading] = useState(!cachedData);
+
+    useEffect(() => {
+        fetchDayBook();
+    }, [profile?.organization_id, profile?.business_domain, date]);
+
+    const fetchDayBook = async (isManualRefresh = false) => {
+        const orgId = profile?.organization_id;
+        if (!orgId) return;
+        if (!rawData) setLoading(true);
+        try {
+            const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+            // ── Fetch from Frappe ERPNext GL Entries via our custom API ──
+            const res = await callApi('mandigrow.api.get_daybook', { date: dateString, org_id: orgId });
+            const data = (res as any)?.message || res; // handle both shapes
+
+            if (!data || !data.entries) return;
+
+            const entries = data.entries || [];
+
+            const newRawData = {
+                entries: entries,
+                arrivalTimestampMap: data.arrivalTimestampMap || {},
+                arrivalLotMap: data.arrivalLotMap || {},
+                arrivalLotPrefixMap: data.arrivalLotPrefixMap || {},
+                arrivalReferenceMap: data.arrivalReferenceMap || {},
+                saleReferenceMap: data.saleReferenceMap || {},
+                saleItemMap: data.saleItemMap || {},
+                contactMap: data.contactMap || {},
+                billToSaleMap: data.billToSaleMap || {},
+                billToArrivalMap: data.billToArrivalMap || {},
+                saleToBuyerMap: data.saleToBuyerMap || {},
+                saleDiscountMap: {}, // Handled natively in Frappe now
+                arrivalToFarmerMap: data.arrivalToFarmerMap || {}
+            };
+
+            setRawData(newRawData);
+            setLoading(false);
+            if (orgId) {
+                cacheSet(`day_book_${dateKey}`, orgId, { rawData: newRawData });
+            }
+        } catch (error) {
+            console.error("DayBook Fetch Error:", error);
+            setLoading(false);
+        }
+    };
+
+
 
     const { transactionGroups, summary } = useMemo(() => {
         return calculateDaybookStats(rawData, viewMode, t);
