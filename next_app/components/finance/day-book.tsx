@@ -60,7 +60,7 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     opening_balance:  'opening_balance',
 };
 
-const inferVoucherFlow = (entry: any) => {
+export const inferVoucherFlow = (entry: any) => {
     const rawType = String(entry.transaction_type || entry.voucher?.type || "").toLowerCase();
     const text = `${entry.description || ""} ${entry.voucher?.narration || ""} ${entry.voucher?.source || ""}`.toLowerCase();
 
@@ -141,7 +141,7 @@ const inferVoucherFlow = (entry: any) => {
     return rawType || 'transaction';
 };
 
-const extractVoucherBillNo = (entry: any) => {
+export const extractVoucherBillNo = (entry: any) => {
     const explicit = entry.reference_no || entry.voucher?.voucher_no;
     if (explicit !== undefined && explicit !== null && String(explicit).trim() !== '') {
         return String(explicit).trim();
@@ -152,7 +152,7 @@ const extractVoucherBillNo = (entry: any) => {
     return match?.[1] || null;
 };
 
-const getDuplicateSaleKey = (entry: any) => {
+export const getDuplicateSaleKey = (entry: any) => {
     if (inferVoucherFlow(entry) !== 'sale') return null;
 
     // Only deduplicate DEBIT legs (goods sold = money owed by buyer).
@@ -176,7 +176,7 @@ const getDuplicateSaleKey = (entry: any) => {
     return `${entry.contact_id}|${billNo}|${entryDate}|${amount}`;
 };
 
-const getSaleCanonicalScore = (entry: any) => {
+export const getSaleCanonicalScore = (entry: any) => {
     const description = String(entry.description || "").toLowerCase();
     let score = 0;
 
@@ -187,7 +187,7 @@ const getSaleCanonicalScore = (entry: any) => {
     return score;
 };
 
-const shouldHideDuplicateSaleEntry = (entry: any, allEntries: any[]) => {
+export const shouldHideDuplicateSaleEntry = (entry: any, allEntries: any[]) => {
     const duplicateKey = getDuplicateSaleKey(entry);
     if (!duplicateKey) return false;
 
@@ -208,7 +208,7 @@ const shouldHideDuplicateSaleEntry = (entry: any, allEntries: any[]) => {
 	return preferredEntry.id !== entry.id;
 };
 
-const isSaleSettlementReceiptEntry = (entry: any) => {
+export const isSaleSettlementReceiptEntry = (entry: any) => {
     const flowType = inferVoucherFlow(entry);
     const text = `${entry.description || ""} ${entry.voucher?.narration || ""}`.toLowerCase();
     const credit = Number(entry.credit || 0);
@@ -243,7 +243,7 @@ const isSaleSettlementReceiptEntry = (entry: any) => {
     return false;
 };
 
-const getSaleSettlementKey = (entry: any) => {
+export const getSaleSettlementKey = (entry: any) => {
     const flowType = inferVoucherFlow(entry);
 
     // Priority 1: Invoice ID matching (system-generated linked records)
@@ -267,7 +267,7 @@ const getSaleSettlementKey = (entry: any) => {
     return null;
 };
 
-const isSaleReceivableEntry = (entry: any) => {
+export const isSaleReceivableEntry = (entry: any) => {
     const flowType = inferVoucherFlow(entry);
     const txType = String(entry.transaction_type || "");
     
@@ -282,7 +282,7 @@ const isSaleReceivableEntry = (entry: any) => {
     return isSale && Number(entry.debit || 0) > AMOUNT_EPSILON;
 };
 
-const buildSaleSettlementMap = (entries: any[]) => {
+export const buildSaleSettlementMap = (entries: any[]) => {
     const settlements = new Map<string, { saleAmount: number; receivedAmount: number }>();
 
     entries.forEach((entry) => {
@@ -305,7 +305,7 @@ const buildSaleSettlementMap = (entries: any[]) => {
     return settlements;
 };
 
-const getSaleSettlementStatus = (entry: any, settlements: Map<string, { saleAmount: number; receivedAmount: number }>) => {
+export const getSaleSettlementStatus = (entry: any, settlements: Map<string, { saleAmount: number; receivedAmount: number }>) => {
     const key = getSaleSettlementKey(entry);
     if (!key) return null;
 
@@ -326,7 +326,7 @@ const getSaleSettlementStatus = (entry: any, settlements: Map<string, { saleAmou
     };
 };
 
-const getScenarioStyles = (scenario: string = "") => {
+export const getScenarioStyles = (scenario: string = "") => {
     const lower = scenario.toLowerCase();
     
     // 1. Sales Scenarios (Indigo/Rose/Violet)
@@ -376,7 +376,7 @@ const getScenarioStyles = (scenario: string = "") => {
     return { bg: "bg-slate-50/60", border: "border-slate-200", chipBg: "bg-slate-100", chipBorder: "border-slate-200", text: "text-slate-700", color: "#1e293b" };
 };
 
-const getPurchaseSettlementKey = (entry: any) => {
+export const getPurchaseSettlementKey = (entry: any) => {
     // 1. Explicit voucher link to arrival
     if (entry.voucher?.arrival_id) return `purchase_${entry.voucher.arrival_id}`;
     
@@ -397,7 +397,7 @@ const getPurchaseSettlementKey = (entry: any) => {
     return null;
 };
 
-const getEntryGroupKey = (entry: any) => {
+export const getEntryGroupKey = (entry: any) => {
     const v = entry.voucher || {};
     const flow = inferVoucherFlow(entry);
     const text = `${entry.description || ""} ${v.narration || ""}`.toLowerCase();
@@ -427,7 +427,7 @@ const getEntryGroupKey = (entry: any) => {
 };
 
 // Returns the single best "representative" entry for a group (one card per transaction)
-const getGroupRepresentative = (group: any[]): any => {
+export const getGroupRepresentative = (group: any[]): any => {
     // Prefer the entry that has a contact_id (buyer / supplier / farmer)
     const contactLeg = group.find(l => !!l.contact_id);
     if (contactLeg) return contactLeg;
@@ -436,7 +436,7 @@ const getGroupRepresentative = (group: any[]): any => {
 };
 
 
-const isLiquidAccountEntry = (entry: any) => {
+export const isLiquidAccountEntry = (entry: any) => {
     const accName = (entry.account?.name || "").toLowerCase();
     const accType = (entry.account?.type || "").toLowerCase();
     const subType = (entry.account?.account_sub_type || "").toLowerCase();
@@ -457,7 +457,7 @@ const isLiquidAccountEntry = (entry: any) => {
         text.includes('(cash)');
 };
 
-const isInstantSettlementEntry = (entry: any) => {
+export const isInstantSettlementEntry = (entry: any) => {
     const text = `${entry.account?.name || ""} ${entry.description || ""} ${entry.voucher?.narration || ""}`.toLowerCase();
     return isLiquidAccountEntry(entry) ||
         text.includes('cheque') ||
@@ -465,7 +465,7 @@ const isInstantSettlementEntry = (entry: any) => {
         text.includes('bank transfer');
 };
 
-const isPendingChequeEntry = (entry: any) => {
+export const isPendingChequeEntry = (entry: any) => {
     const voucherChequeStatus = String(entry.voucher?.cheque_status || "").toLowerCase();
     const voucherIsPendingCheque =
         voucherChequeStatus === 'pending' ||
@@ -480,14 +480,14 @@ const isPendingChequeEntry = (entry: any) => {
     return !entry.contact_id && (isLegacyBufferAccount || isLiquidAccountEntry(entry));
 };
 
-const shouldHideDirectPurchaseCost = (entry: any, group: any[]) => {
+export const shouldHideDirectPurchaseCost = (entry: any, group: any[]) => {
     return false;
 };
 
-const shouldHideNonContactCounterLeg = (entry: any, group: any[]) =>
+export const shouldHideNonContactCounterLeg = (entry: any, group: any[]) =>
     !entry.contact_id && group.some((leg) => !!leg.contact_id);
 
-const shouldHideExpenseSettlementLeg = (entry: any, group: any[]) => {
+export const shouldHideExpenseSettlementLeg = (entry: any, group: any[]) => {
     if (entry.contact_id) return false;
     if (!isLiquidAccountEntry(entry)) return false;
 
@@ -507,7 +507,7 @@ const shouldHideExpenseSettlementLeg = (entry: any, group: any[]) => {
     );
 };
 
-const getPurchaseSettlementTotals = (group: any[]) => {
+export const getPurchaseSettlementTotals = (group: any[]) => {
     // 1. Cash paid
     // A fully formed payment transaction has a Liquid Credit (money leaving bank) AND an Advance Debit (reducing party liability).
     // Summing both results in 2x double counting. By taking the max, we capture the amount accurately 
@@ -561,12 +561,12 @@ const getPurchaseSettlementTotals = (group: any[]) => {
     };
 };
 
-const shouldHideFullySettledPurchasePayableLeg = (entry: any, group: any[]) => {
+export const shouldHideFullySettledPurchasePayableLeg = (entry: any, group: any[]) => {
     // DISABLING: The user wants to see BOTH entries even if fully settled.
     return false;
 };
 
-const getPurchasePaidAmount = (group: any[]) =>
+export const getPurchasePaidAmount = (group: any[]) =>
     group.reduce((sum, leg) => {
         const description = String(leg.description || "").toLowerCase();
         const isAdvanceContra = description.includes('advance contra');
@@ -576,7 +576,7 @@ const getPurchasePaidAmount = (group: any[]) =>
         return sum + Number(leg.credit || 0);
     }, 0);
 
-const isAdvanceSettlementEntry = (entry: any) => {
+export const isAdvanceSettlementEntry = (entry: any) => {
     const description = String(entry.description || "").toLowerCase();
     return description.includes('advance paid') || 
            description.includes('advance contra') || 
@@ -586,7 +586,7 @@ const isAdvanceSettlementEntry = (entry: any) => {
            description.includes('advance - '); // Mandi-specific lot advance pattern
 };
 
-const formatArrivalLotLabel = (lots: any[]) => {
+export const formatArrivalLotLabel = (lots: any[]) => {
     if (!lots.length) return null;
 
     const firstLot = lots[0];
@@ -599,7 +599,7 @@ const formatArrivalLotLabel = (lots: any[]) => {
     return `${baseLabel} +${lots.length - 1} more`;
 };
 
-const formatArrivalLotPrefix = (lots: any[]) => {
+export const formatArrivalLotPrefix = (lots: any[]) => {
     if (!lots.length) return null;
 
     const firstLotCode = lots[0]?.lot_code || null;
@@ -609,7 +609,7 @@ const formatArrivalLotPrefix = (lots: any[]) => {
     return `${firstLotCode} +${lots.length - 1} more`;
 };
 
-const getTransactionScenario = (
+export const getTransactionScenario = (
     group: any[],
     saleSettlements: Map<string, { saleAmount: number; receivedAmount: number }>,
     t: any
@@ -679,14 +679,14 @@ const getTransactionScenario = (
     return t(`daybook.labels.${flowType}`) || flowType.charAt(0).toUpperCase() + flowType.slice(1);
 };
 
-const extractBillNo = (e: any) => {
+export const extractBillNo = (e: any) => {
     const fromRef = String(e.reference_no || "").trim();
     if (fromRef && !isNaN(Number(fromRef))) return fromRef;
     const match = (e.description || e.voucher?.narration || "").match(/#(\d+)/);
     return match ? match[1] : null;
 };
 
-const getEntryDescription = (
+export const getEntryDescription = (
     entry: any,
     group: any[],
     contactMap: Record<string, string>,
@@ -840,7 +840,9 @@ export default function DayBook() {
             setLoading(false);
         }
     };
-    const { transactionGroups, summary } = useMemo(() => {
+
+export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
+
         if (!rawData) return {
             transactionGroups: [],
             summary: {
@@ -1215,7 +1217,12 @@ export default function DayBook() {
         };
 
         return { transactionGroups: processedGroups, summary: newSummary };
+}
+
+    const { transactionGroups, summary } = useMemo(() => {
+        return calculateDaybookStats(rawData, viewMode, t);
     }, [rawData, viewMode, t]);
+
 
 
     const exportTransactionGroups = (groups: any[], filename: string) => {

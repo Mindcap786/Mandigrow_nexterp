@@ -13,6 +13,7 @@ import { SalesChart } from '@/components/dashboard/sales-chart'
 import { isNativePlatform } from '@/lib/capacitor-utils'
 import { StockAlertSummaryCard } from '@/components/alerts/StockAlertSummaryCard'
 import { ROUTES } from '@/lib/routes'
+import { calculateDaybookStats } from '@/components/finance/day-book'
 
 // Native Mobile components
 import { NativeSummaryCard, StatChip } from '@/components/mobile/NativeSummaryCard'
@@ -106,6 +107,25 @@ export default function Dashboard() {
 
                 // Save to cache
                 cacheSet('dashboard', orgId, { stats: newStats, salesTrend: newTrend, recentActivity: newActivity });
+
+                if (data.daybook_data) {
+                    try {
+                        const { summary } = calculateDaybookStats(data.daybook_data, 'all', (s: string) => s);
+                        newStats = {
+                            ...newStats,
+                            revenue: summary.sales.total,
+                            collections: summary.sales.cash,
+                            payables: summary.sales.credit,
+                            cash_purchase: summary.purchases.cash,
+                            udhaar_purchase: summary.purchases.credit,
+                            inflow: summary.cash.inflow + summary.digital.inflow,
+                            outflow: summary.cash.outflow + summary.digital.outflow,
+                            daily_expenses: summary.expenses
+                        };
+                    } catch (e) {
+                        console.error("Failed to parse daybook parity stats:", e);
+                    }
+                }
 
                 setStats(newStats);
                 setRecentActivity(newActivity);

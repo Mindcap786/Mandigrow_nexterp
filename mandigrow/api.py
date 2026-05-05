@@ -3202,6 +3202,9 @@ def get_dashboard_data() -> dict:
         }
         
     company = _get_user_company()
+    
+    # Fetch Daybook data directly for perfect parity with the Day Book frontend logic
+    daybook_data = get_daybook(date=today(), org_id=org_id)
 
     # ── 1. Today's Sales Summary — EXACT SAME GL source as Day Book ──────────
     # Day Book reads tabGL Entry debit legs for sale vouchers. We do the same
