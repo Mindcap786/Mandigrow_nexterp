@@ -118,7 +118,8 @@ export default function TeamPage() {
                 email: authEmail,
                 full_name: emp?.name || authEmail.split('@')[0],
                 password: password,
-                role: 'member'
+                role: 'member',
+                employee_id: selectedEmployeeId
             });
 
             if (result.status === 'success') {

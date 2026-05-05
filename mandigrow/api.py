@@ -1211,10 +1211,11 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
 
 
 @frappe.whitelist(allow_guest=False)
-def provision_team_member(email: str, full_name: str, password: str = "mandi123", role: str = "member", organization_id: str = None) -> dict:
+def provision_team_member(email: str, full_name: str, password: str = "mandi123", role: str = "member", organization_id: str = None, employee_id: str = None) -> dict:
     """
     Creates a new team member user. If organization_id is provided and the caller is a Super Admin,
     it uses that org. Otherwise, it uses the caller's organization.
+    Links the created user to the Employee record if employee_id is provided.
     """
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     
@@ -1223,6 +1224,8 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
     if not admin_org:
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
 
+    user_name = None
+
     if frappe.db.exists("User", email):
         # Update existing user's org if they aren't assigned to one
         user = frappe.get_doc("User", email)
@@ -1230,34 +1233,41 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
             user.mandi_organization = admin_org
             user.role_type = role
             user.save(ignore_permissions=True)
-            return {"status": "success", "message": "Existing user linked to your organization."}
+            user_name = user.name
+        elif user.mandi_organization == admin_org:
+             user_name = user.name
+        else:
+             frappe.throw(_("User with this email is already registered with another organization."), frappe.DuplicateEntryError)
+    else:
+        # Create new Frappe user
+        user = frappe.get_doc({
+            "doctype": "User",
+            "email": email,
+            "first_name": full_name.split(" ")[0],
+            "last_name": " ".join(full_name.split(" ")[1:]) if " " in full_name else "",
+            "send_welcome_email": 0,
+            "mandi_organization": admin_org,
+            "role_type": role,
+            "business_domain": "mandi"
+        })
+        user.flags.ignore_password_policy = True
+        user.insert(ignore_permissions=True)
+        user_name = user.name
         
-        if user.mandi_organization == admin_org:
-             return {"status": "success", "message": "User is already part of your team."}
-             
-        frappe.throw(_("User with this email is already registered with another organization."), frappe.DuplicateEntryError)
+        from frappe.utils.password import update_password
+        update_password(user.name, password)
+        
+        # Standard roles for internal team
+        user.add_roles("System Manager")
 
-    # Create new Frappe user
-    user = frappe.get_doc({
-        "doctype": "User",
-        "email": email,
-        "first_name": full_name.split(" ")[0],
-        "last_name": " ".join(full_name.split(" ")[1:]) if " " in full_name else "",
-        "send_welcome_email": 0,
-        "mandi_organization": admin_org,
-        "role_type": role,
-        "business_domain": "mandi"
-    })
-    user.flags.ignore_password_policy = True
-    user.insert(ignore_permissions=True)
-    
-    from frappe.utils.password import update_password
-    update_password(user.name, password)
-    
-    # Standard roles for internal team
-    user.add_roles("System Manager")
-    
-    return {"status": "success", "user_id": user.name, "message": f"Successfully added {full_name} to your team."}
+    if employee_id and user_name and frappe.db.exists("Employee", employee_id):
+        emp = frappe.get_doc("Employee", employee_id)
+        if not emp.user_id:
+            emp.user_id = user_name
+            emp.save(ignore_permissions=True)
+            frappe.db.commit()
+
+    return {"status": "success", "user_id": user_name, "message": f"Successfully added {full_name} to your team."}
 
 
 @frappe.whitelist(allow_guest=False)
