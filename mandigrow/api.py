@@ -542,7 +542,17 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         is_clearing = bool(gl.get("cheque_no") and gl.get("clearance_date") and str(gl.get("clearance_date")) != str(gl.get("posting_date")))
         is_pending_cheque = bool(gl.get("cheque_no") and not gl.get("clearance_date"))
         
-        if (against_vtype == "Mandi Arrival" or voucher_vtype == "Mandi Arrival") and not is_clearing and not is_liquid and not is_income_expense:
+        # ── STOCK RETURN detection ────────────────────────────────────────────
+        # A Stock Return JE has user_remark starting with "Stock Return:".
+        # It has two legs:
+        #   Dr Creditors (Payable) — debit, party=Supplier → DEBIT in Daybook
+        #   Cr Stock In Hand       — credit, no party      → companion leg
+        # We force both legs to tx_type="stock_return" so the frontend routes
+        # the WHOLE group into the DEBIT column (value going out of Mandi).
+        je_remark = (gl.get("remarks") or "").strip()
+        if voucher_vtype == "Journal Entry" and je_remark.startswith("Stock Return:"):
+            tx_type = "stock_return"
+        elif (against_vtype == "Mandi Arrival" or voucher_vtype == "Mandi Arrival") and not is_clearing and not is_liquid and not is_income_expense:
             tx_type = "goods_arrival"
         elif (against_vtype == "Mandi Sale" or voucher_vtype == "Mandi Sale") and not is_clearing and not is_liquid and not is_income_expense:
             tx_type = "sale"
