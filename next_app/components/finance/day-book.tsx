@@ -62,6 +62,10 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     expense:          'expense_receipt',
     income:           'receive_receipt',
     stock_loss:       'expense_receipt',
+    // ── Stock Return: Mandi sends goods BACK to supplier → DEBIT (outflow) ──
+    // Dr Creditors (reduces payable) = value going OUT of Mandi's liability
+    // Displayed in DEBIT column, labelled "Return"
+    stock_return:     'stock_return',
 };
 
 export const inferVoucherFlow = (entry: any) => {
@@ -71,6 +75,8 @@ export const inferVoucherFlow = (entry: any) => {
     // Step 1: Explicit mapping from real DB transaction_type values (fastest, most accurate)
     if (TX_TYPE_FLOW_MAP[rawType]) {
         const mapped = TX_TYPE_FLOW_MAP[rawType];
+        // stock_return is always DEBIT — short-circuit immediately, no override
+        if (mapped === 'stock_return') return 'stock_return';
         // For 'receive_receipt', check if it's actually an expense
         if (mapped === 'receive_receipt' && (text.includes('expense') || text.includes('stock loss') || entry.account?.type === 'expense' || entry.account?.root_type === 'Expense')) {
             return 'expense_receipt';
@@ -80,6 +86,11 @@ export const inferVoucherFlow = (entry: any) => {
             return 'expense_receipt';
         }
         return mapped;
+    }
+
+    // Step 1b: Text-based stock return detection (fallback for legacy/pre-tag entries)
+    if (text.includes('stock return') || text.includes('returned to supplier') || text.includes('returned to farmer')) {
+        return 'stock_return';
     }
 
     // Step 2: opening balance override (before text heuristics)
@@ -866,10 +877,14 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             else if (rowType === 'paid_receipt') displayLabel = 'Receipt';
             else if (rowType === 'expense_receipt') displayLabel = 'Expense';
             else if (rowType === 'payment') displayLabel = 'Receipt';
+            else if (rowType === 'stock_return') displayLabel = 'Return';
             else if (rowType === 'sale') displayLabel = 'Sale';
             else if (rowType === 'opening_balance') displayLabel = 'Opening Balance';
             else if (flowType === 'purchase') displayLabel = 'Purchase';
-            return { ...e, sortIndex: index, displayTimestamp: transactionTimestamp || e.created_at || e.entry_date, reference_no: e.reference_no || (flowType === 'purchase' && e.reference_id ? arrivalReferenceMap[String(e.reference_id)] : e.reference_no), contact: { name: baseDisplayName }, displayNameLotPrefix: displayLotPrefix, displayType: rowType, displayLabel, displayDescription, displayDebit: rawDebit, displayCredit: rawCredit, isUdhaar: (rowType === 'sale' || rowType === 'purchase') && !((e.account?.account_sub_type === 'cash' || e.account?.account_sub_type === 'bank' || e.account?.type === 'bank')) };
+            // For stock_return: always show in DEBIT (goods going out, payable reduced)
+            const stockReturnDebit = rowType === 'stock_return' ? Math.max(rawDebit, rawCredit) : rawDebit;
+            const stockReturnCredit = rowType === 'stock_return' ? 0 : rawCredit;
+            return { ...e, sortIndex: index, displayTimestamp: transactionTimestamp || e.created_at || e.entry_date, reference_no: e.reference_no || (flowType === 'purchase' && e.reference_id ? arrivalReferenceMap[String(e.reference_id)] : e.reference_no), contact: { name: baseDisplayName }, displayNameLotPrefix: displayLotPrefix, displayType: rowType, displayLabel, displayDescription, displayDebit: stockReturnDebit, displayCredit: stockReturnCredit, isUdhaar: (rowType === 'sale' || rowType === 'purchase') && !((e.account?.account_sub_type === 'cash' || e.account?.account_sub_type === 'bank' || e.account?.type === 'bank')) };
         });
 
         const finalGroupMap = new Map<string, any[]>();
@@ -982,12 +997,14 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     const isReceipt = flowType === 'receive_receipt' || flowType === 'receipt' || flowType === 'sale_payment';
                     const isPayment = flowType === 'paid_receipt' || flowType === 'payment';
                     const isExpense = flowType === 'expense_receipt';
+                    const isReturn = flowType === 'stock_return';
 
                     const v = mainLeg.voucher || {};
                     let label = 'Other';
                     if (isReceipt) label = 'Receipt';
                     else if (isPayment) label = 'Payment';
                     else if (isExpense) label = 'Expense';
+                    else if (isReturn) label = 'Return';
 
                     // FINAL OVERRIDE: If the description mentions "Consolidated", 
                     // never let the UI double the amount.
@@ -1000,7 +1017,10 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     legs.push({
                         ...mainLeg,
                         contact: { name: groupContactName || mainLeg.contact?.name },
-                        displayDebit: (isPayment || isExpense) ? finalSanitizedVal : 0,
+                        // Stock Return: ALWAYS debit (Mandi reducing payable = value going out)
+                        // We use Math.max(debit,credit) so even the credit leg of the JE
+                        // (Cr Stock In Hand) renders correctly as a DEBIT in the Daybook.
+                        displayDebit: (isPayment || isExpense || isReturn) ? finalSanitizedVal : 0,
                         displayCredit: isReceipt ? finalSanitizedVal : 0,
                         displayLabel: label,
                         displayDescription: v.narration || mainLeg.description,
