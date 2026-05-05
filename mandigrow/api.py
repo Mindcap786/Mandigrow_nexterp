@@ -5631,16 +5631,18 @@ def delete_employee(employee_id: str = None) -> dict:
     """Delete an employee."""
     if not employee_id:
         frappe.throw("Employee ID is required")
-    # Tenant guard: verify employee belongs to user's organization
+    # Tenant guard: verify employee belongs to user's company
+    # NOTE: Employee doctype does NOT have 'organization_id' — use 'company' instead.
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
-        org_id = _get_user_org()
-        emp_org = frappe.db.get_value("Employee", employee_id, "organization_id")
-        if not emp_org or emp_org != org_id:
+        company = _get_user_company()
+        emp_company = frappe.db.get_value("Employee", employee_id, "company")
+        if emp_company and emp_company != company:
             frappe.throw(_("You do not have permission to delete this employee."), frappe.PermissionError)
     frappe.delete_doc("Employee", employee_id, ignore_permissions=True)
     frappe.db.commit()
     return {"status": "deleted"}
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
