@@ -94,6 +94,7 @@ export const inferVoucherFlow = (entry: any) => {
     if (
         text.includes('bill for arrival') ||
         text.includes('bill for lot') ||
+        text.includes('purchase bill') ||
         text.includes('lot_purchase') ||
         text.includes('direct purchase') ||
         text.includes('commission arrival') ||
@@ -139,6 +140,10 @@ export const inferVoucherFlow = (entry: any) => {
         if (Number(entry.credit || 0) > 0) return 'receive_receipt'; // money received
         if (Number(entry.debit || 0) > 0) return 'paid_receipt';    // money paid
     }
+
+    // Final fallback for explicit account root types
+    if (entry.account?.root_type === 'Expense' || entry.account?.type === 'expense') return 'expense_receipt';
+    if (entry.account?.root_type === 'Income' || entry.account?.type === 'income') return 'receive_receipt';
 
     return rawType || 'transaction';
 };
