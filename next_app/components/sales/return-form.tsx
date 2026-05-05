@@ -164,11 +164,11 @@ export default function SalesReturnForm() {
                     // Hydrate items for lots
                     const lotsWithItems = await Promise.all((lots || []).map(async (lot: any) => {
                         const itemName = await callApi('frappe.client.get_value', {
-                            doctype: 'Mandi Commodity',
+                            doctype: 'Item',
                             filters: { name: lot.item_id },
-                            fieldname: 'name'
+                            fieldname: 'item_name'
                         });
-                        return { ...lot, item: { name: itemName?.name } };
+                        return { ...lot, item: { name: itemName?.item_name || lot.item_id } };
                     }));
                     
                     setAvailableLots(lotsWithItems);

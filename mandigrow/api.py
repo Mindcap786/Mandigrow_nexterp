@@ -4297,7 +4297,7 @@ def get_sale_items_for_return(sale_id: str) -> list:
     for item in sale_items:
         lot_info = frappe.db.get_value("Mandi Lot", item.lot_id, ["name as id", "lot_code", "item_id"], as_dict=1)
         if lot_info:
-            lot_info.item = frappe.db.get_value("Mandi Commodity", lot_info.item_id, ["name as id", "name"], as_dict=1)
+            lot_info.item = frappe.db.get_value("Item", lot_info.item_id, ["name as id", "item_name as name"], as_dict=1)
             item.lot = lot_info
         
         already_returned = returned_qty_map.get(item.lot_id, 0)
@@ -4338,7 +4338,16 @@ def process_sale_return(payload: dict) -> dict:
     
     # 1. Create Return Journal Entry
     # Debit: Stock In Hand (returning goods)
-    # Credit: Debtors (reducing what buyer owes or creating a refund obligation)
+    # Credit: Debtors (reducing what buyer owes or creating a refund obligation) OR Cash (if cash return)
+    credit_account = get_debtor_acc(company)
+    party_type = "Customer"
+    party = frappe.db.get_value("Mandi Contact", sale.buyer_id, "customer")
+
+    if return_type == "cash":
+        credit_account = get_acc("Cash", company)
+        party_type = None
+        party = None
+
     je_accounts = [
         {
             "account": get_stock_acc(company),
@@ -4347,14 +4356,16 @@ def process_sale_return(payload: dict) -> dict:
             "user_remark": f"Sales Return from {sale.name} - {remarks}"
         },
         {
-            "account": get_debtor_acc(company),
+            "account": credit_account,
             "credit_in_account_currency": total_refund,
-            "party_type": "Customer",
-            "party": frappe.db.get_value("Mandi Contact", sale.buyer_id, "customer"),
             "cost_center": cost_center,
             "user_remark": f"Sales Return credit for {sale.name}"
         }
     ]
+
+    if party_type and party:
+        je_accounts[1]["party_type"] = party_type
+        je_accounts[1]["party"] = party
     
     je = frappe.get_doc({
         "doctype": "Journal Entry",
