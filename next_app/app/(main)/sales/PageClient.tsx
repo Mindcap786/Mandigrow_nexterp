@@ -23,7 +23,7 @@ import { calculateGrossRevenue } from "@/lib/accounting-logic";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { BottomSheet } from "@/components/mobile/BottomSheet";
 import { snackbar } from "@/components/mobile/Snackbar";
 
@@ -156,7 +156,7 @@ export default function Sales() {
     };
 
     // ── NATIVE MOBILE RENDER ─────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         const totalPages = Math.ceil(totalCount / pageSize);
         const viewSegments = [
             { label: "Invoices", value: "invoices" },

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Printer, CheckCircle, Search, Wallet, Landmark, Share2, Loader2 } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
-import { isNativePlatform } from '@/lib/capacitor-utils'
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils'
 import { NativePageWrapper } from "@/components/mobile/NativePageWrapper"
 import { Button } from "@/components/ui/button"
 import { ReceiptTemplate } from '@/components/billing/receipt-template'
@@ -72,7 +72,7 @@ export default function ReceiptGenerator() {
     // ─────────────────────────────────────────────────────────────
     // MOBILE (Capacitor / native wrapper)
     // ─────────────────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         const handleShare = async () => {
             if (!generatedReceipt) return
             const text = `Receipt: ${receiptData.receiptNo}\nParty: ${receiptData.buyerName}\nAmount: ₹${receiptData.amount}\nMode: ${receiptData.paymentMode}\nRemarks: ${receiptData.remarks}`

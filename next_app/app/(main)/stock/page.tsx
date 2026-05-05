@@ -21,7 +21,7 @@ import { LotStockDialog } from "@/components/inventory/lot-stock-dialog"
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion"
 import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache"
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
-import { isNativePlatform } from "@/lib/capacitor-utils"
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
 import { cn } from "@/lib/utils"
 import { getMainItemName } from "@/lib/utils/commodity-utils"
 
@@ -255,7 +255,7 @@ function AssetCard({ item, onOpen }: { item: any; onOpen: () => void }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// MAIN PAGE — data fetching identical, render branches on isNativePlatform()
+// MAIN PAGE — data fetching identical, render branches on isMobileAppView()
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default function StockPage() {
@@ -433,7 +433,7 @@ export default function StockPage() {
     const totalStockValue = uniqueItems.reduce((sum: number, i: any) => sum + Number(i.total_value || 0), 0)
 
     // ── NATIVE MOBILE RENDER ─────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         // Location filter options
         const locationOptions = locations.map(loc => ({ label: loc, value: loc, count: loc === 'All' ? uniqueItems.length : uniqueItems.filter((i: any) => (i.storage_location || 'Mandi') === loc).length }))
 

@@ -14,7 +14,7 @@ import Link from "next/link";
 import { ProtectedRoute } from "@/components/protected-route";
 import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
 import { useLanguage } from "@/components/i18n/language-provider";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { cn } from "@/lib/utils";
 
 // ── TYPED SETTINGS INTERFACE ────────────────────────────────────────────────
@@ -161,30 +161,30 @@ export default function Settings() {
                 saveSucceeded = true;
                 // Immediately refetch from DB to verify persistence
                 await fetchOrgData();
-                if (isNativePlatform()) snackbar.success("Settings saved successfully");
+                if (isMobileAppView()) snackbar.success("Settings saved successfully");
                 else setDialogConfig({ title: "Settings Updated", message: "Mandi configuration has been synchronized.", type: "success" });
             } else {
                 const msg = res?.message || "Failed to update settings";
                 console.error('[Settings] Save returned non-updated status:', res);
-                if (isNativePlatform()) snackbar.error(msg);
+                if (isMobileAppView()) snackbar.error(msg);
                 else setDialogConfig({ title: "Update Failed", message: msg, type: "error" });
             }
         } catch (err: any) {
             const msg = err?.message || "An unexpected error occurred.";
             console.error('[Settings] Save exception:', err);
-            if (isNativePlatform()) snackbar.error(msg);
+            if (isMobileAppView()) snackbar.error(msg);
             else setDialogConfig({ title: "Update Failed", message: msg, type: "error" });
         }
         
         // Only show dialog — success dialog ONLY on actual success
-        if (!isNativePlatform()) setShowSuccessDialog(true);
+        if (!isMobileAppView()) setShowSuccessDialog(true);
         setSaving(false);
     };
 
     if (loading || rbacLoading) return <SettingsSkeleton />;
 
     // ── NATIVE MOBILE RENDER ─────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <ProtectedRoute requiredPermission="manage_settings">
                 <form onSubmit={handleSave}>

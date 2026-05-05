@@ -243,19 +243,17 @@ export function QuickPurchaseForm() {
         const supplierId = form.watch('supplier_id');
         if (!supplierId) return;
 
-        const selectedParty = masterContacts.find(c => c.id === supplierId);
         const hasCommission = rows.some(r => Number(r.commission) > 0);
 
-        if (!hasCommission) {
-            form.setValue('arrival_type', 'direct');
-        } else {
-            // Use the commission_type of the first row with commission
+        // ONLY auto-derive if we are currently in direct mode and a commission is added
+        if (arrivalType === 'direct' && hasCommission) {
             const firstCommRow = rows.find(r => Number(r.commission) > 0);
             if (firstCommRow) {
                 form.setValue('arrival_type', firstCommRow.commission_type === 'farmer' ? 'commission' : 'commission_supplier');
             }
         }
-    }, [form.watch('supplier_id'), rows, masterContacts, form])
+
+    }, [form.watch('supplier_id'), rows, masterContacts, form, arrivalType])
 
     const calculateRowFinancials = (row: any, type: string) => {
         if (!row) return { 
@@ -477,7 +475,27 @@ export function QuickPurchaseForm() {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-8 pb-32">
+            <form 
+                onSubmit={form.handleSubmit(onSubmit as any, (errors) => {
+                    console.error("QuickPurchase Validation Errors:", errors);
+                    const firstError = Object.values(errors)[0];
+                    if (firstError) {
+                        if ((firstError as any).message) {
+                            toast.error((firstError as any).message);
+                        } else if (Array.isArray(firstError)) {
+                            // Handle row-level errors
+                            const rowError = firstError.find(e => e);
+                            if (rowError) {
+                                const fieldError = Object.values(rowError)[0] as any;
+                                toast.error(`Line Item Error: ${fieldError?.message || "Invalid input"}`);
+                            }
+                        } else {
+                            toast.error("Please fill all required fields correctly.");
+                        }
+                    }
+                })} 
+                className="space-y-8 pb-32"
+            >
                 {/* Header Section */}
                 <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -855,35 +873,33 @@ export function QuickPurchaseForm() {
                                                         }}
                                                     />
                                                     
-                                                    {/* Farmer/Supplier Tabs - Only show if commission is entered */}
-                                                    {(Number(form.watch(`rows.${index}.commission`)) > 0) && (
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`rows.${index}.commission_type`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="animate-in fade-in slide-in-from-top-1 duration-300">
-                                                                    <div className="flex bg-slate-50 border border-slate-100 rounded-lg p-0.5 gap-0.5 h-8">
-                                                                        {[
-                                                                            { value: 'farmer', label: 'Farmer' },
-                                                                            { value: 'supplier', label: 'Supplier' },
-                                                                        ].map(type => (
-                                                                            <button
-                                                                                key={type.value}
-                                                                                type="button"
-                                                                                onClick={() => field.onChange(type.value)}
-                                                                                className={cn(
-                                                                                    "flex-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all",
-                                                                                    field.value === type.value ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500"
-                                                                                )}
-                                                                            >
-                                                                                {type.label}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    )}
+                                                    {/* Farmer/Supplier Tabs - Always show in commission mode */}
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`rows.${index}.commission_type`}
+                                                        render={({ field }) => (
+                                                            <FormItem className="animate-in fade-in slide-in-from-top-1 duration-300">
+                                                                <div className="flex bg-slate-50 border border-slate-100 rounded-lg p-0.5 gap-0.5 h-8">
+                                                                    {[
+                                                                        { value: 'farmer', label: 'Farmer' },
+                                                                        { value: 'supplier', label: 'Supplier' },
+                                                                    ].map(type => (
+                                                                        <button
+                                                                            key={type.value}
+                                                                            type="button"
+                                                                            onClick={() => field.onChange(type.value)}
+                                                                            className={cn(
+                                                                                "flex-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all",
+                                                                                field.value === type.value ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500"
+                                                                            )}
+                                                                        >
+                                                                            {type.label}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </FormItem>
+                                                        )}
+                                                    />
                                                 </div>
                                             )}
                                         </div>

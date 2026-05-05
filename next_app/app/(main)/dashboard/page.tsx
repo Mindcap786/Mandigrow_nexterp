@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { cacheGet, cacheSet, cacheIsStale } from '@/lib/data-cache'
 import { callApi } from '@/lib/frappeClient'
 import { SalesChart } from '@/components/dashboard/sales-chart'
-import { isNativePlatform } from '@/lib/capacitor-utils'
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils'
 import { StockAlertSummaryCard } from '@/components/alerts/StockAlertSummaryCard'
 import { ROUTES } from '@/lib/routes'
 import { calculateDaybookStats } from '@/components/finance/day-book'
@@ -146,7 +146,7 @@ export default function Dashboard() {
     }, [profile?.organization_id, authLoading])
 
     // ── NATIVE MOBILE RENDER ─────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         if (!mounted) return null;
 
         if (loading) {

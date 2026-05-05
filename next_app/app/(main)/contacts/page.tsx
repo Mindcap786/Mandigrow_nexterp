@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { isNativePlatform } from "@/lib/capacitor-utils"
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
@@ -234,7 +234,7 @@ export default function ContactsPage() {
     ]
 
     // ── NATIVE MOBILE RENDER ─────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <div className="bg-[#EFEFEF] min-h-dvh pb-4">
                 {/* Search + filter row */}

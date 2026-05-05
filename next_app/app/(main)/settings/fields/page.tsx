@@ -26,7 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { NativeCard } from "@/components/mobile/NativeCard";
 import { NativeSectionLabel } from "@/components/mobile/NativeInput";
 
@@ -421,7 +421,7 @@ export default function FieldSettingsPage() {
         !m.startsWith('arrivals') && m !== 'sales' && m !== 'gate_entry' && m !== 'expenses'
     ).sort();
 
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <div className="min-h-screen bg-[#F8FAFC] pb-24">
                 {/* Mobile Header */}

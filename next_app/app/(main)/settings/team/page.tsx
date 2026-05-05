@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { PermissionMatrix } from '@/components/rbac/permission-matrix';
 import { cn } from '@/lib/utils';
-import { isNativePlatform } from '@/lib/capacitor-utils';
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 import { NativeCard } from '@/components/mobile/NativeCard';
 import { NativeSectionLabel } from '@/components/mobile/NativeInput';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
@@ -190,9 +190,9 @@ export default function TeamPage() {
     return (
         <div className={cn(
             "min-h-screen bg-[#F8FAFC]",
-            isNativePlatform() ? "pb-24" : "p-8 pb-32"
+            isMobileAppView() ? "pb-24" : "p-8 pb-32"
         )}>
-            {isNativePlatform() ? (
+            {isMobileAppView() ? (
                 <div className="space-y-6">
                     {/* Header Summary */}
                     <div className="bg-white px-4 py-6 border-b border-slate-100 shadow-sm">

@@ -9,7 +9,7 @@ import { callApi } from "@/lib/frappeClient";
 import { Loader2, TrendingUp, TrendingDown, RefreshCcw, Calendar as CalendarIcon, DollarSign, PieChart, ArrowUpRight, Filter, Zap, Activity, Info, Download, MessageCircle, Apple } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { BottomSheet } from "@/components/mobile/BottomSheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -199,7 +199,7 @@ export default function ProfitLossPage() {
                             </SelectContent>
                         </Select>
 
-                        {isNativePlatform() ? (
+                        {isMobileAppView() ? (
                             <>
                                 <Button
                                     variant={"ghost"}

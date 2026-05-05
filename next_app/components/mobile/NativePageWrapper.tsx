@@ -1,6 +1,6 @@
 "use client"
 
-import { isNativePlatform } from "@/lib/capacitor-utils"
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
 import { cn } from "@/lib/utils"
 
 /**
@@ -27,7 +27,7 @@ interface NativePageWrapperProps {
 }
 
 export function NativePageWrapper({ children, className, noBottomPad }: NativePageWrapperProps) {
-    if (!isNativePlatform()) return <>{children}</>
+    if (!isMobileAppView()) return <>{children}</>
 
     return (
         <div

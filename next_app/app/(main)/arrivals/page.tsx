@@ -7,7 +7,7 @@ import { ShieldAlert, RefreshCw, Truck, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/i18n/language-provider"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { isNativePlatform } from "@/lib/capacitor-utils"
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
 import { NativeCard } from "@/components/mobile/NativeCard"
 
 export default function ArrivalsPage() {
@@ -23,7 +23,7 @@ export default function ArrivalsPage() {
     }
 
     // ── NATIVE MOBILE RENDER ─────────────────────────────────────────────────
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <ErrorBoundary>
                 <div className="bg-[#EFEFEF] min-h-dvh pb-6">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { callApi } from '@/lib/frappeClient';
 import { useAuth } from '@/components/auth/auth-provider'
-import { isNativePlatform } from '@/lib/capacitor-utils'
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils'
 import { NativePageWrapper } from "@/components/mobile/NativePageWrapper"
 import { NativeCard } from "@/components/mobile/NativeCard"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -37,7 +37,7 @@ export default function Ledgers() {
     }, [user, profile])
 
 
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <NativePageWrapper title="">
                 <div className="space-y-6 pb-24 bg-[#F2F2F7] min-h-dvh">

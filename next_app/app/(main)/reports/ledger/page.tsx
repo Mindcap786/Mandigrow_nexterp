@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { NativeCard } from "@/components/mobile/NativeCard";
 
 export default function PartyLedgerPage() {
@@ -149,7 +149,7 @@ export default function PartyLedgerPage() {
         fetchContacts();
     }, [profile?.organization_id]);
 
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         const matchingContact = contacts.find(c => c.id === selectedContact);
         let mobileBalance = openingBalance;
 

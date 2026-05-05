@@ -15,7 +15,7 @@ import { SnackbarProvider } from '@/components/mobile/Snackbar'
 import { StockAlertsProvider } from '@/components/alerts/StockAlertsProvider'
 import { NetworkStatus } from '@/components/capacitor/network-status'
 import { PullToRefresh } from '@/components/capacitor/pull-to-refresh'
-import { isNativePlatform } from '@/lib/capacitor-utils'
+import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -32,10 +32,10 @@ export default function MainLayout({
 
     useEffect(() => {
         // Initial detection
-        setIsNative(isNativePlatform());
+        setIsNative(isMobileAppView());
 
         // Listen for window resize to toggle UI between Desktop/Native modes
-        const handleResize = () => setIsNative(isNativePlatform());
+        const handleResize = () => setIsNative(isMobileAppView());
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -120,11 +120,11 @@ export default function MainLayout({
                     className={cn(
                         "flex flex-col min-h-screen bg-slate-50 transition-all duration-300",
                         "print:block print:min-h-0 print:overflow-visible print:bg-white print:h-auto print:ml-0",
-                        "md:ml-[288px]",
+                        "md:ml-[var(--sidebar-width)]",
                         // Mobile web: add bottom padding so content doesn't hide behind the fixed bottom nav
                         "pb-20 md:pb-0"
                     )}
-                    style={{ marginLeft: sidebarWidth }}
+                    style={{ '--sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
                 >
                     <SubscriptionStatusBanner />
 

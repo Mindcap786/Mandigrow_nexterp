@@ -5,12 +5,12 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { NativePageWrapper } from "@/components/mobile/NativePageWrapper";
-import { isNativePlatform } from "@/lib/capacitor-utils";
+import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 
 export default function DayBookPageClient() {
     const router = useRouter();
 
-    if (isNativePlatform()) {
+    if (isMobileAppView()) {
         return (
             <NativePageWrapper>
                 <DayBook />

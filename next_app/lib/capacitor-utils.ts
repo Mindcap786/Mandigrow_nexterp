@@ -28,6 +28,17 @@ export function isNativePlatform(): boolean {
     // 2. Build-time Capacitor flag (baked in by build-mobile.sh)
     if (process.env.NEXT_PUBLIC_CAPACITOR === 'true') return true;
 
-    // Mobile web browsers use the standard responsive layout — NOT native layout.
+// Mobile web browsers use the standard responsive layout — NOT native layout.
     return false;
+}
+
+/**
+ * Returns true if the device is either a genuine native app OR a narrow mobile web browser.
+ * Used to render app-like UI components (Vyapar style) on mobile web without forcing the
+ * problematic fixed-inset layout shell.
+ */
+export function isMobileAppView(): boolean {
+    if (typeof window === 'undefined') return false;
+    if (isNativePlatform()) return true;
+    return window.innerWidth < 768; // Render app-like UI on mobile screens
 }
