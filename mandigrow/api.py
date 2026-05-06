@@ -2876,9 +2876,11 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         # We MUST forcefully bypass the ORM and write the clearance date for ALL cleared cheques
         # AND all instantaneous Bank/UPI transfers. Otherwise, they get trapped in the Daybook's
         # "uncleared cheque" filter and disappear from liquid balances.
+        # IMPORTANT: the elif must guard `not is_cheque` — cheque voucher_type is also "Bank Entry"
+        # but pending cheques must NOT have a clearance_date stamped on them.
         if (is_cheque and is_cheque_cleared):
             je.db_set("clearance_date", cheque_norm or date_norm)
-        elif je.voucher_type == "Bank Entry":
+        elif je.voucher_type == "Bank Entry" and not is_cheque:
             je.db_set("clearance_date", posting_date)
 
         return {
@@ -3225,7 +3227,7 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
                 "status": ["in", ["Pending", "Partial", "Unpaid"]],
                 "docstatus": 1
             },
-            fields=["name", "total_net_payable as totalamount", "amount_paid as amountreceived", "status"],
+            fields=["name", "net_payable_farmer as totalamount", "amount_paid as amountreceived", "status"],
             order_by="arrival_date asc, creation asc"
         )
 

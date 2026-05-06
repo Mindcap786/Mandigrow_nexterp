@@ -11,6 +11,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
+// Helper: display date in DD/MM/YY format
+const formatDMY = (iso: string) => {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y.slice(2)}`;
+};
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -270,23 +276,33 @@ export default function ChequeManagementPage() {
                         </div>
                     </div>
 
-                    {/* Date Range */}
+                    {/* Date Range — shown as DD/MM/YY */}
                     <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
                         <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Period</span>
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="text-xs font-bold text-slate-700 bg-transparent border-none focus:ring-0 p-0 w-24"
-                        />
+                        {/* Start date */}
+                        <div className="relative flex items-center gap-1">
+                            <span className="text-xs font-bold text-slate-700 min-w-[54px]">{formatDMY(startDate)}</span>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                                title="Select start date"
+                            />
+                        </div>
                         <span className="text-slate-300">—</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="text-xs font-bold text-slate-700 bg-transparent border-none focus:ring-0 p-0 w-24"
-                        />
+                        {/* End date */}
+                        <div className="relative flex items-center gap-1">
+                            <span className="text-xs font-bold text-slate-700 min-w-[54px]">{formatDMY(endDate)}</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                                title="Select end date"
+                            />
+                        </div>
                     </div>
                 </div>
 
