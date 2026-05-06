@@ -244,7 +244,12 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         LEFT JOIN `tabAccount` acc ON gl.account = acc.name
         WHERE gl.is_cancelled = 0
           AND gl.company = %s
-          AND acc.account_name NOT LIKE 'Commission Income%'
+          -- Exclude Commission Income legs from the Day Book view.
+          -- COALESCE is required because acc is a LEFT JOIN — without it,
+          -- any GL entry whose account is missing from tabAccount would have
+          -- acc.account_name = NULL, and NULL NOT LIKE '...' evaluates to NULL
+          -- (falsy), silently dropping legitimate purchase/payment entries.
+          AND COALESCE(acc.account_name, '') NOT LIKE 'Commission Income%'
           AND (
               -- Non-cheque entries
               ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date = %s)
