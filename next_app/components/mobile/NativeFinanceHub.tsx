@@ -90,8 +90,9 @@ export function NativeFinanceHub() {
 
         if (!isManualRefresh && !summary.receivables) setLoadingStats(true)
         try {
-            const { data, error }: any = await (supabase.schema('mandi').rpc('get_financial_summary', { p_org_id: orgId }) as any)
-            if (!error && data) {
+            const timestamp = Date.now();
+            const data: any = await callApi('mandigrow.api.get_financial_summary', { p_org_id: orgId, _cache_bust: timestamp })
+            if (data) {
                 setSummary(data)
                 const existing = cacheGet<any>('finance_stats', orgId) || {}
                 cacheSet('finance_stats', orgId, { ...existing, summary: data })
@@ -112,38 +113,25 @@ export function NativeFinanceHub() {
             return
         }
 
-        const { data: accounts } = await supabase
-            .schema('mandi').from('accounts').select('id, name, opening_balance, description, account_sub_type')
-            .eq('organization_id', orgId).eq('type', 'asset').eq('is_active', true)
-            .or("account_sub_type.eq.bank,name.ilike.%bank%,name.ilike.%HDFC%,name.ilike.%SBI%").order('name')
-        
-        if (!accounts || accounts.length === 0) { 
-            setBankAccounts([])
-            setBankBalances({})
-            return 
-        }
+        try {
+            const res: any = await callApi('mandigrow.api.get_bank_accounts', {});
+            const accounts = Array.isArray(res) ? res : (res?.message || res?.data || []);
 
-        const filtered = accounts.filter((acc: any) => !/(transit|cheques?\s*in\s*hand)/i.test(acc.name))
-        
-        // Optimized check: Instead of fetching ALL ledger entries, we fetch current balance per account
-        const { data: currentBalances } = await supabase
-            .schema('mandi')
-            .from('ledger_entries')
-            .select('account_id, debit, credit')
-            .in('account_id', filtered.map(a => a.id))
-            .eq('organization_id', orgId)
-            .eq('status', 'active')
+            if (!accounts || accounts.length === 0) { 
+                setBankAccounts([])
+                setBankBalances({})
+                return 
+            }
 
-        const map: Record<string, number> = {}
-        filtered.forEach((acc: any) => { 
-            const entries = (currentBalances || []).filter(e => e.account_id === acc.id)
-            const balance = entries.reduce((s, e) => s + (Number(e.debit) - Number(e.credit)), 0)
-            map[acc.id] = Number(acc.opening_balance || 0) + balance
-        })
+            const map: Record<string, number> = {}
+            accounts.forEach((acc: any) => { 
+                map[acc.id] = typeof acc.balance === 'number' ? acc.balance : 0
+            })
 
-        setBankAccounts(filtered)
-        setBankBalances(map)
-        cacheSet('finance_bank_accounts', orgId, { accounts: filtered, balances: map })
+            setBankAccounts(accounts)
+            setBankBalances(map)
+            cacheSet('finance_bank_accounts', orgId, { accounts: accounts, balances: map })
+        } catch { }
     }, [orgId])
 
     // ── Fetch party list -----------------------------------------------------
@@ -153,28 +141,31 @@ export function NativeFinanceHub() {
         const cacheKey = `finance_parties_${filterType}_${subFilter}_${debouncedSearch}_${pageNum}`
         const isStale = cacheIsStale(cacheKey, orgId)
         
-        if (!isStale && !isManualRefresh && partyList.length > 0) return
+        // Always fetch on manual refresh; also fetch if cache is stale
+        // NOTE: We do NOT guard on partyList.length here — that caused the filter bug
+        // where switching from a populated list would not re-fetch with new params.
+        if (!isStale && !isManualRefresh) return
 
-        if (!isManualRefresh && partyList.length === 0) setLoadingList(true)
+        setLoadingList(true)
         try {
             const from = pageNum * PAGE_SIZE
-            const to = from + PAGE_SIZE - 1
-            let query = supabase.schema('mandi').from('view_party_balances')
-                .select('*', { count: 'exact' }).eq('organization_id', orgId).range(from, to)
             
-            if (filterType !== 'all') query = query.eq('contact_type', filterType)
-            if (subFilter === 'receivable') query = query.gt('net_balance', 0)
-            else if (subFilter === 'payable') query = query.lt('net_balance', 0)
-            if (debouncedSearch) query = query.or(`contact_name.ilike.%${debouncedSearch}%,contact_city.ilike.%${debouncedSearch}%`)
+            const res = await callApi('mandigrow.api.get_party_balances', {
+                p_org_id: orgId,
+                filter_type: filterType,
+                sub_filter: subFilter,
+                search_query: debouncedSearch,
+                limit_start: from,
+                limit_page_length: PAGE_SIZE
+            });
             
-            const { data, count, error }: any = await query
-            if (!error && data) {
-                setPartyList(data)
-                setTotalCount(count || 0)
-                cacheSet(cacheKey, orgId, { data, count })
+            if (res && res.data) {
+                setPartyList(res.data)
+                setTotalCount(res.count || 0)
+                cacheSet(cacheKey, orgId, { data: res.data, count: res.count || 0 })
             }
         } catch { } finally { setLoadingList(false) }
-    }, [orgId, filterType, subFilter, debouncedSearch, partyList.length])
+    }, [orgId, filterType, subFilter, debouncedSearch])
 
     // ── On mount & filter changes --------------------------------------------
     useEffect(() => { 
@@ -184,12 +175,14 @@ export function NativeFinanceHub() {
         }
     }, [orgId, fetchStats, fetchBankAccounts])
 
-    useEffect(() => { 
-        if (orgId) {
-            setPage(0)
-            fetchParties(0)
-        }
-    }, [filterType, subFilter, debouncedSearch, orgId, fetchParties])
+    // Whenever filter/search/org changes: clear the current list immediately
+    // so the loader shows and then re-fetch with the new params.
+    useEffect(() => {
+        if (!orgId) return
+        setPage(0)
+        setPartyList([])  // Clear immediately for responsive UX
+        fetchParties(0, true)  // Force re-fetch, bypass cache
+    }, [filterType, subFilter, debouncedSearch, orgId])
 
     // ── Derived values -------------------------------------------------------
     const totalBank = Object.values(bankBalances).reduce((s, v) => s + v, 0)

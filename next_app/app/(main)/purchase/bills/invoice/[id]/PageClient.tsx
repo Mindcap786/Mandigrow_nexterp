@@ -18,6 +18,7 @@ export default function PurchaseBillInvoicePage() {
     const [arrival, setArrival] = useState<any>(null)
     const [arrivalLots, setArrivalLots] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [isDownloading, setIsDownloading] = useState(false)
 
     useEffect(() => {
         if (id && profile?.organization_id) {
@@ -54,6 +55,28 @@ export default function PurchaseBillInvoicePage() {
         window.print()
     }
 
+    const handleDownload = async () => {
+        if (!lot || isDownloading) return;
+        setIsDownloading(true);
+        try {
+            const { generatePurchaseBillPDF } = await import('@/lib/generate-invoice-pdf').catch(() => ({ generatePurchaseBillPDF: null })) as any;
+            if (generatePurchaseBillPDF) {
+                const { downloadBlob } = await import('@/lib/capacitor-share');
+                const blob = await generatePurchaseBillPDF(lot, arrival, organization, arrivalLots);
+                const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'bill';
+                await downloadBlob(blob, `PurchaseBill_${billNo}.pdf`);
+            } else {
+                // Fallback: print to PDF
+                handlePrint();
+            }
+        } catch {
+            // Fallback: print to PDF
+            handlePrint();
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="h-screen flex items-center justify-center text-white font-black animate-pulse uppercase tracking-[0.3em]">
@@ -72,7 +95,7 @@ export default function PurchaseBillInvoicePage() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 p-4 md:p-8 space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8 space-y-8">
             {/* Header / Actions */}
             <div className="max-w-[800px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4 no-print">
                 <Button variant="ghost" className="text-gray-500 hover:text-white pl-0 md:pl-4" onClick={() => router.back()}>
@@ -86,6 +109,14 @@ export default function PurchaseBillInvoicePage() {
                     >
                         <Printer className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
                         PRINT
+                    </Button>
+                    <Button
+                        disabled={isDownloading}
+                        className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm"
+                        onClick={handleDownload}
+                    >
+                        {isDownloading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 animate-spin shrink-0" /> : <Download className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />}
+                        <span className="truncate">{isDownloading ? "SAVING..." : "DOWNLOAD"}</span>
                     </Button>
                 </div>
             </div>
@@ -105,8 +136,8 @@ export default function PurchaseBillInvoicePage() {
                 </div>
             </div>
 
-            {/* Template */}
-            <div className="relative">
+            {/* Template — elevated card presentation */}
+            <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5">
                 <PurchaseBillInvoice
                     lot={lot}
                     arrival={arrival}

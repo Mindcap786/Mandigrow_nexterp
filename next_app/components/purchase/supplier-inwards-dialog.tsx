@@ -50,26 +50,22 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
 
     useEffect(() => {
         const fetchLocations = async () => {
-            const { data } = await supabase.schema('mandi').from('storage_locations').select('name').order('name');
-            if (data) setStorageLocations(data);
+            try {
+                const res: any = await callApi('mandigrow.api.get_storage_locations', {});
+                const locs = Array.isArray(res) ? res : (res?.message || res?.data || []);
+                if (locs) setStorageLocations(locs);
+            } catch { }
         };
         fetchLocations();
     }, []);
 
     const handleRelocate = async (lotId: string, newLocation: string) => {
-        const { error } = await supabase.schema('mandi').rpc('relocate_lot', { 
-            p_lot_id: lotId, 
-            p_new_location: newLocation 
-        });
-
-        if (error) {
-            toast({ title: "Transfer Failed", description: error.message, variant: "destructive" });
-        } else {
+        try {
+            await callApi('mandigrow.api.relocate_lot', { lot_id: lotId, new_location: newLocation });
             toast({ title: "Stock Transferred", description: `Lot moved to ${newLocation}` });
-            // Refresh logic: for now we suggest a reload or the parent handles it.
-            // Ideally we'd update the local state, but since this is a complex grouped structure, 
-            // a router.refresh() is safer for sync.
             router.refresh();
+        } catch (e: any) {
+            toast({ title: "Transfer Failed", description: e?.message || 'Failed to relocate lot', variant: "destructive" });
         }
     };
 

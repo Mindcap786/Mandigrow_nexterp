@@ -3465,6 +3465,9 @@ def get_dashboard_data() -> dict:
             "outflow": float(outflow),
             "daily_expenses": float(daily_expenses)
         },
+        # Include raw daybook so the frontend can derive stats via calculateDaybookStats
+        # — guaranteeing absolute parity between Command Center and the Day Book report.
+        "daybook_data": daybook_data,
         "recentActivity": recent_activity,
         "salesTrend": sales_trend
     }
