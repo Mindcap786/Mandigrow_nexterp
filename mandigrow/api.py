@@ -244,6 +244,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         LEFT JOIN `tabAccount` acc ON gl.account = acc.name
         WHERE gl.is_cancelled = 0
           AND gl.company = %s
+          AND acc.account_name NOT LIKE 'Commission Income%'
           AND (
               -- Non-cheque entries
               ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date = %s)
@@ -5963,12 +5964,14 @@ def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_d
     # 1. Resolve Context
     is_sale = doc_type == "Mandi Sale"
     party_field = "buyerid" if is_sale else "party_id"
-    doc_info = frappe.db.get_value(doc_type, doc_name, [party_field, "organization_id"], as_dict=True)
+    mode_field = "paymentmode" if is_sale else "advance_payment_mode"
+    doc_info = frappe.db.get_value(doc_type, doc_name, [party_field, "organization_id", mode_field], as_dict=True)
     if not doc_info:
         return {"status": "pending", "paid": 0, "balance": total, "total": total}
 
     party = party_id or doc_info.get(party_field)
     org_id = doc_info.get("organization_id")
+    payment_mode = (doc_info.get(mode_field) or "").strip().lower()
     if not party:
         return {"status": "pending", "paid": 0, "balance": total, "total": total}
 
@@ -6065,6 +6068,12 @@ def _get_ledger_summary(doc_type, doc_name, total_amount, as_of_date=None, due_d
     # Transit (unsubmitted) is always considered 'pending' for cheques
     total_cleared_linked = linked_paid
     total_pending_linked = pending_cheque_linked + linked_transit
+
+    # Strict Udhaar Protection: 
+    # If this was explicitly recorded as a credit/udhaar transaction, do NOT auto-consume 
+    # the unlinked FIFO pool. It stays pending until a payment is explicitly linked.
+    if payment_mode == "credit" and total_cleared_linked == 0 and total_pending_linked == 0:
+        return {"status": "pending", "paid": 0, "balance": total, "total": total, "pending_cheque": 0}
 
     # 3. Priority B: FIFO Pool (Unlinked Generic Payments)
     # Identify the bill's position in the chronological order.

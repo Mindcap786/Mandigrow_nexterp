@@ -28,8 +28,8 @@ interface SearchableSelectProps {
     emptyMessage?: string
     disabled?: boolean
     className?: string
-    error?: boolean
-    onSelected?: (value: string) => void
+    id?: string
+    autoOpenOnFocus?: boolean
 }
 
 export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSelectProps>(({
@@ -43,6 +43,8 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
     className,
     error = false,
     onSelected,
+    id,
+    autoOpenOnFocus = false,
 }, ref) => {
     const [open, setOpen] = React.useState(false)
     const internalRef = React.useRef<HTMLButtonElement>(null)
@@ -79,13 +81,15 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button
+                    id={id}
                     ref={internalRef}
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
                     onFocus={() => {
-                        // Removed auto setOpen(true) on focus as requested by users.
-                        // Users can press Enter or click to open.
+                        if (autoOpenOnFocus && !justSelectedRef.current) {
+                            setOpen(true);
+                        }
                     }}
                     className={cn(
                         "w-full justify-between bg-white border-slate-200 text-black font-black hover:bg-slate-50 transition-all shadow-sm overflow-hidden",

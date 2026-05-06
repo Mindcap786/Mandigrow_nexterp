@@ -7,12 +7,12 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
-import { 
-    Calendar as CalendarIcon, 
-    Plus, 
-    Trash2, 
-    Save, 
-    Loader2, 
+import {
+    Calendar as CalendarIcon,
+    Plus,
+    Trash2,
+    Save,
+    Loader2,
     ChevronRight,
     ShieldCheck,
     Search,
@@ -81,21 +81,21 @@ const formSchema = z.object({
     storage_location: z.string().min(1, 'Required'),
     supplier_id: z.string().min(1, 'Required'),
     arrival_type: z.enum(['commission', 'direct', 'commission_supplier']).default('direct'),
-    
+
     // Vehicle & Logistics
     vehicle_number: z.string().optional().default(''),
     lot_no: z.string().optional().default(''),
     vehicle_type: z.string().optional().default(''),
     guarantor: z.string().optional().default(''),
-    
+
     // Driver Details
     driver_name: z.string().optional().default(''),
     driver_mobile: z.string().optional().default(''),
-    
+
     // Expenses
     loading_amount: z.union([z.number(), z.literal('')]).transform(v => v === '' ? 0 : v).default(0),
     other_expenses: z.union([z.number(), z.literal('')]).transform(v => v === '' ? 0 : v).default(0),
-    
+
     advance: z.union([z.number(), z.literal('')]).transform(v => v === '' ? 0 : v),
     advance_payment_mode: z.enum(['credit', 'cash', 'upi_bank', 'cheque']).default('credit'),
     advance_bank_account_id: z.string().optional(),
@@ -125,7 +125,7 @@ interface QuickPurchaseFormValues {
     storage_location: string;
     supplier_id: string;
     arrival_type: 'commission' | 'direct' | 'commission_supplier';
-    
+
     vehicle_number: string;
     lot_no: string;
     vehicle_type: string;
@@ -162,7 +162,7 @@ export function QuickPurchaseForm() {
     const router = useRouter()
     const { profile, loading: authLoading } = useAuth()
     const [finalBillNo, setFinalBillNo] = useState<string | null>(null)
-    
+
     // UI State
     const [showSuccessDialog, setShowSuccessDialog] = useState(false)
     const [isConfirming, setIsConfirming] = useState(false)
@@ -171,10 +171,10 @@ export function QuickPurchaseForm() {
     const [recordCompleted, setRecordCompleted] = useState(false)
 
     // Use the unified master data hook
-    const { 
-        contacts: masterContacts, 
-        commodities: masterCommodities, 
-        storageLocations: masterLocations, 
+    const {
+        contacts: masterContacts,
+        commodities: masterCommodities,
+        storageLocations: masterLocations,
         bankAccounts: masterBanks,
         defaultCommissionRate: masterDefaultComm,
         loading: masterLoading,
@@ -256,11 +256,11 @@ export function QuickPurchaseForm() {
     }, [form.watch('supplier_id'), rows, masterContacts, form, arrivalType])
 
     const calculateRowFinancials = (row: any, type: string) => {
-        if (!row) return { 
-            grossValue: 0, 
-            adjustedValue: 0, 
-            commissionAmount: 0, 
-            expensesTotal: 0, 
+        if (!row) return {
+            grossValue: 0,
+            adjustedValue: 0,
+            commissionAmount: 0,
+            expensesTotal: 0,
             netPayable: 0,
             unitCost: 0
         }
@@ -268,11 +268,11 @@ export function QuickPurchaseForm() {
         const qty = Number(row.qty) || 0
         const rate = Number(row.rate) || 0
         const commPercent = type === 'direct' ? 0 : (Number(row.commission) || 0)
-        
+
         // 1. Gross Value
         const grossValue = qty * rate
         const commissionAmount = (grossValue * commPercent) / 100
-        
+
         // Net Payable per row: What Mandi owes for this specific item
         const netPayable = grossValue - commissionAmount
 
@@ -289,9 +289,9 @@ export function QuickPurchaseForm() {
     const totalFinancials = useMemo(() => {
         const tripLoading = Number(form.watch('loading_amount')) || 0
         const tripOther = Number(form.watch('other_expenses')) || 0
-        
+
         const selectedArrivalType = arrivalType || 'direct'
-        
+
         const rowTotals = rows.reduce((acc, row) => {
             const financials = calculateRowFinancials(row, selectedArrivalType)
             return {
@@ -322,7 +322,7 @@ export function QuickPurchaseForm() {
 
     const onSubmit = async (values: QuickPurchaseFormValues) => {
         if (!profile?.organization_id) return
-        
+
         // Prevent submission if any row is overpaid
         if (totalFinancials.isOverpaid) {
             toast.error("Advance amount exceeding the total bill amount. Please correct before saving.")
@@ -375,7 +375,7 @@ export function QuickPurchaseForm() {
 
     const handleFinalConfirm = async () => {
         if (!submittedValues || !profile?.organization_id) return
-        
+
         const values = submittedValues
         const submissionType = values.arrival_type;
 
@@ -475,21 +475,21 @@ export function QuickPurchaseForm() {
 
     return (
         <Form {...form}>
-            <form 
+            <form
                 onSubmit={form.handleSubmit(onSubmit as any, (errors) => {
                     console.error("QuickPurchase Validation Errors:", errors);
-                    
+
                     // Filter out any weird empty string keys that Zod/RHF sometimes injects
                     const realErrors = Object.entries(errors).filter(([key]) => key !== "");
-                    
+
                     if (realErrors.length > 0) {
                         const [field, error] = realErrors[0];
-                        
+
                         if (field === 'rows' && Array.isArray((error as any).message || error)) {
                             // Find the first row that has an error
                             const rowErrors = (error as any).message || error;
                             const firstErroneousRowIndex = rowErrors.findIndex((e: any) => e !== undefined && e !== null);
-                            
+
                             if (firstErroneousRowIndex !== -1) {
                                 const rowError = rowErrors[firstErroneousRowIndex];
                                 const fieldName = Object.keys(rowError)[0];
@@ -502,9 +502,9 @@ export function QuickPurchaseForm() {
                             toast.error("Please fill all required fields correctly.");
                         }
                     } else if (errors[""]) {
-                         toast.error(String((errors[""] as any).message || "Validation failed"));
+                        toast.error(String((errors[""] as any).message || "Validation failed"));
                     }
-                })} 
+                })}
                 className="space-y-8 pb-32"
             >
                 {/* Header Section */}
@@ -563,6 +563,14 @@ export function QuickPurchaseForm() {
                                         }))}
                                         value={field.value}
                                         onChange={field.onChange}
+                                        autoOpenOnFocus={true}
+                                        onSelected={(val) => {
+                                            field.onChange(val);
+                                            // Fast navigation: jump to first row's item search
+                                            setTimeout(() => {
+                                                document.getElementById('item-search-0')?.focus();
+                                            }, 50);
+                                        }}
                                         placeholder="Select party..."
                                         className="h-14 bg-slate-50 border-none rounded-2xl text-xl font-black"
                                         error={!!form.formState.errors.supplier_id}
@@ -713,12 +721,12 @@ export function QuickPurchaseForm() {
                             const rowFinancials = calculateRowFinancials(row, form.watch('arrival_type'))
 
                             return (
-                                <div 
-                                    key={field.id} 
+                                <div
+                                    key={field.id}
                                     className="group bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 relative overflow-hidden"
                                 >
                                     <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-blue-500 transition-colors" />
-                                    
+
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                                         {/* Row Header */}
                                         <div className="md:col-span-12 flex items-center justify-between border-b border-slate-50 pb-4 mb-2">
@@ -733,7 +741,7 @@ export function QuickPurchaseForm() {
                                                             const item = masterCommodities.find(i => i.id === row.item_id);
                                                             const baseName = item?.name || "Pick Item";
                                                             const baseAttributes = (item?.custom_attributes as any) || {};
-                                                            
+
                                                             return formatCommodityName(baseName, baseAttributes);
                                                         })()}
                                                     </div>
@@ -824,9 +832,9 @@ export function QuickPurchaseForm() {
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">Qty / Nugs</FormLabel>
                                                         <FormControl>
-                                                            <Input 
-                                                                type="number" 
-                                                                {...field} 
+                                                            <Input
+                                                                type="number"
+                                                                {...field}
                                                                 onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                                 className={cn(
                                                                     "h-10 font-black text-lg bg-slate-50 border-none text-center rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm",
@@ -844,9 +852,9 @@ export function QuickPurchaseForm() {
                                                     <FormItem>
                                                         <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">Rate / Price</FormLabel>
                                                         <FormControl>
-                                                            <Input 
-                                                                type="number" 
-                                                                {...field} 
+                                                            <Input
+                                                                type="number"
+                                                                {...field}
                                                                 onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                                 className={cn(
                                                                     "h-10 font-black text-lg bg-blue-50 border-none text-center text-blue-700 rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm",
@@ -869,14 +877,14 @@ export function QuickPurchaseForm() {
                                                                         Comm %
                                                                     </FormLabel>
                                                                     <FormControl>
-                                                                        <Input 
-                                                                            type="number" 
-                                                                            {...field} 
+                                                                        <Input
+                                                                            type="number"
+                                                                            {...field}
                                                                             onChange={e => {
                                                                                 const val = e.target.value === '' ? '' : Number(e.target.value);
                                                                                 field.onChange(val);
                                                                             }}
-                                                                            className="h-10 font-black text-lg bg-white border-slate-100 text-center rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm" 
+                                                                            className="h-10 font-black text-lg bg-white border-slate-100 text-center rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm"
                                                                         />
                                                                     </FormControl>
                                                                 </FormItem>
@@ -905,8 +913,8 @@ export function QuickPurchaseForm() {
                                                 </div>
                                                 <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-emerald-50/50 border border-emerald-100">
                                                     <span className="text-[7px] font-black uppercase text-emerald-500 mb-1">
-                                                        {form.watch('arrival_type') === 'direct' ? 'Net Cost' : 
-                                                         form.watch('arrival_type') === 'commission' ? 'Farmer Gets' : 'Supplier Gets'}
+                                                        {form.watch('arrival_type') === 'direct' ? 'Net Cost' :
+                                                            form.watch('arrival_type') === 'commission' ? 'Farmer Gets' : 'Supplier Gets'}
                                                     </span>
                                                     <span className="text-sm font-black text-emerald-600">₹{(rowFinancials?.netPayable || 0).toLocaleString()}</span>
                                                     <span className="text-[6px] text-emerald-400">Net payable</span>
@@ -966,9 +974,9 @@ export function QuickPurchaseForm() {
                                                 <FormControl>
                                                     <div className="relative">
                                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-emerald-600">₹</span>
-                                                        <Input 
-                                                            type="number" 
-                                                            {...field} 
+                                                        <Input
+                                                            type="number"
+                                                            {...field}
                                                             disabled={form.watch('advance_payment_mode') === 'credit'}
                                                             onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                             className={cn(
@@ -1060,12 +1068,11 @@ export function QuickPurchaseForm() {
                                                         <Landmark className="w-4 h-4 text-emerald-600" />
                                                         <span className="text-[10px] font-black uppercase tracking-widest">Cheque Settlement</span>
                                                     </div>
-                                                    
-                                                    <label className={`flex items-center gap-2 cursor-pointer shadow-sm select-none px-3 py-1.5 rounded-full border transition-all duration-200 w-fit ${
-                                                        form.watch("advance_cheque_status")
-                                                        ? 'bg-emerald-100 border-emerald-500 shadow-sm shadow-emerald-200'
-                                                        : 'bg-white border-slate-200 hover:bg-slate-50'
-                                                    }`}>
+
+                                                    <label className={`flex items-center gap-2 cursor-pointer shadow-sm select-none px-3 py-1.5 rounded-full border transition-all duration-200 w-fit ${form.watch("advance_cheque_status")
+                                                            ? 'bg-emerald-100 border-emerald-500 shadow-sm shadow-emerald-200'
+                                                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                                                        }`}>
                                                         <span className={cn("text-[10px] font-black uppercase tracking-wider", form.watch("advance_cheque_status") ? 'text-emerald-800' : 'text-slate-600')}>
                                                             {form.watch("advance_cheque_status") ? '⚡ Cleared Instantly' : '📅 Clear Later'}
                                                         </span>
@@ -1262,7 +1269,7 @@ export function QuickPurchaseForm() {
                                 </div>
 
                                 <div className="flex flex-col md:flex-row gap-4">
-                                    <Button 
+                                    <Button
                                         className="flex-1 h-16 rounded-3xl font-black uppercase tracking-[0.2em] text-xs bg-slate-900 text-white hover:bg-black transition-all shadow-2xl shadow-slate-200 active:scale-95 flex items-center justify-center gap-4 group"
                                         onClick={() => {
                                             setRecordCompleted(false)
@@ -1295,7 +1302,7 @@ export function QuickPurchaseForm() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="p-8 space-y-8 bg-white">
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-1">
@@ -1354,7 +1361,7 @@ export function QuickPurchaseForm() {
                             </div>
 
                             <div className="p-8 border-t border-slate-50 bg-slate-50/50 flex gap-4">
-                                <Button 
+                                <Button
                                     variant="outline"
                                     className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] border-slate-200 hover:bg-white transition-all shadow-sm active:scale-95"
                                     onClick={() => {
@@ -1366,7 +1373,7 @@ export function QuickPurchaseForm() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button 
+                                <Button
                                     disabled={isConfirming}
                                     className="flex-[1.5] h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-slate-900 text-white hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95 gap-3"
                                     onClick={handleFinalConfirm}
