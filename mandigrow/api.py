@@ -2843,6 +2843,12 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             "Contra Entry" if v_type == "contra"
             else ("Cash Entry" if (p_payment_mode or "").lower() == "cash" else "Bank Entry")
         )
+        
+        # Frappe requires specific voucher types for certain account types
+        if v_type == "expense" and p_expense_account:
+            acc_type = frappe.get_cached_value("Account", p_expense_account, "account_type")
+            if acc_type == "Depreciation" or "depreciation" in p_expense_account.lower():
+                je.voucher_type = "Depreciation Entry"
         if is_cheque:
             je.cheque_no   = p_cheque_no or "CHQ-" + frappe.generate_hash(length=8)
             je.cheque_date = cheque_norm
@@ -4945,31 +4951,19 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 loss_date_params = []
                 if date_from and date_to:
                     loss_date_cond = """
-                        AND (
-                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date BETWEEN %s AND %s)
-                            OR
-                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date BETWEEN %s AND %s)
-                        )
+                        AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s
                     """
-                    loss_date_params = [date_from, date_to, date_from, date_to]
+                    loss_date_params = [date_from, date_to]
                 elif date_from:
                     loss_date_cond = """
-                        AND (
-                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date >= %s)
-                            OR
-                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date >= %s)
-                        )
+                        AND COALESCE(je.clearance_date, gl.posting_date) >= %s
                     """
-                    loss_date_params = [date_from, date_from]
+                    loss_date_params = [date_from]
                 elif date_to:
                     loss_date_cond = """
-                        AND (
-                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date <= %s)
-                            OR
-                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date <= %s)
-                        )
+                        AND COALESCE(je.clearance_date, gl.posting_date) <= %s
                     """
-                    loss_date_params = [date_to, date_to]
+                    loss_date_params = [date_to]
                 rows_sl = frappe.db.sql(f"""
                     SELECT gl.debit
                     FROM `tabGL Entry` gl
@@ -5017,31 +5011,19 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
 
                 if date_from and date_to:
                     date_condition = """
-                        AND (
-                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date BETWEEN %s AND %s)
-                            OR
-                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date BETWEEN %s AND %s)
-                        )
+                        AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s
                     """
-                    date_params_be = [date_from, date_to, date_from, date_to]
+                    date_params_be = [date_from, date_to]
                 elif date_from:
                     date_condition = """
-                        AND (
-                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date >= %s)
-                            OR
-                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date >= %s)
-                        )
+                        AND COALESCE(je.clearance_date, gl.posting_date) >= %s
                     """
-                    date_params_be = [date_from, date_from]
+                    date_params_be = [date_from]
                 elif date_to:
                     date_condition = """
-                        AND (
-                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date <= %s)
-                            OR
-                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date <= %s)
-                        )
+                        AND COALESCE(je.clearance_date, gl.posting_date) <= %s
                     """
-                    date_params_be = [date_to, date_to]
+                    date_params_be = [date_to]
 
                 rows_be = frappe.db.sql(f"""
                     SELECT gl.debit
