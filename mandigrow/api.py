@@ -4516,8 +4516,12 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
     filters = {"organization_id": org_id}
     if status_filter and status_filter != "all":
         if status_filter == "overdue":
-            filters["paymentmode"] = "pending"
-        # Map generic status to Mandi Sale field
+            filters["status"] = ["in", ["Pending", "Partial"]]
+            filters["duedate"] = ["<", today()]
+        elif status_filter == "pending":
+            filters["status"] = ["in", ["Pending", "Partial"]]
+        elif status_filter == "paid":
+            filters["status"] = "Paid"
     if date_from:
         filters["saledate"] = [">=", date_from[:10] if date_from else None]
     if date_to:
