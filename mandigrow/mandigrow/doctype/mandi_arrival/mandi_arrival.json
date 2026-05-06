@@ -108,7 +108,7 @@
   },
   {
    "fieldname": "driver_mobile",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Driver Mobile"
   },
   {

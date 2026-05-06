@@ -48,7 +48,7 @@
   },
   {
    "fieldname": "driver_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",
    "label": "Driver Phone"
   },
   {
