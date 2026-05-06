@@ -73,11 +73,6 @@ export function NativeSummaryCard({
                         prefix="₹"
                         className="text-4xl font-bold text-white tabular-nums tracking-tight"
                     />
-                    {/* Trend Glow Capsule */}
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
-                        <TrendingUp className="w-2.5 h-2.5 text-green-300" />
-                        <span className="text-[10px] font-bold text-green-300">+12%</span>
-                    </div>
                 </div>
             </div>
 

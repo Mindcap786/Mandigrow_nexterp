@@ -155,22 +155,22 @@ export default function Dashboard() {
 
         return (
             <div className="px-4 py-3 space-y-4">
-                {/* Hero Summary Card */}
+                {/* Hero Summary Card - Sales */}
                 <NativeSummaryCard
                     businessName={profile?.organization?.name || 'MandiGrow'}
-                    dateLabel="Today's Performance"
-                    totalLabel="Today's Purchases"
-                    totalAmount={`₹${(stats.cash_purchase + stats.udhaar_purchase).toLocaleString()}`}
+                    dateLabel="Today's Sales"
+                    totalLabel="Total Revenue"
+                    totalAmount={`₹${stats.revenue.toLocaleString()}`}
                     metrics={[
                         {
-                            label: 'Cash Paid',
-                            value: `₹${stats.cash_purchase.toLocaleString()}`,
-                            trend: stats.cash_purchase > 0 ? "up" : "flat"
+                            label: 'Cash Sales',
+                            value: `₹${stats.collections.toLocaleString()}`,
+                            trend: stats.collections > 0 ? "up" : "flat"
                         },
                         {
-                            label: 'Receivable',
-                            value: `₹${stats.collections.toLocaleString()}`,
-                            trend: stats.collections > 0 ? "down" : "flat"
+                            label: 'Udhaar',
+                            value: `₹${stats.payables.toLocaleString()}`,
+                            trend: stats.payables > 0 ? "down" : "flat"
                         },
                         {
                             label: 'Expenses',
@@ -179,6 +179,24 @@ export default function Dashboard() {
                         },
                     ]}
                 />
+
+                {/* Additional Stats Grid for Mobile (Parity with Web View) */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                    <StatChip 
+                        label="Purchases" 
+                        value={`₹${(stats.cash_purchase + stats.udhaar_purchase).toLocaleString()}`} 
+                        icon={<Package className="w-4 h-4" />} 
+                        color="#d97706" 
+                        onPress={() => router.push(ROUTES.PURCHASE_BILLS)}
+                    />
+                    <StatChip 
+                        label="Liquid Assets" 
+                        value={`₹${(stats.inflow - stats.outflow).toLocaleString()}`} 
+                        icon={<ArrowUpRight className="w-4 h-4" />} 
+                        color="#059669" 
+                        onPress={() => router.push(ROUTES.REPORT_DAYBOOK)}
+                    />
+                </div>
 
                 {/* Stock Alerts Summary */}
                 <StockAlertSummaryCard />
