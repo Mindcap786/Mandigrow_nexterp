@@ -330,7 +330,7 @@ export function MandiCommissionForm() {
                 </div>
                 <div>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Vehicle No</Label>
-                    <Input placeholder="XX-00-YY-0000" value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} className="h-10 font-bold uppercase mt-1 rounded-lg" />
+                    <Input placeholder="XX-00-YY-0000" value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} onKeyDown={(e) => { if(e.key === "Enter") { e.preventDefault(); document.getElementById("farmer-search-select")?.focus(); } }} className="h-10 font-bold uppercase mt-1 rounded-lg" />
                 </div>
             </div>
 
@@ -371,6 +371,8 @@ export function MandiCommissionForm() {
                     <div className="space-y-4">
                         <div>
                              <SearchableSelect
+                                id="farmer-search-select"
+                                autoOpenOnFocus
                                 ref={farmerSearchRef}
                                 options={farmers.map((f) => ({
                                     label: `${f.name}${f.internal_id ? ` [${f.internal_id}]` : ""}${f.city ? ` (${f.city})` : ""}`,
@@ -378,7 +380,9 @@ export function MandiCommissionForm() {
                                 }))}
                                 value={currentRow.farmerId || ""}
                                 onChange={handleFarmerSelect}
-                                onSelected={() => itemSearchRef.current?.focus()}
+                                onSelected={() => {
+                                    setTimeout(() => document.getElementById("item-search-select")?.focus(), 50);
+                                }}
                                 placeholder="Search Farmer Name..."
                                 className="h-12 text-base font-bold border-2 border-slate-200 mt-1 rounded-xl"
                             />
@@ -386,6 +390,8 @@ export function MandiCommissionForm() {
 
                         <div>
                             <SearchableSelect
+                                id="item-search-select"
+                                autoOpenOnFocus
                                 ref={itemSearchRef}
                                 options={commodities.map((i) => ({
                                     label: buildItemLabel(i),
@@ -393,7 +399,9 @@ export function MandiCommissionForm() {
                                 }))}
                                 value={currentRow.itemId || ""}
                                 onChange={handleItemSelect}
-                                onSelected={() => qtyRef.current?.focus()}
+                                onSelected={() => {
+                                    setTimeout(() => qtyRef.current?.focus(), 50);
+                                }}
                                 placeholder="Search Item / Variety..."
                                 className="h-12 text-base font-bold border-2 border-slate-200 mt-1 rounded-xl"
                             />
