@@ -95,8 +95,8 @@ export default function PurchaseBillsPage() {
         try {
             const result: any = await callApi('mandigrow.api.get_purchase_bills', {
                 org_id: orgId,
-                date_from: dateRange?.from ? startOfDay(dateRange.from).toISOString() : null,
-                date_to: dateRange?.to ? endOfDay(dateRange.to).toISOString() : null,
+                date_from: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
+                date_to: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
             });
 
             const fetchedBills = result?.bills || [];

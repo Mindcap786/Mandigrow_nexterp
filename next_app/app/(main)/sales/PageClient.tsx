@@ -115,8 +115,8 @@ export default function Sales() {
                 page_size: pageSize,
                 status_filter: statusFilter,
                 // When showAllTime is true, send no date filter to get ALL records
-                date_from: showAllTime ? null : (dateRange.from ? startOfDay(dateRange.from).toISOString() : null),
-                date_to: showAllTime ? null : (dateRange.to ? endOfDay(dateRange.to).toISOString() : null),
+                date_from: showAllTime ? null : (dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null),
+                date_to: showAllTime ? null : (dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null),
                 search: debouncedSearch || null,
             });
 
