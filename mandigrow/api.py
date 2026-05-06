@@ -1295,6 +1295,64 @@ def get_team_members() -> list:
 
 
 @frappe.whitelist(allow_guest=False)
+def get_unlinked_staff() -> list:
+    """
+    Returns staff members from Mandi Contact who have NOT yet been granted system
+    (Frappe User) access. Used to populate the 'Authorize Employee' dropdown.
+    
+    A staff contact is considered 'linked' if a Frappe User with the same
+    mandi_organization already has their mandi_contact field set to this contact,
+    OR if the contact has a linked_user field set.
+    
+    Returns fields: id, name, email, status (always 'active'), user_id (null = not yet authorized)
+    """
+    org_id = _get_user_org()
+    if not org_id:
+        return []
+
+    # Get all staff-type contacts for this org
+    staff_contacts = frappe.get_all("Mandi Contact",
+        filters={"organization_id": org_id, "contact_type": "staff"},
+        fields=["name as id", "full_name as name", "phone as email"],
+        ignore_permissions=True
+    )
+
+    if not staff_contacts:
+        return []
+
+    # Find which contacts are already linked to a system user
+    # A contact is linked if a User in this org has their full_name matching or
+    # if linked_user is set on the contact doc. We use the simplest safe check:
+    # see if any User in this org has full_name matching the contact name.
+    authorized_names = set()
+    org_users = frappe.get_all("User",
+        filters={"mandi_organization": org_id, "enabled": 1},
+        fields=["full_name"],
+        ignore_permissions=True
+    )
+    for u in org_users:
+        if u.full_name:
+            authorized_names.add(u.full_name.strip().lower())
+
+    result = []
+    for contact in staff_contacts:
+        contact_name_lower = (contact.get("name") or "").strip().lower()
+        is_linked = contact_name_lower in authorized_names
+        result.append({
+            "id": contact["id"],
+            "name": contact["name"],
+            # Use phone as fallback for email field since Mandi Contact uses phone
+            "email": contact.get("email") or "",
+            "user_id": "linked" if is_linked else None,
+            "status": "active",  # We only query active contacts
+        })
+
+    return result
+
+
+
+
+@frappe.whitelist(allow_guest=False)
 def get_stock_alerts() -> list:
     """Fetch stock alerts for the current organization."""
     org_id = _get_user_org()

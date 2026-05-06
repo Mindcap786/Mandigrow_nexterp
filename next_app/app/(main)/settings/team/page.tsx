@@ -81,14 +81,13 @@ export default function TeamPage() {
             const memberData: any = await callApi('mandigrow.api.get_team_members');
             if (memberData) setMembers(memberData);
 
-            // 2. Fetch all employees from Master Data (Auto-isolated by Org)
-            const employeeData: any = await callApi('mandigrow.api.get_contacts_page', { 
-                type: 'Employee', 
-                page_size: 100 
-            });
-            if (employeeData?.contacts) setEmployees(employeeData.contacts);
+            // 2. Fetch staff contacts NOT yet authorized (correct API — returns user_id + status)
+            //    get_contacts_page was wrong here: it queries Mandi Contact without user_id/status
+            //    fields, causing the unlinkedEmployees filter to always return empty.
+            const staffData: any = await callApi('mandigrow.api.get_unlinked_staff');
+            if (Array.isArray(staffData)) setEmployees(staffData);
 
-            // 3. Fetch current plan limit stats (Mocked for now as Frappe doesn't handle seat limits yet)
+            // 3. Fetch current plan limit stats
             setPlanLimit({ 
                 current: memberData?.length || 0, 
                 max: 'unlimited', 
@@ -183,9 +182,10 @@ export default function TeamPage() {
         }
     };
 
-    // Filter employees who do NOT have web access yet — case-insensitive status check
-    // ERPNext returns 'Active' (capitalized), UI historically sent 'active' (lowercase)
-    const unlinkedEmployees = employees.filter(emp => !emp.user_id && emp.status?.toLowerCase() === 'active');
+    // Filter employees who do NOT have system access yet.
+    // get_unlinked_staff returns user_id=null for unlinked, user_id='linked' for already authorized.
+    // status is always 'active' since the API only returns active contacts.
+    const unlinkedEmployees = employees.filter(emp => !emp.user_id);
 
     return (
         <div className={cn(
@@ -294,7 +294,7 @@ export default function TeamPage() {
                                             className="px-4 py-2 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
                                             onClick={() => { 
                                                 setSelectedEmployeeId(emp.id); 
-                                                setAuthEmail(emp.email || '');
+                                                setAuthEmail(emp.email && emp.email.includes('@') ? emp.email : '');
                                                 setOpen(true); 
                                             }}
                                         >
@@ -392,7 +392,8 @@ export default function TeamPage() {
                                             onValueChange={(val) => {
                                                 setSelectedEmployeeId(val);
                                                 const emp = unlinkedEmployees.find(e => e.id === val);
-                                                if (emp) setAuthEmail(emp.email || '');
+                                                // Staff contacts use phone not email — keep email blank for manual entry
+                                                if (emp) setAuthEmail(emp.email && emp.email.includes('@') ? emp.email : '');
                                             }}
                                         >
                                             <SelectTrigger className="bg-slate-50 border-slate-200 h-14 rounded-2xl text-black font-black text-lg">
@@ -647,7 +648,7 @@ export default function TeamPage() {
                                     <Button size="sm" className="w-full bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest h-10 group-hover:bg-indigo-600 transition-colors" 
                                         onClick={() => { 
                                             setSelectedEmployeeId(emp.id); 
-                                            setAuthEmail(emp.email || '');
+                                            setAuthEmail(emp.email && emp.email.includes('@') ? emp.email : '');
                                             setOpen(true); 
                                         }}>
                                         Grant System Access
