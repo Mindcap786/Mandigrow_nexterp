@@ -4702,11 +4702,32 @@ def get_drawings_account() -> dict:
 def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     """
     Returns summarized Trading P&L data for a period.
-    Calculates Revenue, Buying Cost, Mandi Expenses, and Net Profit per lot.
+
+    P&L Philosophy (Unit Cost Model):
+    ----------------------------------
+    Cost of Goods Sold (COGS) is computed using the true "Unit Cost" — the
+    landed cost per unit that the Mandi actually bore, mirroring the frontend
+    calculateItemFinancials() logic.  This prevents double-counting because
+    packing / loading / transport expenses are already embedded in the unit
+    cost for Direct purchases, and for Commission purchases they are recovered
+    from the farmer (not Mandi's expense at all).
+
+    Direct purchase unit cost:
+        adj_qty   = initial_qty - less_units
+        adj_value = adj_qty * supplier_rate - farmer_charges
+        transport_share = proportional share of trip (hire + hamali + other)
+        unit_cost = (adj_value + packing + loading + transport_share) / initial_qty
+
+    Commission purchase unit cost:
+        adj_value = adj_qty * supplier_rate - farmer_charges
+        unit_cost = adj_value / initial_qty
+
+    COGS for sold qty = unit_cost * qty_sold
+    Profit per lot   = Revenue - COGS + Commission
     """
     org_id = _get_user_org()
-    
-    # Filter by date
+
+    # ── Date filters ──────────────────────────────────────────────────────────
     filters = {"organization_id": org_id}
     if date_from and date_to:
         filters["saledate"] = ["between", [date_from, date_to]]
@@ -4715,27 +4736,23 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     elif date_to:
         filters["saledate"] = ["<=", date_to]
 
-    # Get all sales for this org
+    # ── Fetch Sales ───────────────────────────────────────────────────────────
     sales = frappe.get_all("Mandi Sale",
         filters=filters,
         fields=["name", "saledate", "totalamount"],
         ignore_permissions=True
     )
-    
+
     if not sales:
         return {
-            "items": [],
-            "totalRevenue": 0,
-            "totalCost": 0,
-            "totalExpenses": 0,
-            "totalCommission": 0,
-            "totalProfit": 0,
-            "margin": 0
+            "items": [], "totalRevenue": 0, "totalCost": 0,
+            "totalExpenses": 0, "totalCommission": 0, "totalProfit": 0,
+            "totalTradingLoss": 0, "totalStockLoss": 0,
+            "totalBusinessExpenses": 0, "margin": 0
         }
 
     sale_ids = [s.name for s in sales]
-    
-    # Get all sale items with lot details
+
     sale_items = frappe.get_all("Mandi Sale Item",
         filters={"parent": ["in", sale_ids]},
         fields=["parent", "lot_id", "qty", "rate", "amount"],
@@ -4745,87 +4762,151 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     lot_ids = list({si.lot_id for si in sale_items if si.lot_id})
     lots = frappe.get_all("Mandi Lot",
         filters={"name": ["in", lot_ids]},
-        fields=["name", "lot_code", "parent", "supplier_rate", "initial_qty", "packing_cost", "loading_cost", "farmer_charges", "commission_percent", "item_id"],
+        fields=[
+            "name", "lot_code", "parent", "supplier_rate", "initial_qty",
+            "packing_cost", "loading_cost", "farmer_charges",
+            "commission_percent", "item_id", "less_percent", "less_units"
+        ],
         ignore_permissions=True
     )
     lot_map = {l.name: l for l in lots}
-    
-    item_map = {}
-    item_ids = list({l.item_id for l in lots if l.item_id})
+
+    # ── Fetch parent Mandi Arrival data (arrival_type + trip expenses) ────────
+    arrival_ids = list({l.parent for l in lots if l.parent})
+    arrival_map = {}
+    if arrival_ids:
+        arrivals = frappe.get_all("Mandi Arrival",
+            filters={"name": ["in", arrival_ids]},
+            fields=["name", "arrival_type", "hire_charges", "hamali_expenses", "other_expenses"],
+            ignore_permissions=True
+        )
+        arrival_map = {a.name: a for a in arrivals}
+
+    # ── Step 1: per-arrival total adjusted value (for transport proration) ────
+    arrival_adj_totals = {}
+    for lot in lots:
+        arrival_id  = lot.parent
+        initial_qty = float(lot.initial_qty or 1)
+        rate        = float(lot.supplier_rate or 0)
+        less_units  = float(lot.less_units or 0)
+        less_pct    = float(lot.less_percent or 0)
+        farmer_chg  = float(lot.farmer_charges or 0)
+
+        adj_qty = (initial_qty - less_units) if less_units else initial_qty * (1 - less_pct / 100)
+        adj_val = max(0.0, adj_qty * rate - farmer_chg)
+        arrival_adj_totals[arrival_id] = arrival_adj_totals.get(arrival_id, 0.0) + adj_val
+
+    # ── Step 2: compute unit cost per lot ─────────────────────────────────────
+    lot_unit_cost  = {}
+    lot_arv_type   = {}
+    for lot in lots:
+        arrival_id   = lot.parent
+        arrival      = arrival_map.get(arrival_id) if arrival_id else None
+        arrival_type = (arrival.arrival_type if arrival else "direct") or "direct"
+        lot_arv_type[lot.name] = arrival_type
+
+        initial_qty = float(lot.initial_qty or 1)
+        rate        = float(lot.supplier_rate or 0)
+        less_units  = float(lot.less_units or 0)
+        less_pct    = float(lot.less_percent or 0)
+        farmer_chg  = float(lot.farmer_charges or 0)
+        packing     = float(lot.packing_cost or 0)
+        loading     = float(lot.loading_cost or 0)
+
+        adj_qty = (initial_qty - less_units) if less_units else initial_qty * (1 - less_pct / 100)
+        adj_val = max(0.0, adj_qty * rate - farmer_chg)
+
+        if arrival_type.lower() == "direct":
+            trip_transport = 0.0
+            if arrival:
+                trip_transport = (float(arrival.hire_charges or 0)
+                                  + float(arrival.hamali_expenses or 0)
+                                  + float(arrival.other_expenses or 0))
+            arr_total = arrival_adj_totals.get(arrival_id, 0.0)
+            transport_share = (adj_val / arr_total * trip_transport) if arr_total > 0 else 0.0
+            total_net_cost  = adj_val + packing + loading + transport_share
+        else:
+            # Commission arrivals: Mandi is an agent; expenses recovered from farmer.
+            total_net_cost = adj_val
+
+        lot_unit_cost[lot.name] = total_net_cost / initial_qty if initial_qty > 0 else 0.0
+
+    # ── Item display name map ─────────────────────────────────────────────────
+    item_map  = {}
+    item_ids  = list({l.item_id for l in lots if l.item_id})
     if item_ids:
-        items_list = frappe.get_all("Item", filters={"name": ["in", item_ids]}, fields=["name", "item_name"])
-        for i in items_list:
+        for i in frappe.get_all("Item", filters={"name": ["in", item_ids]}, fields=["name", "item_name"]):
             item_map[i.name] = i.item_name
 
-    stats_map = {}
-    total_revenue = 0
-    total_cost = 0
-    total_expenses = 0
-    total_commission = 0
+    # ── Main aggregation loop ─────────────────────────────────────────────────
+    stats_map        = {}
+    total_revenue    = 0.0
+    total_cost       = 0.0
+    total_commission = 0.0
 
     for si in sale_items:
         lot = lot_map.get(si.lot_id)
-        if not lot: continue
-        
-        qty = float(si.qty or 0)
-        revenue = float(si.amount or 0)
-        initial_qty = float(lot.initial_qty or 1)
-        pro_rata = qty / initial_qty if initial_qty > 0 else 0
-        
-        # Calculate costs
-        cost = float(lot.supplier_rate or 0) * qty
-        lot_total_expense = float(lot.packing_cost or 0) + float(lot.loading_cost or 0) + float(lot.farmer_charges or 0)
-        expenses = lot_total_expense * pro_rata
-        commission = (cost * float(lot.commission_percent or 0)) / 100
-        
-        profit = revenue - cost - expenses + commission
-        
-        total_revenue += revenue
-        total_cost += cost
-        total_expenses += expenses
+        if not lot:
+            continue
+
+        qty          = float(si.qty or 0)
+        revenue      = float(si.amount or 0)
+        unit_cost    = lot_unit_cost.get(lot.name, 0.0)
+        cogs         = unit_cost * qty          # Cost of Goods Sold (unit-cost based)
+        arrival_type = lot_arv_type.get(lot.name, "direct")
+        initial_qty  = float(lot.initial_qty or 1)
+        pro_rata     = qty / initial_qty if initial_qty > 0 else 0.0
+
+        # Commission income: only for non-direct arrivals, pro-rated by sold qty
+        if arrival_type.lower() != "direct":
+            less_units   = float(lot.less_units or 0)
+            less_pct     = float(lot.less_percent or 0)
+            adj_qty      = (initial_qty - less_units) if less_units else initial_qty * (1 - less_pct / 100)
+            base_adj_val = adj_qty * float(lot.supplier_rate or 0)
+            commission   = pro_rata * (base_adj_val * float(lot.commission_percent or 0) / 100)
+        else:
+            commission = 0.0
+
+        trading_profit    = revenue - cogs + commission
+        total_revenue    += revenue
+        total_cost       += cogs
         total_commission += commission
-        
+
         if si.lot_id not in stats_map:
             item_name = item_map.get(lot.item_id, lot.item_id or "Unknown")
             stats_map[si.lot_id] = {
-                "id": si.lot_id,
-                "lot_code": lot.lot_code,
-                "date": next((s.saledate for s in sales if s.name == si.parent), ""),
-                "item": item_name,
-                "lot": {
-                    "commodity": {
-                        "name": item_name
-                    }
-                },
-                "qty": 0,
-                "revenue": 0,
-                "cost": 0,
-                "expenses": 0,
-                "commission": 0,
-                "profit": 0
+                "id":           si.lot_id,
+                "lot_code":     lot.lot_code,
+                "date":         next((s.saledate for s in sales if s.name == si.parent), ""),
+                "item":         item_name,
+                "arrival_type": arrival_type,
+                "lot":          {"commodity": {"name": item_name}},
+                "qty":          0,
+                "revenue":      0,
+                "cost":         0,
+                "expenses":     0,   # Always 0 — embedded in unit cost
+                "commission":   0,
+                "profit":       0
             }
-        
+
         entry = stats_map[si.lot_id]
-        entry["qty"] += qty
-        entry["revenue"] += revenue
-        entry["cost"] += cost
-        entry["expenses"] += expenses
+        entry["qty"]        += qty
+        entry["revenue"]    += revenue
+        entry["cost"]       += cogs
         entry["commission"] += commission
-        entry["profit"] += profit
+        entry["profit"]     += trading_profit
 
     pl_items = []
     for lot_id, data in stats_map.items():
         data["saleRate"] = data["revenue"] / data["qty"] if data["qty"] > 0 else 0
-        data["margin"] = (data["profit"] / data["revenue"] * 100) if data["revenue"] > 0 else 0
+        data["margin"]   = (data["profit"] / data["revenue"] * 100) if data["revenue"] > 0 else 0
         pl_items.append(data)
 
     pl_items.sort(key=lambda x: str(x["date"]), reverse=True)
 
-    # ── Trading Loss: goods sold below purchase price ─────────────────────────
-    # When sale_rate < supplier_rate, the shortfall per unit is a trading loss.
+    # ── Trading Loss indicator (informational) ────────────────────────────────
     total_trading_loss = 0.0
     for entry in pl_items:
-        # If an item's per-unit cost > per-unit revenue, the difference is a loss
         qty_sold = entry.get("qty") or 0
         if qty_sold > 0:
             per_unit_revenue = entry["revenue"] / qty_sold
@@ -4833,12 +4914,12 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             if per_unit_cost > per_unit_revenue:
                 total_trading_loss += (per_unit_cost - per_unit_revenue) * qty_sold
 
-    # ── Stock Losses: from report_loss GL entries (Debit: Stock Losses account) ──
+    # ── Stock Losses (GL-based, from report_loss entries) ─────────────────────
     total_stock_loss = 0.0
+    loss_accs = []
     try:
         company = _get_user_company()
         if company:
-            # Find the Stock Losses expense account for this company
             loss_accs = frappe.get_all("Account",
                 filters={"company": company, "is_group": 0,
                          "account_name": ["like", "%Stock Loss%"]},
@@ -4853,8 +4934,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             if loss_accs:
                 gl_filters = {
                     "account": ["in", [a.name for a in loss_accs]],
-                    "company": company,
-                    "is_cancelled": 0
+                    "company": company, "is_cancelled": 0
                 }
                 if date_from and date_to:
                     gl_filters["posting_date"] = ["between", [date_from, date_to]]
@@ -4862,33 +4942,29 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                     gl_filters["posting_date"] = [">=", date_from]
                 elif date_to:
                     gl_filters["posting_date"] = ["<=", date_to]
-                gl_rows = frappe.get_all("GL Entry",
-                    filters=gl_filters,
-                    fields=["debit"],
-                    ignore_permissions=True
+                total_stock_loss = sum(
+                    flt(r.debit)
+                    for r in frappe.get_all("GL Entry", filters=gl_filters,
+                                            fields=["debit"], ignore_permissions=True)
                 )
-                total_stock_loss = sum(flt(r.debit) for r in gl_rows)
     except Exception:
         pass
 
-    # ── Business Expenses: all GL debits to Expense-type accounts ─────────────
-    # Excludes Stock Losses (already counted above) and the lot-level expenses
-    # already in total_expenses (packing/loading/farmer charges are cost-of-goods).
+    # ── Business Expenses (GL-based, Mandi's own opex: rent, salaries…) ──────
+    # Packing / loading / transport are NOT included here — they are embedded
+    # in unit cost for direct purchases.
     total_business_expenses = 0.0
     try:
         company = company if 'company' in dir() else _get_user_company()
         if company:
-            # Get all non-group Expense accounts excluding stock-loss accounts
             expense_accs = frappe.get_all("Account",
                 filters={"company": company, "is_group": 0, "root_type": "Expense"},
-                fields=["name", "account_name"],
-                ignore_permissions=True
+                fields=["name", "account_name"], ignore_permissions=True
             )
-            # Exclude stock loss accounts (already counted)
-            stock_loss_names = {a.name for a in (loss_accs if 'loss_accs' in dir() else [])}
-            # Exclude commission/market-fee accounts (already in totalCommission)
-            exclude_keywords = ["commission", "market fee", "market_fee", "nirashrit", "stock loss", "wastage"]
-            business_exp_accs = [
+            stock_loss_names   = {a.name for a in loss_accs}
+            exclude_keywords   = ["commission", "market fee", "market_fee",
+                                  "nirashrit", "stock loss", "wastage"]
+            business_exp_accs  = [
                 a.name for a in expense_accs
                 if a.name not in stock_loss_names
                 and not any(kw in (a.account_name or "").lower() for kw in exclude_keywords)
@@ -4896,8 +4972,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             if business_exp_accs:
                 be_filters = {
                     "account": ["in", business_exp_accs],
-                    "company": company,
-                    "is_cancelled": 0
+                    "company": company, "is_cancelled": 0
                 }
                 if date_from and date_to:
                     be_filters["posting_date"] = ["between", [date_from, date_to]]
@@ -4905,30 +4980,32 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                     be_filters["posting_date"] = [">=", date_from]
                 elif date_to:
                     be_filters["posting_date"] = ["<=", date_to]
-                be_rows = frappe.get_all("GL Entry",
-                    filters=be_filters,
-                    fields=["debit"],
-                    ignore_permissions=True
+                total_business_expenses = sum(
+                    flt(r.debit)
+                    for r in frappe.get_all("GL Entry", filters=be_filters,
+                                            fields=["debit"], ignore_permissions=True)
                 )
-                total_business_expenses = sum(flt(r.debit) for r in be_rows)
     except Exception:
         pass
 
-    total_profit = (total_revenue - total_cost - total_expenses
-                    - total_stock_loss - total_business_expenses + total_commission)
-    net_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
+    # ── Final P&L ─────────────────────────────────────────────────────────────
+    # Revenue - COGS(unit cost) + Commission - Stock Losses - Business Expenses
+    # Operating expenses (packing/loading/transport) are NOT subtracted again.
+    total_profit = (total_revenue - total_cost + total_commission
+                    - total_stock_loss - total_business_expenses)
+    net_margin   = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
 
     return {
-        "items": pl_items,
-        "totalRevenue": total_revenue,
-        "totalCost": total_cost,
-        "totalExpenses": total_expenses,
-        "totalCommission": total_commission,
-        "totalTradingLoss": round(total_trading_loss, 2),
-        "totalStockLoss": round(total_stock_loss, 2),
+        "items":                 pl_items,
+        "totalRevenue":          round(total_revenue, 2),
+        "totalCost":             round(total_cost, 2),
+        "totalExpenses":         0,                               # Embedded in unit cost
+        "totalCommission":       round(total_commission, 2),
+        "totalTradingLoss":      round(total_trading_loss, 2),
+        "totalStockLoss":        round(total_stock_loss, 2),
         "totalBusinessExpenses": round(total_business_expenses, 2),
-        "totalProfit": total_profit,
-        "margin": net_margin
+        "totalProfit":           round(total_profit, 2),
+        "margin":                round(net_margin, 2)
     }
 
 
