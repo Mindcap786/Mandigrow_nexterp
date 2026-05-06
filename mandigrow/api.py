@@ -4932,27 +4932,59 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                     fields=["name"], ignore_permissions=True
                 )
             if loss_accs:
-                gl_filters = {
-                    "account": ["in", [a.name for a in loss_accs]],
-                    "company": company, "is_cancelled": 0
-                }
+                loss_acc_names = [a.name for a in loss_accs]
+                loss_placeholders = ", ".join(["%s"] * len(loss_acc_names))
+                loss_date_cond = ""
+                loss_date_params = []
                 if date_from and date_to:
-                    gl_filters["posting_date"] = ["between", [date_from, date_to]]
+                    loss_date_cond = """
+                        AND (
+                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date BETWEEN %s AND %s)
+                            OR
+                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date BETWEEN %s AND %s)
+                        )
+                    """
+                    loss_date_params = [date_from, date_to, date_from, date_to]
                 elif date_from:
-                    gl_filters["posting_date"] = [">=", date_from]
+                    loss_date_cond = """
+                        AND (
+                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date >= %s)
+                            OR
+                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date >= %s)
+                        )
+                    """
+                    loss_date_params = [date_from, date_from]
                 elif date_to:
-                    gl_filters["posting_date"] = ["<=", date_to]
-                total_stock_loss = sum(
-                    flt(r.debit)
-                    for r in frappe.get_all("GL Entry", filters=gl_filters,
-                                            fields=["debit"], ignore_permissions=True)
-                )
+                    loss_date_cond = """
+                        AND (
+                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date <= %s)
+                            OR
+                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date <= %s)
+                        )
+                    """
+                    loss_date_params = [date_to, date_to]
+                rows_sl = frappe.db.sql(f"""
+                    SELECT gl.debit
+                    FROM `tabGL Entry` gl
+                    LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+                    WHERE gl.is_cancelled = 0
+                      AND gl.company = %s
+                      AND gl.account IN ({loss_placeholders})
+                      {loss_date_cond}
+                """, [company] + loss_acc_names + loss_date_params, as_dict=True)
+                total_stock_loss = sum(flt(r.debit) for r in rows_sl)
     except Exception:
         pass
 
     # ── Business Expenses (GL-based, Mandi's own opex: rent, salaries…) ──────
     # Packing / loading / transport are NOT included here — they are embedded
     # in unit cost for direct purchases.
+    #
+    # DATE LOGIC (mirrors Day Book):
+    #   • Non-cheque entries   → match on posting_date
+    #   • Cleared cheques      → match on clearance_date (not posting_date)
+    # This prevents "instant clear" expense cheques from being missed by the
+    # P&L when their posting_date is outside the selected date range.
     total_business_expenses = 0.0
     try:
         company = company if 'company' in dir() else _get_user_company()
@@ -4970,21 +5002,51 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 and not any(kw in (a.account_name or "").lower() for kw in exclude_keywords)
             ]
             if business_exp_accs:
-                be_filters = {
-                    "account": ["in", business_exp_accs],
-                    "company": company, "is_cancelled": 0
-                }
+                # Build date condition that mirrors the Day Book cheque logic:
+                # non-cheque GL → posting_date; cleared cheque GL → clearance_date
+                acc_placeholders = ", ".join(["%s"] * len(business_exp_accs))
+                date_condition = ""
+                date_params_be  = []
+
                 if date_from and date_to:
-                    be_filters["posting_date"] = ["between", [date_from, date_to]]
+                    date_condition = """
+                        AND (
+                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date BETWEEN %s AND %s)
+                            OR
+                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date BETWEEN %s AND %s)
+                        )
+                    """
+                    date_params_be = [date_from, date_to, date_from, date_to]
                 elif date_from:
-                    be_filters["posting_date"] = [">=", date_from]
+                    date_condition = """
+                        AND (
+                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date >= %s)
+                            OR
+                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date >= %s)
+                        )
+                    """
+                    date_params_be = [date_from, date_from]
                 elif date_to:
-                    be_filters["posting_date"] = ["<=", date_to]
-                total_business_expenses = sum(
-                    flt(r.debit)
-                    for r in frappe.get_all("GL Entry", filters=be_filters,
-                                            fields=["debit"], ignore_permissions=True)
-                )
+                    date_condition = """
+                        AND (
+                            (COALESCE(je.cheque_no, '') = '' AND gl.posting_date <= %s)
+                            OR
+                            (je.cheque_no IS NOT NULL AND je.cheque_no != '' AND je.clearance_date IS NOT NULL AND je.clearance_date <= %s)
+                        )
+                    """
+                    date_params_be = [date_to, date_to]
+
+                rows_be = frappe.db.sql(f"""
+                    SELECT gl.debit
+                    FROM `tabGL Entry` gl
+                    LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+                    WHERE gl.is_cancelled = 0
+                      AND gl.company = %s
+                      AND gl.account IN ({acc_placeholders})
+                      {date_condition}
+                """, [company] + business_exp_accs + date_params_be, as_dict=True)
+
+                total_business_expenses = sum(flt(r.debit) for r in rows_be)
     except Exception:
         pass
 
