@@ -236,7 +236,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             gl.against_voucher, gl.against_voucher_type,
             gl.cost_center, gl.creation,
             COALESCE(je.user_remark, gl.remarks) as remarks,
-            acc.account_type, acc.root_type,
+            acc.account_type, acc.root_type, acc.account_name as acc_account_name,
             je.cheque_no, je.clearance_date
         FROM `tabGL Entry` gl
         LEFT JOIN `tabJournal Entry` je
@@ -244,12 +244,6 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         LEFT JOIN `tabAccount` acc ON gl.account = acc.name
         WHERE gl.is_cancelled = 0
           AND gl.company = %s
-          -- Exclude Commission Income legs from the Day Book view.
-          -- COALESCE is required because acc is a LEFT JOIN — without it,
-          -- any GL entry whose account is missing from tabAccount would have
-          -- acc.account_name = NULL, and NULL NOT LIKE '...' evaluates to NULL
-          -- (falsy), silently dropping legitimate purchase/payment entries.
-          AND COALESCE(acc.account_name, '') NOT LIKE 'Commission Income%'
           AND (
               -- Non-cheque entries
               ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date = %s)
@@ -262,6 +256,16 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
           )
         ORDER BY gl.creation DESC
     """, (company, date, date, date), as_dict=True)
+
+    # ── Python-level filter: exclude Commission Income legs from Day Book ──
+    # This is intentionally done in Python (NOT in SQL) to avoid NULL-unsafe
+    # SQL comparisons on LEFT JOIN columns, which silently drop entire rows.
+    # Commission Income is an internal accrual entry. The Day Book should show
+    # only what was purchased, sold, and what cash/bank movements happened.
+    gl_entries = [
+        e for e in gl_entries
+        if not (e.get("acc_account_name") or "").startswith("Commission Income")
+    ]
 
     # Consolidated redundant gl_entries logic.
 
