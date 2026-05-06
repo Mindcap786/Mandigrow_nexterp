@@ -828,61 +828,36 @@ def get_full_user_context(p_user_id: str = None) -> dict:
         # ─────────────────────────────────────────────────────────────────────────
 
         # ── Subscription Lifecycle Engine ─────────────────────────────────────
-        # SRE-GRADE: Every external call is wrapped so a missing DocType field,
-        # schema mismatch, or unconfigured setting can NEVER crash the login flow.
+        # Uses the canonical subscription_guard module so the frontend receives
+        # the EXACT SAME state that backend enforcement uses.
         # org_data is guaranteed non-None here (either real or HQ fallback above).
-        from frappe.utils import get_datetime, now_datetime, date_diff, add_days
-
-        status = "active"
-        is_locked = False
-        days_to_expiry = 999
-
-        if org_data:
-            expiry_date_str = org_data.get("trial_ends_at")
-            if expiry_date_str:
-                try:
-                    expiry_date = get_datetime(expiry_date_str)
-                    now = now_datetime()
-
-                    # Hard-coded safe defaults — no DocType dependency
-                    grace_days = 7
-                    reminder_days = 7
-
-                    # Attempt to read from SiteContactSettings, but NEVER crash if
-                    # the field doesn't exist (schema not yet migrated, fresh site, etc.)
-                    try:
-                        settings = frappe.get_single("Site Contact Settings")
-                        cycle = org_data.get("billing_cycle") or "monthly"
-                        if cycle == "monthly":
-                            grace_days = int(getattr(settings, "grace_period_monthly", None) or 7)
-                            reminder_days = int(getattr(settings, "reminder_before_expiry_monthly", None) or 7)
-                        else:
-                            grace_days = int(getattr(settings, "grace_period_yearly", None) or 15)
-                            reminder_days = int(getattr(settings, "reminder_before_expiry_yearly", None) or 30)
-                    except Exception:
-                        pass  # Use hard-coded defaults above
-
-                    days_to_expiry = date_diff(expiry_date, now)
-
-                    if now > add_days(expiry_date, grace_days):
-                        status = "locked"
-                        is_locked = True
-                    elif now > expiry_date:
-                        status = "grace_period"
-                    elif days_to_expiry <= reminder_days:
-                        status = "expiring_soon"
-                except Exception:
-                    pass  # Expiry parse failure — treat as active
-
-        # org_data is always a dict here — safe to call .get()
-        subscription_data = {
-            "status": status,
-            "is_locked": is_locked,
-            "is_active": not is_locked,
-            "days_left": days_to_expiry,
-            "expiry_date": (org_data or {}).get("trial_ends_at"),
-            "plan": (org_data or {}).get("subscription_tier") or "starter"
-        }
+        try:
+            from mandigrow.mandigrow.logic.subscription_guard import get_subscription_state
+            sub_state = get_subscription_state(org_id)
+            subscription_data = {
+                "status": sub_state["status"],
+                "is_locked": sub_state["is_locked"],
+                "is_active": sub_state["is_active"],
+                "days_left": sub_state["days_left"],
+                "expiry_date": sub_state["expiry_date"],
+                "plan": sub_state["plan"],
+                "grace_period_days": sub_state["grace_period_days"],
+                "grace_period_ends_at": sub_state["grace_period_ends_at"],
+                "max_users": sub_state["max_users"],
+                "current_user_count": sub_state["current_user_count"],
+                "seats_remaining": sub_state["seats_remaining"],
+                "billing_cycle": sub_state["billing_cycle"],
+            }
+        except Exception:
+            # Fallback — subscription_guard not yet available (pre-migration)
+            subscription_data = {
+                "status": "active",
+                "is_locked": False,
+                "is_active": True,
+                "days_left": 999,
+                "expiry_date": (org_data or {}).get("trial_ends_at"),
+                "plan": (org_data or {}).get("subscription_tier") or "starter",
+            }
 
         return {
             "id": user.name,
@@ -1228,11 +1203,18 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
     Links the created user to the Employee record if employee_id is provided.
     """
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription, enforce_seat_limit
     
     admin_org = organization_id if (is_super_admin() and organization_id) else _get_user_org()
     
     if not admin_org:
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
+
+    # ── Subscription enforcement: block if org is locked/expired ──────────
+    if not is_super_admin():
+        enforce_active_subscription(admin_org)
+    # ── Seat limit enforcement: block if at user capacity ────────────────
+    enforce_seat_limit(admin_org)
 
     user_name = None
 
@@ -2405,6 +2387,8 @@ def update_purchase_bill(arrival_id: str, data: str) -> dict:
     """
     Updates the Mandi Arrival document.
     """
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     try:
         import json
         if isinstance(data, str):
@@ -2580,6 +2564,8 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                    p_cheque_status: str = None, p_invoice_id: str = None, p_arrival_id: str = None,
                    p_lot_id: str = None, p_bank_account_id: str = None, p_discount: float = None,
                    p_account_id: str = None) -> dict:
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     # p_account_id is the canonical alias used by the expense-dialog frontend.
     # Merge it into p_expense_account if not already set.
     if p_account_id and not p_expense_account:
@@ -3543,6 +3529,8 @@ def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
 @frappe.whitelist(allow_guest=False)
 def create_contact(full_name: str, contact_type: str, phone: str = None, city: str = None, address: str = None, internal_id: str = None, opening_balance: float = 0, balance_type: str = 'receivable', org_id: str = None) -> dict:
     """Creates a new Mandi Contact and optional opening balance."""
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     org_id = org_id or _get_user_org()
     doc = frappe.get_doc({
         "doctype": "Mandi Contact",
@@ -3621,6 +3609,8 @@ def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
 @frappe.whitelist(allow_guest=False)
 def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone: str = None, commodity: str = None, source: str = None) -> dict:
     """Creates a new Gate Entry."""
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     org_id = _get_user_org()
     doc = frappe.get_doc({
         "doctype": "Mandi Gate Entry",
@@ -5392,6 +5382,8 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
 @frappe.whitelist(allow_guest=False)
 def delete_sale(sale_id: str = None) -> dict:
     """Delete a sale record."""
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     if not sale_id:
         frappe.throw("Sale ID is required")
     from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
@@ -5574,6 +5566,8 @@ def get_salary_status(org_id: str = None) -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def create_employee(name: str = None, phone: str = None, role: str = None, salary=0, **kwargs) -> dict:
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     """Create a new employee record."""
     org_id = _get_user_org()
     doc = frappe.new_doc("Employee")
@@ -5729,6 +5723,8 @@ def create_gate_entry_with_lots(farmer_id: str = None, trading_model: str = "com
     Atomic creation of Gate Entry + associated Lot records.
     Replaces the old direct Supabase lots.insert() from the frontend.
     """
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     import json
     org_id = _get_user_org()
     if not org_id:
@@ -7612,6 +7608,8 @@ def get_buyer_receivables(org_id: str = None) -> list:
 
 @frappe.whitelist(allow_guest=False)
 def create_commodity(**kwargs) -> dict:
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     """
     Creates or updates a commodity (Item in ERPNext).
     Ensures dependencies like Item Group exist.
@@ -8087,6 +8085,8 @@ def confirm_arrival_transaction(**kwargs) -> dict:
     Unified RPC for confirming any Arrival.
     Ensures Mandi Arrival and Mandi Lots are created and submitted.
     """
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
     import json
     try:
         payload = kwargs
@@ -9513,9 +9513,32 @@ def get_admin_billing_stats() -> dict:
     from frappe.utils import now_datetime, add_days
     expiring_trials = frappe.db.count("Mandi Organization", filters={
         "status": "trial",
-        "trial_ends_at": ["between", [now_datetime(), add_days(now_datetime(), 3)]]
+        "trial_ends_at": ["between", [now_datetime(), add_days(now_datetime(), 7)]]
     })
-    
+
+    # ── Compute REAL alert counts (not hardcoded zeros) ──────────────────
+    expiring_subs = 0
+    grace_period_count = 0
+    try:
+        expiring_subs = frappe.db.count("Mandi Organization", filters={
+            "status": "active",
+            "subscription_end_date": ["between", [now_datetime(), add_days(now_datetime(), 7)]],
+        })
+    except Exception:
+        pass  # subscription_end_date column may not exist yet
+
+    try:
+        grace_period_count = frappe.db.count("Mandi Organization", filters={"status": "grace_period"})
+    except Exception:
+        pass
+
+    locked_count = 0
+    try:
+        locked_count = frappe.db.count("Mandi Organization", filters={"status": "locked"})
+    except Exception:
+        pass
+    # ────────────────────────────────────────────────────────────────────
+
     return {
         "mrr": mrr,
         "arr": mrr * 12,
@@ -9526,9 +9549,9 @@ def get_admin_billing_stats() -> dict:
         "churn_rate": 0,
         "alert_counts": {
             "expiring_trials": expiring_trials,
-            "expiring_subs": 0,
-            "grace_period": 0,
-            "suspended": suspended_count,
+            "expiring_subs": expiring_subs,
+            "grace_period": grace_period_count,
+            "suspended": suspended_count + locked_count,
             "trialing": frappe.db.count("Mandi Organization", filters={"status": "trial"})
         },
         "plan_distribution": plan_distribution,
@@ -9548,16 +9571,65 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
     if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
         frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
 
+    from mandigrow.mandigrow.logic.subscription_guard import log_subscription_event
+    from frappe.utils import now_datetime
+
+    old_status = frappe.db.get_value("Mandi Organization", organization_id, "status") or "unknown"
+
     if action == "suspend":
-        frappe.db.set_value("Mandi Organization", organization_id, "status", "suspended")
-        frappe.db.set_value("Mandi Organization", organization_id, "is_active", 0)
+        frappe.db.set_value("Mandi Organization", organization_id, {
+            "status": "suspended",
+            "is_active": 0,
+            "last_status_change": now_datetime(),
+        })
     elif action == "reactivate":
-        frappe.db.set_value("Mandi Organization", organization_id, "status", "active")
-        frappe.db.set_value("Mandi Organization", organization_id, "is_active", 1)
+        frappe.db.set_value("Mandi Organization", organization_id, {
+            "status": "active",
+            "is_active": 1,
+            "last_status_change": now_datetime(),
+        })
     elif action == "archive":
-        frappe.db.set_value("Mandi Organization", organization_id, "status", "archived")
-        frappe.db.set_value("Mandi Organization", organization_id, "is_active", 0)
+        frappe.db.set_value("Mandi Organization", organization_id, {
+            "status": "archived",
+            "is_active": 0,
+            "last_status_change": now_datetime(),
+        })
+    elif action == "custom-plan":
+        # Custom plan assignment — payload contains plan overrides
+        payload = payload or {}
+        update_fields = {"last_status_change": now_datetime()}
+        if payload.get("name"):
+            update_fields["subscription_tier"] = payload["name"]
+        if payload.get("max_web_users") is not None:
+            update_fields["max_users_override"] = payload.get("max_web_users")
+        if payload.get("price_monthly") is not None:
+            # Store custom pricing in payment_settings JSON
+            import json
+            update_fields["payment_settings"] = json.dumps({
+                "custom_price_monthly": payload.get("price_monthly"),
+                "custom_storage_gb": payload.get("storage_gb"),
+            })
+        frappe.db.set_value("Mandi Organization", organization_id, update_fields)
+        log_subscription_event(
+            org_id=organization_id,
+            action="custom_plan",
+            old_value=old_status,
+            new_value=str(payload),
+            notes=f"Custom plan assigned by {frappe.session.user}"
+        )
+    else:
+        frappe.throw(_("Unknown billing action: {0}").format(action))
         
+    # Log the action (for non-custom-plan actions)
+    if action != "custom-plan":
+        log_subscription_event(
+            org_id=organization_id,
+            action="suspend" if action == "suspend" else ("reactivate" if action == "reactivate" else "archive"),
+            old_value=old_status,
+            new_value=action,
+            notes=f"Admin action by {frappe.session.user}"
+        )
+
     frappe.db.commit()
     return {"success": True}
 
@@ -9696,27 +9768,60 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     if not is_super_admin():
         frappe.throw(_("Access Denied: Only Super Admin can update tenant config."))
 
-    from frappe.utils import add_days, get_datetime
+    from frappe.utils import add_days, get_datetime, now_datetime
+    from mandigrow.mandigrow.logic.subscription_guard import log_subscription_event
 
     org = frappe.get_doc("Mandi Organization", organization_id)
-    
+    changes = []
+
     if "subscription_tier" in config:
+        old = org.subscription_tier
         org.subscription_tier = config["subscription_tier"]
-    
+        if old != config["subscription_tier"]:
+            changes.append(f"tier: {old} → {config['subscription_tier']}")
+
+    if "billing_cycle" in config:
+        org.billing_cycle = config["billing_cycle"]
+
     if "is_active" in config:
         org.is_active = config["is_active"]
         org.status = "active" if config["is_active"] else "suspended"
 
     if "trial_ends_at" in config and config["trial_ends_at"]:
         org.trial_ends_at = get_datetime(config["trial_ends_at"])
-    
-    # grace_period_days does not exist on Mandi Organization DocType.
-    # It is a platform-wide setting stored in Site Contact Settings.
-    # Skipping per-org grace_period update safely.
 
+    if "subscription_end_date" in config and config["subscription_end_date"]:
+        try:
+            org.subscription_end_date = get_datetime(config["subscription_end_date"])
+        except Exception:
+            pass
+
+    if "grace_period_days" in config:
+        try:
+            org.grace_period_days = int(config["grace_period_days"])
+        except Exception:
+            pass
+
+    if "max_users_override" in config:
+        try:
+            org.max_users_override = int(config["max_users_override"])
+        except Exception:
+            pass
+
+    org.last_status_change = now_datetime()
     org.save(ignore_permissions=True)
     frappe.db.commit()
-    
+
+    # Audit log
+    if changes:
+        log_subscription_event(
+            org_id=organization_id,
+            action="plan_change",
+            old_value="",
+            new_value="; ".join(changes),
+            notes=f"Config updated by {frappe.session.user}"
+        )
+
     return {"success": True}
 
 @frappe.whitelist(allow_guest=False)
@@ -10399,11 +10504,41 @@ def reset_invoice_sequence(contact_id: str):
 def on_login(login_manager):
     """
     Called after a user successfully logins.
-    Enforces 'Single Session per User' by deleting any previous sessions.
+    1. Enforces 'Single Session per User' by deleting any previous sessions.
+    2. Blocks authentication for locked/suspended tenants.
     """
     user = login_manager.user
     if user == "Administrator":
         return
+
+    # ── Subscription enforcement at login ────────────────────────────────
+    # Block locked/suspended tenants from even authenticating.
+    # This prevents API-level exploitation by expired tenants.
+    try:
+        org_id = frappe.db.get_value("User", user, "mandi_organization")
+        if org_id:
+            org_status = frappe.db.get_value("Mandi Organization", org_id, "status")
+            blocked_statuses = {"suspended", "locked"}
+            if org_status in blocked_statuses:
+                from mandigrow.mandigrow.logic.subscription_guard import log_subscription_event
+                log_subscription_event(
+                    org_id=org_id,
+                    action="login_blocked",
+                    old_value=org_status,
+                    new_value="login_denied",
+                    notes=f"Login blocked for {user}. Org status: {org_status}",
+                    changed_by=user
+                )
+                frappe.db.commit()
+                frappe.throw(
+                    _("Your organization's access has been suspended. Please contact support or renew your subscription."),
+                    frappe.AuthenticationError
+                )
+    except frappe.AuthenticationError:
+        raise  # Re-raise our own throw
+    except Exception:
+        pass  # Non-fatal — don't block login for system errors
+    # ────────────────────────────────────────────────────────────────────
 
     # Delete all other active sessions for this user
     # Note: frappe.session.sid is already established for the new session

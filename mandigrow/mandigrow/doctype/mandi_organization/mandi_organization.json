@@ -8,13 +8,28 @@
  "engine": "InnoDB",
  "field_order": [
   "organization_name",
+  "subscription_section",
+  "plan_id",
   "subscription_tier",
+  "billing_cycle",
+  "column_break_sub1",
   "status",
-  "trial_ends_at",
   "is_active",
+  "last_status_change",
+  "dates_section",
+  "trial_ends_at",
+  "subscription_start_date",
+  "column_break_dates1",
+  "subscription_end_date",
+  "grace_period_ends_at",
+  "limits_section",
+  "grace_period_days",
+  "max_users_override",
+  "branding_section",
   "brand_color",
   "address",
   "city",
+  "column_break_brand1",
   "gstin",
   "phone",
   "erp_company",
@@ -29,18 +44,61 @@
    "reqd": 1
   },
   {
+   "fieldname": "subscription_section",
+   "fieldtype": "Section Break",
+   "label": "Subscription"
+  },
+  {
+   "fieldname": "plan_id",
+   "fieldtype": "Link",
+   "label": "Plan",
+   "options": "App Plan",
+   "description": "Direct link to the active subscription plan"
+  },
+  {
    "default": "starter",
    "fieldname": "subscription_tier",
    "fieldtype": "Select",
    "label": "Subscription Tier",
-   "options": "starter\nstandard\nprofessional\nenterprise"
+   "options": "starter\nstandard\nprofessional\nenterprise",
+   "description": "Kept for backward compatibility. Synced from plan_id on save."
+  },
+  {
+   "default": "monthly",
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "label": "Billing Cycle",
+   "options": "monthly\nyearly"
+  },
+  {
+   "fieldname": "column_break_sub1",
+   "fieldtype": "Column Break"
   },
   {
    "default": "trial",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "trial\nactive\ngrace_period\nsuspended\nexpired"
+   "options": "trial\nactive\ngrace_period\nsuspended\nexpired\nlocked",
+   "in_list_view": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "description": "Derived from status. Active for trial/active/grace_period. Inactive for suspended/expired/locked."
+  },
+  {
+   "fieldname": "last_status_change",
+   "fieldtype": "Datetime",
+   "label": "Last Status Change",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dates_section",
+   "fieldtype": "Section Break",
+   "label": "Subscription Dates"
   },
   {
    "fieldname": "trial_ends_at",
@@ -48,10 +106,50 @@
    "label": "Trial Ends At"
   },
   {
-   "default": "1",
-   "fieldname": "is_active",
-   "fieldtype": "Check",
-   "label": "Is Active"
+   "fieldname": "subscription_start_date",
+   "fieldtype": "Date",
+   "label": "Subscription Start Date"
+  },
+  {
+   "fieldname": "column_break_dates1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subscription_end_date",
+   "fieldtype": "Datetime",
+   "label": "Subscription End Date",
+   "description": "When the current paid billing period ends"
+  },
+  {
+   "fieldname": "grace_period_ends_at",
+   "fieldtype": "Datetime",
+   "label": "Grace Period Ends At",
+   "description": "Auto-computed: subscription_end_date + grace_period_days. Hard lockout after this.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "limits_section",
+   "fieldtype": "Section Break",
+   "label": "Limits & Overrides"
+  },
+  {
+   "default": "7",
+   "fieldname": "grace_period_days",
+   "fieldtype": "Int",
+   "label": "Grace Period (Days)",
+   "description": "Per-tenant override. Days after expiry before hard lockout."
+  },
+  {
+   "default": "0",
+   "fieldname": "max_users_override",
+   "fieldtype": "Int",
+   "label": "Max Users Override",
+   "description": "Per-tenant override. 0 = use plan default. -1 = unlimited."
+  },
+  {
+   "fieldname": "branding_section",
+   "fieldtype": "Section Break",
+   "label": "Branding & Contact"
   },
   {
    "default": "#10b981",
@@ -68,6 +166,10 @@
    "fieldname": "city",
    "fieldtype": "Data",
    "label": "City"
+  },
+  {
+   "fieldname": "column_break_brand1",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "gstin",
@@ -94,7 +196,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-04 00:00:00.000000",
+ "modified": "2026-05-06 04:30:00.000000",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Organization",

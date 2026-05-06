@@ -185,23 +185,11 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"mandigrow.mandigrow.tasks.all"
-# 	],
-# 	"daily": [
-# 		"mandigrow.mandigrow.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"mandigrow.mandigrow.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"mandigrow.mandigrow.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"mandigrow.mandigrow.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"mandigrow.mandigrow.tasks.daily"
+	],
+}
 
 # Testing
 # -------

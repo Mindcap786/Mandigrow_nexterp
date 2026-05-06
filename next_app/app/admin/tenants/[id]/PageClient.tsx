@@ -245,7 +245,10 @@ export default function TenantDetailPage() {
                 organization_id: id,
                 config: {
                     subscription_tier: override.subscription_tier,
+                    billing_cycle: override.billing_cycle,
                     is_active: org.is_active,
+                    grace_period_days: override.grace_period_days,
+                    max_users_override: override.max_web_users,
                     ...(finalExpiry ? { trial_ends_at: finalExpiry } : {}),
                 }
             });

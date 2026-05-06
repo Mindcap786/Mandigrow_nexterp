@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "autoname": "SUB-LOG-.#####",
+ "creation": "2026-05-06 04:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "organization",
+  "action",
+  "column_break_1",
+  "changed_by",
+  "timestamp",
+  "section_break_2",
+  "old_value",
+  "new_value",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "label": "Organization",
+   "options": "Mandi Organization",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "label": "Action",
+   "options": "plan_change\nstatus_change\nextend\nsuspend\nreactivate\nseat_override\ncustom_plan\narchive\ngrace_transition\nlock_transition\nlogin_blocked",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "changed_by",
+   "fieldtype": "Link",
+   "label": "Changed By",
+   "options": "User",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "label": "Timestamp",
+   "default": "Now",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "old_value",
+   "fieldtype": "Small Text",
+   "label": "Old Value"
+  },
+  {
+   "fieldname": "new_value",
+   "fieldtype": "Small Text",
+   "label": "New Value"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-05-06 04:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Subscription Audit Log",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "export": 1
+  }
+ ],
+ "sort_field": "timestamp",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

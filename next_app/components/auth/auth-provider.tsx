@@ -315,26 +315,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        // Subscription Enforcement — Handles Trial → Grace → Lockout flow
+        // Subscription Enforcement — Uses backend-computed state as SOURCE OF TRUTH
+        // The backend (get_full_user_context) computes status, is_locked, days_left
+        // using the canonical expiry dates and grace period from the org DocType.
+        // We NEVER do client-side date arithmetic — the backend is the authority.
         if (profile && !isSuperAdmin && profile.organization?.name !== "Mandi HQ") {
+            const sub = profile.subscription as any;
+            const isLocked = sub?.is_locked === true;
+            const subStatus = sub?.status || profile.organization?.status;
 
-            const org = profile.organization as any;
-            const now = new Date();
-            const trialEnd = org.trial_ends_at ? new Date(org.trial_ends_at) : null;
-            const gracePeriodEnd = org.grace_period_ends_at ? new Date(org.grace_period_ends_at) : null;
-            
-            const isPastMainExpiry = trialEnd && now > trialEnd;
-            const isPastGracePeriod = !gracePeriodEnd || now > gracePeriodEnd;
-
-            // Trial expired — but check if we're still in grace period
-            const isTrialExpired = org.status === 'trial' && isPastMainExpiry && isPastGracePeriod;
-            const isManuallyExpired = org.status === 'expired' && isPastGracePeriod;
-
-            if ((isTrialExpired || isManuallyExpired || org.is_active === false) && !isPublicPath) {
-                if (org.is_active === false && pathname !== '/suspended') {
+            if (isLocked || subStatus === 'locked' || subStatus === 'suspended') {
+                if (pathname !== '/suspended' && pathname !== '/settings/billing') {
                     router.push('/suspended');
-                } else if ((isTrialExpired || isManuallyExpired) && pathname !== '/admin/billing/renewal') {
-                    router.push('/admin/billing/renewal');
+                }
+            } else if (subStatus === 'expired' || subStatus === 'grace_period') {
+                if (pathname !== '/settings/billing' && pathname !== '/suspended') {
+                    router.push('/settings/billing');
                 }
             }
         }
