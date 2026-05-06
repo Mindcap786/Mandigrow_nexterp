@@ -2814,6 +2814,11 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         cheque_norm = (p_cheque_date.split("T")[0] if p_cheque_date and "T" in p_cheque_date else p_cheque_date) if p_cheque_date else None
         date_norm   = (p_date.split("T")[0] if p_date and "T" in p_date else p_date) or today()
 
+        # Frappe requires cheque_date (Reference date) whenever cheque_no is set.
+        # If the user didn't supply one, default to the transaction date.
+        if is_cheque and not cheque_norm:
+            cheque_norm = date_norm
+
         is_cheque_cleared = True
         if is_cheque:
             # Honour explicit status from UI; else infer from cheque_date.
