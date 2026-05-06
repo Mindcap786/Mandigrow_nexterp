@@ -1088,12 +1088,9 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
         // The cash leg of a purchase/sale never touches Liquid Assets.
         // ─────────────────────────────────────────────────────────────────────
         processedGroups.forEach(group => {
-            // Skip any group that contains a voucher whose Dr ≠ Cr — we do not
-            // want a corrupt voucher (e.g. the ₹34 crore phantom) inflating
-            // the Sales/Purchase/Liquid/Expense totals. The group is still
-            // rendered in the transaction table with a ⚠️ badge so the user
-            // can see and investigate it.
-            if ((group as any).isImbalanced) return;
+            // We no longer skip imbalanced vouchers so that single-entry 
+            // payables/receivables correctly reflect in the dashboard.
+            // if ((group as any).isImbalanced) return;
             group.summaryLegs.forEach((leg: any) => {
                 const type = leg.displayType as string;
                 const val = Math.max(leg.displayDebit || 0, leg.displayCredit || 0);
@@ -1597,27 +1594,7 @@ export default function DayBook() {
                 </div>
             </div>
 
-            {/* Data Health Banner — surfaces vouchers where Dr ≠ Cr. These are
-                excluded from the summary KPIs below so one broken voucher can't
-                inflate the totals, but they are still shown in the transaction
-                table (with a ⚠️ badge) so the mandi owner can find and fix them. */}
-            {summary.imbalancedCount > 0 && (
-                <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-5 flex items-start gap-4 print:hidden">
-                    <div className="flex-shrink-0 mt-0.5">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-xl">⚠️</div>
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-black text-amber-800 text-sm uppercase tracking-wide">
-                            {summary.imbalancedCount} voucher{summary.imbalancedCount === 1 ? '' : 's'} with broken double-entry
-                        </p>
-                        <p className="text-xs text-amber-700 font-medium mt-1 leading-relaxed">
-                            These vouchers have Debit ≠ Credit (largest imbalance: ₹{Math.round(summary.imbalancedWorst).toLocaleString()}).
-                            They are shown below with a ⚠️ marker but are <b>excluded from the summary totals</b> so your KPIs stay accurate.
-                            Run <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-[10px]">scripts/audit-daybook-and-finance.sql</code> (Q1) to see the exact voucher IDs.
-                        </p>
-                    </div>
-                </div>
-            )}
+            {/* Data Health Banner removed as per user requirement (single-entry tracking) */}
 
             {/* Business Tycoon Analytics Summary */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
