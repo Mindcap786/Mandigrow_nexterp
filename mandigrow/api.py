@@ -4887,6 +4887,12 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         for i in frappe.get_all("Item", filters={"name": ["in", item_ids]}, fields=["name", "item_name"]):
             item_map[i.name] = i.item_name
 
+    # ── Pre-calculate Sale goods totals for discount proration ────────────────
+    sale_map = {s.name: s for s in sales}
+    sale_goods_totals = {}
+    for si in sale_items:
+        sale_goods_totals[si.parent] = sale_goods_totals.get(si.parent, 0.0) + float(si.amount or 0)
+
     # ── Main aggregation loop ─────────────────────────────────────────────────
     stats_map        = {}
     total_revenue    = 0.0
@@ -4899,7 +4905,16 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             continue
 
         qty          = float(si.qty or 0)
-        revenue      = float(si.amount or 0)
+        base_revenue = float(si.amount or 0)
+        
+        # ── Discount Proration ────────────────────────────────────────────────
+        sale         = sale_map.get(si.parent)
+        discount     = float(sale.get("discountamount") or 0) if sale else 0.0
+        goods_total  = sale_goods_totals.get(si.parent, 1)
+        prorated_disc= (base_revenue / goods_total) * discount if goods_total > 0 else 0
+        revenue      = base_revenue - prorated_disc
+        # ──────────────────────────────────────────────────────────────────────
+
         unit_cost    = lot_unit_cost.get(lot.name, 0.0)
         cogs         = unit_cost * qty          # Cost of Goods Sold (unit-cost based)
         arrival_type = lot_arv_type.get(lot.name, "direct")
