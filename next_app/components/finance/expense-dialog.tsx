@@ -563,7 +563,6 @@ export function ExpenseDialog({
                                                     <SelectContent className="bg-white border-slate-200 text-black rounded-xl">
                                                         <SelectItem value="cash" className="font-bold py-3 uppercase">CASH</SelectItem>
                                                         <SelectItem value="bank" className="font-bold py-3 uppercase">UPI / BANK</SelectItem>
-                                                        <SelectItem value="cheque" className="font-bold py-3 text-indigo-600 uppercase">CHEQUE</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
