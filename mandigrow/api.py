@@ -2722,46 +2722,117 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
         # 4. Build GL legs ───────────────────────────────────────────────────
         if v_type == "receipt":
-            # Bank/Cash Dr | Debtors Cr (party=Customer, against_voucher=sale)
-            cash_leg = {
-                "account": bank_cash_account,
-                "debit_in_account_currency": amount,
-                "user_remark": f"Receipt from {party_name_display or 'party'}",
-            }
-            party_leg = {
-                "account": party_account,
-                "credit_in_account_currency": amount,
-                "party_type": party_type,
-                "party": party_doc_name,
-                "user_remark": f"Payment received from {party_name_display or 'party'}",
-            }
-            if against_vtype:
-                cash_leg["against_voucher_type"]  = against_vtype
-                cash_leg["against_voucher"]       = against_vname
-                party_leg["against_voucher_type"] = against_vtype
-                party_leg["against_voucher"]      = against_vname
-            accounts.extend([cash_leg, party_leg])
+            # ── Receipt (Buyer pays Mandi) ─────────────────────────────────
+            # Cash leg: only if real money was received (amount > 0)
+            # Write-off leg: only if settlement discount given (discount > 0)
+            #
+            # Buyer write-off = LOSS for Mandi:
+            #   Dr: Discount Allowed (Expense) ← Mandi absorbs the loss
+            #   Cr: Debtors (party)            ← Buyer balance reduced
+            if amount > 0:
+                cash_leg = {
+                    "account": bank_cash_account,
+                    "debit_in_account_currency": amount,
+                    "user_remark": f"Receipt from {party_name_display or 'party'}",
+                }
+                party_leg = {
+                    "account": party_account,
+                    "credit_in_account_currency": amount,
+                    "party_type": party_type,
+                    "party": party_doc_name,
+                    "user_remark": f"Payment received from {party_name_display or 'party'}",
+                }
+                if against_vtype:
+                    cash_leg["against_voucher_type"]  = against_vtype
+                    cash_leg["against_voucher"]       = against_vname
+                    party_leg["against_voucher_type"] = against_vtype
+                    party_leg["against_voucher"]      = against_vname
+                accounts.extend([cash_leg, party_leg])
+
+            if discount > 0:
+                writeoff_exp_acc = (
+                    frappe.db.get_value("Account", {"account_name": "Discount Allowed", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"account_name": ["like", "%Discount%"], "root_type": "Expense", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"account_name": "Bad Debts", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"root_type": "Expense", "company": company, "is_group": 0}, "name")
+                )
+                if not writeoff_exp_acc:
+                    return {"error": "No 'Discount Allowed' expense account found. Please create one in Chart of Accounts."}
+                writeoff_dr = {
+                    "account": writeoff_exp_acc,
+                    "debit_in_account_currency": discount,
+                    "user_remark": f"Write-off / Settlement — {party_name_display or 'party'} (loss to Mandi)",
+                }
+                writeoff_cr = {
+                    "account": party_account,
+                    "credit_in_account_currency": discount,
+                    "party_type": party_type,
+                    "party": party_doc_name,
+                    "user_remark": f"Write-off: {party_name_display or 'party'} balance reduced by \u20b9{discount}",
+                }
+                if against_vtype:
+                    writeoff_dr["against_voucher_type"] = against_vtype
+                    writeoff_dr["against_voucher"]      = against_vname
+                    writeoff_cr["against_voucher_type"] = against_vtype
+                    writeoff_cr["against_voucher"]      = against_vname
+                accounts.extend([writeoff_dr, writeoff_cr])
 
         elif v_type == "payment":
-            # Creditors Dr (party=Supplier, against_voucher=arrival) | Bank/Cash Cr
-            party_leg = {
-                "account": party_account,
-                "debit_in_account_currency": amount,
-                "party_type": party_type,
-                "party": party_doc_name,
-                "user_remark": f"Payment to {party_name_display or 'party'}",
-            }
-            cash_leg = {
-                "account": bank_cash_account,
-                "credit_in_account_currency": amount,
-                "user_remark": f"Cash paid to {party_name_display or 'party'}",
-            }
-            if against_vtype:
-                party_leg["against_voucher_type"] = against_vtype
-                party_leg["against_voucher"]      = against_vname
-                cash_leg["against_voucher_type"]  = against_vtype
-                cash_leg["against_voucher"]       = against_vname
-            accounts.extend([party_leg, cash_leg])
+            # ── Payment (Mandi pays Farmer/Supplier) ─────────────────────────
+            # Cash leg: only if real money is going out (amount > 0)
+            # Write-off leg: only if Mandi negotiated a settlement (discount > 0)
+            #
+            # Supplier write-off = PROFIT for Mandi:
+            #   Dr: Creditors (party)             ← Supplier balance reduced
+            #   Cr: Discount Received (Income)    ← Mandi gains this amount
+            if amount > 0:
+                party_leg = {
+                    "account": party_account,
+                    "debit_in_account_currency": amount,
+                    "party_type": party_type,
+                    "party": party_doc_name,
+                    "user_remark": f"Payment to {party_name_display or 'party'}",
+                }
+                cash_leg = {
+                    "account": bank_cash_account,
+                    "credit_in_account_currency": amount,
+                    "user_remark": f"Cash paid to {party_name_display or 'party'}",
+                }
+                if against_vtype:
+                    party_leg["against_voucher_type"] = against_vtype
+                    party_leg["against_voucher"]      = against_vname
+                    cash_leg["against_voucher_type"]  = against_vtype
+                    cash_leg["against_voucher"]       = against_vname
+                accounts.extend([party_leg, cash_leg])
+
+            if discount > 0:
+                writeoff_inc_acc = (
+                    frappe.db.get_value("Account", {"account_name": "Discount Received", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"account_name": ["like", "%Settlement%"], "root_type": "Income", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"account_name": ["like", "%Discount%"], "root_type": "Income", "company": company, "is_group": 0}, "name")
+                    or frappe.db.get_value("Account", {"root_type": "Income", "company": company, "is_group": 0}, "name")
+                )
+                if not writeoff_inc_acc:
+                    return {"error": "No 'Discount Received' income account found. Please create one in Chart of Accounts."}
+                writeoff_dr = {
+                    "account": party_account,
+                    "debit_in_account_currency": discount,
+                    "party_type": party_type,
+                    "party": party_doc_name,
+                    "user_remark": f"Write-off: Mandi saves \u20b9{discount} from {party_name_display or 'party'}",
+                }
+                writeoff_cr = {
+                    "account": writeoff_inc_acc,
+                    "credit_in_account_currency": discount,
+                    "user_remark": f"Settlement Income: \u20b9{discount} discount from {party_name_display or 'party'}",
+                }
+                if against_vtype:
+                    writeoff_dr["against_voucher_type"] = against_vtype
+                    writeoff_dr["against_voucher"]      = against_vname
+                    writeoff_cr["against_voucher_type"] = against_vtype
+                    writeoff_cr["against_voucher"]      = against_vname
+                accounts.extend([writeoff_dr, writeoff_cr])
+
 
         elif v_type == "expense":
             # Resolve: prefer explicitly passed account; fall back to General Expenses
