@@ -276,33 +276,37 @@ export default function ChequeManagementPage() {
                         </div>
                     </div>
 
-                    {/* Date Range — shown as DD/MM/YY */}
-                    <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Period</span>
-                        {/* Start date */}
-                        <div className="relative flex items-center gap-1">
-                            <span className="text-xs font-bold text-slate-700 min-w-[54px]">{formatDMY(startDate)}</span>
+                    {/* Date Range — DD/MM/YY format with clickable date pickers */}
+                    <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Period</span>
+                        {/* Start date — visible input styled as label */}
+                        <label className="relative cursor-pointer group">
+                            <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors pointer-events-none select-none">
+                                {formatDMY(startDate)}
+                            </span>
                             <input
                                 type="date"
                                 value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                                title="Select start date"
+                                onChange={(e) => { if (e.target.value) setStartDate(e.target.value); }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                style={{ minHeight: '28px' }}
                             />
-                        </div>
-                        <span className="text-slate-300">—</span>
-                        {/* End date */}
-                        <div className="relative flex items-center gap-1">
-                            <span className="text-xs font-bold text-slate-700 min-w-[54px]">{formatDMY(endDate)}</span>
+                        </label>
+                        <span className="text-slate-300 select-none">—</span>
+                        {/* End date — visible input styled as label */}
+                        <label className="relative cursor-pointer group">
+                            <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors pointer-events-none select-none">
+                                {formatDMY(endDate)}
+                            </span>
                             <input
                                 type="date"
                                 value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                                title="Select end date"
+                                onChange={(e) => { if (e.target.value) setEndDate(e.target.value); }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                style={{ minHeight: '28px' }}
                             />
-                        </div>
+                        </label>
                     </div>
                 </div>
 

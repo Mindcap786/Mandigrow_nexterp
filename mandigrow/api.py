@@ -1777,8 +1777,11 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
                        OR (gl.party_type = 'Customer' AND gl.party = c.customer)
                        OR (gl.party_type IN ('Supplier', 'Customer') AND gl.party = c.name)
                    )
-                   -- Cut off at today so future-dated cheques don't skew the current outstanding balance
-                   AND gl.posting_date <= CURDATE()
+                   -- Use same date logic as get_ledger_statement so balances
+                   -- match exactly between Finance Overview and Ledger Statement.
+                   -- For cheque entries: effective date = clearance_date
+                   -- For non-cheque entries: effective date = posting_date
+                   AND COALESCE(je.clearance_date, gl.posting_date) <= CURDATE()
                 ), 0
             ) as net_balance
         FROM `tabMandi Contact` c
@@ -2833,7 +2836,14 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                 except Exception:
                     is_cheque_cleared = True
 
-        posting_date = cheque_norm if (is_cheque and cheque_norm) else date_norm
+        # For pending cheques: use the TRANSACTION date (date_norm) as posting_date,
+        # NOT the cheque date.  The cheque_date is just a reference for when the
+        # cheque is expected to clear — it should not dictate when the GL entry
+        # lands.  When the cheque is later marked cleared, clearance_date will
+        # be stamped with the actual clearing date.
+        # For instantly-cleared cheques: also use date_norm so the entry appears
+        # on the day the user made the transaction.
+        posting_date = date_norm
 
         # 6. Build, insert, submit JE ────────────────────────────────────────
         je = frappe.new_doc("Journal Entry")
