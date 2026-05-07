@@ -2948,9 +2948,19 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
         remark_prefix = v_type.replace("_", " ").title()
         party_suffix  = f" — {party_name_display}" if party_name_display else ""
-        bill_suffix   = f" — for {against_vtype} {against_vname}" if against_vtype else ""
+        bill_suffix   = f" for {against_vtype} {against_vname}" if against_vtype else ""
         bank_suffix   = f" (Cheque · {p_bank_name})" if (is_cheque and p_bank_name) else ""
-        je.user_remark = (p_remarks or f"{remark_prefix}{party_suffix}{bill_suffix}{bank_suffix}")[:140]
+
+        # If this is a pure write-off (no real money moved), use a clear description
+        if amount == 0 and discount > 0:
+            if v_type == "receipt":
+                auto_remark = f"Write-off / Settlement{party_suffix} — Buyer balance reduced by ₹{discount}"
+            else:
+                auto_remark = f"Write-off / Settlement{party_suffix} — Supplier balance reduced by ₹{discount}"
+        else:
+            auto_remark = f"{remark_prefix}{party_suffix}{(' — ' + bill_suffix.strip()) if bill_suffix.strip() else ''}{bank_suffix}"
+
+        je.user_remark = (p_remarks or auto_remark)[:140]
 
         if hasattr(je, "organization_id"):
             je.organization_id = org_id
@@ -3050,7 +3060,7 @@ def get_payments_register(
             "name", "posting_date", "voucher_type", "user_remark",
             "total_debit", "total_credit", "creation",
         ],
-        order_by="posting_date desc, creation desc",
+        order_by="creation desc",
         limit_start=(page - 1) * page_size,
         limit_page_length=page_size,
         ignore_permissions=True,
@@ -5099,12 +5109,60 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     except Exception:
         pass
 
+    # ── Write-off / Settlements (GL-based, buyer write-offs: Discount Allowed) ─
+    # These are separate from business expenses — they represent amounts forgiven
+    # to buyers (Discount Allowed) or received from suppliers (Discount Received).
+    # They must show as a dedicated "Less: Write-off" line in P&L, NOT in opex.
+    total_writeoff = 0.0
+    try:
+        company = company if 'company' in dir() else _get_user_company()
+        if company:
+            writeoff_accs = frappe.get_all("Account",
+                filters={"company": company, "is_group": 0, "root_type": "Expense",
+                         "account_name": ["like", "%Discount Allowed%"]},
+                fields=["name"], ignore_permissions=True
+            )
+            if not writeoff_accs:
+                writeoff_accs = frappe.get_all("Account",
+                    filters={"company": company, "is_group": 0, "root_type": "Expense",
+                             "account_name": ["like", "%Bad Debt%"]},
+                    fields=["name"], ignore_permissions=True
+                )
+            if writeoff_accs:
+                wo_names = [a.name for a in writeoff_accs]
+                wo_placeholders = ", ".join(["%s"] * len(wo_names))
+                wo_date_cond = ""
+                wo_date_params: list = []
+                if date_from and date_to:
+                    wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s"
+                    wo_date_params = [date_from, date_to]
+                elif date_from:
+                    wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) >= %s"
+                    wo_date_params = [date_from]
+                elif date_to:
+                    wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) <= %s"
+                    wo_date_params = [date_to]
+                rows_wo = frappe.db.sql(f"""
+                    SELECT gl.debit
+                    FROM `tabGL Entry` gl
+                    LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+                    WHERE gl.is_cancelled = 0
+                      AND gl.company = %s
+                      AND gl.account IN ({wo_placeholders})
+                      {wo_date_cond}
+                """, [company] + wo_names + wo_date_params, as_dict=True)
+                total_writeoff = sum(flt(r.debit) for r in rows_wo)
+    except Exception:
+        pass
+
     # ── Business Expenses (GL-based, Mandi's own opex: rent, salaries…) ──────
     # The following expense categories are EXCLUDED because they are either:
     #   (a) Already embedded in COGS via the Unit Cost model (purchase-side:
     #       packing, loading, hamali, transport, freight, hire), OR
     #   (b) Pass-through charges collected from buyers and paid out to third
     #       parties (sale-side: market fee, nirashrit, loading, unloading).
+    #   (c) Write-offs / settlements (Discount Allowed, Bad Debts) — shown as
+    #       separate "Less: Write-off" P&L line above.
     # Including them here would cause double-counting or phantom losses.
     #
     # DATE LOGIC (mirrors Day Book):
@@ -5121,6 +5179,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 fields=["name", "account_name"], ignore_permissions=True
             )
             stock_loss_names   = {a.name for a in loss_accs}
+            writeoff_acc_names = {a.name for a in writeoff_accs} if writeoff_accs else set()
             # ── Exclude keywords ──────────────────────────────────────────
             # Purchase-side (already in Unit Cost / COGS):
             #   packing, loading, hamali, transport, freight, hire, farmer
@@ -5128,6 +5187,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             #   market fee, nirashrit, unloading
             # Already counted elsewhere:
             #   commission (in totalCommission), stock loss/wastage (in totalStockLoss)
+            #   discount/bad debt (in totalWriteoff)
             # Expense Recovery / Service Income:
             #   expense recovery (income account for charges withheld from farmer)
             exclude_keywords   = [
@@ -5141,10 +5201,13 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 "unloading",
                 # Clearing accounts (not real opex)
                 "expense recovery",
+                # Write-offs (counted separately in totalWriteoff)
+                "discount", "bad debt",
             ]
             business_exp_accs  = [
                 a.name for a in expense_accs
                 if a.name not in stock_loss_names
+                and a.name not in writeoff_acc_names
                 and not any(kw in (a.account_name or "").lower() for kw in exclude_keywords)
             ]
             if business_exp_accs:
@@ -5190,18 +5253,20 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     #   (COGS      = unit cost × qty, includes purchase-side expenses)
     #   (Commission= commission income on commission arrivals)
     #
-    # Net Profit = Trading Profit - Stock Losses - Business Expenses
+    # Net Profit = Trading Profit - Stock Losses - Write-offs - Business Expenses
     #   (Stock Losses     = GL debits to Stock Loss / Wastage accounts)
+    #   (Write-offs       = GL debits to Discount Allowed accounts, buyer forgiveness)
     #   (Business Expenses= GL debits to Expense accounts EXCLUDING:
     #        - purchase-side costs already in COGS
-    #        - sale-side pass-through charges recovered from buyers)
+    #        - sale-side pass-through charges recovered from buyers
+    #        - write-off accounts now in separate totalWriteoff line)
     #
     # Sale Recoveries are NOT added to profit — they are informational only.
     # They show what was collected from buyers as pass-through charges.
     # The corresponding payouts are already excluded from Business Expenses
     # via the exclude_keywords filter, so the net effect is zero.
     total_profit = (total_revenue - total_cost + total_commission
-                    - total_stock_loss - total_business_expenses)
+                    - total_stock_loss - total_writeoff - total_business_expenses)
     net_margin   = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
 
     return {
@@ -5212,11 +5277,13 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         "totalCommission":       round(total_commission, 2),
         "totalTradingLoss":      round(total_trading_loss, 2),
         "totalStockLoss":        round(total_stock_loss, 2),
+        "totalWriteoff":         round(total_writeoff, 2),        # Write-off / Settlements line
         "totalBusinessExpenses": round(total_business_expenses, 2),
         "totalSaleRecoveries":   round(total_sale_recoveries, 2), # Informational: charges collected from buyers
         "totalProfit":           round(total_profit, 2),
         "margin":                round(net_margin, 2)
     }
+
 
 
 @frappe.whitelist(allow_guest=False)

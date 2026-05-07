@@ -1091,14 +1091,26 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             // We no longer skip imbalanced vouchers so that single-entry 
             // payables/receivables correctly reflect in the dashboard.
             // if ((group as any).isImbalanced) return;
+
+            const groupFlow = (group as any).flowType;
+
+            // Detect pure write-off group: payment/receipt with NO liquid (cash/bank) leg.
+            // No real cash moved — must NOT count as inflow/outflow in Liquid Assets card.
+            const isWriteOff = (groupFlow === 'payment' || groupFlow === 'receipt' ||
+                                groupFlow === 'paid_receipt' || groupFlow === 'receive_receipt') &&
+                !group.summaryLegs.some((l: any) => {
+                    const subType = String(l.account?.account_sub_type || '').toLowerCase();
+                    const accName = String(l.account?.name || '').toLowerCase();
+                    return subType === 'cash' || subType === 'bank' ||
+                           accName.includes('bank') || accName.includes('cash');
+                });
+
             group.summaryLegs.forEach((leg: any) => {
                 const type = leg.displayType as string;
                 const val = Math.max(leg.displayDebit || 0, leg.displayCredit || 0);
                 const isBank = String(leg.account?.account_sub_type || '').toLowerCase() === 'bank'
                     || String(leg.account?.name || '').toLowerCase().includes('bank')
                     || String(leg.displayDescription || '').toLowerCase().includes('upi');
-
-                const groupFlow = (group as any).flowType;
 
                 // 1. PURCHASE GROUP (Initial Transaction)
                 // Hits Card 1 ONLY.
@@ -1126,6 +1138,9 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
 
                 // 3. FINANCIAL MOVEMENTS (Standalone or Later Clearing)
                 // Hits Card 2 ONLY.
+                // Pure write-offs have no cash leg — skip inflow/outflow entirely.
+                if (isWriteOff) return;
+
                 if (type === 'receipt' || type === 'receive_receipt') {
                     if (isBank) digitalInflow += val; else totalInflow += val;
                     return;
