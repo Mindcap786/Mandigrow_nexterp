@@ -228,24 +228,25 @@ export default function TeamPage() {
                                 <div className="p-10 text-center text-slate-400 text-xs font-bold uppercase">No authorized members</div>
                             ) : (
                                 members.map(member => (
-                                    <div key={member.id} className="flex items-center gap-3 px-4 py-4 active:bg-slate-50 transition-colors">
-                                        <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white text-lg shadow-sm">
+                                    <div key={member.id} className="flex items-center gap-3 px-4 py-3 active:bg-slate-50 transition-colors">
+                                        {/* Avatar */}
+                                        <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white text-base shadow-sm">
                                             {member.full_name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                                         </div>
+                                        {/* Name + email + username — full width, stacked */}
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-slate-900 truncate leading-tight">
+                                            <p className="text-sm font-black text-slate-900 truncate leading-tight">
                                                 {member.full_name || 'Staff User'}
                                             </p>
-                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                <p className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{member.email}</p>
-                                                {member.username && (
-                                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-tighter">@{member.username}</p>
-                                                )}
-                                            </div>
+                                            <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{member.email}</p>
+                                            {member.username && (
+                                                <p className="text-[9px] text-blue-600 font-black uppercase tracking-wider mt-0.5">@{member.username}</p>
+                                            )}
                                         </div>
-                                        <div className="flex gap-2 items-center">
+                                        {/* Role badge + settings — stacked vertically */}
+                                        <div className="flex flex-col items-end gap-1.5 shrink-0">
                                             <Badge className={cn(
-                                                "text-[8px] font-black uppercase tracking-widest h-5 rounded-md border-none",
+                                                "text-[8px] font-black uppercase tracking-widest h-5 rounded-md border-none px-2",
                                                 member.role === 'owner' ? "bg-amber-100 text-amber-700" : "bg-blue-50 text-blue-700"
                                             )}>
                                                 {member.role}
@@ -256,9 +257,9 @@ export default function TeamPage() {
                                                     setRbacMatrix(member.rbac_matrix || {});
                                                     setRbacUserType(member.user_type || 'web');
                                                 }}
-                                                className="p-2 text-slate-400 hover:text-blue-600 active:bg-blue-50 rounded-lg transition-colors"
+                                                className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest active:text-blue-600 active:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
                                             >
-                                                <Settings className="w-4 h-4" />
+                                                <Settings className="w-3.5 h-3.5" /> Manage
                                             </button>
                                         </div>
                                     </div>
@@ -307,14 +308,101 @@ export default function TeamPage() {
                     </div>
 
                     {/* FAB: Authorize Employee */}
-                    <div className="fixed bottom-6 right-6 z-50">
+                    <div className="fixed bottom-24 right-5 z-50">
                         <Button 
-                            className="bg-blue-600 text-white hover:bg-blue-700 font-black uppercase tracking-widest h-14 w-14 rounded-full shadow-2xl flex items-center justify-center"
+                            className="bg-blue-600 text-white hover:bg-blue-700 font-black h-14 px-5 rounded-2xl shadow-2xl flex items-center gap-2 shadow-blue-300"
                             onClick={() => setOpen(true)}
                         >
-                            <UserPlus className="w-6 h-6" />
+                            <UserPlus className="w-5 h-5" />
+                            <span className="text-[11px] uppercase tracking-widest">Authorize</span>
                         </Button>
                     </div>
+
+                    {/* Mobile Authorize BottomSheet */}
+                    <BottomSheet open={open} onClose={() => {
+                        setOpen(false);
+                        setSelectedEmployeeId('');
+                        setAuthEmail('');
+                        setAuthUsername('');
+                        setPassword('mandi123');
+                    }} title="Grant System Access">
+                        <form onSubmit={handleAuthorize} className="space-y-4 px-1 pb-6">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pick an employee then set their login credentials.</p>
+
+                            {/* Employee picker */}
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Employee</Label>
+                                <Select value={selectedEmployeeId} onValueChange={(val) => {
+                                    setSelectedEmployeeId(val);
+                                    const emp = unlinkedEmployees.find(e => e.id === val);
+                                    if (emp) setAuthEmail(emp.email && emp.email.includes('@') ? emp.email : '');
+                                }}>
+                                    <SelectTrigger className="bg-slate-50 border-slate-200 h-12 rounded-xl text-black font-bold">
+                                        <SelectValue placeholder="Select employee..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white border-slate-200 rounded-2xl">
+                                        {unlinkedEmployees.length > 0 ? (
+                                            unlinkedEmployees.map(emp => (
+                                                <SelectItem key={emp.id} value={emp.id} className="font-bold py-3">
+                                                    {emp.name}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-center text-sm text-slate-500 font-bold">No unauthorized employees found.</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Login email */}
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Login Email</Label>
+                                <Input
+                                    type="email"
+                                    placeholder="Enter login email..."
+                                    value={authEmail}
+                                    onChange={e => setAuthEmail(e.target.value)}
+                                    className="bg-slate-50 border-slate-200 h-12 rounded-xl text-black font-bold"
+                                    required
+                                />
+                            </div>
+
+                            {/* Username */}
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">@Username (optional)</Label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black">@</span>
+                                    <Input
+                                        placeholder="e.g. malik786"
+                                        value={authUsername}
+                                        onChange={e => setAuthUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                                        className="bg-slate-50 border-slate-200 h-12 rounded-xl text-black font-bold pl-8"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Password */}
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Initial Password</Label>
+                                <div className="relative">
+                                    <Input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={password}
+                                        onChange={e => setPassword(e.target.value)}
+                                        className="bg-slate-50 border-slate-200 h-12 rounded-xl text-black font-bold pr-10"
+                                        required
+                                    />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <Button type="submit" disabled={sending || !selectedEmployeeId} className="w-full bg-blue-600 text-white font-black uppercase tracking-widest h-13 rounded-xl shadow-lg">
+                                {sending ? <Loader2 className="animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Confirm & Authorize</>}
+                            </Button>
+                        </form>
+                    </BottomSheet>
                 </div>
             ) : (
                 <div className="max-w-6xl mx-auto space-y-12">
