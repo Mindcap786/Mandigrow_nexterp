@@ -7310,10 +7310,14 @@ def commit_mandi_session(**kwargs) -> dict:
             #   Cr Expense Recovery
             arrival.insert(ignore_permissions=True)
             
-            # Auto-generate lot_code if not provided from UI
+            # Auto-generate a unique 6-digit lot_code if not provided from UI
             if not lot_prefix and arrival.items:
-                auto_code = f"LOT-{arrival.name.split('-')[-1]}-{str(idx + 1).zfill(2)}"
-                arrival.items[0].lot_code = auto_code
+                import random
+                while True:
+                    candidate = str(random.randint(100000, 999999))
+                    if not frappe.db.exists("Mandi Lot", {"lot_code": candidate}):
+                        break
+                arrival.items[0].lot_code = candidate
                 arrival.items[0].db_update()
                 
             arrival.submit()  # ← THIS posts the GL entries and farmer ledger
@@ -7733,7 +7737,7 @@ def get_pos_master_data() -> dict:
             [
                 "name as id", "name", "item_id", "qty", "unit", "sale_price",
                 "supplier_rate", "packing_cost", "loading_cost", "farmer_charges",
-                "lot_code", "net_qty"
+                "lot_code", "net_qty", "barcode"
             ],
             ["initial_qty", "current_qty", "status", "custom_attributes"],
         )
@@ -8456,7 +8460,14 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 if lot_prefix:
                     n_items = len(items)
                     item_lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(idx + 1).zfill(2)}"
-                # If no prefix either, leave empty (Frappe doc name used as fallback elsewhere)
+                else:
+                    # Auto-generate a unique 6-digit numeric code
+                    import random
+                    while True:
+                        candidate = str(random.randint(100000, 999999))
+                        if not frappe.db.exists("Mandi Lot", {"lot_code": candidate}):
+                            break
+                    item_lot_code = candidate
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item.get("item_id") or _get_default_item(),
