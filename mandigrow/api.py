@@ -4765,9 +4765,17 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         filters["saledate"] = ["<=", date_to]
 
     # ── Fetch Sales ───────────────────────────────────────────────────────────
+    sale_fields = ["name", "saledate", "totalamount"]
+    # Conditionally include sale-level charge columns for recovery tracking
+    for col in ["marketfee", "nirashrit", "miscfee",
+                "loadingcharges", "unloadingcharges", "otherexpenses",
+                "gsttotal", "discountamount"]:
+        if frappe.db.has_column("Mandi Sale", col):
+            sale_fields.append(col)
+
     sales = frappe.get_all("Mandi Sale",
         filters=filters,
-        fields=["name", "saledate", "totalamount"],
+        fields=sale_fields,
         ignore_permissions=True
     )
 
@@ -4776,10 +4784,23 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             "items": [], "totalRevenue": 0, "totalCost": 0,
             "totalExpenses": 0, "totalCommission": 0, "totalProfit": 0,
             "totalTradingLoss": 0, "totalStockLoss": 0,
-            "totalBusinessExpenses": 0, "margin": 0
+            "totalBusinessExpenses": 0, "totalSaleRecoveries": 0, "margin": 0
         }
 
     sale_ids = [s.name for s in sales]
+
+    # ── Sale-level charge recoveries (pass-through: collected from buyer,
+    #    paid out to laborers / govt — net zero on Mandi P&L) ─────────────────
+    total_sale_recoveries = 0.0
+    for s in sales:
+        total_sale_recoveries += (
+            flt(s.get("marketfee"))
+            + flt(s.get("nirashrit"))
+            + flt(s.get("miscfee"))
+            + flt(s.get("loadingcharges"))
+            + flt(s.get("unloadingcharges"))
+            + flt(s.get("otherexpenses"))
+        )
 
     sale_items = frappe.get_all("Mandi Sale Item",
         filters={"parent": ["in", sale_ids]},
@@ -4993,8 +5014,12 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         pass
 
     # ── Business Expenses (GL-based, Mandi's own opex: rent, salaries…) ──────
-    # Packing / loading / transport are NOT included here — they are embedded
-    # in unit cost for direct purchases.
+    # The following expense categories are EXCLUDED because they are either:
+    #   (a) Already embedded in COGS via the Unit Cost model (purchase-side:
+    #       packing, loading, hamali, transport, freight, hire), OR
+    #   (b) Pass-through charges collected from buyers and paid out to third
+    #       parties (sale-side: market fee, nirashrit, loading, unloading).
+    # Including them here would cause double-counting or phantom losses.
     #
     # DATE LOGIC (mirrors Day Book):
     #   • Non-cheque entries   → match on posting_date
@@ -5010,8 +5035,27 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 fields=["name", "account_name"], ignore_permissions=True
             )
             stock_loss_names   = {a.name for a in loss_accs}
-            exclude_keywords   = ["commission", "market fee", "market_fee",
-                                  "nirashrit", "stock loss", "wastage"]
+            # ── Exclude keywords ──────────────────────────────────────────
+            # Purchase-side (already in Unit Cost / COGS):
+            #   packing, loading, hamali, transport, freight, hire, farmer
+            # Sale-side (pass-through, recovered from buyer):
+            #   market fee, nirashrit, unloading
+            # Already counted elsewhere:
+            #   commission (in totalCommission), stock loss/wastage (in totalStockLoss)
+            # Expense Recovery / Service Income:
+            #   expense recovery (income account for charges withheld from farmer)
+            exclude_keywords   = [
+                # Already counted in separate P&L line
+                "commission", "stock loss", "wastage",
+                # Purchase-side: embedded in Unit Cost (COGS)
+                "packing", "loading", "hamali", "transport",
+                "freight", "hire", "farmer",
+                # Sale-side: pass-through charges (collected from buyer)
+                "market fee", "market_fee", "nirashrit",
+                "unloading",
+                # Clearing accounts (not real opex)
+                "expense recovery",
+            ]
             business_exp_accs  = [
                 a.name for a in expense_accs
                 if a.name not in stock_loss_names
@@ -5055,8 +5099,21 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         pass
 
     # ── Final P&L ─────────────────────────────────────────────────────────────
-    # Revenue - COGS(unit cost) + Commission - Stock Losses - Business Expenses
-    # Operating expenses (packing/loading/transport) are NOT subtracted again.
+    # Trading Profit = Revenue - COGS + Commission
+    #   (Revenue   = pure goods value from sale items, excludes sale charges)
+    #   (COGS      = unit cost × qty, includes purchase-side expenses)
+    #   (Commission= commission income on commission arrivals)
+    #
+    # Net Profit = Trading Profit - Stock Losses - Business Expenses
+    #   (Stock Losses     = GL debits to Stock Loss / Wastage accounts)
+    #   (Business Expenses= GL debits to Expense accounts EXCLUDING:
+    #        - purchase-side costs already in COGS
+    #        - sale-side pass-through charges recovered from buyers)
+    #
+    # Sale Recoveries are NOT added to profit — they are informational only.
+    # They show what was collected from buyers as pass-through charges.
+    # The corresponding payouts are already excluded from Business Expenses
+    # via the exclude_keywords filter, so the net effect is zero.
     total_profit = (total_revenue - total_cost + total_commission
                     - total_stock_loss - total_business_expenses)
     net_margin   = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
@@ -5070,6 +5127,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         "totalTradingLoss":      round(total_trading_loss, 2),
         "totalStockLoss":        round(total_stock_loss, 2),
         "totalBusinessExpenses": round(total_business_expenses, 2),
+        "totalSaleRecoveries":   round(total_sale_recoveries, 2), # Informational: charges collected from buyers
         "totalProfit":           round(total_profit, 2),
         "margin":                round(net_margin, 2)
     }
