@@ -2876,7 +2876,12 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
 
         je.set("accounts", accounts)
         je.insert(ignore_permissions=True)
-        je.submit()
+        
+        # Only submit if it's NOT a pending cheque
+        # Pending cheques must remain as draft (docstatus=0) until cleared 
+        # so they don't pollute the Daybook and Party Ledger prematurely.
+        if not (is_cheque and not is_cheque_cleared):
+            je.submit()
 
         # ERPNext fix: clearance_date is read-only and stripped on insert/submit.
         # We MUST forcefully bypass the ORM and write the clearance date for ALL cleared cheques
