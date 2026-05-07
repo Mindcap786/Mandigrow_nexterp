@@ -280,8 +280,8 @@ export default function ChequeManagementPage() {
                     <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm">
                         <Calendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Period</span>
-                        {/* Start date — visible input styled as label */}
-                        <label className="relative cursor-pointer group">
+                        {/* Start date */}
+                        <label className="relative cursor-pointer group min-w-[60px] h-7 flex items-center">
                             <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors pointer-events-none select-none">
                                 {formatDMY(startDate)}
                             </span>
@@ -289,13 +289,14 @@ export default function ChequeManagementPage() {
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => { if (e.target.value) setStartDate(e.target.value); }}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                style={{ minHeight: '28px' }}
+                                onFocus={(e) => { try { (e.target as any).showPicker(); } catch {} }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                style={{ zIndex: 10 }}
                             />
                         </label>
                         <span className="text-slate-300 select-none">—</span>
-                        {/* End date — visible input styled as label */}
-                        <label className="relative cursor-pointer group">
+                        {/* End date */}
+                        <label className="relative cursor-pointer group min-w-[60px] h-7 flex items-center">
                             <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors pointer-events-none select-none">
                                 {formatDMY(endDate)}
                             </span>
@@ -303,8 +304,9 @@ export default function ChequeManagementPage() {
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => { if (e.target.value) setEndDate(e.target.value); }}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                style={{ minHeight: '28px' }}
+                                onFocus={(e) => { try { (e.target as any).showPicker(); } catch {} }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                style={{ zIndex: 10 }}
                             />
                         </label>
                     </div>
