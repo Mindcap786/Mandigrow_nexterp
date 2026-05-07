@@ -48,7 +48,7 @@ export default function PaymentsPage() {
 
     // --- Smart Filters State ---
     const [page, setPage] = useState(1);
-    const pageSize = 15;
+    const pageSize = 10;
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({

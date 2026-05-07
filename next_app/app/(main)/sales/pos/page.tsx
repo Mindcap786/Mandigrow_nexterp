@@ -47,7 +47,7 @@ type POSItem = {
     custom_attributes?: any
     sale_price: number
     barcode: string | null
-    lot_details?: { id: string; qr_code: string | null; barcode: string | null; current_qty: number; arrival_id?: string | null }[]
+    lot_details?: { id: string; qr_code: string | null; barcode: string | null; lot_code: string | null; current_qty: number; arrival_id?: string | null }[]
     unit: string
 
     gst_rate: number
@@ -97,17 +97,21 @@ export default function POSPage() {
         let lotQrCode: string | undefined = undefined;
         
         for (const it of items) {
-            // Check both QR code and the new Barcode field
-            const matchedLot = it.lot_details?.find(ld => ld.qr_code === search || ld.barcode === search);
+            // Match by: qr_code, barcode, or lot_code (the 6-digit unique scan code)
+            const matchedLot = it.lot_details?.find(ld =>
+                ld.qr_code === search || ld.barcode === search || ld.lot_code === search
+            );
             if (matchedLot) {
-                if (matchedLot.qr_code && scannedLots.includes(matchedLot.qr_code)) {
+                const scanId = matchedLot.qr_code || matchedLot.lot_code;
+                if (scanId && scannedLots.includes(scanId)) {
                     toast.error("Scanned Twice", { description: "This specific lot is already fully added into the cart.", position: 'top-center' });
                     setSearch('');
                     return;
                 }
                 foundItem = it;
                 lotQty = matchedLot.current_qty;
-                lotQrCode = matchedLot.qr_code ?? undefined;
+                // Use lot_code as the scan display code (the unique 6-digit number)
+                lotQrCode = matchedLot.lot_code || matchedLot.qr_code || undefined;
                 break;
             }
         }
@@ -347,8 +351,9 @@ export default function POSPage() {
                 stockMap[key].total_qty += Number(lot.current_qty) || 0;
                 stockMap[key].lot_details.push({ 
                     id: lot.id, 
-                    qr_code: lot.qr_code, 
+                    qr_code: lot.qr_code || lot.lot_code || null, 
                     barcode: lot.barcode,
+                    lot_code: lot.lot_code || null,
                     current_qty: Number(lot.current_qty), 
                     arrival_id: lot.arrival_id 
                 });
@@ -386,7 +391,9 @@ export default function POSPage() {
                 accounts: accountData || [],
                 buyers: buyerData || [],
                 orgName: org_name || 'MandiGrow',
+                orgSettings: settingsData || null,
             });
+
 
             setLoading(false);
         } catch (err: any) {
@@ -1106,9 +1113,20 @@ export default function POSPage() {
                                 </select>
                                 
                                 {showQR && (() => {
+                                    // 1. Try selected account
                                     const acc = accounts.find(a => a.id === selectedAccountId)
                                     const meta = acc && acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                                    const upiId = meta.upi_id || orgSettings?.payment?.upi_id || orgSettings?.upi_id
+                                    // 2. Fallback: any bank account with UPI ID
+                                    let upiId = meta.upi_id
+                                    if (!upiId) {
+                                        for (const a of accounts) {
+                                            if (!a.description?.startsWith('{')) continue
+                                            const m = JSON.parse(a.description)
+                                            if (m.upi_id) { upiId = m.upi_id; break }
+                                        }
+                                    }
+                                    // 3. Fallback to orgSettings
+                                    if (!upiId) upiId = orgSettings?.payment?.upi_id || orgSettings?.upi_id
                                     
                                     if (upiId) {
                                         const qrAmount = (amountReceived > 0 ? amountReceived : grandTotal);
@@ -1124,21 +1142,21 @@ export default function POSPage() {
                                                     <QRCodeSVG value={upiUrl} size={130} level="M" />
                                                 </div>
                                                 <div className="text-center">
-                                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-800 mb-0.5 tracking-tighter">Scan to Pay ₹{qrAmount.toFixed(0)}</div>
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-800 mb-0.5 tracking-tighter">Scan to Pay Rs.{qrAmount.toFixed(0)}</div>
                                                     <div className="text-[8px] font-bold text-slate-400 truncate max-w-[150px]">{upiId}</div>
                                                 </div>
                                             </motion.div>
                                         )
-                                    } else if (selectedAccountId) {
+                                    } else {
                                         return (
                                             <div className="text-[9px] font-bold text-amber-600 italic text-center py-2 bg-amber-50 rounded-lg border border-amber-100 mt-1">
-                                                ⚠️ No UPI ID configured for this bank. 
-                                                <p className="mt-1 text-[8px] text-slate-400 font-medium">Add it in Settings {'>'} Payment Details</p>
+                                                No UPI ID configured.
+                                                <p className="mt-1 text-[8px] text-slate-400 font-medium">Add it in Settings &gt; Bank Details</p>
                                             </div>
                                         )
                                     }
-                                    return null;
                                 })()}
+
                             </div>
                         )}
 

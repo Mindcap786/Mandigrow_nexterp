@@ -7,7 +7,7 @@ import { useEnterToTab } from "@/hooks/use-enter-to-tab";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, ArrowUpRight, Zap, Landmark, QrCode } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowUpRight, Landmark, QrCode } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ import { formatCurrency, roundTo2 } from "@/lib/accounting-logic";
 const formSchema = z.object({
     party_id: z.string().min(1, "Select who to pay"),
     amount: z.coerce.number().min(0, "Amount must be positive"),
-    payment_mode: z.enum(["cash", "bank", "upi", "cheque"]),
+    payment_mode: z.enum(["bank", "upi", "cheque"]),
     payment_date: z.date(),
     remarks: z.string().optional(),
     discount: z.coerce.number().optional().default(0),
@@ -118,7 +118,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
         resolver: zodResolver(formSchema),
         defaultValues: {
             payment_date: new Date(),
-            payment_mode: initialValues?.invoice_id ? "bank" : "cash", // Smart default: invoices usually via bank
+            payment_mode: initialValues?.invoice_id ? "bank" : "bank", // Always bank/UPI in this dialog
             amount: initialValues?.amount || 0,
             party_id: initialValues?.party_id || "",
             remarks: initialValues?.remarks || "",
@@ -253,7 +253,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                     amount: roundTo2(initialValues.amount || 0),
                     remarks: initialValues.remarks || '',
                     payment_date: new Date(),
-                    payment_mode: 'cash',
+                    payment_mode: 'bank',
                     discount: 0,
                 });
                 const invId = initialValues.invoice_id || null;
@@ -272,7 +272,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                 if (!initialResetDone.current) {
                     form.reset({
                         payment_date: new Date(),
-                        payment_mode: "cash",
+                        payment_mode: "bank",
                         amount: 0,
                         party_id: "",
                         remarks: "",
@@ -695,7 +695,6 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                 <FormLabel className="uppercase text-[10px] font-bold tracking-widest text-slate-700">{getLabel('payment_mode', 'Select Payment Type')}</FormLabel>
                                                 <div className="flex gap-2">
                                                     {[
-                                                        { id: 'cash', label: 'CASH', icon: Zap, color: 'bg-emerald-500' },
                                                         { id: 'bank', label: 'UPI / BANK', icon: Landmark, color: 'bg-blue-600' },
                                                         { id: 'cheque', label: 'CHEQUE', icon: Landmark, color: 'bg-orange-500' }
                                                     ].map((m) => (
