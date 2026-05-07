@@ -1777,8 +1777,8 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
                        OR (gl.party_type = 'Customer' AND gl.party = c.customer)
                        OR (gl.party_type IN ('Supplier', 'Customer') AND gl.party = c.name)
                    )
-                   -- Use full accounting balance (including pending cheques) to match ledger
-                   AND 1=1
+                   -- Cut off at today so future-dated cheques don't skew the current outstanding balance
+                   AND gl.posting_date <= CURDATE()
                 ), 0
             ) as net_balance
         FROM `tabMandi Contact` c
