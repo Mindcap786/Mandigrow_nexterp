@@ -8431,7 +8431,24 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 frappe.flags[f"cheque_status_{buyer_id}"] = cheque_bool
 
         doc.submit()
-        
+
+        # ── Check commission arrival settlement readiness ─────────────────
+        # After each sale, check if all lots under a zero-rate commission
+        # arrival are now empty. If so, mark it ready for finalization.
+        # This does NOT affect buyers, sale ledgers, or daybook in any way.
+        try:
+            sold_arrival_ids = set()
+            for item in doc.items or []:
+                if item.lot_id:
+                    parent_arr = frappe.db.get_value("Mandi Lot", item.lot_id, "parent")
+                    if parent_arr:
+                        sold_arrival_ids.add(parent_arr)
+            for arr_id in sold_arrival_ids:
+                _check_commission_arrival_readiness(arr_id)
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "commission_readiness_check after sale (non-fatal)")
+        # ─────────────────────────────────────────────────────────────────
+
         frappe.db.commit()
         return {
             "success": True, 
@@ -8538,7 +8555,24 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         
         total_realized = 0
         total_commission = 0
-        
+
+        # ── DIRECT PURCHASE: Rate is mandatory ──────────────────────────────
+        # Commission arrivals (farmer/supplier) may have rate = 0 at arrival
+        # because the sale price is only known after goods are auctioned.
+        # Direct Purchase means Mandi OWNS the goods — the liability is fixed
+        # at arrival time, so a rate MUST be provided.
+        arrival_type_input = (payload.get("arrival_type") or "direct").strip().lower()
+        if arrival_type_input == "direct":
+            for idx_check, item_check in enumerate(items):
+                rate_val = float(item_check.get("supplier_rate") or item_check.get("rate") or 0)
+                if rate_val <= 0:
+                    commodity = item_check.get("item_id") or f"Item {idx_check + 1}"
+                    frappe.throw(
+                        f"Rate (Purchase Price) is mandatory for Direct Purchase. "
+                        f"Please enter a rate greater than zero for '{commodity}'."
+                    )
+        # ────────────────────────────────────────────────────────────────────
+
         for idx, item in enumerate(items):
             unit = item.get("unit") or "Kg"
             # Explicitly ensure the UOM exists before assigning to a Link field
@@ -10571,6 +10605,504 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
         frappe.log_error(frappe.get_traceback(), "change_tenant_plan Failed")
         return {"success": False, "message": str(e)}
 
+
+# ── Commission Arrival Settlement ──────────────────────────────────────────────
+#
+# When a Commission (Farmer / Supplier) arrival is logged with Rate = 0, no
+# financial ledger entry is created at arrival time — only stock (Lots) are
+# recorded.  Once all lots are exhausted (sold + returned), the Mandi can
+# "finalize" the arrival: the system aggregates the actual sale values, computes
+# the definitive farmer bill (Sale Amount – Commission% – Charges – Less%), and
+# posts a SINGLE, consolidated Journal Entry to the Farmer/Supplier ledger.
+#
+# Rules:
+#  • If a rate > 0 was given at arrival (normal flow), this path is never taken.
+#  • Sales are completely unaffected — buyer ledgers update in real-time as usual.
+#  • The finalization overrides the Mandi Arrival financial fields in-place
+#    (total_realized, net_payable_farmer, etc.) then submits the settlement JE.
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _check_commission_arrival_readiness(arrival_name: str) -> None:
+    """
+    Called (non-fatally) after every sale or stock return that touches a lot
+    belonging to a commission arrival.
+
+    If the arrival was logged with Rate = 0 AND all its lots are now empty
+    (current_qty = 0 for all), marks it as 'Ready' so the frontend can show
+    the 'Finalize Settlement' button.
+    """
+    if not arrival_name:
+        return
+    try:
+        arrival = frappe.db.get_value(
+            "Mandi Arrival", arrival_name,
+            ["arrival_type", "commission_settlement_status", "total_realized"],
+            as_dict=True
+        )
+        if not arrival:
+            return
+
+        # Only applies to zero-rate commission arrivals
+        if arrival.arrival_type not in ("commission", "commission_supplier"):
+            return
+
+        # If rate was entered at arrival (total_realized > 0), normal flow —
+        # ledger was already posted on submit. Nothing to do here.
+        if float(arrival.total_realized or 0) > 0:
+            return
+
+        # Already finalised
+        if arrival.commission_settlement_status == "Settled":
+            return
+
+        # Check if all lots under this arrival are empty
+        lots = frappe.get_all(
+            "Mandi Lot", filters={"parent": arrival_name},
+            fields=["current_qty"]
+        )
+        if not lots:
+            return
+
+        total_remaining = sum(float(l.current_qty or 0) for l in lots)
+        if total_remaining <= 0:
+            frappe.db.set_value(
+                "Mandi Arrival", arrival_name,
+                "commission_settlement_status", "Ready",
+                update_modified=False
+            )
+            frappe.db.commit()
+            frappe.logger().info(
+                f"[commission_readiness] {arrival_name} is now READY for settlement."
+            )
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "_check_commission_arrival_readiness Failed")
+
+
+@frappe.whitelist(allow_guest=False)
+def finalize_commission_settlement(arrival_name: str) -> dict:
+    """
+    Finalises a zero-rate Commission arrival after all lots are sold / returned.
+
+    Steps:
+    1.  Validates the arrival is a commission type and all lots are empty.
+    2.  Aggregates ACTUAL sale values from all Mandi Sale Items referencing
+        lots in this arrival.
+    3.  Recomputes: Commission, Less deduction, Charges, Net Payable.
+    4.  Updates the Mandi Arrival document in-place with the computed actuals
+        (supplier_rate on each lot = computed avg rate, total_realized,
+        total_commission, net_payable_farmer, etc.).
+    5.  Posts a single consolidated Journal Entry:
+            Dr  Stock / Clearing Account   = Total Realized
+            Cr  Creditors (Farmer/Supplier) = Net Payable
+            Cr  Commission Income           = Commission Amount
+            Cr  Expense Recovery            = Charges Amount
+    6.  Marks the arrival as 'Settled'.
+
+    Safety:
+    • Idempotent — blocked if status is already 'Settled'.
+    • Never touches Mandi Sale, GL entries for buyers, or existing daybook.
+    • Only creates the ONE missing ledger for the Farmer/Supplier.
+    """
+    from mandigrow.mandigrow.logic.automation import (
+        get_stock_acc, get_farmer_acc, get_supplier_acc,
+        get_comm_acc, get_expense_acc, _tag_gl_entries,
+        ensure_supplier_for_contact, _get_cost_center
+    )
+    from mandigrow.mandigrow.logic.erp_bootstrap import (
+        ensure_company_party_defaults, get_default_company
+    )
+
+    org_id = _get_user_org()
+
+    try:
+        # ── 1. Validate Arrival ─────────────────────────────────────────────
+        arrival = frappe.get_doc("Mandi Arrival", arrival_name)
+
+        if arrival.organization_id and arrival.organization_id != org_id:
+            frappe.throw("Access denied: This arrival does not belong to your organization.")
+
+        if arrival.arrival_type not in ("commission", "commission_supplier"):
+            frappe.throw("Finalize Settlement is only applicable to Commission arrivals.")
+
+        if float(arrival.total_realized or 0) > 0:
+            frappe.throw(
+                "This arrival already has a rate entered. Its ledger was created at arrival time. "
+                "No finalization needed."
+            )
+
+        current_status = frappe.db.get_value(
+            "Mandi Arrival", arrival_name, "commission_settlement_status"
+        )
+        if current_status == "Settled":
+            frappe.throw("This arrival has already been settled. No duplicate entries allowed.")
+
+        # ── 2. Verify all lots are empty ────────────────────────────────────
+        lots = frappe.get_all(
+            "Mandi Lot", filters={"parent": arrival_name},
+            fields=["name", "lot_code", "initial_qty", "current_qty",
+                    "supplier_rate", "commission_percent", "less_percent",
+                    "less_units", "packing_cost", "loading_cost",
+                    "farmer_charges", "item_id", "unit"]
+        )
+        if not lots:
+            frappe.throw("No lots found for this arrival.")
+
+        total_remaining = sum(float(l.current_qty or 0) for l in lots)
+        if total_remaining > 0:
+            frappe.throw(
+                f"Cannot settle — {total_remaining} units are still in stock. "
+                "Please sell or return all remaining goods first."
+            )
+
+        lot_ids = [l.name for l in lots]
+        lot_map = {l.name: l for l in lots}
+
+        # ── 3. Aggregate actual sale values ─────────────────────────────────
+        # Find all Mandi Sale Items referencing lots in this arrival.
+        # We use docstatus=1 (submitted) to only count confirmed sales.
+        if not lot_ids:
+            frappe.throw("No lot IDs found.")
+
+        lot_placeholders = ", ".join(["%s"] * len(lot_ids))
+        sale_items = frappe.db.sql(f"""
+            SELECT
+                si.lot_id,
+                si.qty,
+                si.rate,
+                si.amount,
+                s.saledate
+            FROM `tabMandi Sale Item` si
+            JOIN `tabMandi Sale` s ON si.parent = s.name
+            WHERE si.lot_id IN ({lot_placeholders})
+              AND s.docstatus = 1
+        """, lot_ids, as_dict=True)
+
+        if not sale_items:
+            frappe.throw("No submitted sales found for lots in this arrival.")
+
+        # Aggregate per-lot actual sale values
+        lot_sales = {}  # lot_id → {qty_sold, total_amount}
+        for si in sale_items:
+            entry = lot_sales.setdefault(si.lot_id, {"qty_sold": 0.0, "total_amount": 0.0})
+            entry["qty_sold"]     += float(si.qty or 0)
+            entry["total_amount"] += float(si.amount or 0)
+
+        # ── 4. Compute settlement financials ────────────────────────────────
+        # For each lot: apply the less%, commission% on actual realized amount.
+        # Charges (packing, loading, farmer_charges) are subtracted from farmer's net.
+        # Trip-level charges from the arrival (hire, hamali, other) are also included.
+
+        grand_total_realized  = 0.0  # Sum of all actual sale amounts
+        grand_total_commission = 0.0  # Mandi's commission cut
+        grand_total_charges    = 0.0  # All charges deducted from farmer
+        grand_total_less_value = 0.0  # Value of less deduction (informational)
+
+        lot_computed_rates = {}  # lot_id → avg rate computed from actual sales
+
+        for lot in lots:
+            ls = lot_sales.get(lot.name)
+            if not ls or ls["qty_sold"] <= 0:
+                # Lot might have been fully returned — skip (no sale value)
+                continue
+
+            qty_sold      = ls["qty_sold"]
+            amount_sold   = ls["total_amount"]
+
+            # Avg sale rate per unit (used to update supplier_rate on the lot)
+            avg_rate = amount_sold / qty_sold if qty_sold > 0 else 0.0
+            lot_computed_rates[lot.name] = avg_rate
+
+            # Apply Less% to get "net quantity" for commission calculation
+            less_units  = float(lot.less_units or 0)
+            less_pct    = float(lot.less_percent or 0)
+            initial_qty = float(lot.initial_qty or qty_sold)
+
+            if less_units > 0:
+                less_qty = less_units
+            elif less_pct > 0:
+                less_qty = initial_qty * (less_pct / 100.0)
+            else:
+                less_qty = 0.0
+
+            # Less value is deducted from the realized amount proportionally
+            less_ratio    = less_qty / initial_qty if initial_qty > 0 else 0.0
+            less_value    = amount_sold * less_ratio
+            net_realized  = max(amount_sold - less_value, 0.0)
+
+            # Commission on net realized amount (sale price IS the base)
+            comm_pct      = float(lot.commission_percent or 0)
+            lot_commission = net_realized * (comm_pct / 100.0)
+
+            # Lot-level charges (paid by Mandi on behalf of farmer)
+            packing       = float(lot.packing_cost or 0)
+            loading       = float(lot.loading_cost or 0)
+            farmer_chg    = float(lot.farmer_charges or 0)
+            lot_charges   = packing + loading + farmer_chg
+
+            grand_total_realized   += net_realized
+            grand_total_commission += lot_commission
+            grand_total_less_value += less_value
+            grand_total_charges    += lot_charges
+
+        # Trip-level expenses from the Arrival document
+        hire_charges    = float(arrival.hire_charges or 0)
+        hamali_expenses = float(arrival.hamali_expenses or 0)
+        other_expenses  = float(arrival.other_expenses or 0)
+        trip_charges    = hire_charges + hamali_expenses + other_expenses
+        grand_total_charges += trip_charges
+
+        # Final net payable to farmer/supplier
+        net_payable = round(grand_total_realized - grand_total_commission - grand_total_charges, 2)
+        net_payable = max(net_payable, 0.0)
+
+        grand_total_realized   = round(grand_total_realized,   2)
+        grand_total_commission = round(grand_total_commission, 2)
+        grand_total_charges    = round(grand_total_charges,    2)
+
+        # ── 5. Update Arrival document in-place ─────────────────────────────
+        # Override the financial summary fields on the Arrival with actuals.
+        # We use db.set_value to avoid re-running the validate hook (which
+        # would try to recalculate from supplier_rate which is still 0).
+        frappe.db.set_value("Mandi Arrival", arrival_name, {
+            "total_realized":        grand_total_realized,
+            "total_commission":      grand_total_commission,
+            "total_expenses":        grand_total_charges,
+            "net_payable_farmer":    net_payable,
+            "mandi_total_earnings":  round(grand_total_commission + grand_total_charges, 2),
+            "commission_settlement_status": "Settled",
+        }, update_modified=False)
+
+        # Update supplier_rate on each lot to the computed avg rate
+        # so that get_trading_pl() can compute COGS correctly going forward.
+        for lot_id, avg_rate in lot_computed_rates.items():
+            frappe.db.set_value("Mandi Lot", lot_id, "supplier_rate", round(avg_rate, 4),
+                                update_modified=False)
+
+        frappe.db.commit()
+
+        # ── 6. Post the single settlement Journal Entry ─────────────────────
+        company = None
+        if arrival.organization_id:
+            company = frappe.db.get_value("Mandi Organization", arrival.organization_id, "erp_company")
+        if not company:
+            company = get_default_company()
+
+        ensure_company_party_defaults(company)
+        supplier_party = ensure_supplier_for_contact(arrival.party_id, company)
+
+        payable_acc = (
+            get_supplier_acc(company)
+            if arrival.arrival_type == "commission_supplier"
+            else get_farmer_acc(company)
+        )
+        stock_acc   = get_stock_acc(company)
+        comm_acc    = get_comm_acc(company)
+        expense_acc = get_expense_acc(company)
+        cost_center = _get_cost_center(company)
+
+        party_name = frappe.db.get_value("Mandi Contact", arrival.party_id, "full_name") or arrival.party_id
+        bill_ref   = f"Bill #{arrival.contact_bill_no}" if getattr(arrival, "contact_bill_no", None) else f"Arrival {arrival_name}"
+
+        # Build JE accounts — mirrors post_arrival_ledger() commission path exactly
+        je_accounts = []
+
+        # Dr: Stock In Hand (goods received were all sold — closing the inventory)
+        je_accounts.append({
+            "account":                   stock_acc,
+            "debit_in_account_currency": grand_total_realized,
+            "against_voucher_type":      "Mandi Arrival",
+            "against_voucher":           arrival_name,
+            "user_remark":               f"Settlement: goods sold on behalf of {party_name} — {bill_ref}",
+            "account_currency":          "INR",
+            "exchange_rate":             1,
+            "cost_center":               cost_center,
+        })
+
+        # Cr 1: Creditors — Net payable to farmer/supplier
+        if net_payable > 0:
+            je_accounts.append({
+                "account":                    payable_acc,
+                "credit_in_account_currency": net_payable,
+                "party_type":                 "Supplier",
+                "party":                      supplier_party,
+                "against_voucher_type":       "Mandi Arrival",
+                "against_voucher":            arrival_name,
+                "user_remark":                f"Net payable to {party_name} — {bill_ref}",
+                "account_currency":           "INR",
+                "exchange_rate":              1,
+                "cost_center":                cost_center,
+            })
+
+        # Cr 2: Commission Income — Mandi's profit
+        if grand_total_commission > 0:
+            je_accounts.append({
+                "account":                    comm_acc,
+                "credit_in_account_currency": grand_total_commission,
+                "against_voucher_type":       "Mandi Arrival",
+                "against_voucher":            arrival_name,
+                "user_remark":                f"Commission income on {bill_ref} — {party_name}",
+                "account_currency":           "INR",
+                "exchange_rate":              1,
+                "cost_center":                cost_center,
+            })
+
+        # Cr 3: Expense Recovery — charges deducted from farmer's bill
+        if grand_total_charges > 0:
+            je_accounts.append({
+                "account":                    expense_acc,
+                "credit_in_account_currency": grand_total_charges,
+                "against_voucher_type":       "Mandi Arrival",
+                "against_voucher":            arrival_name,
+                "user_remark":                f"Expense recovery (charges) on {bill_ref} — {party_name}",
+                "account_currency":           "INR",
+                "exchange_rate":              1,
+                "cost_center":                cost_center,
+            })
+
+        if not je_accounts or len(je_accounts) < 2:
+            frappe.throw("Cannot create Journal Entry — insufficient account legs (check commission/charges/net payable).")
+
+        settlement_date = frappe.utils.today()
+        je = frappe.get_doc({
+            "doctype":      "Journal Entry",
+            "voucher_type": "Journal Entry",
+            "company":      company,
+            "posting_date": settlement_date,
+            "user_remark":  f"Commission Settlement: {bill_ref} — {party_name} (Total: ₹{grand_total_realized:,.2f})"[:140],
+            "accounts":     je_accounts,
+        })
+        je.flags.ignore_permissions = True
+        je.insert()
+        je.submit()
+        _tag_gl_entries(je.name, "Mandi Arrival", arrival_name)
+
+        # Update the arrival status and link the settlement JE
+        frappe.db.set_value("Mandi Arrival", arrival_name, {
+            "status": "Paid" if float(arrival.advance or 0) >= net_payable else "Pending",
+        }, update_modified=False)
+        frappe.db.commit()
+
+        frappe.msgprint(
+            f"✅ Settlement complete! JE <b>{je.name}</b> posted for <b>{bill_ref}</b>.<br>"
+            f"Farmer Net Payable: ₹{net_payable:,.2f} | "
+            f"Commission: ₹{grand_total_commission:,.2f} | "
+            f"Charges: ₹{grand_total_charges:,.2f}",
+            indicator="green"
+        )
+
+        return {
+            "success":             True,
+            "je_name":             je.name,
+            "arrival_name":        arrival_name,
+            "total_realized":      grand_total_realized,
+            "total_commission":    grand_total_commission,
+            "total_charges":       grand_total_charges,
+            "net_payable":         net_payable,
+            "less_value":          round(grand_total_less_value, 2),
+            "message":             f"Settlement JE {je.name} created. Farmer net payable: ₹{net_payable:,.2f}",
+        }
+
+    except frappe.exceptions.ValidationError:
+        raise
+    except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "finalize_commission_settlement Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def get_commission_settlement_preview(arrival_name: str) -> dict:
+    """
+    Returns a read-only preview of the settlement amounts BEFORE the user
+    clicks 'Finalize'. Used by the frontend to show the farmer bill breakdown.
+    Safe — no writes, no ledger changes.
+    """
+    org_id = _get_user_org()
+    try:
+        arrival = frappe.db.get_value(
+            "Mandi Arrival", arrival_name,
+            ["arrival_type", "organization_id", "party_id", "contact_bill_no",
+             "hire_charges", "hamali_expenses", "other_expenses",
+             "commission_settlement_status", "total_realized"],
+            as_dict=True
+        )
+        if not arrival:
+            return {"success": False, "error": "Arrival not found"}
+        if arrival.organization_id != org_id:
+            return {"success": False, "error": "Access denied"}
+        if arrival.arrival_type not in ("commission", "commission_supplier"):
+            return {"success": False, "error": "Not a commission arrival"}
+        if float(arrival.total_realized or 0) > 0:
+            return {"success": False, "error": "Rate was entered at arrival — already settled on submit."}
+
+        lots = frappe.get_all(
+            "Mandi Lot", filters={"parent": arrival_name},
+            fields=["name", "initial_qty", "current_qty", "commission_percent",
+                    "less_percent", "less_units", "packing_cost", "loading_cost",
+                    "farmer_charges", "item_id"]
+        )
+        lot_ids = [l.name for l in lots]
+        if not lot_ids:
+            return {"success": False, "error": "No lots found"}
+
+        total_remaining = sum(float(l.current_qty or 0) for l in lots)
+
+        lot_placeholders = ", ".join(["%s"] * len(lot_ids))
+        sale_items = frappe.db.sql(f"""
+            SELECT si.lot_id, si.qty, si.amount
+            FROM `tabMandi Sale Item` si
+            JOIN `tabMandi Sale` s ON si.parent = s.name
+            WHERE si.lot_id IN ({lot_placeholders}) AND s.docstatus = 1
+        """, lot_ids, as_dict=True)
+
+        lot_sales = {}
+        for si in sale_items:
+            entry = lot_sales.setdefault(si.lot_id, {"qty_sold": 0.0, "total_amount": 0.0})
+            entry["qty_sold"]     += float(si.qty or 0)
+            entry["total_amount"] += float(si.amount or 0)
+
+        grand_realized   = 0.0
+        grand_commission = 0.0
+        grand_charges    = 0.0
+
+        for lot in lots:
+            ls = lot_sales.get(lot.name)
+            if not ls or ls["qty_sold"] <= 0:
+                continue
+            initial_qty = float(lot.initial_qty or ls["qty_sold"])
+            less_units  = float(lot.less_units or 0)
+            less_pct    = float(lot.less_percent or 0)
+            less_qty    = less_units if less_units > 0 else (initial_qty * less_pct / 100.0 if less_pct > 0 else 0.0)
+            less_ratio  = less_qty / initial_qty if initial_qty > 0 else 0.0
+            net_realized = max(ls["total_amount"] * (1 - less_ratio), 0.0)
+            grand_realized   += net_realized
+            grand_commission += net_realized * (float(lot.commission_percent or 0) / 100.0)
+            grand_charges    += float(lot.packing_cost or 0) + float(lot.loading_cost or 0) + float(lot.farmer_charges or 0)
+
+        trip_charges = (float(arrival.hire_charges or 0) + float(arrival.hamali_expenses or 0)
+                        + float(arrival.other_expenses or 0))
+        grand_charges += trip_charges
+
+        net_payable = max(round(grand_realized - grand_commission - grand_charges, 2), 0.0)
+
+        return {
+            "success":           True,
+            "arrival_name":      arrival_name,
+            "total_remaining":   total_remaining,
+            "is_ready":          total_remaining <= 0,
+            "settlement_status": arrival.commission_settlement_status or "Pending",
+            "preview": {
+                "total_realized":   round(grand_realized,   2),
+                "total_commission": round(grand_commission, 2),
+                "total_charges":    round(grand_charges,    2),
+                "net_payable":      net_payable,
+            }
+        }
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_commission_settlement_preview Failed")
+        return {"success": False, "error": str(e)}
+
+
 # ── Stock Operations: Report Loss, Return to Supplier, Stock Alerts ────────────
 
 @frappe.whitelist(allow_guest=False)
@@ -10888,6 +11420,16 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
         except Exception:
             frappe.log_error(frappe.get_traceback(), "return_stock: JE Failed")
 
+
+    # ── Check commission arrival settlement readiness (non-fatal) ────────────
+    # For zero-rate commission arrivals, returning all remaining stock makes
+    # the arrival "empty". If all lots are now 0, mark it Ready to finalize.
+    try:
+        if parent_name:
+            _check_commission_arrival_readiness(parent_name)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "commission_readiness_check after return (non-fatal)")
+    # ─────────────────────────────────────────────────────────────────────────
 
     frappe.logger().info(f"[return_stock] {lot_id}: -{return_qty} ({reason}), new_qty={new_qty}, supplier={supplier_id}, org={org_id}")
     return {
