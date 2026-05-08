@@ -212,8 +212,14 @@ export default function TenantDetailPage() {
         }
     };
 
+    // Auto-calculate expiry date from billing cycle
+    const calcExpiryFromCycle = (cycle: 'monthly' | 'yearly'): string => {
+        const base = new Date();
+        base.setDate(base.getDate() + (cycle === 'yearly' ? 365 : 30));
+        return base.toISOString();
+    };
+
     const handlePlanSelect = (planName: string) => {
-        // Frappe App Plan uses plan_name OR name — try both
         const plan = plans.find(p => (p.plan_name || p.name) === planName);
         if (plan) {
             setOverride(prev => ({
@@ -221,6 +227,9 @@ export default function TenantDetailPage() {
                 subscription_tier: planName,
                 max_web_users: plan.max_users ?? 1,
                 max_mobile_users: 0,
+                // Auto-set expiry based on current billing cycle when plan selected
+                trial_ends_at: calcExpiryFromCycle(prev.billing_cycle),
+                extend_days: 0,
             }));
         }
     };
@@ -487,16 +496,28 @@ export default function TenantDetailPage() {
                                                         <Button 
                                                             variant={override.billing_cycle === 'monthly' ? "default" : "ghost"}
                                                             className={`rounded-lg font-bold h-10 ${override.billing_cycle === 'monthly' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"}`}
-                                                            onClick={() => setOverride({ ...override, billing_cycle: 'monthly' })}
+                                                            onClick={() => setOverride(prev => ({ 
+                                                                ...prev, 
+                                                                billing_cycle: 'monthly',
+                                                                // Auto-calculate expiry: today + 30 days
+                                                                trial_ends_at: calcExpiryFromCycle('monthly'),
+                                                                extend_days: 0
+                                                            }))}
                                                         >
-                                                            Monthly
+                                                            Monthly (+30 days)
                                                         </Button>
                                                         <Button 
                                                             variant={override.billing_cycle === 'yearly' ? "default" : "ghost"}
                                                             className={`rounded-lg font-bold h-10 ${override.billing_cycle === 'yearly' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"}`}
-                                                            onClick={() => setOverride({ ...override, billing_cycle: 'yearly' })}
+                                                            onClick={() => setOverride(prev => ({ 
+                                                                ...prev, 
+                                                                billing_cycle: 'yearly',
+                                                                // Auto-calculate expiry: today + 365 days
+                                                                trial_ends_at: calcExpiryFromCycle('yearly'),
+                                                                extend_days: 0
+                                                            }))}
                                                         >
-                                                            Yearly
+                                                            Yearly (+365 days)
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -775,7 +796,19 @@ export default function TenantDetailPage() {
                         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50">
                             <div>
                                 <CardTitle className="text-lg font-black text-slate-900 tracking-tight">Team Roster & Security</CardTitle>
-                                <p className="text-xs text-slate-500 font-bold">Manage employee records and system access levels.</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-xs text-slate-500 font-bold">Manage employee records and system access levels.</p>
+                                    {data?.seat_info && (
+                                        <Badge className={cn(
+                                            "text-[9px] font-black uppercase tracking-widest border-none h-5",
+                                            data.seat_info.max_users && data.seat_info.current >= data.seat_info.max_users
+                                                ? "bg-red-100 text-red-600"
+                                                : "bg-emerald-100 text-emerald-700"
+                                        )}>
+                                            {data.seat_info.current} / {data.seat_info.max_users ?? '∞'} Seats Used
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Button 
@@ -943,11 +976,11 @@ export default function TenantDetailPage() {
                                     data?.users?.map((user: any) => (
                                         <div key={user.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-white text-lg">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-white text-lg shadow">
                                                     {user.full_name?.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                         <p className="font-black text-slate-900">{user.full_name}</p>
                                                         <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 text-slate-500">{user.role}</Badge>
                                                     </div>

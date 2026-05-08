@@ -1289,55 +1289,86 @@ def get_team_members() -> list:
 @frappe.whitelist(allow_guest=False)
 def get_unlinked_staff() -> list:
     """
-    Returns staff members from Mandi Contact who have NOT yet been granted system
-    (Frappe User) access. Used to populate the 'Authorize Employee' dropdown.
-    
-    A staff contact is considered 'linked' if a Frappe User with the same
-    mandi_organization already has their mandi_contact field set to this contact,
-    OR if the contact has a linked_user field set.
-    
-    Returns fields: id, name, email, status (always 'active'), user_id (null = not yet authorized)
+    Returns Employees from the Employee doctype who have NOT yet been granted
+    system (Frappe User) access. Used to populate the 'Authorize Employee' dropdown.
+
+    Pulls from the standard Frappe Employee doctype (which is populated from
+    Master Data > Employees in the UI). Only returns employees whose user_id
+    field is blank (not yet authorized).
+
+    Returns fields: id, name, email, status, user_id (null = not yet authorized)
     """
     org_id = _get_user_org()
     if not org_id:
         return []
 
-    # Get all staff-type contacts for this org
-    staff_contacts = frappe.get_all("Mandi Contact",
-        filters={"organization_id": org_id, "contact_type": "staff"},
-        fields=["name as id", "full_name as name", "phone as email"],
-        ignore_permissions=True
-    )
-
-    if not staff_contacts:
-        return []
-
-    # Find which contacts are already linked to a system user
-    # A contact is linked if a User in this org has their full_name matching or
-    # if linked_user is set on the contact doc. We use the simplest safe check:
-    # see if any User in this org has full_name matching the contact name.
-    authorized_names = set()
-    org_users = frappe.get_all("User",
-        filters={"mandi_organization": org_id, "enabled": 1},
-        fields=["full_name"],
-        ignore_permissions=True
-    )
-    for u in org_users:
-        if u.full_name:
-            authorized_names.add(u.full_name.strip().lower())
-
     result = []
-    for contact in staff_contacts:
-        contact_name_lower = (contact.get("name") or "").strip().lower()
-        is_linked = contact_name_lower in authorized_names
-        result.append({
-            "id": contact["id"],
-            "name": contact["name"],
-            # Use phone as fallback for email field since Mandi Contact uses phone
-            "email": contact.get("email") or "",
-            "user_id": "linked" if is_linked else None,
-            "status": "active",  # We only query active contacts
-        })
+
+    # ── Primary source: Frappe Employee doctype ──────────────────────────────
+    # This is what gets populated when users add staff from Master Data > Employees.
+    # Filter by organization_id (custom field on Employee) if it exists.
+    try:
+        employee_fields = frappe.get_meta("Employee").get_field_names()
+        org_filter = {}
+        if "mandi_organization" in employee_fields:
+            org_filter["mandi_organization"] = org_id
+        elif "organization_id" in employee_fields:
+            org_filter["organization_id"] = org_id
+        elif "company" in employee_fields:
+            # Fallback: match by company linked to org
+            company = frappe.db.get_value("Mandi Organization", org_id, "company")
+            if company:
+                org_filter["company"] = company
+
+        employees = frappe.get_all("Employee",
+            filters={"status": "Active", **org_filter},
+            fields=["name as id", "employee_name as name", "personal_email as email",
+                    "company_email", "user_id"],
+            ignore_permissions=True,
+            limit_page_length=500
+        )
+        for emp in employees:
+            # Use company_email if personal_email is missing
+            email = emp.get("email") or emp.get("company_email") or ""
+            result.append({
+                "id": emp["id"],
+                "name": emp.get("name") or emp["id"],
+                "email": email,
+                "user_id": emp.get("user_id") or None,  # None = not yet authorized
+                "status": "active",
+            })
+    except Exception as e:
+        frappe.log_error(f"get_unlinked_staff Employee fetch error: {e}", "Team Access")
+
+    # ── Fallback: Mandi Contact with staff type (legacy) ────────────────────
+    if not result:
+        try:
+            staff_contacts = frappe.get_all("Mandi Contact",
+                filters={"organization_id": org_id, "contact_type": "staff"},
+                fields=["name as id", "full_name as name", "phone as email"],
+                ignore_permissions=True
+            )
+            authorized_names = set()
+            org_users = frappe.get_all("User",
+                filters={"mandi_organization": org_id, "enabled": 1},
+                fields=["full_name"],
+                ignore_permissions=True
+            )
+            for u in org_users:
+                if u.full_name:
+                    authorized_names.add(u.full_name.strip().lower())
+
+            for contact in staff_contacts:
+                contact_name_lower = (contact.get("name") or "").strip().lower()
+                result.append({
+                    "id": contact["id"],
+                    "name": contact.get("name") or "",
+                    "email": contact.get("email") or "",
+                    "user_id": "linked" if contact_name_lower in authorized_names else None,
+                    "status": "active",
+                })
+        except Exception:
+            pass
 
     return result
 
@@ -10116,12 +10147,21 @@ def get_tenant_details(p_org_id: str) -> dict:
         },
         "owner": owner,
         "users": users,
+        "seat_info": {
+            "max_users": frappe.db.get_value("Mandi Organization", p_org_id, "max_users_override") or None,
+            "current": len([u for u in users if u.get("enabled", 1) != 0]),
+        },
         "stats": {
-            "total_sales": frappe.db.count("Mandi Sale", filters={**_org_filter("Mandi Sale", p_org_id)}),
+            "total_sales":    frappe.db.count("Mandi Sale",    filters={**_org_filter("Mandi Sale",    p_org_id)}),
             "total_arrivals": frappe.db.count("Mandi Arrival", filters={**_org_filter("Mandi Arrival", p_org_id)}),
             "total_contacts": frappe.db.count("Mandi Contact", filters={**_org_filter("Mandi Contact", p_org_id)}),
+            "sale_count":     frappe.db.count("Mandi Sale",    filters={**_org_filter("Mandi Sale",    p_org_id)}),
+            "last_sale":      frappe.db.get_value("Mandi Sale", {**_org_filter("Mandi Sale", p_org_id)}, "creation", order_by="creation desc"),
+            "negative_ledger_count": 0,
+            "negative_stock_count":  0,
         }
     }
+
 
 @frappe.whitelist(allow_guest=False)
 def admin_user_action(action: str, user_id: str, payload: dict = None) -> dict:
@@ -10175,11 +10215,23 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
         org.status = "active" if config["is_active"] else "suspended"
 
     if "trial_ends_at" in config and config["trial_ends_at"]:
-        org.trial_ends_at = get_datetime(config["trial_ends_at"])
+        # Strip timezone offset — MySQL datetime columns reject timezone-aware strings
+        # e.g. '2026-10-10 00:00:00+00:00' → '2026-10-10 00:00:00'
+        raw_dt = config["trial_ends_at"]
+        try:
+            import re as _re
+            raw_dt = _re.sub(r'[+-]\d{2}:\d{2}$', '', str(raw_dt)).replace('T', ' ').strip()
+            raw_dt = raw_dt[:19]  # keep YYYY-MM-DD HH:MM:SS only
+        except Exception:
+            pass
+        org.trial_ends_at = get_datetime(raw_dt)
 
     if "subscription_end_date" in config and config["subscription_end_date"]:
         try:
-            org.subscription_end_date = get_datetime(config["subscription_end_date"])
+            raw_end = config["subscription_end_date"]
+            import re as _re2
+            raw_end = _re2.sub(r'[+-]\d{2}:\d{2}$', '', str(raw_end)).replace('T', ' ').strip()[:19]
+            org.subscription_end_date = get_datetime(raw_end)
         except Exception:
             pass
 
