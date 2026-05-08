@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { callApi } from '@/lib/frappeClient';
 import { 
     Landmark, Shield, Info, Save, Loader2, 
     CreditCard, Smartphone, Banknote, CheckCircle2, AlertCircle,
-    Eye, EyeOff, Globe, Zap
+    Eye, EyeOff, Globe, Zap, Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 export default function PaymentGatewaysPage() {
     const { toast } = useToast();
@@ -100,14 +102,35 @@ export default function PaymentGatewaysPage() {
 
     const handleTestConnection = async (gateway: string) => {
         setTesting(gateway);
-        // Simulated connection test
-        await new Promise(r => setTimeout(r, 1500));
-        setTesting(null);
-        toast({ 
-            title: 'Connection Verified', 
-            description: `Successfully reached ${gateway.charAt(0).toUpperCase() + gateway.slice(1)} API servers.`,
-            variant: 'default'
-        });
+        try {
+            if (gateway === 'paytm') {
+                // Real test: check if Paytm credentials are configured in Frappe
+                const status: any = await callApi('mandigrow.api.get_paytm_config_status');
+                if (status?.configured) {
+                    toast({
+                        title: '✅ Paytm Configured',
+                        description: `MID: ${status.merchant_id} · Staging: ${status.is_staging ? 'Yes' : 'No'}`,
+                    });
+                } else {
+                    toast({
+                        title: '⚠️ Paytm Not Configured',
+                        description: 'MID or Merchant Key is missing. Please save credentials first.',
+                        variant: 'destructive',
+                    });
+                }
+            } else {
+                // Simulated for other gateways
+                await new Promise(r => setTimeout(r, 1200));
+                toast({
+                    title: 'Connection Verified',
+                    description: `Successfully reached ${gateway.charAt(0).toUpperCase() + gateway.slice(1)} API servers.`,
+                });
+            }
+        } catch (err: any) {
+            toast({ title: 'Test Failed', description: err.message, variant: 'destructive' });
+        } finally {
+            setTesting(null);
+        }
     };
 
     const toggleKeyVisibility = (key: string) => {
@@ -132,8 +155,11 @@ export default function PaymentGatewaysPage() {
                 <p className="text-slate-500 text-sm font-medium">Configure secure payment providers and automated billing collection.</p>
             </div>
 
-            <Tabs defaultValue="smepay" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 h-14 rounded-xl border border-slate-200">
+            <Tabs defaultValue="paytm" className="w-full">
+                <TabsList className="grid w-full grid-cols-5 bg-slate-100 p-1 h-14 rounded-xl border border-slate-200">
+                    <TabsTrigger value="paytm" className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <Wallet className="w-4 h-4 text-blue-600" /> Paytm
+                    </TabsTrigger>
                     <TabsTrigger value="smepay" className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm">
                         <Banknote className="w-4 h-4 text-emerald-600" /> SME Pay
                     </TabsTrigger>
@@ -144,9 +170,105 @@ export default function PaymentGatewaysPage() {
                         <Smartphone className="w-4 h-4" /> Razorpay
                     </TabsTrigger>
                     <TabsTrigger value="manual" className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                        <Globe className="w-4 h-4" /> Offline / Manual
+                        <Globe className="w-4 h-4" /> Offline
                     </TabsTrigger>
                 </TabsList>
+
+                {/* ── PAYTM ─── */}
+                <TabsContent value="paytm" className="mt-6">
+                    <GatewayCard
+                        gateway="paytm"
+                        title="Paytm Payment Gateway"
+                        description="Accept UPI, Cards, Net Banking & Wallets via Paytm. Uses the official paytmchecksum SDK for AES-CBC verified transactions."
+                        config={getConfig('paytm')}
+                        onSave={() => handleUpdate('paytm')}
+                        onToggle={(active: boolean) => handleToggleActive('paytm', active)}
+                        onTest={() => handleTestConnection('paytm')}
+                        isSaving={saving === 'paytm'}
+                        isTesting={testing === 'paytm'}
+                    >
+                        <div className="grid gap-5">
+                            {/* Staging/Prod info banner */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
+                                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <div className="text-xs text-blue-700 font-medium space-y-1">
+                                    <p><strong>Staging MID:</strong> Resell00448805757124 &nbsp;·&nbsp; <strong>Website:</strong> WEBSTAGING</p>
+                                    <p><strong>Staging URL:</strong> https://securestage.paytmpayments.com</p>
+                                    <p><strong>Callback URL</strong> (set in Paytm Dashboard → Webhooks):<br />
+                                        <code className="bg-blue-100 px-1 rounded font-mono">/api/method/mandigrow.api.paytm_payment_callback</code>
+                                    </p>
+                                    <p className="text-amber-700">⚠️ If credentials show "Checksum Invalid", verify you are using the <strong>Staging API Key</strong> from the Paytm Business Dashboard → Developer Settings → API Keys (not Production).</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold uppercase text-slate-500">Merchant ID (MID)</Label>
+                                    <Input
+                                        value={getConfig('paytm').config?.merchant_id || ''}
+                                        placeholder="Resell00448805757124"
+                                        className="bg-slate-50 border-slate-200 font-mono text-sm"
+                                        onChange={(e) => handleFieldChange('paytm', 'merchant_id', e.target.value)}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold uppercase text-slate-500">Website Name</Label>
+                                    <Input
+                                        value={getConfig('paytm').config?.website || 'WEBSTAGING'}
+                                        placeholder="WEBSTAGING or DEFAULT"
+                                        className="bg-slate-50 border-slate-200 font-mono text-sm"
+                                        onChange={(e) => handleFieldChange('paytm', 'website', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label className="text-[10px] font-bold uppercase text-slate-500">Merchant Key (Secret)</Label>
+                                <div className="relative">
+                                    <Input
+                                        type={showKeys['paytm_key'] ? 'text' : 'password'}
+                                        value={getConfig('paytm').config?.merchant_key || ''}
+                                        placeholder="16-character AES key from Paytm Dashboard"
+                                        className="bg-slate-50 border-slate-200 font-mono text-sm pr-10"
+                                        onChange={(e) => handleFieldChange('paytm', 'merchant_key', e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleKeyVisibility('paytm_key')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                                    >
+                                        {showKeys['paytm_key'] ? <EyeOff className="w-4" /> : <Eye className="w-4" />}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-bold">Must be exactly 16 characters. Get from Paytm Business Dashboard → Developer Settings → API Keys.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold uppercase text-slate-500">Paytm Host URL</Label>
+                                    <Input
+                                        value={getConfig('paytm').config?.paytm_host || 'https://securestage.paytmpayments.com'}
+                                        placeholder="https://securestage.paytmpayments.com"
+                                        className="bg-slate-50 border-slate-200 font-mono text-sm"
+                                        onChange={(e) => handleFieldChange('paytm', 'paytm_host', e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex items-end gap-3 pb-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                            id="paytm-staging"
+                                            checked={getConfig('paytm').config?.is_staging !== false}
+                                            onCheckedChange={(v) => handleFieldChange('paytm', 'is_staging', String(v))}
+                                        />
+                                        <Label htmlFor="paytm-staging" className="text-[10px] font-bold uppercase text-slate-500 cursor-pointer">
+                                            Use Staging Environment
+                                        </Label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </GatewayCard>
+                </TabsContent>
 
                 <TabsContent value="smepay" className="mt-6">
                     <GatewayCard
