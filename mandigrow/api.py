@@ -10546,55 +10546,71 @@ def _get_paytm_config():
             ["config"], as_dict=True)
         if gw and gw.get("config"):
             cfg = json.loads(gw["config"])
+            is_staging = cfg.get("is_staging", True)
             return {
                 "merchant_id":  cfg.get("merchant_id") or cfg.get("MID"),
                 "merchant_key": cfg.get("merchant_key") or cfg.get("MERCHANT_KEY"),
                 "website":      cfg.get("website", "WEBSTAGING"),
                 "industry_type_id": cfg.get("industry_type_id", "Retail"),
-                "is_staging":   cfg.get("is_staging", True),
+                "is_staging":   is_staging,
+                "paytm_host":   cfg.get("paytm_host") or (
+                    "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+                ),
             }
     except Exception:
         pass
 
     # Fallback: Global Defaults
+    is_staging = frappe.db.get_default("paytm_is_staging") not in ("0", "false", "False")
+    stored_host = frappe.db.get_default("paytm_paytm_host")
     return {
         "merchant_id":  frappe.db.get_default("paytm_merchant_id"),
         "merchant_key": frappe.db.get_default("paytm_merchant_key"),
         "website":      frappe.db.get_default("paytm_website") or "WEBSTAGING",
         "industry_type_id": frappe.db.get_default("paytm_industry_type") or "Retail",
-        "is_staging":   frappe.db.get_default("paytm_is_staging") not in ("0", "false", "False"),
+        "is_staging":   is_staging,
+        "paytm_host":   stored_host or (
+            "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+        ),
     }
 
 
-def _paytm_generate_checksum(param_dict: dict, merchant_key: str) -> str:
-    """Generate Paytm checksum using HMAC-SHA256."""
-    import hmac, hashlib, base64, string, random
+def _paytm_generate_checksum(body_json_str: str, merchant_key: str) -> str:
+    """
+    Generate Paytm checksum using the official Paytm SDK algorithm:
+      SHA256(body_json + '|' + salt) as hex + salt, then AES-CBC encrypted with merchant key.
+    
+    Uses paytmchecksum.PaytmChecksum.generateSignatureByString() which is the
+    official implementation as per Paytm developer docs.
+    """
+    try:
+        from paytmchecksum import PaytmChecksum
+        return PaytmChecksum.generateSignatureByString(body_json_str, merchant_key)
+    except ImportError:
+        # Inline fallback (no pycryptodome)
+        import hashlib, base64, string, random
+        from Crypto.Cipher import AES
+        salt = ''.join(random.choices(string.ascii_letters + string.digits + string.ascii_uppercase, k=4))
+        block_size = 16
+        iv = '@@@@&&&&####$$$$'
+        hash_str = hashlib.sha256(f'{body_json_str}|{salt}'.encode()).hexdigest() + salt
+        pad = lambda s: bytes(
+            s + (block_size - len(s) % block_size) * chr(block_size - len(s) % block_size), 'utf-8'
+        )
+        c = AES.new(merchant_key.encode('utf8'), AES.MODE_CBC, iv.encode('utf8'))
+        return base64.b64encode(c.encrypt(pad(hash_str))).decode('UTF-8')
 
-    salt = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
-    params = ''.join(
-        f'{key}={value}|'
-        for key, value in sorted(param_dict.items())
-        if key != 'CHECKSUMHASH'
-    ) + salt
 
-    digest = hmac.new(merchant_key.encode('utf-8'), params.encode('utf-8'), hashlib.sha256).digest()
-    return base64.b64encode(digest).decode('utf-8') + salt
-
-
-def _paytm_verify_checksum(param_dict: dict, merchant_key: str, checksum: str) -> bool:
-    """Verify Paytm checksum."""
-    import hmac, hashlib, base64
-
-    params_without_checksum = {k: v for k, v in param_dict.items() if k != 'CHECKSUMHASH'}
-    salt = checksum[-4:]
-    params = ''.join(
-        f'{key}={value}|'
-        for key, value in sorted(params_without_checksum.items())
-    ) + salt
-
-    digest = hmac.new(merchant_key.encode('utf-8'), params.encode('utf-8'), hashlib.sha256).digest()
-    expected = base64.b64encode(digest).decode('utf-8') + salt
-    return checksum == expected
+def _paytm_verify_checksum(body_json_str: str, merchant_key: str, checksum: str) -> bool:
+    """
+    Verify Paytm checksum from a server response.
+    Uses the official paytmchecksum SDK.
+    """
+    try:
+        from paytmchecksum import PaytmChecksum
+        return PaytmChecksum.verifySignatureByString(body_json_str, merchant_key, checksum)
+    except Exception:
+        return False  # Fail-safe: if can't verify, treat as invalid
 
 
 @frappe.whitelist(allow_guest=False)
@@ -10687,10 +10703,15 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
     # ── Call Paytm Transaction Token API ─────────────────────────────────────
     try:
         is_staging = paytm_cfg.get("is_staging", True)
-        paytm_host = "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
+        paytm_host = paytm_cfg.get("paytm_host") or (
+            "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+        )
 
         # Paytm needs amount as string with 2 decimal places
         amount_str = f"{final_amount:.2f}"
+
+        user_email = frappe.db.get_value("User", user, "email") or user
+        user_name  = frappe.db.get_value("User", user, "first_name") or ""
 
         body = {
             "requestType": "Payment",
@@ -10700,13 +10721,16 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
             "callbackUrl": f"{frappe.utils.get_url()}/api/method/mandigrow.api.paytm_payment_callback",
             "txnAmount": {"value": amount_str, "currency": "INR"},
             "userInfo": {
-                "custId": org_id,
-                "email": frappe.db.get_value("User", user, "email") or user,
-                "firstName": frappe.db.get_value("User", user, "first_name") or "",
+                "custId": org_id[:50],       # Paytm max custId = 64 chars
+                "email":  user_email[:254],
+                "firstName": user_name[:50],
             },
         }
 
-        checksum = _paytm_generate_checksum({"MID": mid, "ORDER_ID": order_id}, merchant_key)
+        # ── Checksum: SHA256(JSON_body + |salt) → hexdigest+salt → AES-CBC(merchant_key) → base64
+        import json as _json
+        body_str = _json.dumps(body, separators=(',', ':'), ensure_ascii=False)
+        checksum = _paytm_generate_checksum(body_str, merchant_key)
 
         response = requests.post(
             f"{paytm_host}/theia/api/v1/initiateTransaction?mid={mid}&orderId={order_id}",
@@ -10779,27 +10803,41 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
     mid = paytm_cfg.get("merchant_id")
     merchant_key = paytm_cfg.get("merchant_key")
     is_staging = paytm_cfg.get("is_staging", True)
-    paytm_host = "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
+    paytm_host = paytm_cfg.get("paytm_host") or (
+        "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+    )
 
     if not mid or not merchant_key:
         return {"success": False, "message": "Payment gateway not configured."}
 
-    # ── Verify frontend response checksum (optional fast path) ────────────────
+    # ── Verify frontend response checksum (optional, non-blocking) ────────────
+    # The server-side status call below is the authoritative check.
+    # Frontend response verification is a bonus defence layer only.
     if paytm_response:
         try:
             resp_data = json.loads(paytm_response)
             paytm_checksum = resp_data.get("CHECKSUMHASH", "")
-            if paytm_checksum and not _paytm_verify_checksum(resp_data, merchant_key, paytm_checksum):
-                frappe.log_error(f"Paytm checksum mismatch for order {order_id}", "verify_paytm_payment")
-                return {"success": False, "message": "Payment signature verification failed."}
+            if paytm_checksum:
+                # Verify using the response body minus CHECKSUMHASH
+                resp_body_str = json.dumps(
+                    {k: v for k, v in resp_data.items() if k != 'CHECKSUMHASH'},
+                    separators=(',', ':'), ensure_ascii=False
+                )
+                if not _paytm_verify_checksum(resp_body_str, merchant_key, paytm_checksum):
+                    frappe.log_error(f"Paytm frontend checksum mismatch for order {order_id}",
+                                     "verify_paytm_payment")
+                    # Don't return immediately — fall through to server-side check
         except Exception:
             pass  # Continue to server-side verification even if parsing fails
 
     # ── Server-side Transaction Status API call ───────────────────────────────
     # This is the definitive check — we NEVER rely only on frontend callback
     try:
-        body = {"mid": mid, "orderId": order_id}
-        checksum = _paytm_generate_checksum(body, merchant_key)
+        import json as _json
+        status_body = {"mid": mid, "orderId": order_id}
+        status_body_str = _json.dumps(status_body, separators=(',', ':'), ensure_ascii=False)
+        checksum = _paytm_generate_checksum(status_body_str, merchant_key)
+        body = status_body
 
         response = requests.post(
             f"{paytm_host}/v3/order/status",
