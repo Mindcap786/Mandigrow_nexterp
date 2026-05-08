@@ -66,14 +66,32 @@ export default function PaymentGatewaysPage() {
         setSaving(gateway);
         try {
             const current = getConfig(gateway);
-            await callApi('mandigrow.api.update_billing_gateway', {
-                gateway_type: gateway,
-                config: { ...current.config, ...configOverrides },
-                is_active: current.is_active
-            });
+            const cfg = { ...current.config, ...configOverrides };
 
-            toast({ title: 'Success', description: `${gateway.toUpperCase()} configuration saved.` });
-            fetchConfigs();
+            if (gateway === 'paytm') {
+                // Use dedicated API that writes to Frappe Global Defaults on the server
+                const result: any = await callApi('mandigrow.api.save_paytm_config', {
+                    merchant_id:  cfg.merchant_id || '',
+                    merchant_key: cfg.merchant_key || '',
+                    website:      cfg.website || 'WEBSTAGING',
+                    is_staging:   cfg.is_staging !== 'false' && cfg.is_staging !== false,
+                    paytm_host:   cfg.paytm_host || 'https://securestage.paytmpayments.com',
+                });
+                if (result?.success) {
+                    toast({ title: '✅ Paytm Saved', description: result.message });
+                    fetchConfigs();
+                } else {
+                    toast({ title: 'Error', description: result?.error || 'Failed to save.', variant: 'destructive' });
+                }
+            } else {
+                await callApi('mandigrow.api.update_billing_gateway', {
+                    gateway_type: gateway,
+                    config: cfg,
+                    is_active: current.is_active
+                });
+                toast({ title: 'Success', description: `${gateway.toUpperCase()} configuration saved.` });
+                fetchConfigs();
+            }
         } catch (err: any) {
             toast({ title: 'Error', description: err.message, variant: 'destructive' });
         } finally {
