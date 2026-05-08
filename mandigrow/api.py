@@ -1308,7 +1308,7 @@ def get_unlinked_staff() -> list:
     # This is what gets populated when users add staff from Master Data > Employees.
     # Filter by organization_id (custom field on Employee) if it exists.
     try:
-        employee_fields = frappe.get_meta("Employee").get_field_names()
+        employee_fields = [f.fieldname for f in frappe.get_meta("Employee").fields]
         org_filter = {}
         if "mandi_organization" in employee_fields:
             org_filter["mandi_organization"] = org_id
@@ -10262,6 +10262,53 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
         )
 
     return {"success": True}
+
+@frappe.whitelist(allow_guest=False)
+def update_global_settings(settings) -> dict:
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied"), frappe.PermissionError)
+    
+    import json
+    if isinstance(settings, str):
+        settings = json.loads(settings)
+
+    for row in settings:
+        key = row.get("key")
+        val = row.get("value", {}).get("value")
+        frappe.db.set_default(key, val)
+    frappe.db.commit()
+    return {"status": "success"}
+
+@frappe.whitelist(allow_guest=False)
+def get_global_settings(keys=None) -> list:
+    import json
+    if isinstance(keys, str):
+        keys = json.loads(keys)
+
+    if not keys:
+        keys = ['global_trial_days', 'grace_period_days_monthly', 'grace_period_days_yearly', 'payment_reminder_days_monthly', 'payment_reminder_days_yearly']
+    
+    result = []
+    for key in keys:
+        val = frappe.db.get_default(key)
+        # default fallbacks
+        if val is None:
+            if key == 'global_trial_days': val = 14
+            elif key == 'grace_period_days_monthly': val = 7
+            elif key == 'grace_period_days_yearly': val = 14
+            elif key == 'payment_reminder_days_monthly': val = 3
+            elif key == 'payment_reminder_days_yearly': val = 7
+            else: val = 0
+        else:
+            try:
+                val = int(val)
+            except Exception:
+                pass
+            
+        result.append({"key": key, "value": {"value": val}})
+    return result
+
 
 @frappe.whitelist(allow_guest=False)
 def admin_assign_tenant_owner(p_org_id: str, p_user_id: str) -> dict:

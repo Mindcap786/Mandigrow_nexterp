@@ -2,28 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
+import { useSubscription } from '@/hooks/use-subscription';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertOctagon, Clock, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 export function SubscriptionExpiryWarning() {
-    const { profile, subscription } = useAuth();
+    const { profile } = useAuth();
+    const sub = useSubscription();
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        if (!profile?.organization_id || !subscription) return;
+        if (!profile || profile.role === 'super_admin') return;
         
-        if (subscription.status === 'expired' || subscription.status === 'grace_period' || (subscription.days_left !== null && subscription.days_left <= 7)) {
+        if (sub.isFullyBlocked || (sub.isTrialing && sub.trialDaysRemaining !== null && sub.trialDaysRemaining <= 7)) {
             setIsOpen(true);
         }
-    }, [profile, subscription]);
+    }, [profile, sub.isFullyBlocked, sub.isTrialing, sub.trialDaysRemaining]);
 
-    if (!subscription || !isOpen) return null;
+    if (!profile || !isOpen) return null;
 
-    const isExpired = subscription.status === 'expired' || subscription.status === 'grace_period';
-    const isTrial = subscription.status === 'trial';
-    const daysLeft = Math.max(0, Math.ceil(subscription.days_left || 0));
+    const isExpired = sub.isFullyBlocked;
+    const isTrial = sub.isTrialing;
+    const daysLeft = sub.trialDaysRemaining || 0;
 
     return (
         <Dialog open={isOpen} onOpenChange={isExpired ? () => {} : setIsOpen}>

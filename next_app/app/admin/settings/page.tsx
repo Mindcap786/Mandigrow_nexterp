@@ -50,9 +50,7 @@ export default function AdminSettingsPage() {
                 supabase.schema('core').from('subscriptions').select('status').eq('status', 'active'),
                 supabase.schema('core').from('feature_flags').select('key, is_enabled').is('organization_id', null),
                 supabase.schema('core').from('platform_branding_settings').select('*').maybeSingle(),
-                supabase.schema('core').from('app_settings')
-                    .select('key, value')
-                    .in('key', ['global_trial_days', 'grace_period_days_monthly', 'grace_period_days_yearly', 'payment_reminder_days_monthly', 'payment_reminder_days_yearly']),
+                callApi('mandigrow.api.get_global_settings', { keys: ['global_trial_days', 'grace_period_days_monthly', 'grace_period_days_yearly', 'payment_reminder_days_monthly', 'payment_reminder_days_yearly'] }),
             ]);
 
             setPlatformInfo({
@@ -67,13 +65,12 @@ export default function AdminSettingsPage() {
                 setBranding(brandingRes.value.data);
             }
 
-            if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
-                const s = settingsRes.value.data;
+            if (settingsRes.status === 'fulfilled' && settingsRes.value) {
+                const s = settingsRes.value;
                 const get = (key: string, def: number) => {
                     const row = s.find((r: any) => r.key === key);
                     if (!row) return def;
                     
-                    // Handle both direct value and JSONB value structure from app_settings
                     let val = row.value;
                     if (val && typeof val === 'object' && val.value !== undefined) {
                         val = val.value;
@@ -144,10 +141,7 @@ export default function AdminSettingsPage() {
                 { key: 'payment_reminder_days_monthly', value: { value: reminderDaysMonthly } },
                 { key: 'payment_reminder_days_yearly', value: { value: reminderDaysYearly } },
             ];
-            const { error } = await supabase.schema('core')
-                .from('app_settings')
-                .upsert(rows, { onConflict: 'key', ignoreDuplicates: false });
-            if (error) throw error;
+            await callApi('mandigrow.api.update_global_settings', { settings: rows });
             toast({ title: '✅ Billing Settings Saved', description: `Lifecycle settings updated successfully.` });
         } catch (e: any) {
             toast({ title: 'Save Failed', description: e.message, variant: 'destructive' });
