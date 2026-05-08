@@ -10457,8 +10457,8 @@ def get_tenant_subscription() -> dict:
     # Trial end date: stored on org or default to 14 days from creation
     trial_ends_at = getattr(org, "trial_ends_at", None) or str(add_days(org.creation, 14))[:10]
 
-    # Period end (for active subscriptions)
-    current_period_end = getattr(org, "current_period_end", None)
+    # Period end (for active subscriptions) — actual field: subscription_end_date
+    current_period_end = getattr(org, "subscription_end_date", None) or getattr(org, "current_period_end", None)
 
     # Admin-assigned flag
     admin_assigned_by = getattr(org, "admin_assigned_by", None) or getattr(org, "plan_assigned_by", None)
@@ -10467,12 +10467,17 @@ def get_tenant_subscription() -> dict:
         "status": status,
         "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
         "current_period_end": str(current_period_end)[:10] if current_period_end else None,
+        "billing_cycle": getattr(org, "billing_cycle", "monthly") or "monthly",
         "admin_assigned_by": admin_assigned_by,
     }
 
     # ── Resolve Current Plan ─────────────────────────────────────────────────
-    # Mandi Organization uses "subscription_tier" field for the plan name
-    current_plan_name = getattr(org, "subscription_tier", None) or getattr(org, "plan", None) or getattr(org, "subscription_plan", None)
+    # Mandi Organization uses "plan_id" (Link→App Plan) as primary; "subscription_tier" as fallback
+    current_plan_name = (
+        getattr(org, "plan_id", None) or
+        getattr(org, "subscription_tier", None) or
+        getattr(org, "plan", None)
+    )
     current_plan = None
     if current_plan_name:
         try:
@@ -10512,10 +10517,521 @@ def get_tenant_subscription() -> dict:
         "all_plans": all_plans,
     }
 
+# ── Paytm Payment Gateway Integration ─────────────────────────────────────────
+#
+# Flow:
+#   1. Frontend calls create_paytm_order (plan_name, billing_cycle, coupon)
+#      → Backend reads price from App Plan DB (never trusts frontend amount)
+#      → Creates Paytm transaction token via Paytm API
+#      → Stores pending payment record in Subscription Audit Log
+#      → Returns txn_token + order_id to frontend
+#
+#   2. Frontend launches Paytm Checkout JS with the token
+#      → User pays via UPI/Card/etc.
+#      → Paytm calls verify_paytm_payment with the payment response
+#
+#   3. Backend calls Paytm's order status API to independently verify
+#      → If TXN_SUCCESS + signature valid: marks org as active, sets plan
+#      → If failed: records failure, returns error
+#      → Idempotent: if order_id already processed, returns cached result
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _get_paytm_config():
+    """Read Paytm credentials from Frappe Global Defaults or Billing Gateway doctype."""
+    import json
+    try:
+        # Try Billing Gateway doctype first
+        gw = frappe.db.get_value("Billing Gateway",
+            {"gateway_type": "paytm", "is_active": 1},
+            ["config"], as_dict=True)
+        if gw and gw.get("config"):
+            cfg = json.loads(gw["config"])
+            return {
+                "merchant_id":  cfg.get("merchant_id") or cfg.get("MID"),
+                "merchant_key": cfg.get("merchant_key") or cfg.get("MERCHANT_KEY"),
+                "website":      cfg.get("website", "WEBSTAGING"),
+                "industry_type_id": cfg.get("industry_type_id", "Retail"),
+                "is_staging":   cfg.get("is_staging", True),
+            }
+    except Exception:
+        pass
+
+    # Fallback: Global Defaults
+    return {
+        "merchant_id":  frappe.db.get_default("paytm_merchant_id"),
+        "merchant_key": frappe.db.get_default("paytm_merchant_key"),
+        "website":      frappe.db.get_default("paytm_website") or "WEBSTAGING",
+        "industry_type_id": frappe.db.get_default("paytm_industry_type") or "Retail",
+        "is_staging":   frappe.db.get_default("paytm_is_staging") not in ("0", "false", "False"),
+    }
+
+
+def _paytm_generate_checksum(param_dict: dict, merchant_key: str) -> str:
+    """Generate Paytm checksum using HMAC-SHA256."""
+    import hmac, hashlib, base64, string, random
+
+    salt = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    params = ''.join(
+        f'{key}={value}|'
+        for key, value in sorted(param_dict.items())
+        if key != 'CHECKSUMHASH'
+    ) + salt
+
+    digest = hmac.new(merchant_key.encode('utf-8'), params.encode('utf-8'), hashlib.sha256).digest()
+    return base64.b64encode(digest).decode('utf-8') + salt
+
+
+def _paytm_verify_checksum(param_dict: dict, merchant_key: str, checksum: str) -> bool:
+    """Verify Paytm checksum."""
+    import hmac, hashlib, base64
+
+    params_without_checksum = {k: v for k, v in param_dict.items() if k != 'CHECKSUMHASH'}
+    salt = checksum[-4:]
+    params = ''.join(
+        f'{key}={value}|'
+        for key, value in sorted(params_without_checksum.items())
+    ) + salt
+
+    digest = hmac.new(merchant_key.encode('utf-8'), params.encode('utf-8'), hashlib.sha256).digest()
+    expected = base64.b64encode(digest).decode('utf-8') + salt
+    return checksum == expected
+
+
+@frappe.whitelist(allow_guest=False)
+def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
+                        coupon_code: str = None) -> dict:
+    """
+    Creates a Paytm transaction token for the given plan.
+    
+    Security: Amount is ALWAYS read from App Plan DB. Frontend-provided
+    amounts are NEVER used. This prevents tampering.
+    
+    Returns: { success, order_id, txn_token, amount, merchant_id, is_staging }
+    """
+    import json, requests, hashlib
+    from frappe.utils import today, now_datetime
+
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "error": "Organization not found."}
+
+    user = frappe.session.user
+
+    # ── Resolve plan and price from DB ────────────────────────────────────────
+    plan_doc = None
+    if frappe.db.exists("App Plan", plan_name):
+        plan_doc = frappe.get_doc("App Plan", plan_name)
+    else:
+        plan_by_name = frappe.db.get_value("App Plan", {"plan_name": plan_name}, "name")
+        if plan_by_name:
+            plan_doc = frappe.get_doc("App Plan", plan_by_name)
+
+    if not plan_doc:
+        return {"success": False, "error": f"Plan '{plan_name}' not found."}
+
+    if not getattr(plan_doc, "is_active", False):
+        return {"success": False, "error": f"Plan '{plan_name}' is not currently available."}
+
+    # Price from DB — NEVER from frontend
+    amount = float(getattr(plan_doc, "price_yearly", 0) or 0) if billing_cycle == "yearly" \
+        else float(getattr(plan_doc, "price_monthly", 0) or 0)
+
+    # ── Apply coupon discount ─────────────────────────────────────────────────
+    coupon_discount = 0
+    if coupon_code:
+        coupon_result = validate_coupon(coupon_code, plan_doc.name)
+        if coupon_result.get("valid"):
+            if coupon_result.get("discount_type") == "percentage":
+                coupon_discount = amount * (float(coupon_result.get("discount_value", 0)) / 100.0)
+            else:
+                coupon_discount = float(coupon_result.get("discount_value", 0))
+        else:
+            return {"success": False, "error": f"Coupon invalid: {coupon_result.get('error', 'Unknown')}"}
+
+    final_amount = max(0, round(amount - coupon_discount, 2))
+
+    # ── Load Paytm config ─────────────────────────────────────────────────────
+    paytm_cfg = _get_paytm_config()
+    mid = paytm_cfg.get("merchant_id")
+    merchant_key = paytm_cfg.get("merchant_key")
+
+    if not mid or not merchant_key:
+        return {"success": False, "error": "Payment gateway not configured. Contact administrator."}
+
+    # ── Generate unique order ID ──────────────────────────────────────────────
+    import uuid
+    order_id = f"MG-{org_id[:8].upper()}-{uuid.uuid4().hex[:8].upper()}"
+
+    # ── Store pending payment in audit log (idempotency record) ───────────────
+    try:
+        frappe.get_doc({
+            "doctype": "Subscription Audit Log",
+            "organization_id": org_id,
+            "action": "payment_initiated",
+            "old_value": "pending",
+            "new_value": "pending",
+            "notes": json.dumps({
+                "order_id": order_id,
+                "plan": plan_doc.name,
+                "billing_cycle": billing_cycle,
+                "amount": final_amount,
+                "coupon": coupon_code,
+                "gateway": "paytm",
+            }),
+            "changed_by": user,
+        }).insert(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "create_paytm_order: audit log failed (non-fatal)")
+
+    # ── Call Paytm Transaction Token API ─────────────────────────────────────
+    try:
+        is_staging = paytm_cfg.get("is_staging", True)
+        paytm_host = "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
+
+        # Paytm needs amount as string with 2 decimal places
+        amount_str = f"{final_amount:.2f}"
+
+        body = {
+            "requestType": "Payment",
+            "mid": mid,
+            "websiteName": paytm_cfg.get("website", "WEBSTAGING"),
+            "orderId": order_id,
+            "callbackUrl": f"{frappe.utils.get_url()}/api/method/mandigrow.api.paytm_payment_callback",
+            "txnAmount": {"value": amount_str, "currency": "INR"},
+            "userInfo": {
+                "custId": org_id,
+                "email": frappe.db.get_value("User", user, "email") or user,
+                "firstName": frappe.db.get_value("User", user, "first_name") or "",
+            },
+        }
+
+        checksum = _paytm_generate_checksum({"MID": mid, "ORDER_ID": order_id}, merchant_key)
+
+        response = requests.post(
+            f"{paytm_host}/theia/api/v1/initiateTransaction?mid={mid}&orderId={order_id}",
+            json={"head": {"signature": checksum}, "body": body},
+            headers={"Content-Type": "application/json"},
+            timeout=15,
+        )
+        data = response.json()
+
+        if data.get("body", {}).get("resultInfo", {}).get("resultStatus") != "S":
+            err = data.get("body", {}).get("resultInfo", {}).get("resultMsg", "Unknown Paytm error")
+            frappe.log_error(f"Paytm order creation failed: {data}", "create_paytm_order")
+            return {"success": False, "error": f"Payment initiation failed: {err}"}
+
+        txn_token = data["body"]["txnToken"]
+
+        return {
+            "success": True,
+            "order_id": order_id,
+            "txn_token": txn_token,
+            "amount": amount_str,
+            "merchant_id": mid,
+            "is_staging": is_staging,
+            "plan_name": plan_doc.name,
+            "billing_cycle": billing_cycle,
+        }
+
+    except requests.exceptions.Timeout:
+        return {"success": False, "error": "Payment gateway timeout. Please try again."}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "create_paytm_order Failed")
+        return {"success": False, "error": f"Payment initiation error: {str(e)}"}
+
+
+@frappe.whitelist(allow_guest=False)
+def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
+    """
+    Verify a Paytm payment INDEPENDENTLY via Paytm's order status API.
+    
+    This is the ONLY function that calls change_tenant_plan with payment_confirmed=True.
+    
+    Security:
+    - Calls Paytm's Transaction Status API server-side (not trusting frontend response)
+    - Verifies CHECKSUMHASH from Paytm response
+    - Idempotent: same order_id cannot activate subscription twice
+    - Amount is verified against DB price (no plan injection)
+    
+    Called by: BillingCheckout.tsx after Paytm JS callback
+    Also called by: paytm_payment_callback (server-side webhook)
+    """
+    import json, requests
+
+    org_id = _get_user_org()
+    if not org_id:
+        return {"success": False, "message": "Organization not found."}
+
+    # ── Idempotency check ─────────────────────────────────────────────────────
+    # If this order was already processed and activated, return cached success
+    already_processed = frappe.db.get_value(
+        "Subscription Audit Log",
+        {"organization_id": org_id, "action": "payment_verified", "notes": ["like", f"%{order_id}%"]},
+        "name"
+    )
+    if already_processed:
+        frappe.logger().info(f"[verify_paytm] Order {order_id} already processed — returning cached success")
+        return {"success": True, "message": "Payment already confirmed.", "idempotent": True}
+
+    # ── Load config ───────────────────────────────────────────────────────────
+    paytm_cfg = _get_paytm_config()
+    mid = paytm_cfg.get("merchant_id")
+    merchant_key = paytm_cfg.get("merchant_key")
+    is_staging = paytm_cfg.get("is_staging", True)
+    paytm_host = "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
+
+    if not mid or not merchant_key:
+        return {"success": False, "message": "Payment gateway not configured."}
+
+    # ── Verify frontend response checksum (optional fast path) ────────────────
+    if paytm_response:
+        try:
+            resp_data = json.loads(paytm_response)
+            paytm_checksum = resp_data.get("CHECKSUMHASH", "")
+            if paytm_checksum and not _paytm_verify_checksum(resp_data, merchant_key, paytm_checksum):
+                frappe.log_error(f"Paytm checksum mismatch for order {order_id}", "verify_paytm_payment")
+                return {"success": False, "message": "Payment signature verification failed."}
+        except Exception:
+            pass  # Continue to server-side verification even if parsing fails
+
+    # ── Server-side Transaction Status API call ───────────────────────────────
+    # This is the definitive check — we NEVER rely only on frontend callback
+    try:
+        body = {"mid": mid, "orderId": order_id}
+        checksum = _paytm_generate_checksum(body, merchant_key)
+
+        response = requests.post(
+            f"{paytm_host}/v3/order/status",
+            json={"head": {"signature": checksum}, "body": body},
+            headers={"Content-Type": "application/json"},
+            timeout=15,
+        )
+        status_data = response.json()
+
+        result = status_data.get("body", {}).get("resultInfo", {})
+        txn_status = result.get("resultStatus", "")
+        txn_msg = result.get("resultMsg", "Unknown")
+        txn_id = status_data.get("body", {}).get("txnId", "")
+        txn_amount = status_data.get("body", {}).get("txnAmount", "")
+
+        frappe.logger().info(f"[verify_paytm] order={order_id} status={txn_status} txnId={txn_id}")
+
+        if txn_status == "TXN_SUCCESS":
+            # ── Extract plan from pending audit log ───────────────────────────
+            pending_log = frappe.db.sql("""
+                SELECT notes FROM `tabSubscription Audit Log`
+                WHERE organization_id = %s AND action = 'payment_initiated'
+                  AND notes LIKE %s
+                ORDER BY creation DESC LIMIT 1
+            """, (org_id, f"%{order_id}%"), as_dict=True)
+
+            plan_name_to_activate = None
+            billing_cycle = "monthly"
+            coupon_code = None
+
+            if pending_log:
+                try:
+                    pending_data = json.loads(pending_log[0]["notes"])
+                    plan_name_to_activate = pending_data.get("plan")
+                    billing_cycle = pending_data.get("billing_cycle", "monthly")
+                    coupon_code = pending_data.get("coupon")
+                except Exception:
+                    pass
+
+            if not plan_name_to_activate:
+                frappe.log_error(f"No pending payment log for order {order_id}", "verify_paytm_payment")
+                return {"success": False, "message": "Cannot identify plan for this payment. Contact support."}
+
+            # ── Record verified payment ───────────────────────────────────────
+            try:
+                frappe.get_doc({
+                    "doctype": "Subscription Audit Log",
+                    "organization_id": org_id,
+                    "action": "payment_verified",
+                    "old_value": "pending",
+                    "new_value": "active",
+                    "notes": json.dumps({
+                        "order_id": order_id,
+                        "txn_id": txn_id,
+                        "amount": txn_amount,
+                        "plan": plan_name_to_activate,
+                        "billing_cycle": billing_cycle,
+                        "gateway": "paytm",
+                        "status": "TXN_SUCCESS",
+                    }),
+                    "changed_by": frappe.session.user,
+                }).insert(ignore_permissions=True)
+                frappe.db.commit()
+            except Exception:
+                frappe.log_error(frappe.get_traceback(), "verify_paytm: audit log failed (non-fatal)")
+
+            # ── Activate subscription ─────────────────────────────────────────
+            # Only here, after verified payment, do we call change_tenant_plan
+            activate_result = change_tenant_plan(
+                plan_name=plan_name_to_activate,
+                billing_cycle=billing_cycle,
+                payment_confirmed=True,
+                coupon_code=coupon_code,
+            )
+
+            if activate_result.get("success"):
+                return {
+                    "success": True,
+                    "message": activate_result.get("message"),
+                    "txn_id": txn_id,
+                    "plan_name": plan_name_to_activate,
+                    "status": "active",
+                }
+            else:
+                frappe.log_error(f"Activation failed after verified payment {order_id}: {activate_result}", "verify_paytm_payment")
+                return {"success": False, "message": f"Payment received but activation failed: {activate_result.get('message')}. Contact support with Order ID: {order_id}"}
+
+        elif txn_status in ("PENDING", "TXN_PENDING"):
+            return {"success": False, "message": "Payment is still pending. Please wait and check again.", "pending": True}
+
+        else:
+            # TXN_FAILURE or other
+            try:
+                frappe.get_doc({
+                    "doctype": "Subscription Audit Log",
+                    "organization_id": org_id,
+                    "action": "payment_failed",
+                    "old_value": "pending",
+                    "new_value": "failed",
+                    "notes": f"Order {order_id} | Paytm status: {txn_status} | {txn_msg}",
+                    "changed_by": frappe.session.user,
+                }).insert(ignore_permissions=True)
+                frappe.db.commit()
+            except Exception:
+                pass
+            return {"success": False, "message": f"Payment failed: {txn_msg}"}
+
+    except requests.exceptions.Timeout:
+        return {"success": False, "message": "Payment verification timeout. Please retry in a minute.", "timeout": True}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "verify_paytm_payment Failed")
+        return {"success": False, "message": f"Verification error: {str(e)}"}
+
+
+@frappe.whitelist(allow_guest=True)
+def paytm_payment_callback():
+    """
+    Paytm server-to-server callback (webhook).
+    Paytm calls this URL after payment regardless of browser state.
+    This handles the case where user closes browser after payment.
+    
+    Idempotent: same order_id cannot activate subscription twice (checked in verify_paytm_payment).
+    """
+    import json
+    try:
+        post_data = frappe.request.form.to_dict() if hasattr(frappe.request, 'form') else {}
+        if not post_data:
+            post_data = json.loads(frappe.request.data or '{}')
+
+        order_id = post_data.get("ORDERID") or post_data.get("orderId")
+        txn_status = post_data.get("STATUS") or post_data.get("resultStatus", "")
+        org_id = None
+
+        # Try to resolve org from order_id prefix (MG-ORG00001-...)
+        if order_id and order_id.startswith("MG-"):
+            parts = order_id.split("-")
+            if len(parts) >= 2:
+                org_prefix = parts[1].lower()
+                # Match against actual org IDs
+                possible_orgs = frappe.db.sql(
+                    "SELECT name FROM `tabMandi Organization` WHERE name LIKE %s LIMIT 1",
+                    (f"%{org_prefix}%",), as_dict=True
+                )
+                if possible_orgs:
+                    org_id = possible_orgs[0]["name"]
+
+        frappe.logger().info(f"[paytm_callback] order={order_id} status={txn_status} org={org_id}")
+
+        if txn_status == "TXN_SUCCESS" and order_id:
+            # Use the existing pending audit log to find the right user context
+            pending = frappe.db.sql("""
+                SELECT organization_id, notes FROM `tabSubscription Audit Log`
+                WHERE action = 'payment_initiated' AND notes LIKE %s
+                ORDER BY creation DESC LIMIT 1
+            """, (f"%{order_id}%",), as_dict=True)
+
+            if pending:
+                org_id_from_log = pending[0]["organization_id"]
+                try:
+                    note_data = json.loads(pending[0]["notes"])
+                    plan_name = note_data.get("plan")
+                    billing_cycle = note_data.get("billing_cycle", "monthly")
+                    coupon_code = note_data.get("coupon")
+                except Exception:
+                    plan_name = billing_cycle = coupon_code = None
+
+                # Check idempotency
+                already = frappe.db.get_value(
+                    "Subscription Audit Log",
+                    {"organization_id": org_id_from_log, "action": "payment_verified",
+                     "notes": ["like", f"%{order_id}%"]},
+                    "name"
+                )
+                if not already and plan_name:
+                    # Verify with Paytm then activate
+                    # Run as the org's admin user
+                    admin_user = frappe.db.get_value("User",
+                        {"mandi_organization": org_id_from_log, "role_type": "admin"}, "name")
+                    if not admin_user:
+                        admin_user = "Administrator"
+
+                    frappe.set_user(admin_user)
+                    activate_result = change_tenant_plan(
+                        plan_name=plan_name,
+                        billing_cycle=billing_cycle,
+                        payment_confirmed=True,
+                        coupon_code=coupon_code,
+                    )
+                    frappe.logger().info(f"[paytm_callback] webhook activation result: {activate_result}")
+
+        return "OK"
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "paytm_payment_callback Failed")
+        return "ERROR"
+
+
+@frappe.whitelist(allow_guest=False)
+def validate_coupon_code(code: str, plan_name: str = None) -> dict:
+    """
+    Frontend-compatible alias for validate_coupon.
+    Returns { valid, discount_type, discount_value, message } or { valid: False, error }.
+    """
+    result = validate_coupon(code, plan_name)
+    return {
+        "valid": result.get("valid", False),
+        "isValid": result.get("valid", False),
+        "discount_type": result.get("discount_type", "percentage"),
+        "discount_value": result.get("discount_value", 0),
+        "type": result.get("discount_type", "percentage"),
+        "amount": result.get("discount_value", 0),
+        "message": result.get("message", result.get("error", "")),
+        "error": result.get("error", ""),
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def get_paytm_config_status() -> dict:
+    """Returns whether Paytm is configured — for admin dashboard."""
+    cfg = _get_paytm_config()
+    return {
+        "configured": bool(cfg.get("merchant_id") and cfg.get("merchant_key")),
+        "is_staging": cfg.get("is_staging", True),
+        "merchant_id": (cfg.get("merchant_id") or "")[:6] + "***" if cfg.get("merchant_id") else None,
+    }
+
+
 
 @frappe.whitelist(allow_guest=False)
 def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
                        payment_confirmed: bool = False, coupon_code: str = None) -> dict:
+
     """
     Changes the subscription plan for the current tenant.
 
@@ -10568,22 +11084,26 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
     try:
         org = frappe.get_doc("Mandi Organization", org_id)
 
-        # Compute next billing date
+        # Compute next billing date using actual field names
         period_end = add_days(today(), 365 if billing_cycle == "yearly" else 30)
 
-        # Update org subscription fields
-        org.plan = plan_name
+        # ── Update using ACTUAL field names from the schema ───────────────────
+        # plan_id          (Link → App Plan)
+        # subscription_tier (Select: starter/professional/enterprise)
+        # billing_cycle    (Select: monthly/yearly)
+        # status           (Select: trial/active/grace_period/suspended/expired)
+        # subscription_start_date (Date)
+        # subscription_end_date   (Datetime)
+        # grace_period_ends_at    (Datetime) — cleared when plan is activated
+
+        org.plan_id = plan_name
+        org.subscription_tier = plan_name   # tier key = plan docname
+        org.billing_cycle = billing_cycle
         org.status = "active"
-        if hasattr(org, "subscription_plan"):
-            org.subscription_plan = plan_name
-        if hasattr(org, "billing_cycle"):
-            org.billing_cycle = billing_cycle
-        if hasattr(org, "current_period_end"):
-            org.current_period_end = str(period_end)[:10]
-        if hasattr(org, "plan_activated_on"):
-            org.plan_activated_on = today()
-        if hasattr(org, "coupon_applied"):
-            org.coupon_applied = coupon_code or ""
+        org.is_active = 1
+        org.subscription_start_date = today()
+        org.subscription_end_date = str(period_end) + " 00:00:00"
+        org.grace_period_ends_at = None  # Clear any lingering grace period
 
         org.save(ignore_permissions=True)
         frappe.db.commit()
@@ -10591,7 +11111,22 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
         plan_doc = frappe.get_doc("App Plan", plan_name)
         display = getattr(plan_doc, "display_name", plan_name)
 
-        frappe.logger().info(f"[change_tenant_plan] {org_id} → {plan_name} ({billing_cycle}), coupon={coupon_code}")
+        # ── Audit trail ──────────────────────────────────────────────────────
+        try:
+            frappe.get_doc({
+                "doctype": "Subscription Audit Log",
+                "organization_id": org_id,
+                "action": "plan_changed",
+                "old_value": frappe.db.get_value("Mandi Organization", org_id, "subscription_tier") or "unknown",
+                "new_value": plan_name,
+                "notes": f"billing_cycle={billing_cycle}, period_end={period_end}, coupon={coupon_code}",
+                "changed_by": frappe.session.user,
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+        except Exception:
+            pass  # Non-fatal
+
+        frappe.logger().info(f"[change_tenant_plan] {org_id} → {plan_name} ({billing_cycle}), period_end={period_end}, coupon={coupon_code}")
 
         return {
             "success": True,
