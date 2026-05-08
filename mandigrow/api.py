@@ -11531,17 +11531,30 @@ def reset_invoice_sequence(contact_id: str):
 @frappe.whitelist(allow_guest=True)
 def on_login(login_manager):
     """
-    Called after a user successfully logins.
-    1. Enforces 'Single Session per User' by deleting any previous sessions.
-    2. Blocks authentication for locked/suspended tenants.
+    Called after a user successfully logs in.
+    1. Enforces 'Single Session per User' by killing ALL previous sessions
+       from BOTH MySQL (tabSessions) AND Redis cache.
+       
+       ROOT CAUSE of previous failure:
+       Our old code only deleted from MySQL. Frappe validates sessions from
+       Redis *first* (get_session_data_from_cache). If Redis still has the
+       old session, Frappe never even checks MySQL — the old session stays
+       fully alive until Redis TTL expires (up to 240 hours by default).
+       
+       FIX: Use Frappe's own delete_session() which atomically calls:
+         - frappe.db.delete("Sessions", {"sid": sid})  → clears MySQL
+         - frappe.cache.hdel("session", sid)           → clears Redis
+       This is the ONLY correct way to invalidate a Frappe session.
+       
+    2. Blocks authentication for locked/suspended tenant organizations.
     """
+    from frappe.sessions import delete_session
+
     user = login_manager.user
     if user == "Administrator":
         return
 
     # ── Subscription enforcement at login ────────────────────────────────
-    # Block locked/suspended tenants from even authenticating.
-    # This prevents API-level exploitation by expired tenants.
     try:
         org_id = frappe.db.get_value("User", user, "mandi_organization")
         if org_id:
@@ -11563,17 +11576,33 @@ def on_login(login_manager):
                     frappe.AuthenticationError
                 )
     except frappe.AuthenticationError:
-        raise  # Re-raise our own throw
+        raise
     except Exception:
-        pass  # Non-fatal — don't block login for system errors
+        pass
     # ────────────────────────────────────────────────────────────────────
 
-    # Delete all other active sessions for this user
-    # Note: frappe.session.sid is already established for the new session
-    frappe.db.sql("""
-        DELETE FROM `tabSessions` 
+    # ── Single-device enforcement: kill ALL other sessions ────────────────
+    # We must query the SIDs to kill BEFORE the new session is committed,
+    # because after commit the new SID will be in the table too.
+    new_sid = frappe.session.sid
+
+    # Fetch all other SIDs for this user from MySQL
+    old_sids = frappe.db.sql("""
+        SELECT sid FROM `tabSessions`
         WHERE `user` = %s AND `sid` != %s
-    """, (user, frappe.session.sid))
-    
-    frappe.db.commit()
-    frappe.logger().info(f"[on_login] Cleared previous sessions for {user}")
+    """, (user, new_sid), as_dict=False)
+
+    killed = 0
+    for (sid,) in old_sids:
+        try:
+            # delete_session() removes from BOTH MySQL AND Redis atomically
+            delete_session(sid, user=user, reason="Logged In From Another Session")
+            killed += 1
+        except Exception:
+            # Non-fatal — log but don't block the new login
+            frappe.log_error(frappe.get_traceback(), f"on_login: failed to kill session {sid}")
+
+    if killed:
+        frappe.db.commit()
+        frappe.logger().info(f"[on_login] Killed {killed} previous session(s) for {user} (new sid: {new_sid})")
+    # ─────────────────────────────────────────────────────────────────────
