@@ -27,8 +27,8 @@ const PUBLIC_PATHS = [
     '/subscribe',
     '/checkout',
     '/auth/callback',
-    '/public',
     '/partners',
+    '/partner-portal',
 ]
 
 function isPublicPath(pathname: string): boolean {

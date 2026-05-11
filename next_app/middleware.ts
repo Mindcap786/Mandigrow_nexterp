@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
         path === '/partners' ||
         path === '/blog' ||
         path.startsWith('/blog/') ||
+        path.startsWith('/partner-portal') ||
         path.startsWith('/api') ||
         path.startsWith('/locales') ||
         path.startsWith('/public') ||

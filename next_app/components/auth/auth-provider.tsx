@@ -275,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/mandi-khata-software' ||
                          pathname === '/blog' ||
                          pathname?.startsWith('/blog/') ||
+                         pathname?.startsWith('/partner-portal') ||
                          pathname?.startsWith('/public') ||
                          pathname?.startsWith('/auth/callback');
 
