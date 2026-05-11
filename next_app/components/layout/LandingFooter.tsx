@@ -31,12 +31,17 @@ export function LandingFooter() {
 
                     {/* Navigation Links */}
                     <div className="flex gap-x-8 gap-y-4 text-sm font-bold text-emerald-800/80 flex-wrap justify-center md:justify-end max-w-2xl">
+                        <Link href="/features" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Features</Link>
+                        <Link href="/pricing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Pricing</Link>
                         <Link href="/mandi-billing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi Billing</Link>
                         <Link href="/commission-agent-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Commission Agent</Link>
                         <Link href="/mandi-khata-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi Khata</Link>
                         <Link href="/blog" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Blog</Link>
                         <Link href="/faq" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">FAQ</Link>
                         <Link href="/partners" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Partners</Link>
+                        <Link href="/mandi-software-andhra-pradesh" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Andhra Pradesh</Link>
+                        <Link href="/mandi-software-telangana" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Telangana</Link>
+                        <Link href="/mandi-software-maharashtra" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Maharashtra</Link>
                         <Link href="/privacy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.privacy_policy') || 'Privacy Policy'}</Link>
                         <Link href="/terms" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.terms_of_service') || 'Terms of Service'}</Link>
                         <Link href="/refund-policy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Refund Policy</Link>
