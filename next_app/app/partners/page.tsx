@@ -128,7 +128,7 @@ export default function PartnersPage() {
       </button>
 
       <a href="#partner-tiers" className="btn btn-ghost">View Plans</a>
-      <button className="btn btn-primary" onClick={() => openModal(\'\')}>Apply Now</button>
+      <button className="btn btn-primary" onClick={() => openModal('')}>Apply Now</button>
     </div>
   </div>
 </nav>
@@ -143,7 +143,7 @@ export default function PartnersPage() {
     <h1>Build a business selling India's <em>Mandi Revolution</em></h1>
     <p className="hero-sub">Join MandiGrow's Partner Network. Earn 30% recurring commission on every mandi you onboard — for the lifetime of the subscription.</p>
     <div className="hero-actions">
-      <button className="btn btn-primary" onClick={() => openModal(\'\')}>
+      <button className="btn btn-primary" onClick={() => openModal('')}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         Become a Partner
       </button>
@@ -259,7 +259,7 @@ export default function PartnersPage() {
           </li>
         </ul>
         <div className="tier-cta">
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal(\'freelancer\')}>Apply as Freelancer</button>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal('freelancer')}>Apply as Freelancer</button>
         </div>
       </div>
 
@@ -303,7 +303,7 @@ export default function PartnersPage() {
           </li>
         </ul>
         <div className="tier-cta">
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal(\'agency\')}>Apply as Agency</button>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal('agency')}>Apply as Agency</button>
         </div>
       </div>
 
@@ -339,7 +339,7 @@ export default function PartnersPage() {
           </li>
         </ul>
         <div className="tier-cta">
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal(\'state\')}>Talk to Shauddin</button>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal('state')}>Talk to Shauddin</button>
         </div>
       </div>
     </div>
@@ -505,7 +505,7 @@ export default function PartnersPage() {
     <div className="section-label">Join the Network</div>
     <h2>India has 7,000+ APMCs.<br /><em>Most don't use any software yet.</em></h2>
     <p>You are early. The market is wide open. The mandis that adopt MandiGrow today will stay for 10 years. Your commission is recurring — forever.</p>
-    <button className="btn btn-primary" onClick={() => openModal(\'\')}>
+    <button className="btn btn-primary" onClick={() => openModal('')}>
       Apply to Become a Partner
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
