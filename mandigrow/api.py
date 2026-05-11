@@ -10548,7 +10548,7 @@ def _get_paytm_config():
             is_staging = is_staging.lower() not in ("false", "0", "no", "")
         is_staging = bool(is_staging)
         host = host_override or (
-            "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+            "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
         )
         return {
             "merchant_id":      mid,
@@ -10786,7 +10786,7 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
     try:
         is_staging = paytm_cfg.get("is_staging", True)
         paytm_host = paytm_cfg.get("paytm_host") or (
-            "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+            "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
         )
 
         # Paytm needs amount as string with 2 decimal places
@@ -10813,10 +10813,12 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
         import json as _json
         body_str = _json.dumps(body, separators=(',', ':'), ensure_ascii=False)
         checksum = _paytm_generate_checksum(body_str, merchant_key)
+        
+        post_data = _json.dumps({"head": {"signature": checksum}, "body": body}, separators=(',', ':'), ensure_ascii=False)
 
         response = requests.post(
             f"{paytm_host}/theia/api/v1/initiateTransaction?mid={mid}&orderId={order_id}",
-            json={"head": {"signature": checksum}, "body": body},
+            data=post_data,
             headers={"Content-Type": "application/json"},
             timeout=15,
         )
@@ -10886,7 +10888,7 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
     merchant_key = paytm_cfg.get("merchant_key")
     is_staging = paytm_cfg.get("is_staging", True)
     paytm_host = paytm_cfg.get("paytm_host") or (
-        "https://securestage.paytmpayments.com" if is_staging else "https://securegw.paytm.in"
+        "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
     )
 
     if not mid or not merchant_key:
@@ -10919,11 +10921,12 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
         status_body = {"mid": mid, "orderId": order_id}
         status_body_str = _json.dumps(status_body, separators=(',', ':'), ensure_ascii=False)
         checksum = _paytm_generate_checksum(status_body_str, merchant_key)
-        body = status_body
+        
+        post_data = _json.dumps({"head": {"signature": checksum}, "body": status_body}, separators=(',', ':'), ensure_ascii=False)
 
         response = requests.post(
             f"{paytm_host}/v3/order/status",
-            json={"head": {"signature": checksum}, "body": body},
+            data=post_data,
             headers={"Content-Type": "application/json"},
             timeout=15,
         )

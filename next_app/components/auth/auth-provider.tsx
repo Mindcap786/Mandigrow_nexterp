@@ -267,6 +267,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/faq' ||
                          pathname === '/privacy' ||
                          pathname === '/terms' ||
+                         pathname === '/refund-policy' ||
                          pathname === '/contact' ||
                          pathname === '/mandi-billing' ||
                          pathname === '/commission-agent-software' ||
