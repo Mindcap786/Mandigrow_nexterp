@@ -12476,3 +12476,49 @@ def get_partner_settings():
     if frappe.db.exists("Mandi Partner Settings", "Mandi Partner Settings"):
         return frappe.get_doc("Mandi Partner Settings").as_dict()
     return {}
+
+@frappe.whitelist(allow_guest=True)
+def partner_login(mobile_number, otp):
+    # Dummy OTP validation for MVP
+    if not otp or len(otp) < 4:
+        frappe.throw("Invalid OTP")
+        
+    partner = frappe.db.get_value("Mandi Partner Profile", {"mobile_number": mobile_number}, ["name", "partner_name", "status"], as_dict=True)
+    
+    if not partner:
+        frappe.throw("No partner account found with this mobile number")
+        
+    if partner.status != "Approved":
+        frappe.throw(f"Your account is currently {partner.status}. Please contact support.")
+        
+    return {"success": True, "partner": partner}
+
+@frappe.whitelist(allow_guest=True)
+def get_partner_dashboard(partner_id):
+    # Fetch Onboarded Mandis
+    mandis = frappe.get_all("Mandi Organization", 
+        filters={"onboarding_partner": partner_id},
+        fields=["name", "organization_name", "creation", "subscription_status"]
+    )
+    
+    # Fetch Payouts
+    payouts = frappe.get_all("Mandi Partner Payout",
+        filters={"partner": partner_id},
+        fields=["name", "payout_month", "payout_year", "commission_amount", "status", "payment_date"],
+        order_by="creation desc"
+    )
+    
+    # Fetch Partner details
+    partner = frappe.get_doc("Mandi Partner Profile", partner_id)
+    
+    return {
+        "success": True,
+        "mandis": mandis,
+        "payouts": payouts,
+        "partner": {
+            "name": partner.name,
+            "partner_name": partner.partner_name,
+            "total_onboarded": partner.total_onboarded,
+            "total_commission_earned": partner.total_commission_earned
+        }
+    }
