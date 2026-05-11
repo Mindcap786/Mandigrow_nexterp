@@ -37,8 +37,10 @@ export async function middleware(request: NextRequest) {
         path === '/mandi-billing' ||
         path === '/commission-agent-software' ||
         path === '/mandi-khata-software' ||
+        path === '/partners' ||
         path === '/blog' ||
         path.startsWith('/blog/') ||
+        path.startsWith('/api') ||
         path.startsWith('/locales') ||
         path.startsWith('/public') ||
         path.startsWith('/icons') ||

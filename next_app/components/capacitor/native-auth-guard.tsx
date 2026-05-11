@@ -28,6 +28,7 @@ const PUBLIC_PATHS = [
     '/checkout',
     '/auth/callback',
     '/public',
+    '/partners',
 ]
 
 function isPublicPath(pathname: string): boolean {
