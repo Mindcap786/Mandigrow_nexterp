@@ -232,8 +232,6 @@ export default function TermsPage() {
                 </article>
             </main>
 
-            </main>
-
             <LandingFooter />
         </div>
     )

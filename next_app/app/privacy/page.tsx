@@ -171,8 +171,6 @@ export default function PrivacyPolicyPage() {
                 </article>
             </main>
 
-            </main>
-
             <LandingFooter />
         </div>
     )

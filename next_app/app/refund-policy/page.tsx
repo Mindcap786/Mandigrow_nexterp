@@ -124,8 +124,6 @@ export default function RefundPolicyPage() {
                 </article>
             </main>
 
-            </main>
-
             <LandingFooter />
         </div>
     )
