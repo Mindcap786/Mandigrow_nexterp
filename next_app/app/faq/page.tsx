@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 /**
  * /faq — public FAQ page
@@ -165,6 +166,7 @@ export default function FaqPage() {
                     </div>
                 </div>
             </section>
+            <LandingFooter />
         </main>
     );
 }

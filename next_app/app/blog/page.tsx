@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { POSTS } from './posts';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 export const metadata: Metadata = {
     title: 'MandiGrow Blog — Mandi ERP, Billing & Fruits Vegetable Trade Insights',
@@ -55,6 +56,7 @@ export default function BlogIndex() {
                     ))}
                 </ul>
             </section>
+            <LandingFooter />
         </main>
     );
 }

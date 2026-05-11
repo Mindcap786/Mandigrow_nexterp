@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 export const metadata: Metadata = {
     title: 'Commission Agent Software for Mandi Traders | MandiGrow',
@@ -177,6 +178,7 @@ export default function CommissionAgentPage() {
                     Start Free Trial →
                 </Link>
             </section>
+            <LandingFooter />
         </main>
     );
 }

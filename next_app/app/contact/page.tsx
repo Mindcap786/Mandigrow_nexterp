@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 type ContactSettings = {
     company_name: string;
@@ -258,26 +259,7 @@ export default function ContactPage() {
                 </main>
             )}
 
-            {/* Footer */}
-            <footer className="border-t border-[#c8d6b0] py-12 px-6 bg-[#dce7c8]">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded bg-emerald-200 flex items-center justify-center text-emerald-800 font-bold text-sm">M</div>
-                        <span className="font-bold text-emerald-800">© 2026 {info.company_name}</span>
-                    </div>
-                    <div className="flex gap-6 text-sm font-medium text-emerald-700 flex-wrap justify-center">
-                        <Link href="/mandi-billing" className="hover:text-emerald-900 transition-colors">Mandi Billing</Link>
-                        <Link href="/commission-agent-software" className="hover:text-emerald-900 transition-colors">Commission Agent</Link>
-                        <Link href="/mandi-khata-software" className="hover:text-emerald-900 transition-colors">Mandi Khata</Link>
-                        <Link href="/blog" className="hover:text-emerald-900 transition-colors">Blog</Link>
-                        <Link href="/faq" className="hover:text-emerald-900 transition-colors">FAQ</Link>
-                        <Link href="/privacy" className="hover:text-emerald-900 transition-colors">Privacy Policy</Link>
-                        <Link href="/terms" className="hover:text-emerald-900 transition-colors">Terms of Service</Link>
-                        <Link href="/refund-policy" className="hover:text-emerald-900 transition-colors">Refund Policy</Link>
-                        <Link href="/contact" className="hover:text-emerald-900 transition-colors">Contact</Link>
-                    </div>
-                </div>
-            </footer>
+            <LandingFooter />
         </div>
     );
 }

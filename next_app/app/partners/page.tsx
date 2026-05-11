@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './partners.css';
 
 import { callApiGet } from '@/lib/frappeClient';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 export default function PartnersPage() {
   const [theme, setTheme] = useState('light');
@@ -539,9 +540,7 @@ export default function PartnersPage() {
 </section>
 
 
-<footer>
-  <p>© 2026 MandiGrow · India's Mandi ERP · <a href="mailto:partners@mandigrow.com" style={{ color: 'var(--color-primary)' }}>partners@mandigrow.com</a> · Built with ❤️ in Vijayawada, Andhra Pradesh</p>
-</footer>
+<LandingFooter />
 
 
 

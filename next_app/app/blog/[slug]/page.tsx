@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { POSTS, getPost } from '../posts';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 export async function generateStaticParams() {
     return POSTS.map((p) => ({ slug: p.slug }));
@@ -124,6 +125,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                     </Link>
                 </div>
             </article>
+            <LandingFooter />
         </main>
     );
 }

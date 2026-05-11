@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LandingFooter } from '@/components/layout/LandingFooter';
 
 /**
  * /mandi-billing — feature landing page
@@ -194,6 +195,7 @@ export default function MandiBillingPage() {
                     Start Free Trial →
                 </Link>
             </section>
+            <LandingFooter />
         </main>
     );
 }
