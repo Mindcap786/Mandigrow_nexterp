@@ -25,6 +25,13 @@ const MENU_SECTIONS = [
         ]
     },
     {
+        label: 'Growth',
+        items: [
+            { name: 'Partner Network', icon: Users, href: '/admin/partners' },
+            { name: 'Payouts', icon: CreditCard, href: '/admin/payouts' },
+        ]
+    },
+    {
         label: 'Revenue',
         items: [
             { name: 'Billing Engine', icon: CreditCard, href: '/admin/billing' },
