@@ -10344,6 +10344,20 @@ def get_global_settings(keys=None) -> list:
     return result
 
 
+@frappe.whitelist(allow_guest=True)
+def get_app_setting(key):
+    val = frappe.db.get_default(key)
+    if val is None:
+        if key == 'global_trial_days': return 14
+        elif key == 'grace_period_days_monthly': return 7
+        elif key == 'grace_period_days_yearly': return 14
+        return 0
+    try:
+        return int(val)
+    except Exception:
+        return val
+
+
 @frappe.whitelist(allow_guest=False)
 def admin_assign_tenant_owner(p_org_id: str, p_user_id: str) -> dict:
     """
