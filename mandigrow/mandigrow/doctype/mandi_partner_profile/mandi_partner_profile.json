@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:partner_name",
+ "creation": "2026-05-11 16:58:49.449565",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "partner_name",
+  "mobile_number",
+  "city",
+  "partner_type",
+  "status",
+  "background",
+  "cb1",
+  "bank_account_number",
+  "ifsc_code",
+  "upi_id",
+  "sb1",
+  "total_onboarded",
+  "cb2",
+  "total_commission_earned"
+ ],
+ "fields": [
+  {
+   "fieldname": "partner_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Partner Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "mobile_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mobile Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City / District"
+  },
+  {
+   "fieldname": "partner_type",
+   "fieldtype": "Select",
+   "label": "Partner Type",
+   "options": "Freelancer\nAgency\nState Distributor"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "background",
+   "fieldtype": "Small Text",
+   "label": "Background"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bank_account_number",
+   "fieldtype": "Data",
+   "label": "Bank Account Number"
+  },
+  {
+   "fieldname": "ifsc_code",
+   "fieldtype": "Data",
+   "label": "IFSC Code"
+  },
+  {
+   "fieldname": "upi_id",
+   "fieldtype": "Data",
+   "label": "UPI ID"
+  },
+  {
+   "fieldname": "sb1",
+   "fieldtype": "Section Break",
+   "label": "Earnings & Performance"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_onboarded",
+   "fieldtype": "Int",
+   "label": "Total Mandis Onboarded",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_commission_earned",
+   "fieldtype": "Currency",
+   "label": "Total Commission Earned",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-11 16:58:49.449565",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Partner Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "search_fields": "mobile_number,city",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "partner_name",
+ "track_changes": 1
+}

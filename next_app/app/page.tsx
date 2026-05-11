@@ -47,6 +47,7 @@ export default function LandingPage() {
                         <a href="#features" className="hover:text-emerald-800 transition-colors">{t('landing.nav_features')}</a>
                         <a href="#solutions" className="hover:text-emerald-800 transition-colors">{t('landing.nav_solutions')}</a>
                         <Link href="/subscribe" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.subscription_billing')}</Link>
+                        <Link href="/partners" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">Partners</Link>
                         <a href="#compliance" className="hover:text-emerald-800 transition-colors">{t('nav.compliance')}</a>
                     </div>
                     <div className="flex items-center gap-4">
@@ -247,6 +248,7 @@ export default function LandingPage() {
                         <Link href="/mandi-khata-software" className="hover:text-emerald-900 transition-colors">Mandi Khata</Link>
                         <Link href="/blog" className="hover:text-emerald-900 transition-colors">Blog</Link>
                         <Link href="/faq" className="hover:text-emerald-900 transition-colors">FAQ</Link>
+                        <Link href="/partners" className="hover:text-emerald-900 transition-colors font-bold">Partners</Link>
                         <Link href="/privacy" className="hover:text-emerald-900 transition-colors">{t('landing.privacy_policy')}</Link>
                         <Link href="/terms" className="hover:text-emerald-900 transition-colors">{t('landing.terms_of_service')}</Link>
                         <Link href="/refund-policy" className="hover:text-emerald-900 transition-colors">Refund Policy</Link>

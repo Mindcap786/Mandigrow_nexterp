@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:PAYOUT-{YYYY}-{MM}-{####}",
+ "creation": "2026-05-11 16:59:53.236587",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "partner",
+  "organization",
+  "payout_month",
+  "payout_year",
+  "cb1",
+  "subscription_amount",
+  "commission_amount",
+  "status",
+  "sb1",
+  "payment_date",
+  "transaction_reference"
+ ],
+ "fields": [
+  {
+   "fieldname": "partner",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Partner",
+   "options": "Mandi Partner Profile",
+   "reqd": 1
+  },
+  {
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Organization (Mandi)",
+   "options": "Mandi Organization",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payout_month",
+   "fieldtype": "Select",
+   "label": "Payout Month",
+   "options": "January\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payout_year",
+   "fieldtype": "Data",
+   "label": "Payout Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subscription_amount",
+   "fieldtype": "Currency",
+   "label": "Subscription Amount Collected",
+   "reqd": 1
+  },
+  {
+   "fieldname": "commission_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Commission Amount",
+   "reqd": 1
+  },
+  {
+   "default": "Unpaid",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payment Status",
+   "options": "Unpaid\nPaid"
+  },
+  {
+   "fieldname": "sb1",
+   "fieldtype": "Section Break",
+   "label": "Payment Details"
+  },
+  {
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "label": "Payment Date"
+  },
+  {
+   "fieldname": "transaction_reference",
+   "fieldtype": "Data",
+   "label": "Transaction Reference / UTR"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-11 16:59:53.236587",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Partner Payout",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

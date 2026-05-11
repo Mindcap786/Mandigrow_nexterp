@@ -12445,3 +12445,34 @@ def on_login(login_manager):
         frappe.db.commit()
         frappe.logger().info(f"[on_login] Killed {killed} previous session(s) for {user} (new sid: {new_sid})")
     # ─────────────────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=True)
+def create_partner_application(name, phone, city, partner_type, background=None):
+    """
+    Called by Next.js frontend to create a new Partner application.
+    """
+    try:
+        doc = frappe.get_doc({
+            "doctype": "Mandi Partner Profile",
+            "partner_name": name,
+            "mobile_number": phone,
+            "city": city,
+            "partner_type": partner_type,
+            "background": background,
+            "status": "Pending"
+        })
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return {"success": True, "message": "Application created"}
+    except Exception as e:
+        frappe.log_error(f"Failed to create partner app: {str(e)}", "Partner API")
+        return {"success": False, "error": str(e)}
+
+@frappe.whitelist(allow_guest=True)
+def get_partner_settings():
+    """
+    Called by Next.js frontend to dynamically render the marketing page content.
+    """
+    if frappe.db.exists("Mandi Partner Settings", "Mandi Partner Settings"):
+        return frappe.get_doc("Mandi Partner Settings").as_dict()
+    return {}
