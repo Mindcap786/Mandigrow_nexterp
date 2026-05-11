@@ -185,6 +185,7 @@ export default function PrivacyPolicyPage() {
                         <Link href="/faq" className="hover:text-emerald-900 transition-colors">FAQ</Link>
                         <Link href="/privacy" className="hover:text-emerald-900 transition-colors">Privacy Policy</Link>
                         <Link href="/terms" className="hover:text-emerald-900 transition-colors">Terms of Service</Link>
+                        <Link href="/refund-policy" className="hover:text-emerald-900 transition-colors">Refund Policy</Link>
                         <Link href="/contact" className="hover:text-emerald-900 transition-colors">Contact</Link>
                     </div>
                 </div>

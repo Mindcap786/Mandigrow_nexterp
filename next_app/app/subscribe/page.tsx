@@ -273,6 +273,9 @@ export default function SubscribePage() {
                                     <p className="text-center text-[11px] text-slate-400 font-bold uppercase mt-4 tracking-widest">
                                         No Credit Card Required
                                     </p>
+                                    <p className="text-center text-[10px] text-slate-400 font-medium mt-1">
+                                        7-Day Refund on Annual Plans · Cancel Anytime
+                                    </p>
                                 </div>
                             );
                         })}

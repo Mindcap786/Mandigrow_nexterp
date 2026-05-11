@@ -249,6 +249,7 @@ export default function LandingPage() {
                         <Link href="/faq" className="hover:text-emerald-900 transition-colors">FAQ</Link>
                         <Link href="/privacy" className="hover:text-emerald-900 transition-colors">{t('landing.privacy_policy')}</Link>
                         <Link href="/terms" className="hover:text-emerald-900 transition-colors">{t('landing.terms_of_service')}</Link>
+                        <Link href="/refund-policy" className="hover:text-emerald-900 transition-colors">Refund Policy</Link>
                         <Link href="/contact" className="hover:text-emerald-900 transition-colors">{t('landing.footer_contact')}</Link>
                     </div>
                 </div>

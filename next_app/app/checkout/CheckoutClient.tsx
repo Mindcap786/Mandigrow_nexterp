@@ -328,6 +328,9 @@ export default function Checkout() {
                         <p className="text-center text-[10px] opacity-40 font-bold uppercase mt-3 tracking-widest">
                             🔒 256-bit SSL Encrypted • Powered by SME Pay
                         </p>
+                        <p className="text-center text-[9px] text-slate-400 font-medium mt-2">
+                            By paying, you agree to our <a href="/terms" className="underline hover:text-emerald-400">Terms</a>, <a href="/privacy" className="underline hover:text-emerald-400">Privacy Policy</a>, and <a href="/refund-policy" className="underline hover:text-emerald-400">Refund Policy</a>.
+                        </p>
                     </div>
                 </div>
 
@@ -699,6 +702,9 @@ export default function Checkout() {
 
                         <p className="text-center text-[11px] opacity-40 font-bold uppercase mt-4 tracking-widest">
                             Secure 256-bit SSL Encrypted Payment
+                        </p>
+                        <p className="text-center text-[10px] text-slate-400 font-medium mt-3">
+                            By paying, you agree to our <a href="/terms" className="underline hover:text-emerald-400">Terms</a>, <a href="/privacy" className="underline hover:text-emerald-400">Privacy Policy</a>, and <a href="/refund-policy" className="underline hover:text-emerald-400">Refund Policy</a>.
                         </p>
                     </div>
                 </div>

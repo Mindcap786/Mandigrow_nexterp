@@ -731,9 +731,9 @@ export default function LoginClient() {
                                 {mode === 'signup' && authStep === 'info' && (
                                     <p className="text-center text-[11px] text-gray-500 leading-relaxed">
                                         By clicking <span className="font-bold text-gray-700">"Create Free Account"</span>, you agree to our{' '}
-                                        <Link href="/terms" target="_blank" className="text-emerald-700 font-semibold underline underline-offset-2">Terms of Service</Link>
-                                        {' '}and{' '}
-                                        <Link href="/privacy" target="_blank" className="text-emerald-700 font-semibold underline underline-offset-2">Privacy Policy</Link>.
+                                        <Link href="/terms" target="_blank" className="text-emerald-700 font-semibold underline underline-offset-2">Terms</Link>,{' '}
+                                        <Link href="/privacy" target="_blank" className="text-emerald-700 font-semibold underline underline-offset-2">Privacy Policy</Link>, and{' '}
+                                        <Link href="/refund-policy" target="_blank" className="text-emerald-700 font-semibold underline underline-offset-2">Refund Policy</Link>.
                                     </p>
                                 )}
                             </div>
