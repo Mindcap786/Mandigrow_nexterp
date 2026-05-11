@@ -151,6 +151,7 @@ export default function PartnersPage() {
         )}
       </button>
 
+      <a href="/partner-portal/login" className="btn btn-ghost" style={{ fontWeight: 'bold' }}>Partner Login</a>
       <a href="#partner-tiers" className="btn btn-ghost">View Plans</a>
       <button className="btn btn-primary" onClick={() => openModal('')}>Apply Now</button>
     </div>
