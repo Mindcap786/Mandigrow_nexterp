@@ -11,10 +11,8 @@ const nextConfig = {
     // CRITICAL: Disable on Vercel as it fails if the build dir isn't .next
     ...(!isCapacitorBuild && !isVercel && { distDir: '/tmp/mandipro-next' }),
 
-    // Skip linting and type-checking during production builds on Vercel
     // This ensures minor warnings or types don't kill the deployment.
     ...(isVercel && {
-        eslint: { ignoreDuringBuilds: true },
         typescript: { ignoreBuildErrors: true },
     }),
 
