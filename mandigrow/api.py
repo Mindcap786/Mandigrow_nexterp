@@ -10764,8 +10764,8 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
     try:
         frappe.get_doc({
             "doctype": "Subscription Audit Log",
-            "organization_id": org_id,
-            "action": "payment_initiated",
+            "organization": org_id,
+            "action": "custom_plan",
             "old_value": "pending",
             "new_value": "pending",
             "notes": json.dumps({
@@ -10873,7 +10873,7 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
     # If this order was already processed and activated, return cached success
     already_processed = frappe.db.get_value(
         "Subscription Audit Log",
-        {"organization_id": org_id, "action": "payment_verified", "notes": ["like", f"%{order_id}%"]},
+        {"organization": org_id, "action": "plan_change", "notes": ["like", f"%{order_id}%"]},
         "name"
     )
     if already_processed:
@@ -10941,7 +10941,7 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
             # ── Extract plan from pending audit log ───────────────────────────
             pending_log = frappe.db.sql("""
                 SELECT notes FROM `tabSubscription Audit Log`
-                WHERE organization_id = %s AND action = 'payment_initiated'
+                WHERE organization = %s AND action = 'custom_plan'
                   AND notes LIKE %s
                 ORDER BY creation DESC LIMIT 1
             """, (org_id, f"%{order_id}%"), as_dict=True)
@@ -10967,8 +10967,8 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
             try:
                 frappe.get_doc({
                     "doctype": "Subscription Audit Log",
-                    "organization_id": org_id,
-                    "action": "payment_verified",
+                    "organization": org_id,
+                    "action": "plan_change",
                     "old_value": "pending",
                     "new_value": "active",
                     "notes": json.dumps({
@@ -11015,8 +11015,8 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
             try:
                 frappe.get_doc({
                     "doctype": "Subscription Audit Log",
-                    "organization_id": org_id,
-                    "action": "payment_failed",
+                    "organization": org_id,
+                    "action": "lock_transition",
                     "old_value": "pending",
                     "new_value": "failed",
                     "notes": f"Order {order_id} | Paytm status: {txn_status} | {txn_msg}",
@@ -11071,13 +11071,13 @@ def paytm_payment_callback():
         if txn_status == "TXN_SUCCESS" and order_id:
             # Use the existing pending audit log to find the right user context
             pending = frappe.db.sql("""
-                SELECT organization_id, notes FROM `tabSubscription Audit Log`
-                WHERE action = 'payment_initiated' AND notes LIKE %s
+                SELECT organization, notes FROM `tabSubscription Audit Log`
+                WHERE action = 'custom_plan' AND notes LIKE %s
                 ORDER BY creation DESC LIMIT 1
             """, (f"%{order_id}%",), as_dict=True)
 
             if pending:
-                org_id_from_log = pending[0]["organization_id"]
+                org_id_from_log = pending[0]["organization"]
                 try:
                     note_data = json.loads(pending[0]["notes"])
                     plan_name = note_data.get("plan")
@@ -11089,7 +11089,7 @@ def paytm_payment_callback():
                 # Check idempotency
                 already = frappe.db.get_value(
                     "Subscription Audit Log",
-                    {"organization_id": org_id_from_log, "action": "payment_verified",
+                    {"organization": org_id_from_log, "action": "plan_change",
                      "notes": ["like", f"%{order_id}%"]},
                     "name"
                 )

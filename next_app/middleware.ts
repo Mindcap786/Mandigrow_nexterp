@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
         path === '/faq' ||
         path === '/privacy' ||
         path === '/terms' ||
+        path === '/refund-policy' ||
         path === '/mandi-billing' ||
         path === '/commission-agent-software' ||
         path === '/mandi-khata-software' ||

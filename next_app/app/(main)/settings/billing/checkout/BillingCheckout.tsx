@@ -530,7 +530,7 @@ export default function BillingCheckout() {
                     )}
 
                     <p className="text-center text-[11px] text-slate-400 font-bold">
-                        By confirming, you agree to the MandiGrow subscription terms.
+                        By paying, you agree to our <a href="/terms" target="_blank" className="underline hover:text-purple-600">Terms</a>, <a href="/privacy" target="_blank" className="underline hover:text-purple-600">Privacy Policy</a>, and <a href="/refund-policy" target="_blank" className="underline hover:text-purple-600">Refund Policy</a>.
                         {!isFree && ' Plan activates immediately upon payment confirmation.'}
                     </p>
 
