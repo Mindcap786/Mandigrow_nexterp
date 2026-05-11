@@ -3,8 +3,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './partners.css';
 
+import { callApiGet } from '@/lib/frappeClient';
+
 export default function PartnersPage() {
   const [theme, setTheme] = useState('light');
+  
+  // Dynamic Settings
+  const [partnerSettings, setPartnerSettings] = useState<any>({
+    commission_percentage: 30,
+    hero_title: "Build a business selling India's <em>Mandi Revolution</em>",
+    hero_subtitle: "Join MandiGrow's Partner Network. Earn 30% recurring commission on every mandi you onboard — for the lifetime of the subscription."
+  });
+
+  useEffect(() => {
+    // Fetch dynamic settings from Frappe admin
+    callApiGet('mandigrow.api.get_partner_settings')
+      .then((data: any) => {
+        if (data && Object.keys(data).length > 0) {
+          setPartnerSettings({
+            commission_percentage: data.commission_percentage || 30,
+            hero_title: data.hero_title || "Build a business selling India's <em>Mandi Revolution</em>",
+            hero_subtitle: data.hero_subtitle || "Join MandiGrow's Partner Network. Earn 30% recurring commission on every mandi you onboard — for the lifetime of the subscription."
+          });
+        }
+      })
+      .catch(console.error);
+  }, []);
   
   // Update HTML data-theme attribute directly for the partners.css to work
   useEffect(() => {
@@ -140,8 +164,8 @@ export default function PartnersPage() {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" ariaHidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
       Partner Program — Now Open All India
     </div>
-    <h1>Build a business selling India's <em>Mandi Revolution</em></h1>
-    <p className="hero-sub">Join MandiGrow's Partner Network. Earn 30% recurring commission on every mandi you onboard — for the lifetime of the subscription.</p>
+    <h1 dangerouslySetInnerHTML={{ __html: partnerSettings.hero_title }}></h1>
+    <p className="hero-sub">{partnerSettings.hero_subtitle}</p>
     <div className="hero-actions">
       <button className="btn btn-primary" onClick={() => openModal('')}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -151,7 +175,7 @@ export default function PartnersPage() {
     </div>
     <div className="hero-stats">
       <div className="hero-stat">
-        <span className="hero-stat-num">30%</span>
+        <span className="hero-stat-num">{partnerSettings.commission_percentage}%</span>
         <span className="hero-stat-label">Recurring Commission</span>
       </div>
       <div className="hero-stat">
@@ -170,7 +194,7 @@ export default function PartnersPage() {
 <div className="commission-block">
   <div className="container-narrow" style={{ textAlign: 'center' }}>
     <div className="section-label">Your Earning Potential</div>
-    <div className="commission-number"><sup>%</sup>30</div>
+    <div className="commission-number"><sup>%</sup>{partnerSettings.commission_percentage}</div>
     <p className="commission-sub">Recurring commission on every subscription — monthly, forever. Onboard 10 mandis and you've built a passive income stream.</p>
     <div className="commission-pills">
       <span className="commission-pill">Monthly Payouts</span>
@@ -206,7 +230,7 @@ export default function PartnersPage() {
         <span className="step-num">03</span>
         <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
         <h3>Earn Every Month</h3>
-        <p>As long as the mandi keeps their MandiGrow subscription, you earn 30% of the monthly fee — directly credited to your bank. No limits, no expiry.</p>
+        <p>As long as the mandi keeps their MandiGrow subscription, you earn {partnerSettings.commission_percentage}% of the monthly fee — directly credited to your bank. No limits, no expiry.</p>
       </div>
       <div className="step-card reveal">
         <span className="step-num">04</span>
@@ -239,7 +263,7 @@ export default function PartnersPage() {
         <ul className="tier-features" role="list">
           <li>
             <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            30% recurring commission on every plan
+            {partnerSettings.commission_percentage}% recurring commission on every plan
           </li>
           <li>
             <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
@@ -275,7 +299,7 @@ export default function PartnersPage() {
         <ul className="tier-features" role="list">
           <li>
             <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            30% recurring + onboarding bonus per client
+            {partnerSettings.commission_percentage}% recurring + onboarding bonus per client
           </li>
           <li>
             <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
@@ -376,11 +400,11 @@ export default function PartnersPage() {
         </div>
         <div className="calc-result-item highlight">
           <div className="calc-result-label">Your Monthly Earn</div>
-          <div className="calc-result-val" id="calc-commission">₹{Math.round(mandisCount * plans[planType].price * 0.3).toLocaleString('en-IN')}</div>
+          <div className="calc-result-val" id="calc-commission">₹{Math.round(mandisCount * plans[planType].price * (partnerSettings.commission_percentage / 100)).toLocaleString('en-IN')}</div>
         </div>
         <div className="calc-result-item">
           <div className="calc-result-label">Your Annual Earn</div>
-          <div className="calc-result-val" id="calc-annual">₹{Math.round(mandisCount * plans[planType].price * 0.3 * 12).toLocaleString('en-IN')}</div>
+          <div className="calc-result-val" id="calc-annual">₹{Math.round(mandisCount * plans[planType].price * (partnerSettings.commission_percentage / 100) * 12).toLocaleString('en-IN')}</div>
         </div>
       </div>
     </div>

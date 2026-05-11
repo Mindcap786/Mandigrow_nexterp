@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Settings, Shield, Server, Globe, Bell, Database, RefreshCw, Clock,
-    Loader2, CheckCircle2, Save, AlertTriangle, Printer, Calendar, CreditCard
+    Loader2, CheckCircle2, Save, AlertTriangle, Printer, Calendar, CreditCard, Users
 } from 'lucide-react';
 import { callApi } from '@/lib/frappeClient'
 import { Button } from '@/components/ui/button';
@@ -239,6 +239,27 @@ export default function AdminSettingsPage() {
                             onClick={() => router.push('/admin/billing/plans')}
                         >
                             Manage Plans →
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                {/* Partner Network */}
+                <Card className="bg-white shadow-sm border-slate-200">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-slate-900 flex items-center gap-2 text-base">
+                            <Users className="w-4 h-4 text-orange-400" /> Partner Program
+                        </CardTitle>
+                        <CardDescription className="text-slate-500">
+                            Configure commission rates and marketing copy.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            variant="outline"
+                            className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 w-full"
+                            onClick={() => router.push('/admin/settings/partners')}
+                        >
+                            Manage Program →
                         </Button>
                     </CardContent>
                 </Card>
