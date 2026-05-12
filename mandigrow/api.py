@@ -10667,7 +10667,39 @@ def _get_paytm_config():
             "paytm_host":       host,
         }
 
-    # ── 1. frappe.db.get_default() — Admin UI "COMMIT CONFIGURATION" values ──
+    # ── 1. Frappe 'Paytm Settings' doctype (configured via Frappe Desk) ─────────
+    # frappe/payments app stores credentials here — this is the authoritative source
+    try:
+        rows = frappe.db.sql(
+            "SELECT field, value FROM `tabSingles` WHERE doctype='Paytm Settings'",
+            as_dict=True
+        )
+        if rows:
+            ps = {r["field"]: (r["value"] or "") for r in rows}
+            mid = (ps.get("merchant_id") or ps.get("api_key") or "").strip()
+            key = (ps.get("merchant_key") or ps.get("api_secret") or "").strip()
+            website = ps.get("website") or "DEFAULT"
+            industry = ps.get("industry_type_id") or "Retail"
+            stg_raw = ps.get("staging") or ps.get("is_staging") or "0"
+            is_stg = str(stg_raw) not in ("0", "false", "False", "no", "")
+            if mid and key:
+                frappe.logger().info(f"[paytm_cfg] ✅ Source: Paytm Settings (Frappe Desk) | MID={mid} | staging={is_stg} | website={website}")
+                # Auto-sync to get_default so admin UI shows correct values
+                try:
+                    frappe.db.set_default("paytm_merchant_id", mid)
+                    frappe.db.set_default("paytm_merchant_key", key)
+                    frappe.db.set_default("paytm_website", website)
+                    frappe.db.set_default("paytm_is_staging", "1" if is_stg else "0")
+                    frappe.db.set_default("paytm_paytm_host",
+                        "https://securegw-stage.paytm.in" if is_stg else "https://securegw.paytm.in")
+                    frappe.db.commit()
+                except Exception:
+                    pass
+                return _build(mid, key, website, industry, is_stg)
+    except Exception as ex:
+        frappe.logger().warning(f"[paytm_cfg] Paytm Settings tabSingles query failed: {ex}")
+
+    # ── 2. frappe.db.get_default() — Admin UI "COMMIT CONFIGURATION" values ──
     mid = (frappe.db.get_default("paytm_merchant_id") or "").strip()
     key = (frappe.db.get_default("paytm_merchant_key") or "").strip()
     if mid and key:
@@ -10677,38 +10709,6 @@ def _get_paytm_config():
         stored_host = frappe.db.get_default("paytm_paytm_host")
         frappe.logger().info(f"[paytm_cfg] ✅ Source: get_default | MID={mid} | staging={is_staging} | website={website}")
         return _build(mid, key, website, "Retail", is_staging, stored_host)
-
-    # ── 2. Frappe 'Paytm Settings' Single doctype ─────────────────────────────
-    try:
-        rows = frappe.db.sql(
-            "SELECT field, value FROM `tabSingles` WHERE doctype='Paytm Settings'",
-            as_dict=True
-        )
-        if rows:
-            ps = {r["field"]: (r["value"] or "") for r in rows}
-            mid2 = (ps.get("merchant_id") or ps.get("api_key") or "").strip()
-            key2 = (ps.get("merchant_key") or ps.get("api_secret") or "").strip()
-            website2 = ps.get("website") or "DEFAULT"
-            industry2 = ps.get("industry_type_id") or "Retail"
-            stg_raw = ps.get("staging") or ps.get("is_staging") or "0"
-            is_stg2 = str(stg_raw) not in ("0", "false", "False", "no", "")
-            if mid2 and key2:
-                frappe.logger().info(f"[paytm_cfg] ✅ Source: Paytm Settings (Frappe Desk) | MID={mid2} | staging={is_stg2} | website={website2}")
-                # Sync to get_default so future calls are fast
-                try:
-                    frappe.db.set_default("paytm_merchant_id", mid2)
-                    frappe.db.set_default("paytm_merchant_key", key2)
-                    frappe.db.set_default("paytm_website", website2)
-                    frappe.db.set_default("paytm_is_staging", "1" if is_stg2 else "0")
-                    frappe.db.set_default("paytm_paytm_host",
-                        "https://securegw-stage.paytm.in" if is_stg2 else "https://securegw.paytm.in")
-                    frappe.db.commit()
-                    frappe.logger().info("[paytm_cfg] ✅ Auto-synced Paytm Settings → get_default")
-                except Exception:
-                    pass
-                return _build(mid2, key2, website2, industry2, is_stg2)
-    except Exception as ex:
-        frappe.logger().warning(f"[paytm_cfg] Paytm Settings tabSingles query failed: {ex}")
 
     # ── 3. Billing Gateway doctype ────────────────────────────────────────────
     try:
