@@ -10706,9 +10706,10 @@ def _get_paytm_config():
         is_staging_raw = frappe.db.get_default("paytm_is_staging") or "0"
         is_staging = is_staging_raw not in ("0", "false", "False", "no", "")
         website = frappe.db.get_default("paytm_website") or ("WEBSTAGING" if is_staging else "DEFAULT")
-        stored_host = frappe.db.get_default("paytm_paytm_host")
-        frappe.logger().info(f"[paytm_cfg] ✅ Source: get_default | MID={mid} | staging={is_staging} | website={website}")
-        return _build(mid, key, website, "Retail", is_staging, stored_host)
+        # Always compute host from is_staging — never use stored host which may be stale
+        computed_host = "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
+        frappe.logger().info(f"[paytm_cfg] ✅ Source: get_default | MID={mid} | staging={is_staging} | website={website} | host={computed_host}")
+        return _build(mid, key, website, "Retail", is_staging, computed_host)
 
     # ── 3. Billing Gateway doctype ────────────────────────────────────────────
     try:
@@ -11311,9 +11312,11 @@ def save_paytm_config(merchant_id: str, merchant_key: str, website: str = "DEFAU
         return {"success": False, "error": f"Merchant Key must be exactly 16 characters (got {len(merchant_key)})."}
 
     merchant_id = merchant_id.strip()
+    # ALWAYS compute host from is_staging — never trust the paytm_host param from frontend
+    # (frontend may send stale staging URL even when is_staging=False)
     production_host = "https://securegw.paytm.in"
     staging_host    = "https://securegw-stage.paytm.in"
-    resolved_host   = paytm_host.strip() if paytm_host else (staging_host if is_staging else production_host)
+    resolved_host   = staging_host if is_staging else production_host
     resolved_website = (website.strip() or ("WEBSTAGING" if is_staging else "DEFAULT"))
 
     # ── 1. Write to frappe.db.get_default (primary source for create_paytm_order) ──
