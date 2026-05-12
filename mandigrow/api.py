@@ -10630,14 +10630,37 @@ def _get_paytm_config():
                    ps.get("merchantid") or ps.get("MerchantID") or "").strip()
             key = (ps.get("merchant_key") or ps.get("api_secret") or
                    ps.get("merchantkey") or ps.get("MerchantKey") or "").strip()
-            website  = ps.get("website") or ps.get("Website") or "WEBSTAGING"
+            website  = ps.get("website") or ps.get("Website") or "DEFAULT"
             industry = ps.get("industry_type_id") or ps.get("IndustryTypeID") or "Retail"
-            is_stg   = bool(int(ps.get("staging") or ps.get("is_staging") or ps.get("Staging") or 0))
+            # Staging: check all variants, default to False (production)
+            stg_raw = ps.get("staging") or ps.get("is_staging") or ps.get("Staging") or "0"
+            is_stg = str(stg_raw) not in ("0", "false", "False", "no", "")
             if mid and key:
-                frappe.logger().info(f"[paytm_cfg] ✅ Source: Paytm Settings doctype | MID={mid}")
+                frappe.logger().info(f"[paytm_cfg] ✅ Source: Paytm Settings doctype | MID={mid} | staging={is_stg} | website={website}")
                 return _build(mid, key, website, industry, is_stg)
     except Exception as ex:
         frappe.logger().debug(f"[paytm_cfg] Paytm Settings not available: {ex}")
+
+    # ── 1b. Direct table query for Paytm Settings (fallback) ─────────────────
+    try:
+        rows = frappe.db.sql(
+            "SELECT field, value FROM `tabSingles` WHERE doctype='Paytm Settings'",
+            as_dict=True
+        )
+        if rows:
+            ps = {r["field"]: r["value"] for r in rows}
+            mid = (ps.get("merchant_id") or ps.get("api_key") or "").strip()
+            key = (ps.get("merchant_key") or ps.get("api_secret") or "").strip()
+            website = ps.get("website") or "DEFAULT"
+            industry = ps.get("industry_type_id") or "Retail"
+            stg_raw = ps.get("staging") or ps.get("is_staging") or "0"
+            is_stg = str(stg_raw) not in ("0", "false", "False", "no", "")
+            if mid and key:
+                frappe.logger().info(f"[paytm_cfg] ✅ Source: tabSingles Paytm Settings | MID={mid} | staging={is_stg} | website={website}")
+                return _build(mid, key, website, industry, is_stg)
+    except Exception as ex:
+        frappe.logger().debug(f"[paytm_cfg] tabSingles Paytm Settings not available: {ex}")
+
 
     # ── 2. ERPNext 'Payment Gateway' doctype ─────────────────────────────────
     # ERPNext stores gateway_controller="Paytm Settings" in Payment Gateway doc
@@ -10887,8 +10910,12 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
 
         if data.get("body", {}).get("resultInfo", {}).get("resultStatus") != "S":
             err = data.get("body", {}).get("resultInfo", {}).get("resultMsg", "Unknown Paytm error")
-            frappe.log_error(f"Paytm order creation failed: {data}", "create_paytm_order")
-            return {"success": False, "error": f"Payment initiation failed: {err}"}
+            result_code = data.get("body", {}).get("resultInfo", {}).get("resultCode", "")
+            frappe.log_error(
+                f"Paytm order creation failed.\nMID={mid}\nHost={paytm_host}\nWebsite={paytm_cfg.get('website')}\nIsStaging={paytm_cfg.get('is_staging')}\nResultCode={result_code}\nResultMsg={err}\nFullResponse={data}",
+                "create_paytm_order"
+            )
+            return {"success": False, "error": f"Payment initiation failed: {err} (Code: {result_code})"}
 
         txn_token = data["body"]["txnToken"]
 
