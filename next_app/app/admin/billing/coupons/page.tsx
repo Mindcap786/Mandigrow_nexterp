@@ -190,16 +190,7 @@ export default function AdminCouponsPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Circulation Limit</Label>
-                                    <Input 
-                                        type="number"
-                                        placeholder="Unlimited (Zero for ∞)" 
-                                        value={maxUses}
-                                        onChange={e => setMaxUses(e.target.value)}
-                                        className="bg-slate-50 border-slate-200 font-bold h-12"
-                                    />
-                                </div>
+
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Expiration Date & Time</Label>
                                     <Input 
@@ -269,16 +260,7 @@ export default function AdminCouponsPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Circulation Limit</Label>
-                                    <Input 
-                                        type="number"
-                                        placeholder="Unlimited (Zero for ∞)" 
-                                        value={maxUses}
-                                        onChange={e => setMaxUses(e.target.value)}
-                                        className="bg-slate-50 border-slate-200 font-bold h-12"
-                                    />
-                                </div>
+
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Expiration Date & Time</Label>
                                     <Input 
