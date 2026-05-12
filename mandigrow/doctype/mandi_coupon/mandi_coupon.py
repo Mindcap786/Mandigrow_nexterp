@@ -1,5 +1,5 @@
 import frappe
+from frappe.model.document import Document
 
-
-def get_default_fields():
+class MandiCoupon(Document):
     pass
