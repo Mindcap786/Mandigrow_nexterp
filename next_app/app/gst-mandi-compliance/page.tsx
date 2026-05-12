@@ -2,53 +2,53 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Mandi Khata Software India — Digital Ledger for Mandi Traders & Commission Agents | MandiGrow',
+    title: 'GST Software for Commission Agents & Mandi Traders — Mandi Tax (Cess) Automation | MandiGrow',
     description:
-        'MandiGrow is India\'s best mandi khata software. Replace paper bahis with a real-time digital ledger for every party. Track udhar, advances and settlements instantly. Free trial — no card.',
+        'MandiGrow automates GST filing, Mandi Tax (Cess), and e-invoicing for fruit & vegetable commission agents and wholesale traders across India. GSTR-1, GSTR-3B one-click export. Free trial.',
     keywords: [
-        'mandi khata software',
-        'digital mandi khata',
-        'mandi bahi software',
-        'mandi ledger software',
-        'khata book for mandi',
-        'mandi udhar software',
-        'commission agent khata app',
-        'fruit vegetable trader ledger',
+        'GST software for commission agent',
+        'mandi tax software',
+        'mandi cess software',
+        'GST billing mandi India',
+        'GSTR-1 mandi trader',
+        'e-invoicing mandi software',
+        'GST return commission agent India',
+        'fruit vegetable GST software',
     ],
-    alternates: { canonical: 'https://www.mandigrow.com/mandi-khata-software' },
+    alternates: { canonical: 'https://www.mandigrow.com/gst-mandi-compliance' },
     openGraph: {
-        title: 'Mandi Khata Software India — Digital Ledger for Mandi Traders | MandiGrow',
+        title: 'GST Software for Commission Agents — Mandi Tax (Cess) Automation | MandiGrow',
         description:
-            'Replace paper bahis with a real-time digital mandi khata. Track udhar, advances and party balances instantly — for fruits & vegetable merchants and commission agents across India.',
-        url: 'https://www.mandigrow.com/mandi-khata-software',
+            'Automate GST filing, Mandi Cess, and e-invoicing for fruit & vegetable commission agents. GSTR-1 and GSTR-3B one-click export.',
+        url: 'https://www.mandigrow.com/gst-mandi-compliance',
         type: 'website',
     },
 };
 
 const FAQ = [
     {
-        q: 'What is mandi khata software?',
-        a: 'Mandi khata software is a digital ledger built specifically for mandi traders and commission agents. It replaces paper bahis with a real-time, party-wise khata that updates the moment you record a sale, purchase, advance or payment.',
+        q: 'Do commission agents need to file GST?',
+        a: 'Yes. Commission agents who earn commission on the sale of agricultural produce must register for GST if their aggregate turnover exceeds the threshold. MandiGrow helps you track taxable commission income and generate GSTR-1 and GSTR-3B data automatically.',
     },
     {
-        q: 'How is MandiGrow khata different from a regular khata book app?',
-        a: 'Generic khata apps only record udhar. MandiGrow is a full mandi ledger system: it links every khata entry to the underlying sale, purchase, commission and GST entry — so your books are always tally-clean and audit-ready.',
+        q: 'What is Mandi Tax (Cess) and does MandiGrow handle it?',
+        a: 'Mandi Tax or Cess is a levy charged by state Agricultural Produce Market Committees (APMCs) on the value of agricultural produce sold at the mandi. MandiGrow auto-calculates Mandi Cess per transaction and posts it to the correct ledger, state-wise.',
     },
     {
-        q: 'Can I see all my party balances at once?',
-        a: 'Yes. The party balances screen shows every farmer and buyer with their current outstanding, advance, last transaction date and total turnover — sortable and filterable.',
+        q: 'Can MandiGrow generate e-invoices for mandi traders?',
+        a: 'Yes. MandiGrow is e-invoicing ready. It generates IRN (Invoice Reference Number) compliant invoices for B2B transactions above the GST e-invoicing threshold, directly from your sale entry.',
     },
     {
-        q: 'Does the khata work offline?',
-        a: 'Yes — MandiGrow caches your data locally and syncs as soon as the connection is back. You can record entries from the mandi gate even with patchy mobile data.',
+        q: 'Is agricultural produce exempt from GST in India?',
+        a: 'Raw, unprocessed agricultural produce is generally GST-exempt. However, the commission earned by agents, transport charges, and processed goods may attract GST. MandiGrow\'s compliance engine correctly identifies taxable vs. exempt transactions.',
     },
     {
-        q: 'Can I share a party statement on WhatsApp?',
-        a: 'Yes. Generate any party statement, export as PDF, and share on WhatsApp directly from the app. Bilingual: Hindi or English.',
+        q: 'How does MandiGrow help me file GSTR-1?',
+        a: 'Every sale you record in MandiGrow is tagged with the correct GST rate, HSN code, and party GSTIN. At the end of the month, you export a ready-to-upload GSTR-1 JSON file or Excel sheet — no manual data entry required.',
     },
 ];
 
-export default function MandiKhataPage() {
+export default function GstMandiCompliancePage() {
     return (
         <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
             <script
@@ -76,8 +76,8 @@ export default function MandiKhataPage() {
                             {
                                 '@type': 'ListItem',
                                 position: 2,
-                                name: 'Mandi Khata Software',
-                                item: 'https://www.mandigrow.com/mandi-khata-software',
+                                name: 'GST Mandi Compliance',
+                                item: 'https://www.mandigrow.com/gst-mandi-compliance',
                             },
                         ],
                     }),
@@ -86,16 +86,15 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 pt-24 pb-16">
                 <p className="text-emerald-700 font-black uppercase tracking-widest text-xs mb-4">
-                    Mandi Khata Software · India
+                    GST & Mandi Tax Compliance · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    Mandi Khata Software — Digital Ledger for Indian Traders
+                    Automated GST &amp; Mandi Tax Compliance for Fruit &amp; Vegetable Traders
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-8">
-                    Replace paper bahis with a real-time digital mandi khata. Every party
-                    balance live. Every entry linked to the underlying sale, purchase or
-                    payment. Built for fruits and vegetable merchants and commission agents
-                    across India.
+                    GST software built specifically for Indian mandi commission agents and wholesale traders.
+                    Auto-calculate Mandi Tax (Cess), generate GSTR-1, GSTR-3B and e-invoices without a
+                    separate CA or Excel sheet. Hindi and English. Mobile-ready.
                 </p>
                 <div className="flex gap-4 flex-wrap">
                     <Link
@@ -115,33 +114,33 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-6">
-                    Real-Time Party Balance &amp; Udhar Tracking
+                    GST Filing for Commission Agents — Built Into Every Transaction
                 </h2>
                 <p className="text-lg text-gray-700 mb-4">
-                    Paper bahis lose entries, smudge in the rain and take hours to
-                    reconcile. Generic khata apps only record udhar — they leave you to do
-                    the accounting twice. MandiGrow is different: every khata entry is
-                    linked to the underlying sale, purchase, commission or GST entry, so
-                    your books are tally-clean by design.
+                    Filing GST as a mandi commission agent is complex — agricultural produce is exempt, but
+                    your commission income is taxable. Mandi Cess varies by state and commodity. Generic
+                    accounting tools leave you with manual calculations, wrong HSN codes, and last-minute
+                    panic before every filing deadline.
                 </p>
                 <p className="text-lg text-gray-700">
-                    Open the app at midnight. Every farmer and buyer balance is correct.
-                    Every commission is posted. Every GSTR-1 line is ready. Go to bed.
+                    MandiGrow is different. Every sale, purchase, and commission entry is tagged with the
+                    correct GST rate, HSN code, and party GSTIN at the point of entry. Your GSTR-1 data
+                    is always ready — no month-end scramble.
                 </p>
             </section>
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    Replace Your Paper Bahi — Go Digital Today
+                    Mandi Tax (Cess) &amp; e-Invoicing Automation
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
                     {[
-                        ['Real-time party balances', 'Every farmer and buyer balance updated the moment you save an entry.'],
-                        ['Linked to sales & purchases', 'No double entry. Khata derives from your business records.'],
-                        ['Advances & part payments', 'Track advances, part payments and credit notes natively.'],
-                        ['Offline-ready', 'Record from the mandi gate even with no signal. Auto-syncs on reconnect.'],
-                        ['WhatsApp share', 'Send any party statement as PDF directly from the app.'],
-                        ['Bilingual khata', 'Print and share in Hindi, English or any of 5 regional languages.'],
+                        ['GSTR-1 one-click export', 'Export GSTR-1 JSON or Excel at month-end. Directly upload to GST portal.'],
+                        ['GSTR-3B auto-summary', 'Monthly summary of output tax, input credit, and Mandi Cess — ready in seconds.'],
+                        ['Mandi Tax (Cess) auto-calculation', 'State-wise APMC Cess calculated and posted automatically on every transaction.'],
+                        ['e-Invoicing (IRN) ready', 'Generate IRN-compliant invoices for eligible B2B transactions without extra software.'],
+                        ['HSN code mapping', 'Every commodity pre-mapped to the correct HSN code. Customize per state rules.'],
+                        ['Audit trail for inspectors', 'Full immutable transaction log for government auditors and tax inspectors.'],
                     ].map(([title, desc]) => (
                         <div key={title} className="p-6 bg-white border border-emerald-100 rounded-3xl shadow-sm">
                             <h3 className="text-xl font-black mb-2">{title}</h3>
@@ -153,7 +152,7 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    Mandi Khata Software — FAQ
+                    GST Software for Mandi Traders — FAQ
                 </h2>
                 <div className="space-y-6">
                     {FAQ.map((f) => (
@@ -167,10 +166,10 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-20 text-center">
                 <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-6">
-                    Throw the Bahi in a Drawer. Switch to MandiGrow.
+                    Never Miss a GST Deadline Again
                 </h2>
                 <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-                    14-day free trial. No credit card. Live demo in Hindi or English.
+                    14-day free trial. No credit card. Live GST demo in Hindi or English.
                 </p>
                 <Link
                     href="/subscribe"

@@ -115,236 +115,160 @@ export const POSTS: BlogPost[] = [
 `,
     },
     {
-        slug: 'what-is-apmc-software-complete-guide-india-2026',
-        title: 'What is APMC Software? Complete Guide for Mandi Owners in India (2026)',
+        slug: 'gst-filing-guide-commission-agents-mandi',
+        title: 'GST Filing Guide for Commission Agents in Fruit & Vegetable Mandi (2026)',
         description:
-            'A complete guide to APMC software for mandi owners in India. What it does, why you need it, how it works, and what to look for when choosing the best APMC management software.',
+            'Step-by-step GST filing guide for mandi commission agents in India. Covers GSTR-1, GSTR-3B, Mandi Cess, HSN codes, and e-invoicing for agricultural traders.',
         keywords: [
-            'APMC software India',
-            'APMC management software',
-            'agricultural market software India',
-            'mandi ERP software',
-            'APMC billing software',
-            'grain mandi software India',
+            'GST for commission agent mandi',
+            'GSTR-1 mandi trader',
+            'mandi cess GST',
+            'GST filing fruit vegetable trader',
+            'commission agent GST India',
         ],
-        publishedAt: '2026-05-01',
-        author: 'MandiGrow Team',
-        readMinutes: 8,
-        body: `
-<p>If you manage an APMC mandi — whether you are a commission agent, a market secretary, or a multi-mandi operator — you have probably heard the term "APMC software." But what does it actually mean, and why does every modern mandi operator need it?</p>
-
-<h2>What is APMC Software?</h2>
-
-<p>APMC software (Agricultural Produce Market Committee software) is a purpose-built digital management system for regulated agricultural markets in India. It digitizes every major operation of an APMC mandi: commodity arrivals, auction and sale recording, commission calculation, farmer payments, trader khata management, and government levy reporting.</p>
-
-<p>Unlike generic accounting tools like Tally or Zoho, APMC software is designed around the unique structure of Indian agricultural markets — lot-based trading, weight-based billing, commission agent intermediaries, market fees, hamali, and the complex regulatory requirements of state APMC Acts.</p>
-
-<h2>Why Do Mandis Need APMC Management Software?</h2>
-
-<p>The answer is efficiency and compliance. A mid-size APMC mandi processes hundreds of transactions per day — each involving a farmer, a buyer, a commission agent, weight measurements, lot tracking, and financial settlements. Managing this manually or in spreadsheets leads to errors, disputes, and delayed farmer payments.</p>
-
-<p>Modern APMC management software solves this by:</p>
-<ul>
-  <li><strong>Automating commission calculation</strong> — eliminating manual errors on every transaction.</li>
-  <li><strong>Real-time farmer and buyer ledgers</strong> — so balances are always accurate and disputes are settled with a printed statement.</li>
-  <li><strong>Digital daybook</strong> — replacing paper records with audit-ready digital entries.</li>
-  <li><strong>GST billing</strong> — generating GSTIN-compliant invoices for every sale and purchase.</li>
-  <li><strong>Market levy reporting</strong> — computing and recording APMC cess and other government charges automatically.</li>
-</ul>
-
-<h2>How Does APMC Software Work?</h2>
-
-<p>The workflow in MandiGrow — India's leading APMC billing software — follows the natural flow of a mandi trading day:</p>
-<ol>
-  <li><strong>Gate entry</strong> — vehicle arrival is logged with farmer details, crop, quantity, and vehicle number.</li>
-  <li><strong>Lot creation</strong> — the commodity is assigned a lot number and weighed.</li>
-  <li><strong>Auction or direct sale</strong> — the rate is set, the buyer is assigned, and the system auto-calculates commission, market fee, hamali, and net payable to the farmer.</li>
-  <li><strong>Billing</strong> — GST-compliant invoices are generated for buyer and seller in seconds.</li>
-  <li><strong>Settlement</strong> — farmer payment is recorded, ledger entries post automatically.</li>
-  <li><strong>Reporting</strong> — daily daybook, party-wise ledger, and government levy reports are ready in one click.</li>
-</ol>
-
-<h2>What to Look For in APMC Software</h2>
-
-<p>When evaluating APMC management software for your mandi, focus on these five criteria:</p>
-<ol>
-  <li><strong>Multi-crop support.</strong> Your software must handle any commodity — wheat, rice, onion, tomato, mango — without reconfiguration.</li>
-  <li><strong>Commission flexibility.</strong> Different commodities and parties often have different commission rates. The software must handle this per-party and per-item.</li>
-  <li><strong>Mobile access.</strong> Gate staff and commission agents need to work from phones. Desktop-only software creates bottlenecks.</li>
-  <li><strong>Offline capability.</strong> Mandis in semi-urban areas often have unreliable internet. Your software should work offline and sync when connectivity returns.</li>
-  <li><strong>Language support.</strong> Your staff should be able to work in Telugu, Hindi, Kannada, or their regional language — not just English.</li>
-</ol>
-
-<h2>MandiGrow — The Best APMC Software for India in 2026</h2>
-
-<p>MandiGrow scores 5 out of 5 on every criterion above. It is the only APMC billing software built end-to-end for Indian agricultural markets — with full support for Telugu, Hindi, English, Tamil, Kannada and Malayalam. Mandis in Andhra Pradesh, Telangana, Maharashtra, Madhya Pradesh and Karnataka use MandiGrow to run their operations every day.</p>
-
-<p>Start your free 14-day trial at <a href="https://www.mandigrow.com">mandigrow.com</a>. No credit card required. Live demos available in Hindi and Telugu.</p>
-`,
-    },
-    {
-        slug: 'mandi-commission-calculation-guide-india',
-        title: 'How to Calculate Mandi Commission — Farmer & Trader Charges Explained',
-        description:
-            'A clear, practical guide to mandi commission calculation in India. How commission agents compute charges, what farmers and buyers pay, and how software automates it.',
-        keywords: [
-            'mandi commission calculation',
-            'commission agent software India',
-            'mandi commission charges',
-            'arhtiya commission calculation',
-            'APMC commission rates India',
-            'mandi billing software',
-        ],
-        publishedAt: '2026-05-05',
-        author: 'MandiGrow Team',
-        readMinutes: 7,
-        body: `
-<p>Mandi commission calculation is one of the most misunderstood aspects of agricultural trade in India. Get it wrong and you lose money. Get it right every time with software and you build trust with every farmer and buyer you work with.</p>
-
-<p>This guide breaks down exactly how mandi commission works — from the farmer's side, the buyer's side, and the commission agent's side — and shows how MandiGrow automates the calculation on every single transaction.</p>
-
-<h2>What is Mandi Commission?</h2>
-
-<p>A mandi commission agent (arhtiya) earns a fee for facilitating the sale of agricultural produce between a farmer (seller) and a trader (buyer). This fee is called commission or arhat. In most Indian states, commission rates are regulated by the state APMC Act.</p>
-
-<p>Typical commission structure in Indian mandis:</p>
-<ul>
-  <li><strong>Commission on sale value:</strong> Usually 2–6% of the gross sale amount, charged to the farmer.</li>
-  <li><strong>Market fee (mandi tax):</strong> 0.5–2% levied by the APMC committee, charged on the buyer or shared.</li>
-  <li><strong>Hamali:</strong> Labour charge for loading/unloading, usually per bag or per quintal.</li>
-  <li><strong>Palledari:</strong> Weighing charges, usually per weighment.</li>
-  <li><strong>Cleaning/grading charges:</strong> If applicable, deducted from the farmer's payment.</li>
-</ul>
-
-<h2>Step-by-Step Mandi Commission Calculation</h2>
-
-<p>Let's walk through a real example. A farmer brings 100 quintals of onions. Buyers bid ₹2,500/quintal. The commission agent's rate is 5%.</p>
-
-<ol>
-  <li><strong>Gross sale value:</strong> 100 × ₹2,500 = ₹2,50,000</li>
-  <li><strong>Commission (5%):</strong> ₹2,50,000 × 5% = ₹12,500</li>
-  <li><strong>Market fee (1%):</strong> ₹2,50,000 × 1% = ₹2,500</li>
-  <li><strong>Hamali (₹20/quintal × 100):</strong> ₹2,000</li>
-  <li><strong>Total deductions:</strong> ₹12,500 + ₹2,500 + ₹2,000 = ₹17,000</li>
-  <li><strong>Net payable to farmer:</strong> ₹2,50,000 − ₹17,000 = ₹2,33,000</li>
-</ol>
-
-<p>The buyer pays ₹2,50,000. The commission agent pays the farmer ₹2,33,000 and retains ₹17,000 (minus the market fee remitted to the APMC committee).</p>
-
-<h2>Why Manual Commission Calculation Fails</h2>
-
-<p>The maths looks simple in isolation. In a real mandi, you may do 50–500 such transactions a day, with different rates for different commodities, different hamali rates by season, different buyers with different payment terms, and all of this in parallel at 5am.</p>
-
-<p>Manual calculation leads to:</p>
-<ul>
-  <li>Arithmetic errors that erode trust with farmers.</li>
-  <li>Missed deductions that cut into your earnings.</li>
-  <li>Disputes over the final patti amount.</li>
-  <li>Hours of reconciliation at day-end.</li>
-</ul>
-
-<h2>How MandiGrow Automates Mandi Commission</h2>
-
-<p>MandiGrow is purpose-built commission agent software for Indian mandis. You configure commission rates once — per party or per commodity — and the system calculates every deduction automatically on every sale.</p>
-
-<ul>
-  <li>Commission, market fee, hamali and palledari are calculated and posted in one click.</li>
-  <li>The farmer's patti is generated instantly — printable and shareable on WhatsApp.</li>
-  <li>Every party's khata updates in real time — no end-of-day reconciliation needed.</li>
-  <li>GSTR-1 data is ready for export at the end of the month.</li>
-</ul>
-
-<p>Try MandiGrow's commission agent software free for 14 days at <a href="https://www.mandigrow.com/commission-agent-software">mandigrow.com/commission-agent-software</a>.</p>
-`,
-    },
-    {
-        slug: 'best-mandi-software-india-2026-comparison',
-        title: 'Best Mandi Software in India 2026 — MandiGrow vs AdatSoft vs Excel',
-        description:
-            'An honest comparison of the best mandi software options in India for 2026 — MandiGrow, AdatSoft, and Excel spreadsheets. Which one is right for your mandi?',
-        keywords: [
-            'best mandi software India',
-            'MandiGrow vs AdatSoft',
-            'mandi ERP software comparison',
-            'mandi management software India 2026',
-            'adatsoft alternative',
-            'commission agent software India',
-        ],
-        publishedAt: '2026-05-10',
+        publishedAt: '2026-04-15',
         author: 'MandiGrow Team',
         readMinutes: 9,
         body: `
-<p>Choosing the right mandi software for your business is one of the most consequential decisions you will make this year. The wrong choice means months of lost time, frustrated staff, and potentially corrupted financial records. The right choice means a mandi that runs faster, earns more, and pays farmers accurately every single day.</p>
+<p>GST compliance for mandi commission agents is one of the most misunderstood topics in Indian agricultural trade. This guide cuts through the confusion and tells you exactly what you need to do — and how software like MandiGrow makes it automatic.</p>
 
-<p>This is an honest, side-by-side comparison of the three options most mandi operators consider in 2026: MandiGrow, AdatSoft, and Excel spreadsheets.</p>
+<h2>Are Commission Agents Required to Register for GST?</h2>
 
-<h2>Option 1: Excel Spreadsheets</h2>
+<p>Yes. If your aggregate annual turnover (commission income) exceeds ₹20 lakh (₹10 lakh for special category states), you must register for GST. Importantly, the turnover of agricultural produce you sell on behalf of farmers is <em>not</em> counted in your aggregate turnover for GST registration purposes — only your commission income is.</p>
 
-<p><strong>Who uses it:</strong> Small mandis, early-stage commission agents, operators who haven't yet invested in software.</p>
+<h2>What is Mandi Tax (Cess) and is it Different from GST?</h2>
 
-<p><strong>Strengths:</strong> Flexible, familiar, zero cost.</p>
+<p>Mandi Tax (also called APMC Cess or Market Cess) is a separate levy charged by state APMCs on the value of agricultural produce sold. It is <em>not</em> GST. It varies by state and commodity. In Andhra Pradesh, for example, it ranges from 1–2%. MandiGrow auto-calculates Mandi Cess per transaction based on your state settings.</p>
 
-<p><strong>Critical weaknesses:</strong></p>
-<ul>
-  <li>No automation — every calculation is manual and error-prone.</li>
-  <li>No audit trail — anyone can change any cell with no record.</li>
-  <li>No mobile access — you're chained to a single computer.</li>
-  <li>No GST invoicing — you need a separate tool for billing.</li>
-  <li>Scales catastrophically — 500 transactions per day in Excel is a nightmare.</li>
-</ul>
+<h2>GSTR-1 for Commission Agents — What to Report</h2>
 
-<p><strong>Verdict:</strong> Excel is a productivity tool, not an ERP. It's fine for 10 transactions per week. For anything more, you're leaving money on the table and exposing yourself to accounting errors.</p>
+<ol>
+  <li><strong>Taxable commission income:</strong> Report your commission earned on B2B sales under the appropriate HSN code (9986 for agri services).</li>
+  <li><strong>Transport and storage charges:</strong> If you charge buyers for transport or cold storage, these are taxable services.</li>
+  <li><strong>Exempt sales:</strong> The value of agricultural produce sold (not your commission) is exempt from GST and reported in the exempt supply column.</li>
+</ol>
 
-<h2>Option 2: AdatSoft</h2>
+<h2>How MandiGrow Automates GST for Commission Agents</h2>
 
-<p><strong>Who uses it:</strong> Mandis in northern India, particularly grain mandis in Punjab, Haryana and UP.</p>
+<p>With MandiGrow, every sale entry automatically tags the commission portion with the correct GST rate and HSN code. At the end of the month, you click one button and get a GSTR-1 JSON file ready to upload to the GST portal. No spreadsheets, no manual calculation, no last-minute panic.</p>
 
-<p><strong>Strengths:</strong> Established brand in grain mandi segment, good offline operation, familiar to accountants in the region.</p>
+<p>Start your free 14-day trial at <a href="https://www.mandigrow.com">MandiGrow.com</a>. No credit card required.</p>
+`,
+    },
+    {
+        slug: 'what-is-mandi-erp-software-complete-guide',
+        title: 'What is Mandi ERP Software? Complete Guide for Indian Traders (2026)',
+        description:
+            'A complete guide to mandi ERP software for Indian fruit and vegetable traders. What it does, how it works, who needs it, and why MandiGrow leads the category.',
+        keywords: [
+            'what is mandi ERP software',
+            'mandi ERP software India',
+            'mandi management software guide',
+            'mandi software features',
+            'ERP for mandi traders',
+        ],
+        publishedAt: '2026-04-20',
+        author: 'MandiGrow Team',
+        readMinutes: 8,
+        body: `
+<p>If you run a mandi business in India — as a commission agent, wholesale trader, or APMC market operator — you have probably heard the term "mandi ERP software." This guide explains exactly what it means, what it does, and whether your business needs it.</p>
 
-<p><strong>Weaknesses:</strong></p>
-<ul>
-  <li>Desktop-only — no mobile app, no phone billing at the gate.</li>
-  <li>Limited language support — primarily Hindi and English.</li>
-  <li>No modern cloud sync — each installation is isolated.</li>
-  <li>Older UI — significantly steeper learning curve for new staff.</li>
-  <li>No WhatsApp integration for sharing pattis.</li>
-  <li>Limited support for fruits and vegetable trade nuances (lot tracking, crate-based billing).</li>
-</ul>
+<h2>What is Mandi ERP Software?</h2>
 
-<h2>Option 3: MandiGrow</h2>
+<p>Mandi ERP (Enterprise Resource Planning) software is a purpose-built digital platform that manages all the core operations of a mandi business in one place. Unlike general accounting software like Tally or Zoho, mandi ERP is designed from the ground up for the specific workflows of agricultural wholesale markets.</p>
 
-<p><strong>Who uses it:</strong> Commission agents, APMC markets, wholesale traders and multi-mandi operators across Andhra Pradesh, Telangana, Maharashtra, Karnataka and beyond.</p>
+<h2>What Does Mandi ERP Software Do?</h2>
 
-<p><strong>Strengths:</strong></p>
-<ul>
-  <li><strong>Mobile + desktop:</strong> Bill at the gate on Android. Review reports from the office on desktop. Same real-time data.</li>
-  <li><strong>7 languages:</strong> Hindi, English, Telugu, Tamil, Kannada, Malayalam, Urdu — out of the box.</li>
-  <li><strong>Auto commission:</strong> Commission, market fee, hamali and palledari calculated automatically on every sale.</li>
-  <li><strong>Cloud sync:</strong> Multi-branch and multi-user with real-time data across locations.</li>
-  <li><strong>WhatsApp patti:</strong> Share farmer settlement statements directly from the app.</li>
-  <li><strong>GST ready:</strong> B2B/B2C invoices, GSTR-1 export, e-invoicing support.</li>
-  <li><strong>Lot and crate tracking:</strong> Built for fruits and vegetable trade — not bolted on.</li>
-  <li><strong>Free trial:</strong> 14 days, no credit card, full features.</li>
-</ul>
+<ol>
+  <li><strong>Gate Entry & Arrivals:</strong> Record vehicle arrivals, weights, and commodity details as trucks enter the mandi.</li>
+  <li><strong>Lot & Stock Management:</strong> Create and track inventory lots from arrival to final sale.</li>
+  <li><strong>Auction & Sale Billing:</strong> Record auction rates, generate sale invoices, and auto-calculate commission and market fees.</li>
+  <li><strong>Patti Generation:</strong> Create farmer pattis (payment statements) with all deductions itemised.</li>
+  <li><strong>Party Khata:</strong> Maintain real-time digital ledgers for every farmer, buyer, and transporter.</li>
+  <li><strong>GST & Compliance:</strong> Generate GSTR-1 and GSTR-3B data automatically. Calculate Mandi Cess by state.</li>
+  <li><strong>Reports:</strong> Daily sales summaries, P&L by commodity, party-wise outstanding, and more.</li>
+</ol>
 
-<p><strong>Weaknesses:</strong> Requires internet for cloud sync (offline mode available for core operations).</p>
+<h2>Who Needs Mandi ERP Software?</h2>
 
-<h2>The Verdict for 2026</h2>
+<p>You need mandi ERP software if you are a commission agent (arhtiya) handling farmer produce, a wholesale fruit and vegetable trader, an APMC market operator, or a warehouse manager storing agricultural commodities. If you are currently using Tally, Excel, or paper bahis, switching to a purpose-built mandi ERP will save you hours every day.</p>
 
-<table>
-<thead><tr><th>Feature</th><th>Excel</th><th>AdatSoft</th><th>MandiGrow</th></tr></thead>
-<tbody>
-<tr><td>Auto commission calculation</td><td>❌</td><td>✅</td><td>✅</td></tr>
-<tr><td>Mobile app</td><td>❌</td><td>❌</td><td>✅</td></tr>
-<tr><td>Regional languages</td><td>❌</td><td>Hindi only</td><td>7 languages</td></tr>
-<tr><td>GST billing</td><td>❌</td><td>✅</td><td>✅</td></tr>
-<tr><td>WhatsApp share</td><td>❌</td><td>❌</td><td>✅</td></tr>
-<tr><td>Cloud sync</td><td>❌</td><td>❌</td><td>✅</td></tr>
-<tr><td>Free trial</td><td>N/A</td><td>❌</td><td>✅ 14 days</td></tr>
-</tbody>
-</table>
+<p>Try MandiGrow free for 14 days at <a href="https://www.mandigrow.com">MandiGrow.com</a>. No credit card required.</p>
+`,
+    },
+    {
+        slug: 'how-to-automate-mandi-commission-patti',
+        title: 'How to Automate Mandi Commission (Patti) Calculation — Step-by-Step Guide',
+        description:
+            'Learn how to automate commission, market fees, hamali, and patti generation for your mandi business. Stop manual calculations and save hours every day.',
+        keywords: [
+            'automate mandi commission',
+            'patti software mandi',
+            'mandi commission calculation software',
+            'automatic patti generation India',
+            'hamali palledari software',
+        ],
+        publishedAt: '2026-04-25',
+        author: 'MandiGrow Team',
+        readMinutes: 7,
+        body: `
+<p>If you are still calculating mandi commission manually — by hand or in Excel — you are losing 2–3 hours every single day. This guide shows you exactly how to automate the entire patti calculation process using modern mandi software.</p>
 
-<p>For any mandi with more than a handful of daily transactions, MandiGrow is the clear choice in 2026. Start your free trial at <a href="https://www.mandigrow.com">mandigrow.com</a>.</p>
+<h2>What Goes Into a Mandi Patti?</h2>
+
+<p>A mandi patti (also called a sale statement or patti voucher) is the financial settlement document given to a farmer after his produce is sold at the mandi. It typically includes:</p>
+
+<ol>
+  <li>Total sale value (rate × weight)</li>
+  <li>Commission deduction (your arhtiya fee, typically 4–8%)</li>
+  <li>Market fee / Mandi Cess (APMC levy, varies by state)</li>
+  <li>Hamali charges (loading/unloading labour)</li>
+  <li>Palledari (packing labour)</li>
+  <li>Weight deductions (for moisture, wastage)</li>
+  <li>Net payable to farmer</li>
+</ol>
+
+<h2>How MandiGrow Automates Patti Generation</h2>
+
+<p>In MandiGrow, you configure commission rates, market fees, hamali, and palledari once per party or per commodity. After that, every sale entry automatically calculates all deductions and generates the patti in seconds. You press print — or share directly on WhatsApp. The farmer's khata is updated simultaneously. No manual calculation. No errors.</p>
+
+<h2>The Result</h2>
+
+<p>Mandi operators using MandiGrow report that end-of-day patti generation drops from 2–3 hours to under 15 minutes. Start your free trial at <a href="https://www.mandigrow.com">MandiGrow.com</a>.</p>
+`,
+    },
+    {
+        slug: 'mandi-software-andhra-pradesh-telangana',
+        title: 'Best Mandi Software for Andhra Pradesh & Telangana APMC Markets (2026)',
+        description:
+            'A regional guide to mandi software for APMC markets in Andhra Pradesh and Telangana. Covers AP Mandi Cess, Telugu-language support, and digital patti generation.',
+        keywords: [
+            'mandi software Andhra Pradesh',
+            'APMC software Telangana',
+            'AP mandi ERP',
+            'Telugu mandi software',
+            'commission agent software Andhra Pradesh',
+            'krishi upaj mandi software AP',
+        ],
+        publishedAt: '2026-05-01',
+        author: 'MandiGrow Team',
+        readMinutes: 6,
+        body: `
+<p>Mandi operators in Andhra Pradesh and Telangana face a unique set of compliance and operational requirements — AP Mandi Cess, Telugu-language pattis, and APMC regulations specific to these states. This guide covers what to look for in mandi software for AP and Telangana.</p>
+
+<h2>Andhra Pradesh Mandi Cess — What You Need to Know</h2>
+
+<p>The AP Agricultural Market Committee levies a Mandi Cess (also called market fee) on agricultural produce sold at regulated markets. The rate varies by commodity and market. MandiGrow auto-calculates AP Mandi Cess per transaction and generates state-compliant reports for your APMC submission.</p>
+
+<h2>Telugu Language Support — Non-Negotiable for AP/Telangana</h2>
+
+<p>Your staff at the mandi gate may not read English. Your farmers expect pattis in Telugu. MandiGrow ships fully bilingual — all bills, pattis, weight slips, and reports are available in Telugu, Hindi, and English. You switch language per user, not per document.</p>
+
+<h2>Why MandiGrow is the Best Mandi Software for AP and Telangana</h2>
+
+<p>MandiGrow is built with Indian mandi trade in mind — including the specific workflows, deductions, and compliance requirements of AP and Telangana. It is the only cloud ERP that offers Telugu-language mandi pattis, AP Mandi Cess automation, and mobile gate entry — all in one platform.</p>
+
+<p>Try MandiGrow free for 14 days at <a href="https://www.mandigrow.com">MandiGrow.com</a>. Live demo available in Telugu.</p>
 `,
     },
 ];

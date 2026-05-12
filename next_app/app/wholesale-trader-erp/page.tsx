@@ -2,53 +2,52 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Mandi Khata Software India — Digital Ledger for Mandi Traders & Commission Agents | MandiGrow',
+    title: 'Wholesale Market ERP India — Fruit & Vegetable Trader ERP Software | MandiGrow',
     description:
-        'MandiGrow is India\'s best mandi khata software. Replace paper bahis with a real-time digital ledger for every party. Track udhar, advances and settlements instantly. Free trial — no card.',
+        'MandiGrow is India\'s leading wholesale market ERP for fruit and vegetable traders. Manage bulk purchase bills, buyer collections, inventory valuation, and GST in one place. Free trial.',
     keywords: [
-        'mandi khata software',
-        'digital mandi khata',
-        'mandi bahi software',
-        'mandi ledger software',
-        'khata book for mandi',
-        'mandi udhar software',
-        'commission agent khata app',
-        'fruit vegetable trader ledger',
+        'wholesale market ERP India',
+        'fruit vegetable trader ERP',
+        'wholesale trader software India',
+        'sabzi mandi wholesale software',
+        'fruit vegetable accounting software',
+        'wholesale ERP for mandis',
+        'bulk billing software fruit vegetable',
     ],
-    alternates: { canonical: 'https://www.mandigrow.com/mandi-khata-software' },
+    alternates: { canonical: 'https://www.mandigrow.com/wholesale-trader-erp' },
     openGraph: {
-        title: 'Mandi Khata Software India — Digital Ledger for Mandi Traders | MandiGrow',
+        title: 'Wholesale Market ERP India — Fruit & Vegetable Trader ERP | MandiGrow',
         description:
-            'Replace paper bahis with a real-time digital mandi khata. Track udhar, advances and party balances instantly — for fruits & vegetable merchants and commission agents across India.',
-        url: 'https://www.mandigrow.com/mandi-khata-software',
+            'Bulk purchase bills, buyer collections, inventory valuation, and GST — built for wholesale fruit & vegetable traders across India.',
+        url: 'https://www.mandigrow.com/wholesale-trader-erp',
         type: 'website',
     },
 };
 
 const FAQ = [
     {
-        q: 'What is mandi khata software?',
-        a: 'Mandi khata software is a digital ledger built specifically for mandi traders and commission agents. It replaces paper bahis with a real-time, party-wise khata that updates the moment you record a sale, purchase, advance or payment.',
+        q: 'What is wholesale market ERP software?',
+        a: 'Wholesale market ERP software is a purpose-built platform for fruit and vegetable wholesale traders. It manages bulk purchase bills, buyer invoicing, inventory lot tracking, party ledgers, and GST filing — all in one system.',
     },
     {
-        q: 'How is MandiGrow khata different from a regular khata book app?',
-        a: 'Generic khata apps only record udhar. MandiGrow is a full mandi ledger system: it links every khata entry to the underlying sale, purchase, commission and GST entry — so your books are always tally-clean and audit-ready.',
+        q: 'How is MandiGrow different from Tally for wholesale traders?',
+        a: 'Tally is a general ledger tool. MandiGrow is built for wholesale mandi trade — it understands lots, crates, weights, and mandi-specific deductions like hamali and palledari natively, without custom plugins or workarounds.',
     },
     {
-        q: 'Can I see all my party balances at once?',
-        a: 'Yes. The party balances screen shows every farmer and buyer with their current outstanding, advance, last transaction date and total turnover — sortable and filterable.',
+        q: 'Can MandiGrow handle large volumes of daily transactions?',
+        a: 'Yes. MandiGrow is designed for high-volume mandi operations. It processes hundreds of sale and purchase bills per day with real-time inventory updates and instant ledger posting.',
     },
     {
-        q: 'Does the khata work offline?',
-        a: 'Yes — MandiGrow caches your data locally and syncs as soon as the connection is back. You can record entries from the mandi gate even with patchy mobile data.',
+        q: 'Does it support multi-party buyer collections?',
+        a: 'Yes. MandiGrow\'s receivables module shows all outstanding buyer balances at a glance, lets you record payments in bulk, and generates collection summaries for any date range.',
     },
     {
-        q: 'Can I share a party statement on WhatsApp?',
-        a: 'Yes. Generate any party statement, export as PDF, and share on WhatsApp directly from the app. Bilingual: Hindi or English.',
+        q: 'Can I track inventory lot-wise for different commodities?',
+        a: 'Yes. Every purchase arrival creates a lot. You can track inventory commodity-wise, lot-wise, and location-wise, with real-time stock status updates as sales are recorded.',
     },
 ];
 
-export default function MandiKhataPage() {
+export default function WholesaleTraderErpPage() {
     return (
         <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
             <script
@@ -76,8 +75,8 @@ export default function MandiKhataPage() {
                             {
                                 '@type': 'ListItem',
                                 position: 2,
-                                name: 'Mandi Khata Software',
-                                item: 'https://www.mandigrow.com/mandi-khata-software',
+                                name: 'Wholesale Trader ERP',
+                                item: 'https://www.mandigrow.com/wholesale-trader-erp',
                             },
                         ],
                     }),
@@ -86,16 +85,15 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 pt-24 pb-16">
                 <p className="text-emerald-700 font-black uppercase tracking-widest text-xs mb-4">
-                    Mandi Khata Software · India
+                    Wholesale Market ERP · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    Mandi Khata Software — Digital Ledger for Indian Traders
+                    Wholesale Market ERP for Fruit &amp; Vegetable Traders in India
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-8">
-                    Replace paper bahis with a real-time digital mandi khata. Every party
-                    balance live. Every entry linked to the underlying sale, purchase or
-                    payment. Built for fruits and vegetable merchants and commission agents
-                    across India.
+                    MandiGrow is the only wholesale ERP built natively for Indian mandi trade. Bulk purchase
+                    bills, buyer collections, lot-wise inventory, and GST filing — without Excel sheets or
+                    custom Tally plugins. Mobile-ready. Hindi and English.
                 </p>
                 <div className="flex gap-4 flex-wrap">
                     <Link
@@ -115,33 +113,32 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-6">
-                    Real-Time Party Balance &amp; Udhar Tracking
+                    Why Generic ERP Fails Wholesale Mandi Traders
                 </h2>
                 <p className="text-lg text-gray-700 mb-4">
-                    Paper bahis lose entries, smudge in the rain and take hours to
-                    reconcile. Generic khata apps only record udhar — they leave you to do
-                    the accounting twice. MandiGrow is different: every khata entry is
-                    linked to the underlying sale, purchase, commission or GST entry, so
-                    your books are tally-clean by design.
+                    SAP, Tally, and Zoho are designed for factories and retail stores. Wholesale mandi trade
+                    is different — you buy by lot, sell by crate, deduct hamali and market fee, and need
+                    party balances updated before the truck leaves the gate. Generic ERP was never built
+                    for this.
                 </p>
                 <p className="text-lg text-gray-700">
-                    Open the app at midnight. Every farmer and buyer balance is correct.
-                    Every commission is posted. Every GSTR-1 line is ready. Go to bed.
+                    MandiGrow is. Every screen, every form, and every report was designed for the way
+                    wholesale fruit and vegetable traders actually work — from gate entry to daily closing.
                 </p>
             </section>
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    Replace Your Paper Bahi — Go Digital Today
+                    Bulk Billing, Lot Tracking &amp; Buyer Collections in One App
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
                     {[
-                        ['Real-time party balances', 'Every farmer and buyer balance updated the moment you save an entry.'],
-                        ['Linked to sales & purchases', 'No double entry. Khata derives from your business records.'],
-                        ['Advances & part payments', 'Track advances, part payments and credit notes natively.'],
-                        ['Offline-ready', 'Record from the mandi gate even with no signal. Auto-syncs on reconnect.'],
-                        ['WhatsApp share', 'Send any party statement as PDF directly from the app.'],
-                        ['Bilingual khata', 'Print and share in Hindi, English or any of 5 regional languages.'],
+                        ['Bulk purchase bill entry', 'Record multi-commodity, multi-supplier purchase arrivals in seconds.'],
+                        ['Lot-wise inventory tracking', 'Track every lot from gate entry to final sale with real-time stock balance.'],
+                        ['Buyer invoicing & collections', 'Generate sale invoices and track outstanding collections by party.'],
+                        ['Weight & crate management', 'Bill by kg, quintal, crate, or bag — MandiGrow converts between them automatically.'],
+                        ['GST + e-invoicing', 'GSTR-1 and GSTR-3B data ready in one click. B2B and B2C billing supported.'],
+                        ['Profit & loss per lot', 'See exact margin per commodity, per lot, per day — no spreadsheets needed.'],
                     ].map(([title, desc]) => (
                         <div key={title} className="p-6 bg-white border border-emerald-100 rounded-3xl shadow-sm">
                             <h3 className="text-xl font-black mb-2">{title}</h3>
@@ -153,7 +150,7 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    Mandi Khata Software — FAQ
+                    Wholesale Trader ERP — Frequently Asked Questions
                 </h2>
                 <div className="space-y-6">
                     {FAQ.map((f) => (
@@ -167,7 +164,7 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-20 text-center">
                 <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-6">
-                    Throw the Bahi in a Drawer. Switch to MandiGrow.
+                    The Wholesale ERP Built for Indian Mandis
                 </h2>
                 <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
                     14-day free trial. No credit card. Live demo in Hindi or English.
