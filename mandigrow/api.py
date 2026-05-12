@@ -1153,12 +1153,19 @@ def send_signup_otp(email: str, full_name: str) -> dict:
     <h2 style="background: #f4f7ee; padding: 10px; border-radius: 5px; display: inline-block; letter-spacing: 5px; color: #047857;">{otp}</h2>
     <p>This OTP is valid for 15 minutes.</p>
     """
-    frappe.sendmail(
-        recipients=[email],
-        subject=subject,
-        message=message,
-        now=True
-    )
+    try:
+        frappe.sendmail(
+            recipients=[email],
+            subject=subject,
+            message=message,
+            now=True
+        )
+    except frappe.OutgoingEmailError:
+        frappe.cache().delete_value(f"signup_otp_{email}")
+        frappe.throw(_("SMTP Error: Please ensure you have set an Email Account as 'Default Outgoing' in Frappe Tools > Email Account."))
+    except Exception as e:
+        frappe.cache().delete_value(f"signup_otp_{email}")
+        frappe.throw(f"Failed to send OTP email: {str(e)}")
     
     return {"status": "success", "message": "OTP sent to email"}
 
