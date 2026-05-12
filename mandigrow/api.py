@@ -9946,22 +9946,64 @@ def get_billing_gateways() -> list:
 @frappe.whitelist(allow_guest=False)
 def update_billing_gateway(gateway_type: str, config: dict, is_active: bool) -> dict:
     """
-    Updates a billing gateway configuration.
+    Upserts a billing gateway configuration.
+    Creates the record if it does not exist.
+    Also writes Paytm credentials directly to frappe.db.get_default for reliable access.
     """
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         frappe.throw(_("Access Denied: Super Admin role required"))
-        
-    if not frappe.db.exists("Billing Gateway", gateway_type):
-        frappe.throw(_("Gateway {0} not found").format(gateway_type))
-        
+
     import json
-    frappe.db.set_value("Billing Gateway", gateway_type, {
-        "config": json.dumps(config),
-        "is_active": 1 if is_active else 0
-    })
+
+    # Always write Paytm config directly to get_default (most reliable source)
+    if gateway_type.lower() == "paytm":
+        mid = (config.get("merchant_id") or config.get("MID") or "").strip()
+        key = (config.get("merchant_key") or config.get("MERCHANT_KEY") or "").strip()
+        is_stg = config.get("is_staging", False)
+        if isinstance(is_stg, str):
+            is_stg = is_stg.lower() not in ("false", "0", "no", "")
+        website = config.get("website") or ("WEBSTAGING" if is_stg else "DEFAULT")
+        host = config.get("paytm_host") or (
+            "https://securegw-stage.paytm.in" if is_stg else "https://securegw.paytm.in"
+        )
+        if mid and key:
+            frappe.db.set_default("paytm_merchant_id", mid)
+            frappe.db.set_default("paytm_merchant_key", key)
+            frappe.db.set_default("paytm_website", website)
+            frappe.db.set_default("paytm_is_staging", "1" if is_stg else "0")
+            frappe.db.set_default("paytm_paytm_host", host)
+            try:
+                frappe.db.set_single_value("Paytm Settings", "merchant_id", mid)
+                frappe.db.set_single_value("Paytm Settings", "merchant_key", key)
+                frappe.db.set_single_value("Paytm Settings", "website", website)
+                frappe.db.set_single_value("Paytm Settings", "staging", 1 if is_stg else 0)
+            except Exception:
+                pass
+            frappe.logger().info(f"[update_billing_gateway] Paytm saved: MID={mid} | staging={is_stg} | website={website}")
+
+    # Upsert Billing Gateway doctype record
+    try:
+        config_json = json.dumps(config)
+        if frappe.db.exists("Billing Gateway", gateway_type):
+            frappe.db.set_value("Billing Gateway", gateway_type, {
+                "config": config_json,
+                "is_active": 1 if is_active else 0
+            })
+        else:
+            frappe.get_doc({
+                "doctype": "Billing Gateway",
+                "name": gateway_type,
+                "gateway_type": gateway_type.lower(),
+                "config": config_json,
+                "is_active": 1 if is_active else 0,
+            }).insert(ignore_permissions=True)
+            frappe.logger().info(f"[update_billing_gateway] Created Billing Gateway record: {gateway_type}")
+    except Exception as ex:
+        frappe.logger().warning(f"[update_billing_gateway] Billing Gateway upsert failed (non-fatal): {ex}")
+
     frappe.db.commit()
-    return {"status": "success"}
+    return {"status": "success", "message": f"Gateway '{gateway_type}' configuration saved."}
 
 @frappe.whitelist(allow_guest=False)
 def get_admin_billing_stats() -> dict:
