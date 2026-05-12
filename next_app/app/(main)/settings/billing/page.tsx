@@ -13,14 +13,18 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
 const PLAN_COLORS: Record<string, string> = {
+    starter: "bg-slate-100 text-slate-700 border-slate-200",
     basic: "bg-slate-100 text-slate-700 border-slate-200",
     standard: "bg-blue-50 text-blue-700 border-blue-100",
+    professional: "bg-purple-50 text-purple-700 border-purple-100",
     enterprise: "bg-purple-50 text-purple-700 border-purple-100",
 };
 
 const PLAN_ICONS: Record<string, any> = {
+    starter: Zap,
     basic: Zap,
     standard: TrendingUp,
+    professional: TrendingUp,
     enterprise: Building2,
 };
 
@@ -151,15 +155,16 @@ export default function SaasBillingPage() {
         return total === -1 ? '∞' : (total || 0);
     };
 
-    // Plan tier ordering for upgrade/downgrade comparison
-    const PLAN_ORDER = ['starter', 'basic', 'standard', 'enterprise'];
-    const currentTierIndex = PLAN_ORDER.indexOf(
-        (currentPlan?.plan_name || currentPlan?.name || '').toLowerCase()
-    );
     const getPlanAction = (plan: Plan): 'current' | 'upgrade' | 'downgrade' => {
-        const planIdx = PLAN_ORDER.indexOf((plan.plan_name || plan.name || '').toLowerCase());
-        if (planIdx === currentTierIndex) return 'current';
-        return planIdx > currentTierIndex ? 'upgrade' : 'downgrade';
+        const currentTierName = (currentPlan?.plan_name || currentPlan?.name || '').toLowerCase();
+        const targetTierName = (plan.plan_name || plan.name || '').toLowerCase();
+        
+        if (currentTierName === targetTierName) return 'current';
+        
+        const currentPrice = currentPlan?.price_monthly || 0;
+        const planPrice = plan.price_monthly || 0;
+        
+        return planPrice >= currentPrice ? 'upgrade' : 'downgrade';
     };
 
     if (loading) return (
@@ -293,7 +298,7 @@ export default function SaasBillingPage() {
                                     if (iconName === 'Star') return Star;
                                     if (iconName === 'Building2') return Building2;
                                     if (planKey === 'enterprise') return Building2;
-                                    if (planKey === 'standard') return TrendingUp;
+                                    if (planKey === 'standard' || planKey === 'professional') return TrendingUp;
                                     return Zap;
                                 })();
                                 // isCurrent: compare against live subscription from Frappe (not stale profile cache)
