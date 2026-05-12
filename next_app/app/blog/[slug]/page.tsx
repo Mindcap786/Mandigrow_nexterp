@@ -11,9 +11,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({
     params,
 }: {
-    params: { slug: string };
+    params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-    const post = getPost(params.slug);
+    const { slug } = await params;
+    const post = getPost(slug);
     if (!post) return { title: 'Post not found' };
     const url = `https://www.mandigrow.com/blog/${post.slug}`;
     return {
@@ -38,8 +39,9 @@ export async function generateMetadata({
     };
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-    const post = getPost(params.slug);
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    const post = getPost(slug);
     if (!post) notFound();
 
     const url = `https://www.mandigrow.com/blog/${post.slug}`;
