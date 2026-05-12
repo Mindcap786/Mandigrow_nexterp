@@ -11366,7 +11366,7 @@ def test_paytm_live(plan_name: str = "starter") -> dict:
     debug["config"] = {
         "merchant_id": mid,
         "merchant_key_len": len(merchant_key),
-        "merchant_key_first4": merchant_key[:4] + "****" if merchant_key else None,
+        "merchant_key_first4": (merchant_key[:4] + "****") if merchant_key else None,
         "website": paytm_cfg.get("website"),
         "is_staging": paytm_cfg.get("is_staging"),
         "paytm_host": paytm_cfg.get("paytm_host"),
@@ -11397,18 +11397,19 @@ def test_paytm_live(plan_name: str = "starter") -> dict:
         }
         amount = float(getattr(plan_doc, "price_monthly", 0) or 0)
     else:
-        debug["plan"] = "NOT FOUND"
-        amount = 1.0  # Use ₹1 for test
+        debug["plan"] = "NOT FOUND — check App Plan doctype"
+        amount = 1.0
 
     debug["amount_to_charge"] = amount
 
     if not mid or not merchant_key:
-        debug["error"] = "No MID or key configured"
+        debug["error"] = "No MID or key configured — run COMMIT CONFIGURATION in admin UI"
         return debug
 
-    # 4. Make actual Paytm API call with ₹1 test amount
+    # 4. Make actual Paytm API call
     import uuid
-    org_id = _get_user_org() or "TESTORG"
+    # Use dummy org_id for test (no auth needed)
+    org_id = "TESTORG"
     order_id = f"TEST-{uuid.uuid4().hex[:8].upper()}"
     amount_str = f"{max(amount, 1.0):.2f}"  # minimum ₹1
     paytm_host = paytm_cfg.get("paytm_host") or "https://securegw.paytm.in"
