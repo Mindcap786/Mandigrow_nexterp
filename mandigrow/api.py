@@ -11346,6 +11346,114 @@ def save_paytm_config(merchant_id: str, merchant_key: str, website: str = "DEFAU
 
 
 
+
+@frappe.whitelist(allow_guest=False)
+def test_paytm_live(plan_name: str = "starter") -> dict:
+    """
+    DIAGNOSTIC: Makes a real Paytm API call and returns full debug info.
+    Shows exactly what MID/host/checksum is being used and Paytm's full response.
+    Call from browser console (as logged-in user):
+      fetch('/api/method/mandigrow.api.test_paytm_live', {method:'POST', headers:{'X-Frappe-CSRF-Token': frappe.csrf_token}, body: new URLSearchParams({plan_name:'starter'})}).then(r=>r.json()).then(d=>console.log(JSON.stringify(d.message,null,2)))
+    """
+    import json, requests
+
+    debug = {}
+
+    # 1. What config is loaded?
+    paytm_cfg = _get_paytm_config()
+    mid = paytm_cfg.get("merchant_id") or ""
+    merchant_key = paytm_cfg.get("merchant_key") or ""
+    debug["config"] = {
+        "merchant_id": mid,
+        "merchant_key_len": len(merchant_key),
+        "merchant_key_first4": merchant_key[:4] + "****" if merchant_key else None,
+        "website": paytm_cfg.get("website"),
+        "is_staging": paytm_cfg.get("is_staging"),
+        "paytm_host": paytm_cfg.get("paytm_host"),
+    }
+
+    # 2. Check paytmchecksum library
+    try:
+        from paytmchecksum import PaytmChecksum
+        debug["paytmchecksum_installed"] = True
+    except ImportError:
+        debug["paytmchecksum_installed"] = False
+
+    # 3. Check plan price
+    plan_doc = None
+    if frappe.db.exists("App Plan", plan_name):
+        plan_doc = frappe.get_doc("App Plan", plan_name)
+    else:
+        pn = frappe.db.get_value("App Plan", {"plan_name": plan_name}, "name")
+        if pn:
+            plan_doc = frappe.get_doc("App Plan", pn)
+
+    if plan_doc:
+        debug["plan"] = {
+            "name": plan_doc.name,
+            "price_monthly": getattr(plan_doc, "price_monthly", None),
+            "price_yearly": getattr(plan_doc, "price_yearly", None),
+            "is_active": getattr(plan_doc, "is_active", None),
+        }
+        amount = float(getattr(plan_doc, "price_monthly", 0) or 0)
+    else:
+        debug["plan"] = "NOT FOUND"
+        amount = 1.0  # Use ₹1 for test
+
+    debug["amount_to_charge"] = amount
+
+    if not mid or not merchant_key:
+        debug["error"] = "No MID or key configured"
+        return debug
+
+    # 4. Make actual Paytm API call with ₹1 test amount
+    import uuid
+    org_id = _get_user_org() or "TESTORG"
+    order_id = f"TEST-{uuid.uuid4().hex[:8].upper()}"
+    amount_str = f"{max(amount, 1.0):.2f}"  # minimum ₹1
+    paytm_host = paytm_cfg.get("paytm_host") or "https://securegw.paytm.in"
+
+    body = {
+        "requestType": "Payment",
+        "mid": mid,
+        "websiteName": paytm_cfg.get("website", "DEFAULT"),
+        "orderId": order_id,
+        "callbackUrl": f"{frappe.utils.get_url()}/api/method/mandigrow.api.paytm_payment_callback",
+        "txnAmount": {"value": amount_str, "currency": "INR"},
+        "userInfo": {"custId": org_id[:50]},
+    }
+
+    try:
+        body_str = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
+        checksum = _paytm_generate_checksum(body_str, merchant_key)
+        debug["checksum_generated"] = True
+        debug["checksum_len"] = len(checksum)
+    except Exception as ex:
+        debug["checksum_error"] = str(ex)
+        return debug
+
+    post_data = json.dumps({"head": {"signature": checksum}, "body": body}, separators=(",", ":"))
+    url = f"{paytm_host}/theia/api/v1/initiateTransaction?mid={mid}&orderId={order_id}"
+    debug["request_url"] = url
+    debug["request_body_preview"] = body
+
+    try:
+        resp = requests.post(url, data=post_data, headers={"Content-Type": "application/json"}, timeout=15)
+        debug["http_status"] = resp.status_code
+        try:
+            paytm_resp = resp.json()
+            debug["paytm_full_response"] = paytm_resp
+            ri = paytm_resp.get("body", {}).get("resultInfo", {})
+            debug["result_status"] = ri.get("resultStatus")
+            debug["result_code"] = ri.get("resultCode")
+            debug["result_msg"] = ri.get("resultMsg")
+        except Exception:
+            debug["raw_response"] = resp.text[:500]
+    except Exception as ex:
+        debug["request_error"] = str(ex)
+
+    return debug
+
 @frappe.whitelist(allow_guest=False)
 def debug_paytm_config() -> dict:
     """
