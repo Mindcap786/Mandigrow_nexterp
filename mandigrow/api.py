@@ -10745,26 +10745,59 @@ def _paytm_generate_checksum(body_json_str: str, merchant_key: str) -> str:
     """
     Generate Paytm checksum using the official Paytm SDK algorithm:
       SHA256(body_json + '|' + salt) as hex + salt, then AES-CBC encrypted with merchant key.
-    
-    Uses paytmchecksum.PaytmChecksum.generateSignatureByString() which is the
-    official implementation as per Paytm developer docs.
+
+    Priority:
+    1. Official paytmchecksum SDK (pip install paytmchecksum)
+    2. pycryptodome (pip install pycryptodome)
+    3. Pure-Python via ctypes/openssl (zero deps, always available on Linux)
     """
+    import hashlib, base64, string, random
+
+    # ── 1. Official SDK ───────────────────────────────────────────────────────
     try:
         from paytmchecksum import PaytmChecksum
         return PaytmChecksum.generateSignatureByString(body_json_str, merchant_key)
     except ImportError:
-        # Inline fallback (no pycryptodome)
-        import hashlib, base64, string, random
-        from Crypto.Cipher import AES
-        salt = ''.join(random.choices(string.ascii_letters + string.digits + string.ascii_uppercase, k=4))
-        block_size = 16
-        iv = '@@@@&&&&####$$$$'
-        hash_str = hashlib.sha256(f'{body_json_str}|{salt}'.encode()).hexdigest() + salt
-        pad = lambda s: bytes(
-            s + (block_size - len(s) % block_size) * chr(block_size - len(s) % block_size), 'utf-8'
-        )
-        c = AES.new(merchant_key.encode('utf8'), AES.MODE_CBC, iv.encode('utf8'))
-        return base64.b64encode(c.encrypt(pad(hash_str))).decode('UTF-8')
+        frappe.logger().warning("[paytm_checksum] paytmchecksum not installed, using fallback")
+
+    # ── 2. pycryptodome ───────────────────────────────────────────────────────
+    def _aes_encrypt(key_bytes: bytes, iv_bytes: bytes, data: bytes) -> bytes:
+        try:
+            from Crypto.Cipher import AES
+            return AES.new(key_bytes, AES.MODE_CBC, iv_bytes).encrypt(data)
+        except ImportError:
+            pass
+        # ── 3. ctypes → OpenSSL (zero pip deps, available on Frappe Cloud) ───
+        import ctypes, ctypes.util
+        for lib_name in ('ssl', 'libssl', 'libssl.so.3', 'libssl.so.1.1'):
+            ssl_lib = ctypes.util.find_library(lib_name) or lib_name
+            try:
+                ssl = ctypes.CDLL(ssl_lib)
+                EVP_aes = ssl.EVP_aes_256_cbc if len(key_bytes) == 32 else ssl.EVP_aes_128_cbc
+                ctx = ssl.EVP_CIPHER_CTX_new()
+                ssl.EVP_EncryptInit_ex(ctx, EVP_aes(), None, key_bytes, iv_bytes)
+                ssl.EVP_CIPHER_CTX_set_padding(ctx, 1)
+                buf = ctypes.create_string_buffer(len(data) + 32)
+                out_len = ctypes.c_int(0)
+                ssl.EVP_EncryptUpdate(ctx, buf, ctypes.byref(out_len), data, len(data))
+                fin_len = ctypes.c_int(0)
+                ssl.EVP_EncryptFinal_ex(ctx, ctypes.cast(ctypes.addressof(buf) + out_len.value, ctypes.POINTER(ctypes.c_char)), ctypes.byref(fin_len))
+                ssl.EVP_CIPHER_CTX_free(ctx)
+                return buf.raw[:out_len.value + fin_len.value]
+            except Exception:
+                continue
+        raise RuntimeError("No AES implementation available. Run: pip install pycryptodome")
+
+    # Build the checksum
+    salt = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    hash_str = hashlib.sha256(f'{body_json_str}|{salt}'.encode()).hexdigest() + salt
+    block_size = 16
+    pad_len = block_size - (len(hash_str) % block_size)
+    padded = (hash_str + chr(pad_len) * pad_len).encode('utf-8')
+    key_bytes = merchant_key.encode('utf-8')
+    iv_bytes  = b'@@@@&&&&####$$$$'
+    encrypted = _aes_encrypt(key_bytes, iv_bytes, padded)
+    return base64.b64encode(encrypted).decode('UTF-8')
 
 
 def _paytm_verify_checksum(body_json_str: str, merchant_key: str, checksum: str) -> bool:
