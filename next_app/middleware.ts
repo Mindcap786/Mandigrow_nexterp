@@ -40,6 +40,13 @@ export async function middleware(request: NextRequest) {
         path === '/wholesale-trader-erp' ||
         path === '/gst-mandi-compliance' ||
         path === '/sabzi-mandi-software' ||
+        path === '/features' ||
+        path === '/pricing' ||
+        path === '/te' ||
+        path === '/partners' ||
+        path === '/mandi-software-andhra-pradesh' ||
+        path === '/mandi-software-telangana' ||
+        path === '/mandi-software-maharashtra' ||
         path === '/blog' ||
         path.startsWith('/blog/') ||
         path.startsWith('/locales') ||

@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { callApi } from '@/lib/frappeClient'
 import { useEffect } from 'react'
+import { LandingFooter } from '@/components/layout/LandingFooter'
 
 export default function LandingPage() {
     const { t } = useLanguage();
@@ -235,28 +236,7 @@ export default function LandingPage() {
             </section>
 
             {/* Footer */}
-            <footer className="border-t border-[#c8d6b0] py-12 px-6 bg-[#dce7c8]">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded bg-emerald-200 flex items-center justify-center text-emerald-800 font-bold text-sm">M</div>
-                        <span className="font-bold text-emerald-800">{t('landing.copyright')}</span>
-                    </div>
-                    <div className="flex gap-6 text-sm font-medium text-emerald-700 flex-wrap justify-center">
-                        <Link href="/mandi-billing" className="hover:text-emerald-900 transition-colors">Mandi Billing</Link>
-                        <Link href="/commission-agent-software" className="hover:text-emerald-900 transition-colors">Commission Agent</Link>
-                        <Link href="/mandi-khata-software" className="hover:text-emerald-900 transition-colors">Mandi Khata</Link>
-                        <Link href="/wholesale-trader-erp" className="hover:text-emerald-900 transition-colors">Wholesale Trader</Link>
-                        <Link href="/gst-mandi-compliance" className="hover:text-emerald-900 transition-colors">Mandi GST Compliance</Link>
-                        <Link href="/sabzi-mandi-software" className="hover:text-emerald-900 transition-colors">Sabzi Mandi ERP</Link>
-                        <Link href="/blog" className="hover:text-emerald-900 transition-colors">Blog</Link>
-                        <Link href="/faq" className="hover:text-emerald-900 transition-colors">FAQ</Link>
-                        <Link href="/privacy" className="hover:text-emerald-900 transition-colors">{t('landing.privacy_policy')}</Link>
-                        <Link href="/terms" className="hover:text-emerald-900 transition-colors">{t('landing.terms_of_service')}</Link>
-                        <Link href="/refund-policy" className="hover:text-emerald-900 transition-colors">Refund Policy</Link>
-                        <Link href="/contact" className="hover:text-emerald-900 transition-colors">{t('landing.footer_contact')}</Link>
-                    </div>
-                </div>
-            </footer>
+            <LandingFooter />
         </div>
     )
 }

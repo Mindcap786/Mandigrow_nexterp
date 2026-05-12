@@ -275,6 +275,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/wholesale-trader-erp' ||
                          pathname === '/gst-mandi-compliance' ||
                          pathname === '/sabzi-mandi-software' ||
+                         pathname === '/features' ||
+                         pathname === '/pricing' ||
+                         pathname === '/te' ||
+                         pathname === '/partners' ||
+                         pathname === '/mandi-software-andhra-pradesh' ||
+                         pathname === '/mandi-software-telangana' ||
+                         pathname === '/mandi-software-maharashtra' ||
                          pathname === '/blog' ||
                          pathname?.startsWith('/blog/') ||
                          pathname?.startsWith('/public') ||
