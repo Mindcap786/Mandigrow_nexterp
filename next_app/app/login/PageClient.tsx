@@ -662,7 +662,7 @@ export default function LoginClient() {
                                     <div className="text-center">
                                         <button
                                             type="button"
-                                            onClick={resendCooldown > 0 ? undefined : (mode === 'forgot_password' ? handleRequestPasswordReset : mode === 'unlock' ? handleRequestUnlock : undefined)}
+                                            onClick={resendCooldown > 0 ? undefined : (mode === 'signup' ? handleSignupStep1 : mode === 'forgot_password' ? handleRequestPasswordReset : mode === 'unlock' ? handleRequestUnlock : undefined)}
                                             disabled={loading || resendCooldown > 0}
                                             className="text-xs font-black text-emerald-700 uppercase tracking-widest hover:text-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                                         >
