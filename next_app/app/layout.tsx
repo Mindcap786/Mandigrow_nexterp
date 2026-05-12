@@ -84,6 +84,9 @@ export const metadata: Metadata = {
             'max-video-preview': -1,
         },
     },
+    verification: {
+        google: 'TCX9_TuvX1DNk16y4y3Y15qfYvmH6tyUAVEL5CQ8S2A',
+    },
     category: 'Business Software',
 }
 
