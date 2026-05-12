@@ -69,13 +69,15 @@ export default function PaymentGatewaysPage() {
             const cfg = { ...current.config, ...configOverrides };
 
             if (gateway === 'paytm') {
-                // Use dedicated API that writes to Frappe Global Defaults on the server
+                // is_staging: handle both string 'true'/'false' and boolean
+                const isStaging = cfg.is_staging === true || cfg.is_staging === 'true';
+                // Use dedicated API — paytm_host is computed server-side from is_staging
                 const result: any = await callApi('mandigrow.api.save_paytm_config', {
                     merchant_id:  cfg.merchant_id || '',
                     merchant_key: cfg.merchant_key || '',
-                    website:      cfg.website || 'WEBSTAGING',
-                    is_staging:   cfg.is_staging !== 'false' && cfg.is_staging !== false,
-                    paytm_host:   cfg.paytm_host || 'https://securestage.paytmpayments.com',
+                    website:      cfg.website || (isStaging ? 'WEBSTAGING' : 'DEFAULT'),
+                    is_staging:   isStaging,
+                    // paytm_host intentionally NOT sent — backend computes from is_staging
                 });
                 if (result?.success) {
                     toast({ title: '✅ Paytm Saved', description: result.message });
@@ -232,7 +234,7 @@ export default function PaymentGatewaysPage() {
                                 <div className="grid gap-2">
                                     <Label className="text-[10px] font-bold uppercase text-slate-500">Website Name</Label>
                                     <Input
-                                        value={getConfig('paytm').config?.website || 'WEBSTAGING'}
+                                        value={getConfig('paytm').config?.website || 'DEFAULT'}
                                         placeholder="WEBSTAGING or DEFAULT"
                                         className="bg-slate-50 border-slate-200 font-mono text-sm"
                                         onChange={(e) => handleFieldChange('paytm', 'website', e.target.value)}
@@ -263,20 +265,27 @@ export default function PaymentGatewaysPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold uppercase text-slate-500">Paytm Host URL</Label>
+                                    <Label className="text-[10px] font-bold uppercase text-slate-500">Paytm Host URL (Auto-computed)</Label>
                                     <Input
-                                        value={getConfig('paytm').config?.paytm_host || 'https://securestage.paytmpayments.com'}
-                                        placeholder="https://securestage.paytmpayments.com"
-                                        className="bg-slate-50 border-slate-200 font-mono text-sm"
-                                        onChange={(e) => handleFieldChange('paytm', 'paytm_host', e.target.value)}
+                                        value={
+                                            (getConfig('paytm').config?.is_staging === true || getConfig('paytm').config?.is_staging === 'true')
+                                                ? 'https://securegw-stage.paytm.in'
+                                                : 'https://securegw.paytm.in'
+                                        }
+                                        readOnly
+                                        className="bg-slate-100 border-slate-200 font-mono text-sm text-slate-500 cursor-not-allowed"
                                     />
+                                    <p className="text-[10px] text-slate-400">Auto-set based on Staging toggle. Cannot be overridden.</p>
                                 </div>
                                 <div className="flex items-end gap-3 pb-0.5">
                                     <div className="flex items-center gap-2">
                                         <Switch
                                             id="paytm-staging"
-                                            checked={getConfig('paytm').config?.is_staging !== false}
-                                            onCheckedChange={(v) => handleFieldChange('paytm', 'is_staging', String(v))}
+                                            checked={getConfig('paytm').config?.is_staging === true || getConfig('paytm').config?.is_staging === 'true'}
+                                            onCheckedChange={(v) => {
+                                                handleFieldChange('paytm', 'is_staging', String(v));
+                                                handleFieldChange('paytm', 'website', v ? 'WEBSTAGING' : 'DEFAULT');
+                                            }}
                                         />
                                         <Label htmlFor="paytm-staging" className="text-[10px] font-bold uppercase text-slate-500 cursor-pointer">
                                             Use Staging Environment
