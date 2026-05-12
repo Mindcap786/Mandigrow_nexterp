@@ -21,7 +21,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
     metadataBase: new URL('https://www.mandigrow.com'),
     title: {
-        default: 'Mandi ERP Software India | Commission Agent, Trader & Warehouse Management | MandiGrow',
+        default: 'Mandi ERP Software India | Commission Agents & Traders | MandiGrow',
         template: '%s | MandiGrow',
     },
     description: "MandiGrow is India's cloud Mandi ERP software for commission agents, fruit & vegetable traders, and warehouse managers. GST billing, auction management, farmer payments & multi-warehouse inventory. Start free.",

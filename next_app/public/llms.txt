@@ -1,0 +1,17 @@
+# MandiGrow
+
+> MandiGrow is the cloud-based ERP and billing software for commission agents, fruit and vegetable traders, and warehouse operators in India.
+
+## Features
+- Mandi Khata and lot-wise billing
+- GST compliance and e-invoicing for B2B/B2C
+- Auto-calculation of commission, hamali, palledari, and market fee
+- Multi-language support (Hindi, English, Tamil, Telugu, Kannada, Malayalam, Urdu)
+
+## Target Audience
+- Agricultural Commission Agents
+- Wholesale Fruit and Vegetable Traders
+- Cold Storage and Warehouse Managers
+
+## Support
+For support, visit [MandiGrow Contact](https://www.mandigrow.com/contact).
