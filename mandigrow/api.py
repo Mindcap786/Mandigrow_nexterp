@@ -1133,7 +1133,48 @@ def repair_tenant(org_id: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=True)
-def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter") -> dict:
+def send_signup_otp(email: str, full_name: str) -> dict:
+    if not email:
+        frappe.throw(_("Email is required"))
+    if frappe.db.exists("User", email):
+        frappe.throw(_("User with this email already exists"), frappe.DuplicateEntryError)
+    
+    import random
+    otp = str(random.randint(100000, 999999))
+    
+    # Store OTP in cache for 15 minutes
+    frappe.cache().set_value(f"signup_otp_{email}", otp, expires_in_sec=900)
+    
+    # Send email
+    subject = "Verify your MandiGrow Account"
+    message = f"""
+    <h3>Welcome to MandiGrow, {full_name}!</h3>
+    <p>Please use the following OTP to verify your email address and complete your registration:</p>
+    <h2 style="background: #f4f7ee; padding: 10px; border-radius: 5px; display: inline-block; letter-spacing: 5px; color: #047857;">{otp}</h2>
+    <p>This OTP is valid for 15 minutes.</p>
+    """
+    frappe.sendmail(
+        recipients=[email],
+        subject=subject,
+        message=message,
+        now=True
+    )
+    
+    return {"status": "success", "message": "OTP sent to email"}
+
+
+@frappe.whitelist(allow_guest=True)
+def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter", otp: str = None) -> dict:
+    if not otp:
+        frappe.throw(_("OTP is required for registration."))
+        
+    cached_otp = frappe.cache().get_value(f"signup_otp_{email}")
+    if not cached_otp or str(cached_otp) != str(otp):
+        frappe.throw(_("Invalid or expired OTP. Please request a new one."))
+    
+    # Delete OTP after successful verification
+    frappe.cache().delete_value(f"signup_otp_{email}")
+
     # Normalize plan — guard against legacy 'basic' being sent from old clients
     VALID_PLANS = {"starter", "standard", "professional", "enterprise"}
     plan = plan.lower().strip() if plan else "starter"
