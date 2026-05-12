@@ -337,22 +337,18 @@ export default function LoginClient() {
         // ── Guard: consent must be given ──────────────────────────────────────
         if (!consentReady) throw new Error('Please accept the Terms of Service and Privacy Policy to continue.');
 
-        // ── Frappe SignUp ────────────────────────────────────────────────────
+        // ── Send OTP via Frappe ──────────────────────────────────────────────
         try {
-            await callApi('mandigrow.api.signup_user', {
+            await callApi('mandigrow.api.send_signup_otp', {
                 email: identifier.trim(),
-                password: password,
-                full_name: fullName.trim(),
-                username: username.trim().toLowerCase(),
-                org_name: orgName.trim(),
-                phone: phone.replace(/\s|-/g, '')
+                full_name: fullName.trim()
             });
-            
-            logDebug('Signup successful! Auto-logging in...')
-            await handleLogin();
+            setActualEmail(identifier.trim());
+            setAuthStep('otp');
+            startResendCooldown();
         } catch (error: any) {
-            console.error('Signup error:', error);
-            setError(error.message || 'Signup failed.');
+            console.error('Send OTP error:', error);
+            setError(error.message || 'Failed to send OTP.');
         } finally {
             setLoading(false);
         }
@@ -371,7 +367,33 @@ export default function LoginClient() {
     }
 
     const handleVerifyOtp = async () => {
-        throw new Error('OTP verification not implemented yet.');
+        if (!otpValue || otpValue.length < 6) {
+            throw new Error('Please enter a valid 6-digit OTP.');
+        }
+
+        try {
+            if (mode === 'signup') {
+                await callApi('mandigrow.api.signup_user', {
+                    email: identifier.trim(),
+                    password: password,
+                    full_name: fullName.trim(),
+                    username: username.trim().toLowerCase(),
+                    org_name: orgName.trim(),
+                    phone: phone.replace(/\s|-/g, ''),
+                    otp: otpValue
+                });
+                
+                logDebug('Signup successful! Auto-logging in...')
+                await handleLogin();
+            } else {
+                throw new Error('OTP verification not implemented for this mode.');
+            }
+        } catch (error: any) {
+            console.error('OTP verify error:', error);
+            setError(error.message || 'Failed to verify OTP.');
+        } finally {
+            setLoading(false);
+        }
     }
 
     const StatusIcon = ({ status }: { status: 'idle' | 'checking' | 'available' | 'taken' }) => {
