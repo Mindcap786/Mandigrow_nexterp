@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LandingFooter } from '@/components/layout/LandingFooter';
 
 export const metadata: Metadata = {
     title: 'Commission Agent Software for Mandi Traders | MandiGrow',
@@ -88,7 +87,7 @@ export default function CommissionAgentPage() {
                     Commission Agent Software · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    The #1 Commission Agent Software for Mandi Traders
+                    Commission Agent Software for Indian Mandis
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-8">
                     Auto commission, auto market fee, auto hamali, auto khata. MandiGrow is
@@ -114,7 +113,7 @@ export default function CommissionAgentPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-6">
-                    Built for Arhtiyas, Not for Office Accountants
+                    Auto-Patti Generation & Farmer Khata Settlement
                 </h2>
                 <p className="text-lg text-gray-700 mb-4">
                     Generic accounting software treats commission as an afterthought. For an
@@ -131,7 +130,7 @@ export default function CommissionAgentPage() {
 
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    Everything an Arhtiya Needs in One App
+                    Automated Market Fees, Hamali & Deductions
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
                     {[
@@ -178,7 +177,6 @@ export default function CommissionAgentPage() {
                     Start Free Trial →
                 </Link>
             </section>
-            <LandingFooter />
         </main>
     );
 }
