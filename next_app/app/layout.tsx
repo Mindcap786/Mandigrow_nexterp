@@ -21,11 +21,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
     metadataBase: new URL('https://www.mandigrow.com'),
     title: {
-        default: 'Mandi ERP Software for Fruits & Vegetable Traders | MandiGrow',
+        default: 'Mandi ERP Software India | Commission Agent, Trader & Warehouse Management | MandiGrow',
         template: '%s | MandiGrow',
     },
-    description:
-        "MandiGrow is India's #1 mandi ERP software for fruits & vegetable merchants. GST billing, khata, commission, stock & reports. Free demo today.",
+    description: "MandiGrow is India's cloud Mandi ERP software for commission agents, fruit & vegetable traders, and warehouse managers. GST billing, auction management, farmer payments & multi-warehouse inventory. Start free.",
     applicationName: 'MandiGrow',
     keywords: [
         'mandi ERP software',
@@ -268,7 +267,6 @@ export default function RootLayout({
                                 'Inventory and lot-wise stock tracking',
                                 'Daybook, ledgers and party balances',
                                 'Hindi and English UI, prints and reports',
-                                'Android mobile app and desktop web',
                                 'Tally and Zoho alternative for mandi traders',
                             ],
                             audience: {
@@ -279,8 +277,31 @@ export default function RootLayout({
                         }),
                     }}
                 />
+                {/* Fallback theme-color for older iOS that don't read viewport.themeColor above */}
+                <meta name="theme-color" content="#050510" />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "MandiGrow",
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": "Web, Android, iOS",
+                    "description": "Cloud ERP for Indian Mandi operators, commission agents, fruit and vegetable traders, and warehouse managers.",
+                    "url": "https://www.mandigrow.com",
+                    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+                    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "12" },
+                    "publisher": { "@type": "Organization", "name": "MandiGrow", "url": "https://www.mandigrow.com", "address": { "@type": "PostalAddress", "addressRegion": "Andhra Pradesh", "addressCountry": "IN" } }
+                })}} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        { "@type": "Question", "name": "What is MandiGrow?", "acceptedAnswer": { "@type": "Answer", "text": "MandiGrow is a cloud-based Mandi ERP for Indian commission agents, fruit & vegetable traders, and warehouse managers. Includes billing, GST, farmer payments, and multi-warehouse inventory." } },
+                        { "@type": "Question", "name": "Is MandiGrow GST compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Built-in GST reporting, Mandi Tax (Cess) automation, and audit trails for government inspectors." } },
+                        { "@type": "Question", "name": "Which states is MandiGrow available in?", "acceptedAnswer": { "@type": "Answer", "text": "MandiGrow is available across all Indian states including Andhra Pradesh, Telangana, Maharashtra, Punjab, Haryana and Uttar Pradesh." } }
+                    ]
+                })}} />
             </head>
-            <body className={`${inter.className} bg-background text-foreground antialiased`}>
+            <body className={`${inter.className} min-h-screen bg-gray-50 antialiased`}>
                 {/* CapacitorProvider: adds native class, deep links, back button, keyboard */}
                 {/* NativeAuthGuard: client-side session check (web = transparent pass-through) */}
                 <CapacitorProvider>
