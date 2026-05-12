@@ -11347,7 +11347,7 @@ def save_paytm_config(merchant_id: str, merchant_key: str, website: str = "DEFAU
 
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist(allow_guest=True)
 def test_paytm_live(plan_name: str = "starter") -> dict:
     """
     DIAGNOSTIC: Makes a real Paytm API call and returns full debug info.
