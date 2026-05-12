@@ -1157,8 +1157,7 @@ def send_signup_otp(email: str, full_name: str) -> dict:
         frappe.sendmail(
             recipients=[email],
             subject=subject,
-            message=message,
-            now=True
+            message=message
         )
     except frappe.OutgoingEmailError:
         frappe.cache().delete_value(f"signup_otp_{email}")
