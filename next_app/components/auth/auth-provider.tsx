@@ -268,14 +268,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/privacy' ||
                          pathname === '/terms' ||
                          pathname === '/refund-policy' ||
-                         pathname === '/partners' ||
                          pathname === '/contact' ||
                          pathname === '/mandi-billing' ||
                          pathname === '/commission-agent-software' ||
                          pathname === '/mandi-khata-software' ||
+                         pathname === '/wholesale-trader-erp' ||
+                         pathname === '/gst-mandi-compliance' ||
+                         pathname === '/sabzi-mandi-software' ||
                          pathname === '/blog' ||
                          pathname?.startsWith('/blog/') ||
-                         pathname?.startsWith('/partner-portal') ||
                          pathname?.startsWith('/public') ||
                          pathname?.startsWith('/auth/callback');
 
