@@ -1145,28 +1145,74 @@ def send_signup_otp(email: str, full_name: str) -> dict:
     # Store OTP in cache for 15 minutes
     frappe.cache().set_value(f"signup_otp_{email}", otp, expires_in_sec=900)
     
-    # Send email
-    subject = "Verify your MandiGrow Account"
+    # Send email — now=True forces immediate delivery (not queued), so we catch SMTP errors instantly
+    subject = "Your MandiGrow OTP - Verify Your Account"
     message = f"""
-    <h3>Welcome to MandiGrow, {full_name}!</h3>
-    <p>Please use the following OTP to verify your email address and complete your registration:</p>
-    <h2 style="background: #f4f7ee; padding: 10px; border-radius: 5px; display: inline-block; letter-spacing: 5px; color: #047857;">{otp}</h2>
-    <p>This OTP is valid for 15 minutes.</p>
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #047857;">Welcome to MandiGrow, {full_name}!</h2>
+        <p>Use this OTP to verify your email address:</p>
+        <div style="background: #f0fdf4; border: 2px solid #047857; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+            <h1 style="letter-spacing: 12px; color: #047857; font-size: 40px; margin: 0;">{otp}</h1>
+        </div>
+        <p style="color: #6b7280; font-size: 14px;">This OTP is valid for <strong>15 minutes</strong>. Do not share it with anyone.</p>
+    </div>
     """
     try:
         frappe.sendmail(
             recipients=[email],
             subject=subject,
-            message=message
+            message=message,
+            now=True,      # Send immediately, don't queue — surface SMTP errors right away
+            delayed=False,
         )
-    except frappe.OutgoingEmailError:
+        frappe.logger().info(f"[send_signup_otp] OTP email sent to {email}")
+    except frappe.OutgoingEmailError as e:
         frappe.cache().delete_value(f"signup_otp_{email}")
-        frappe.throw(_("SMTP Error: Please ensure you have set an Email Account as 'Default Outgoing' in Frappe Tools > Email Account."))
+        frappe.log_error(f"OTP OutgoingEmailError to {email}: {str(e)}", "send_signup_otp")
+        frappe.throw(_("Email delivery failed. Configure outgoing email in Frappe Desk → Settings → Email Account."))
     except Exception as e:
         frappe.cache().delete_value(f"signup_otp_{email}")
+        frappe.log_error(f"OTP send failed to {email}: {str(e)}\n{frappe.get_traceback()}", "send_signup_otp")
         frappe.throw(f"Failed to send OTP email: {str(e)}")
-    
+
     return {"status": "success", "message": "OTP sent to email"}
+
+
+@frappe.whitelist(allow_guest=True)
+def test_email_config() -> dict:
+    """
+    DIAGNOSTIC: Tests if Frappe outgoing email is configured and working.
+    URL: https://www.mandigrow.com/api/method/mandigrow.api.test_email_config
+    """
+    result = {}
+    try:
+        accounts = frappe.get_all(
+            "Email Account",
+            filters={"enable_outgoing": 1},
+            fields=["name", "email_id", "smtp_server", "smtp_port", "default_outgoing"]
+        )
+        result["outgoing_accounts"] = [
+            {"name": a.name, "email_id": a.email_id, "smtp_server": a.smtp_server,
+             "smtp_port": a.smtp_port, "is_default": bool(a.default_outgoing)}
+            for a in accounts
+        ]
+        result["has_default_outgoing"] = any(a.default_outgoing for a in accounts)
+    except Exception as ex:
+        result["error_checking_accounts"] = str(ex)
+
+    try:
+        queued = frappe.db.count("Email Queue", {"status": "Not Sent"})
+        failed = frappe.db.count("Email Queue", {"status": "Error"})
+        result["email_queue_not_sent"] = queued
+        result["email_queue_failed"] = failed
+    except Exception:
+        pass
+
+    if not result.get("has_default_outgoing"):
+        result["fix"] = "Go to Frappe Desk → Settings → Email Account → Add Gmail/SendGrid as default outgoing"
+    else:
+        result["fix"] = "Email account configured. Check email_queue_failed for stuck emails."
+    return result
 
 
 @frappe.whitelist(allow_guest=True)
