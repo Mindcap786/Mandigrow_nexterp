@@ -1145,7 +1145,7 @@ def send_signup_otp(email: str, full_name: str) -> dict:
     # Store OTP in cache for 15 minutes
     frappe.cache().set_value(f"signup_otp_{email}", otp, expires_in_sec=900)
     
-    # Send OTP via DIRECT SMTP (bypasses Frappe Cloud email interception)
+    # Send OTP via DIRECT SMTP to Brevo (bypasses Frappe Cloud email interception)
     subject = "Your MandiGrow OTP - Verify Your Account"
     html_body = (
         f"<div style='font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;'>"
@@ -1155,7 +1155,7 @@ def send_signup_otp(email: str, full_name: str) -> dict:
         f"border-radius:10px;text-align:center;margin:20px 0;'>"
         f"<h1 style='letter-spacing:12px;color:#047857;font-size:40px;margin:0;'>{otp}</h1>"
         f"</div>"
-        f"<p style='color:#6b7280;font-size:14px;'>This OTP is valid for <strong>15 minutes</strong>.</p>"
+        f"<p style='color:#6b7280;font-size:14px;'>This OTP is valid for <strong>15 minutes</strong>. Do not share it.</p>"
         f"</div>"
     )
 
@@ -1414,8 +1414,7 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
         "send_welcome_email": 0,
         "role_type": "admin",
         "mandi_organization": org_id,
-        "business_domain": "mandi",
-        "mobile_no": phone,   # Store phone so it appears in super admin
+        "business_domain": "mandi"
     })
     user.flags.ignore_password_policy = True
     user.insert(ignore_permissions=True)
@@ -1427,16 +1426,10 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
     # Assign standard roles (System Manager allows Desk access for tenant troubleshooting)
     user.add_roles("System Manager")
 
-    frappe.db.commit()  # Ensure all records are visible immediately in super admin
-
     return {
         "status": "success",
         "user_id": user.name,
         "org_id": org_id,
-        "full_name": full_name,
-        "username": username,
-        "phone": phone,
-        "org_name": org_name,
         "setup": {
             "created": setup_report.get("created", []),
             "errors": setup_report.get("errors", [])
@@ -10157,7 +10150,7 @@ def update_billing_gateway(gateway_type: str, config: dict, is_active: bool) -> 
             is_stg = is_stg.lower() not in ("false", "0", "no", "")
         website = config.get("website") or ("WEBSTAGING" if is_stg else "DEFAULT")
         host = config.get("paytm_host") or (
-            "https://securegw-stage.paytm.in" if is_stg else "https://secure.paytmpayments.com"
+            "https://securegw-stage.paytm.in" if is_stg else "https://securegw.paytm.in"
         )
         if mid and key:
             frappe.db.set_default("paytm_merchant_id", mid)
@@ -10848,7 +10841,7 @@ def _get_paytm_config():
             is_staging = is_staging.lower() not in ("false", "0", "no", "")
         is_staging = bool(is_staging)
         host = host_override or (
-            "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+            "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
         )
         return {
             "merchant_id":      mid,
@@ -10883,7 +10876,7 @@ def _get_paytm_config():
                     frappe.db.set_default("paytm_website", website)
                     frappe.db.set_default("paytm_is_staging", "1" if is_stg else "0")
                     frappe.db.set_default("paytm_paytm_host",
-                        "https://securegw-stage.paytm.in" if is_stg else "https://secure.paytmpayments.com")
+                        "https://securegw-stage.paytm.in" if is_stg else "https://securegw.paytm.in")
                     frappe.db.commit()
                 except Exception:
                     pass
@@ -10899,7 +10892,7 @@ def _get_paytm_config():
         is_staging = is_staging_raw not in ("0", "false", "False", "no", "")
         website = frappe.db.get_default("paytm_website") or ("WEBSTAGING" if is_staging else "DEFAULT")
         # Always compute host from is_staging — never use stored host which may be stale
-        computed_host = "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+        computed_host = "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
         frappe.logger().info(f"[paytm_cfg] ✅ Source: get_default | MID={mid} | staging={is_staging} | website={website} | host={computed_host}")
         return _build(mid, key, website, "Retail", is_staging, computed_host)
 
@@ -10926,54 +10919,61 @@ def _get_paytm_config():
 
 def _paytm_generate_checksum(body_json_str: str, merchant_key: str) -> str:
     """
-    Generate Paytm checksum: SHA256(body|salt) -> AES-CBC(merchant_key) -> base64
-    Priority: 1) paytmchecksum SDK  2) cryptography lib (guaranteed on Frappe)  3) pycryptodome
+    Generate Paytm checksum using the official Paytm SDK algorithm:
+      SHA256(body_json + '|' + salt) as hex + salt, then AES-CBC encrypted with merchant key.
+
+    Priority:
+    1. Official paytmchecksum SDK (pip install paytmchecksum)
+    2. pycryptodome (pip install pycryptodome)
+    3. Pure-Python via ctypes/openssl (zero deps, always available on Linux)
     """
     import hashlib, base64, string, random
 
-    # ── 1. Official paytmchecksum SDK ────────────────────────────────────────
+    # ── 1. Official SDK ───────────────────────────────────────────────────────
     try:
         from paytmchecksum import PaytmChecksum
-        cs = PaytmChecksum.generateSignatureByString(body_json_str, merchant_key)
-        frappe.logger().info("[paytm_checksum] Used: paytmchecksum SDK")
-        return cs
+        return PaytmChecksum.generateSignatureByString(body_json_str, merchant_key)
     except ImportError:
-        frappe.logger().warning("[paytm_checksum] paytmchecksum not installed, using cryptography fallback")
-    except Exception as e:
-        frappe.logger().warning(f"[paytm_checksum] SDK error: {e}, using cryptography fallback")
+        frappe.logger().warning("[paytm_checksum] paytmchecksum not installed, using fallback")
 
-    # ── 2. cryptography library (Frappe dependency — always available) ────────
+    # ── 2. pycryptodome ───────────────────────────────────────────────────────
+    def _aes_encrypt(key_bytes: bytes, iv_bytes: bytes, data: bytes) -> bytes:
+        try:
+            from Crypto.Cipher import AES
+            return AES.new(key_bytes, AES.MODE_CBC, iv_bytes).encrypt(data)
+        except ImportError:
+            pass
+        # ── 3. ctypes → OpenSSL (zero pip deps, available on Frappe Cloud) ───
+        import ctypes, ctypes.util
+        for lib_name in ('ssl', 'libssl', 'libssl.so.3', 'libssl.so.1.1'):
+            ssl_lib = ctypes.util.find_library(lib_name) or lib_name
+            try:
+                ssl = ctypes.CDLL(ssl_lib)
+                EVP_aes = ssl.EVP_aes_256_cbc if len(key_bytes) == 32 else ssl.EVP_aes_128_cbc
+                ctx = ssl.EVP_CIPHER_CTX_new()
+                ssl.EVP_EncryptInit_ex(ctx, EVP_aes(), None, key_bytes, iv_bytes)
+                ssl.EVP_CIPHER_CTX_set_padding(ctx, 1)
+                buf = ctypes.create_string_buffer(len(data) + 32)
+                out_len = ctypes.c_int(0)
+                ssl.EVP_EncryptUpdate(ctx, buf, ctypes.byref(out_len), data, len(data))
+                fin_len = ctypes.c_int(0)
+                ssl.EVP_EncryptFinal_ex(ctx, ctypes.cast(ctypes.addressof(buf) + out_len.value, ctypes.POINTER(ctypes.c_char)), ctypes.byref(fin_len))
+                ssl.EVP_CIPHER_CTX_free(ctx)
+                return buf.raw[:out_len.value + fin_len.value]
+            except Exception:
+                continue
+        raise RuntimeError("No AES implementation available. Run: pip install pycryptodome")
+
+    # Build the checksum
     salt = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
-    hash_str = hashlib.sha256(f'{body_json_str}|{salt}'.encode('utf-8')).hexdigest() + salt
-
-    # PKCS7 padding to next 16-byte boundary
+    hash_str = hashlib.sha256(f'{body_json_str}|{salt}'.encode()).hexdigest() + salt
     block_size = 16
     pad_len = block_size - (len(hash_str) % block_size)
     padded = (hash_str + chr(pad_len) * pad_len).encode('utf-8')
     key_bytes = merchant_key.encode('utf-8')
     iv_bytes  = b'@@@@&&&&####$$$$'
-
-    try:
-        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-        from cryptography.hazmat.backends import default_backend
-        cipher = Cipher(algorithms.AES(key_bytes), modes.CBC(iv_bytes), backend=default_backend())
-        enc = cipher.encryptor()
-        encrypted = enc.update(padded) + enc.finalize()
-        frappe.logger().info("[paytm_checksum] Used: cryptography library")
-        return base64.b64encode(encrypted).decode('UTF-8')
-    except Exception as e:
-        frappe.logger().warning(f"[paytm_checksum] cryptography failed: {e}, trying pycryptodome")
-
-    # ── 3. pycryptodome ──────────────────────────────────────────────────────
-    try:
-        from Crypto.Cipher import AES
-        cipher = AES.new(key_bytes, AES.MODE_CBC, iv_bytes)
-        encrypted = cipher.encrypt(padded)
-        frappe.logger().info("[paytm_checksum] Used: pycryptodome")
-        return base64.b64encode(encrypted).decode('UTF-8')
-    except Exception as e:
-        frappe.log_error(f"[paytm_checksum] All AES methods failed: {e}", "paytm_checksum")
-        raise RuntimeError(f"Cannot generate Paytm checksum — no AES library available: {e}")
+    encrypted = _aes_encrypt(key_bytes, iv_bytes, padded)
+    return base64.b64encode(encrypted).decode('UTF-8')
 
 
 def _paytm_verify_checksum(body_json_str: str, merchant_key: str, checksum: str) -> bool:
@@ -11079,7 +11079,7 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
     try:
         is_staging = paytm_cfg.get("is_staging", True)
         paytm_host = paytm_cfg.get("paytm_host") or (
-            "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+            "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
         )
 
         # Paytm needs amount as string with 2 decimal places
@@ -11185,7 +11185,7 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
     merchant_key = paytm_cfg.get("merchant_key")
     is_staging = paytm_cfg.get("is_staging", True)
     paytm_host = paytm_cfg.get("paytm_host") or (
-        "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+        "https://securegw-stage.paytm.in" if is_staging else "https://securegw.paytm.in"
     )
 
     if not mid or not merchant_key:
@@ -11499,7 +11499,7 @@ def save_paytm_config(merchant_id: str, merchant_key: str, website: str = "DEFAU
     merchant_id = merchant_id.strip()
     # ALWAYS compute host from is_staging — never trust the paytm_host param from frontend
     # (frontend may send stale staging URL even when is_staging=False)
-    production_host = "https://secure.paytmpayments.com"
+    production_host = "https://securegw.paytm.in"
     staging_host    = "https://securegw-stage.paytm.in"
     resolved_host   = staging_host if is_staging else production_host
     resolved_website = (website.strip() or ("WEBSTAGING" if is_staging else "DEFAULT"))
@@ -11597,7 +11597,7 @@ def test_paytm_live(plan_name: str = "starter") -> dict:
     org_id = "TESTORG"
     order_id = f"TEST-{uuid.uuid4().hex[:8].upper()}"
     amount_str = f"{max(amount, 1.0):.2f}"  # minimum ₹1
-    paytm_host = paytm_cfg.get("paytm_host") or "https://secure.paytmpayments.com"
+    paytm_host = paytm_cfg.get("paytm_host") or "https://securegw.paytm.in"
 
     body = {
         "requestType": "Payment",
