@@ -1145,35 +1145,72 @@ def send_signup_otp(email: str, full_name: str) -> dict:
     # Store OTP in cache for 15 minutes
     frappe.cache().set_value(f"signup_otp_{email}", otp, expires_in_sec=900)
     
-    # Send email — now=True forces immediate delivery (not queued), so we catch SMTP errors instantly
+    # Send OTP via DIRECT SMTP (bypasses Frappe Cloud email interception)
     subject = "Your MandiGrow OTP - Verify Your Account"
-    message = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #047857;">Welcome to MandiGrow, {full_name}!</h2>
-        <p>Use this OTP to verify your email address:</p>
-        <div style="background: #f0fdf4; border: 2px solid #047857; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
-            <h1 style="letter-spacing: 12px; color: #047857; font-size: 40px; margin: 0;">{otp}</h1>
-        </div>
-        <p style="color: #6b7280; font-size: 14px;">This OTP is valid for <strong>15 minutes</strong>. Do not share it with anyone.</p>
-    </div>
-    """
+    html_body = (
+        f"<div style='font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;'>"
+        f"<h2 style='color:#047857;'>Welcome to MandiGrow, {full_name}!</h2>"
+        f"<p>Use this OTP to verify your email address:</p>"
+        f"<div style='background:#f0fdf4;border:2px solid #047857;padding:20px;"
+        f"border-radius:10px;text-align:center;margin:20px 0;'>"
+        f"<h1 style='letter-spacing:12px;color:#047857;font-size:40px;margin:0;'>{otp}</h1>"
+        f"</div>"
+        f"<p style='color:#6b7280;font-size:14px;'>This OTP is valid for <strong>15 minutes</strong>.</p>"
+        f"</div>"
+    )
+
     try:
-        frappe.sendmail(
-            recipients=[email],
-            subject=subject,
-            message=message,
-            now=True,      # Send immediately, don't queue — surface SMTP errors right away
-            delayed=False,
+        import smtplib
+        import ssl
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from frappe.utils.password import get_decrypted_password
+
+        acct = frappe.db.get_value(
+            "Email Account",
+            {"enable_outgoing": 1, "default_outgoing": 1},
+            ["name", "email_id", "smtp_server", "smtp_port", "login_id", "use_tls"],
+            as_dict=True
         )
-        frappe.logger().info(f"[send_signup_otp] OTP email sent to {email}")
-    except frappe.OutgoingEmailError as e:
+        if not acct:
+            frappe.throw(_("Outgoing email not configured. Please contact support."))
+
+        smtp_pw = get_decrypted_password("Email Account", acct["name"], "password") or ""
+        if not smtp_pw:
+            frappe.throw(_("SMTP password not configured. Please contact support."))
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = "MandiGrow <" + acct["email_id"] + ">"
+        msg["To"] = email
+        msg.attach(MIMEText(html_body, "html"))
+
+        smtp_host = str(acct.get("smtp_server") or "smtp-relay.brevo.com")
+        smtp_port = int(acct.get("smtp_port") or 587)
+        smtp_login = str(acct.get("login_id") or acct["email_id"])
+        ctx = ssl.create_default_context()
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as srv:
+            srv.ehlo()
+            if acct.get("use_tls"):
+                srv.starttls(context=ctx)
+            srv.login(smtp_login, smtp_pw)
+            srv.sendmail(acct["email_id"], [email], msg.as_string())
+
+        frappe.logger().info(f"[send_signup_otp] OTP sent via Brevo to {email}")
+
+    except smtplib.SMTPAuthenticationError as e:
         frappe.cache().delete_value(f"signup_otp_{email}")
-        frappe.log_error(f"OTP OutgoingEmailError to {email}: {str(e)}", "send_signup_otp")
-        frappe.throw(_("Email delivery failed. Configure outgoing email in Frappe Desk → Settings → Email Account."))
+        frappe.log_error(f"SMTP Auth failed for OTP: {e}", "send_signup_otp")
+        frappe.throw(_("Email delivery failed: SMTP authentication error."))
+    except smtplib.SMTPException as e:
+        frappe.cache().delete_value(f"signup_otp_{email}")
+        frappe.log_error(f"SMTP error sending OTP: {e}", "send_signup_otp")
+        frappe.throw(_("Email delivery failed. Please try again."))
     except Exception as e:
         frappe.cache().delete_value(f"signup_otp_{email}")
-        frappe.log_error(f"OTP send failed to {email}: {str(e)}\n{frappe.get_traceback()}", "send_signup_otp")
-        frappe.throw(f"Failed to send OTP email: {str(e)}")
+        frappe.log_error(f"OTP send failed to {email}: {e}", "send_signup_otp")
+        frappe.throw(_("Failed to send OTP. Please try again."))
 
     return {"status": "success", "message": "OTP sent to email"}
 
