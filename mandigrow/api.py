@@ -1219,6 +1219,101 @@ def test_email_config() -> dict:
         if not result.get("has_default_outgoing")
         else "Email account is configured. If emails not arriving, check spam folder or email_queue_failed count."
     )
+
+    return result
+
+
+@frappe.whitelist(allow_guest=True)
+def direct_smtp_test(to_email: str = None) -> dict:
+    """
+    DIAGNOSTIC: Bypasses Frappe's email routing and connects DIRECTLY to Brevo via raw smtplib.
+    This proves whether the SMTP credentials work and shows what server Frappe is actually using.
+    URL: GET /api/method/mandigrow.api.direct_smtp_test?to_email=you@gmail.com
+    """
+    import smtplib
+    import ssl
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    result = {}
+
+    # Pull credentials from the saved Email Account
+    try:
+        account = frappe.db.get_value(
+            "Email Account",
+            {"enable_outgoing": 1, "default_outgoing": 1},
+            ["name", "email_id", "smtp_server", "smtp_port", "login_id", "password", "use_tls"],
+            as_dict=True
+        )
+        if not account:
+            return {"error": "No default outgoing email account found in Frappe"}
+
+        result["account_found"] = {
+            "email_id": account.get("email_id"),
+            "smtp_server": account.get("smtp_server"),
+            "smtp_port": account.get("smtp_port"),
+            "login_id": account.get("login_id"),
+            "use_tls": account.get("use_tls"),
+        }
+    except Exception as e:
+        return {"error": f"Failed to fetch email account: {str(e)}"}
+
+    smtp_server = account.get("smtp_server") or "smtp-relay.brevo.com"
+    smtp_port = int(account.get("smtp_port") or 587)
+    login = account.get("login_id") or account.get("email_id")
+    password = account.get("password")
+    from_email = account.get("email_id")
+    recipient = to_email or from_email
+
+    # Decrypt password safely
+    account_name = str(account.get("name") or "")
+    try:
+        from frappe.utils.password import get_decrypted_password
+        if account_name:
+            password = get_decrypted_password("Email Account", account_name, "password") or password
+        result["password_decrypted"] = True
+        result["password_length"] = len(password) if password else 0
+    except Exception as e:
+        result["password_decrypt_error"] = str(e)
+
+    if not password:
+        return {"error": "Password is empty — paste the Brevo SMTP key into Email Account → Password field.", **result}
+
+    # Raw SMTP connection test
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+            result["step_1_connect"] = f"Connected to {smtp_server}:{smtp_port} ✅"
+            ehlo_resp = server.ehlo()
+            result["step_2_ehlo"] = f"EHLO response code: {ehlo_resp[0]} ✅"
+
+            if account.get("use_tls"):
+                server.starttls(context=context)
+                result["step_3_tls"] = "STARTTLS successful ✅"
+
+            server.login(login, password)
+            result["step_4_auth"] = f"AUTH LOGIN successful as {login} ✅"
+
+            if to_email:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = "MandiGrow Direct SMTP Test ✅"
+                msg["From"] = from_email
+                msg["To"] = recipient
+                body = MIMEText("<h2>✅ Direct SMTP test email from MandiGrow via Brevo!</h2><p>If you see this, the SMTP credentials are 100% working.</p>", "html")
+                msg.attach(body)
+                server.sendmail(from_email, [recipient], msg.as_string())
+                result["step_5_send"] = f"Email sent directly to {recipient} via Brevo ✅"
+
+        result["overall"] = "SUCCESS — Brevo SMTP credentials are valid!"
+    except smtplib.SMTPAuthenticationError as e:
+        result["error"] = f"AUTH FAILED (535): Wrong username or password. Check your Brevo SMTP key. Detail: {str(e)}"
+    except smtplib.SMTPSenderRefused as e:
+        result["error"] = f"SENDER REFUSED (502): Brevo rejected sender. Detail: {str(e)}"
+    except smtplib.SMTPConnectError as e:
+        result["error"] = f"CONNECT FAILED: Could not reach {smtp_server}:{smtp_port}. Detail: {str(e)}"
+    except Exception as e:
+        result["error"] = f"Unexpected error: {str(e)}"
+
     return result
 
 
