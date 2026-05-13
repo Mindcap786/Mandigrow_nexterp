@@ -1377,7 +1377,8 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
         "send_welcome_email": 0,
         "role_type": "admin",
         "mandi_organization": org_id,
-        "business_domain": "mandi"
+        "business_domain": "mandi",
+        "mobile_no": phone,   # Store phone so it appears in super admin
     })
     user.flags.ignore_password_policy = True
     user.insert(ignore_permissions=True)
@@ -1389,10 +1390,16 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
     # Assign standard roles (System Manager allows Desk access for tenant troubleshooting)
     user.add_roles("System Manager")
 
+    frappe.db.commit()  # Ensure all records are visible immediately in super admin
+
     return {
         "status": "success",
         "user_id": user.name,
         "org_id": org_id,
+        "full_name": full_name,
+        "username": username,
+        "phone": phone,
+        "org_name": org_name,
         "setup": {
             "created": setup_report.get("created", []),
             "errors": setup_report.get("errors", [])
