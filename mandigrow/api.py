@@ -1184,34 +1184,41 @@ def test_email_config() -> dict:
     DIAGNOSTIC: Tests if Frappe outgoing email is configured and working.
     URL: https://www.mandigrow.com/api/method/mandigrow.api.test_email_config
     """
-    result = {}
+    result = {"status": "ok"}
     try:
-        accounts = frappe.get_all(
+        accounts = frappe.db.get_all(
             "Email Account",
             filters={"enable_outgoing": 1},
             fields=["name", "email_id", "smtp_server", "smtp_port", "default_outgoing"]
         )
         result["outgoing_accounts"] = [
-            {"name": a.name, "email_id": a.email_id, "smtp_server": a.smtp_server,
-             "smtp_port": a.smtp_port, "is_default": bool(a.default_outgoing)}
-            for a in accounts
+            {
+                "name": str(a.get("name", "")),
+                "email_id": str(a.get("email_id", "")),
+                "smtp_server": str(a.get("smtp_server", "")),
+                "smtp_port": str(a.get("smtp_port", "")),
+                "is_default": bool(a.get("default_outgoing"))
+            }
+            for a in (accounts or [])
         ]
-        result["has_default_outgoing"] = any(a.default_outgoing for a in accounts)
+        result["has_default_outgoing"] = any(a.get("default_outgoing") for a in (accounts or []))
     except Exception as ex:
         result["error_checking_accounts"] = str(ex)
+        result["has_default_outgoing"] = False
 
     try:
-        queued = frappe.db.count("Email Queue", {"status": "Not Sent"})
-        failed = frappe.db.count("Email Queue", {"status": "Error"})
-        result["email_queue_not_sent"] = queued
-        result["email_queue_failed"] = failed
-    except Exception:
-        pass
+        queued_rows = frappe.db.get_all("Email Queue", filters={"status": "Not Sent"}, fields=["name"], limit=100)
+        failed_rows = frappe.db.get_all("Email Queue", filters={"status": "Error"}, fields=["name"], limit=100)
+        result["email_queue_not_sent"] = len(queued_rows)
+        result["email_queue_failed"] = len(failed_rows)
+    except Exception as ex2:
+        result["email_queue_error"] = str(ex2)
 
-    if not result.get("has_default_outgoing"):
-        result["fix"] = "Go to Frappe Desk → Settings → Email Account → Add Gmail/SendGrid as default outgoing"
-    else:
-        result["fix"] = "Email account configured. Check email_queue_failed for stuck emails."
+    result["fix"] = (
+        "CRITICAL: No outgoing email configured! Go to Frappe Desk → Settings → Email Account → New → Add Gmail/SendGrid → set as Default Outgoing"
+        if not result.get("has_default_outgoing")
+        else "Email account is configured. If emails not arriving, check spam folder or email_queue_failed count."
+    )
     return result
 
 
