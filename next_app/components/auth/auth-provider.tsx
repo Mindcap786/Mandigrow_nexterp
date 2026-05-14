@@ -275,6 +275,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/wholesale-trader-erp' ||
                          pathname === '/gst-mandi-compliance' ||
                          pathname === '/sabzi-mandi-software' ||
+                         pathname === '/sabji-billing-software' ||
+                         pathname === '/fruit-vegetable-billing' ||
                          pathname === '/features' ||
                          pathname === '/pricing' ||
                          pathname === '/te' ||
