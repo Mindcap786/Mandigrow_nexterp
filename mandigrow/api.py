@@ -10150,7 +10150,7 @@ def update_billing_gateway(gateway_type: str, config: dict, is_active: bool) -> 
             is_stg = is_stg.lower() not in ("false", "0", "no", "")
         website = config.get("website") or ("WEBSTAGING" if is_stg else "DEFAULT")
         host = config.get("paytm_host") or (
-            "https://securegw-stage.paytm.in" if is_stg else "https://secure.paytmpayments.com"
+            "https://securestage.paytmpayments.com" if is_stg else "https://secure.paytmpayments.com"
         )
         if mid and key:
             frappe.db.set_default("paytm_merchant_id", mid)
@@ -10841,7 +10841,7 @@ def _get_paytm_config():
             is_staging = is_staging.lower() not in ("false", "0", "no", "")
         is_staging = bool(is_staging)
         host = host_override or (
-            "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+            "https://securestage.paytmpayments.com" if is_staging else "https://secure.paytmpayments.com"
         )
         return {
             "merchant_id":      mid,
@@ -10886,7 +10886,7 @@ def _get_paytm_config():
                     frappe.db.set_default("paytm_website", website)
                     frappe.db.set_default("paytm_is_staging", "1" if is_stg else "0")
                     frappe.db.set_default("paytm_paytm_host",
-                        "https://securegw-stage.paytm.in" if is_stg else "https://secure.paytmpayments.com")
+                        "https://securestage.paytmpayments.com" if is_stg else "https://secure.paytmpayments.com")
                     frappe.db.commit()
                 except Exception:
                     pass
@@ -10909,7 +10909,7 @@ def _get_paytm_config():
         is_staging = is_staging_raw not in ("0", "false", "False", "no", "")
         website = frappe.db.get_default("paytm_website") or ("WEBSTAGING" if is_staging else "DEFAULT")
         # Always compute host from is_staging — never use stored host which may be stale
-        computed_host = "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+        computed_host = "https://securestage.paytmpayments.com" if is_staging else "https://secure.paytmpayments.com"
         frappe.logger().info(f"[paytm_cfg] ✅ Source: get_default | MID={mid} | staging={is_staging} | website={website} | host={computed_host}")
         return _build(mid, key, website, "Retail", is_staging, computed_host)
 
@@ -11096,7 +11096,7 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
     try:
         is_staging = paytm_cfg.get("is_staging", True)
         paytm_host = paytm_cfg.get("paytm_host") or (
-            "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+            "https://securestage.paytmpayments.com" if is_staging else "https://secure.paytmpayments.com"
         )
 
         # Paytm needs amount as string with 2 decimal places
@@ -11202,7 +11202,7 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
     merchant_key = paytm_cfg.get("merchant_key")
     is_staging = paytm_cfg.get("is_staging", True)
     paytm_host = paytm_cfg.get("paytm_host") or (
-        "https://securegw-stage.paytm.in" if is_staging else "https://secure.paytmpayments.com"
+        "https://securestage.paytmpayments.com" if is_staging else "https://secure.paytmpayments.com"
     )
 
     if not mid or not merchant_key:
@@ -11517,7 +11517,7 @@ def save_paytm_config(merchant_id: str, merchant_key: str, website: str = "DEFAU
     # ALWAYS compute host from is_staging — never trust the paytm_host param from frontend
     # (frontend may send stale staging URL even when is_staging=False)
     production_host = "https://secure.paytmpayments.com"
-    staging_host    = "https://securegw-stage.paytm.in"
+    staging_host    = "https://securestage.paytmpayments.com"
     resolved_host   = staging_host if is_staging else production_host
     resolved_website = (website.strip() or ("WEBSTAGING" if is_staging else "DEFAULT"))
 
