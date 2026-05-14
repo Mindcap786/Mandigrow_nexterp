@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,28 +38,37 @@ interface PaytmOrderResult {
     error?: string;
 }
 
-type PaymentState = 'idle' | 'creating_order' | 'paytm_open' | 'verifying' | 'success' | 'failed';
+type PaymentState = 'idle' | 'creating_order' | 'redirecting' | 'verifying' | 'success' | 'failed';
 
-// ─── Paytm JS SDK loader ───────────────────────────────────────────────────────
-function loadPaytmScript(isStaging: boolean, merchantId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        // Remove any existing script to force reload with correct MID
-        const existingScript = document.getElementById('paytm-checkout-script');
-        if (existingScript) existingScript.remove();
-        // CRITICAL: Use correct production host — securegw.paytm.in is DEPRECATED
-        const baseUrl = isStaging
-            ? 'https://securestage.paytmpayments.com'
-            : 'https://secure.paytmpayments.com';
-        const src = `${baseUrl}/merchantpgpui/checkoutjs/merchants/${merchantId}`;
-        const script = document.createElement('script') as HTMLScriptElement;
-        script.id = 'paytm-checkout-script';
-        script.src = src;
-        script.type = 'application/javascript';
-        script.crossOrigin = 'anonymous';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load Paytm script from ${src}`));
-        document.body.appendChild(script);
+// ─── Paytm Redirect (no JS SDK — no CSP issues) ───────────────────────────────
+function redirectToPaytm(order: PaytmOrderResult, callbackUrl: string) {
+    const baseUrl = order.is_staging
+        ? 'https://securestage.paytmpayments.com'
+        : 'https://secure.paytmpayments.com';
+
+    // Build a hidden form and POST to Paytm's hosted payment page
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `${baseUrl}/theia/api/v1/showPaymentPage?mid=${order.merchant_id}&orderId=${order.order_id}`;
+
+    const fields: Record<string, string> = {
+        mid: order.merchant_id,
+        orderId: order.order_id,
+        txnToken: order.txn_token,
+        amount: order.amount,
+        callbackUrl,
+    };
+
+    Object.entries(fields).forEach(([key, val]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = val;
+        form.appendChild(input);
     });
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -84,7 +92,7 @@ export default function BillingCheckout() {
     const [paymentError, setPaymentError] = useState<string | null>(null);
     const [orderId, setOrderId] = useState<string | null>(null);
 
-    // Show success if redirected back from payment
+    // Show success if redirected back from Paytm
     useEffect(() => {
         if (searchActivated === '1') {
             setPaymentState('success');
@@ -103,7 +111,6 @@ export default function BillingCheckout() {
             const plans: Plan[] = res?.all_plans || [];
             setAllPlans(plans);
 
-            // Match by plan_name field first, then by name/id
             const matched = plans.find(
                 (p) =>
                     (p.plan_name || '').toLowerCase() === planId.toLowerCase() ||
@@ -160,14 +167,15 @@ export default function BillingCheckout() {
         }
     };
 
-    // ── Paytm Payment Flow ────────────────────────────────────────────────────
+    // ── Paytm Redirect Payment Flow ───────────────────────────────────────────
+    // Uses Paytm's hosted payment page — NO JS SDK, NO CSP issues
     const handlePaytmPayment = async () => {
         if (!plan || !profile) return;
         setPaymentState('creating_order');
         setPaymentError(null);
 
         try {
-            // Step 1: Create order on backend — backend reads price from DB, never trusts frontend amount
+            // Step 1: Create order on backend
             const orderRes: PaytmOrderResult = await callApi('mandigrow.api.create_paytm_order', {
                 plan_name: plan.plan_name || plan.name,
                 billing_cycle: cycle,
@@ -179,68 +187,12 @@ export default function BillingCheckout() {
             }
 
             setOrderId(orderRes.order_id);
+            setPaymentState('redirecting');
 
-            // Step 2: Load Paytm JS SDK (must include MID in URL for production)
-            await loadPaytmScript(orderRes.is_staging, orderRes.merchant_id);
-
-            setPaymentState('paytm_open');
-
-            // Step 3: Open Paytm payment form
-            const paytmChecksum = (window as any).Paytm;
-            if (!paytmChecksum) throw new Error('Paytm SDK not loaded');
-
-            const config = {
-                root: '',
-                flow: 'DEFAULT',
-                data: {
-                    orderId: orderRes.order_id,
-                    token: orderRes.txn_token,
-                    tokenType: 'TXN_TOKEN',
-                    amount: orderRes.amount,
-                },
-                merchant: {
-                    mid: orderRes.merchant_id,
-                    redirect: false,
-                },
-                handler: {
-                    notifyMerchant: (eventName: string, data: any) => {
-                        if (eventName === 'SESSION_EXPIRED') {
-                            setPaymentState('failed');
-                            setPaymentError('Payment session expired. Please try again.');
-                        }
-                    },
-                    transactionStatus: async (paymentData: any) => {
-                        // Step 4: Verify on backend after Paytm callback
-                        setPaymentState('verifying');
-                        try {
-                            const verifyRes: any = await callApi('mandigrow.api.verify_paytm_payment', {
-                                order_id: orderRes.order_id,
-                                paytm_response: JSON.stringify(paymentData),
-                            });
-
-                            if (verifyRes?.success) {
-                                setPaymentState('success');
-                                toast({ title: '🎉 Payment Successful!', description: `You are now on ${plan.display_name}.` });
-                                setTimeout(() => router.push('/settings/billing?activated=1'), 2000);
-                            } else {
-                                setPaymentState('failed');
-                                setPaymentError(verifyRes?.message || 'Payment verification failed.');
-                                toast({ title: 'Verification Failed', description: verifyRes?.message, variant: 'destructive' });
-                            }
-                        } catch (err: any) {
-                            setPaymentState('failed');
-                            setPaymentError('Could not verify payment. Contact support if amount was deducted.');
-                        }
-                    },
-                },
-            };
-
-            (window as any).Paytm.CheckoutJS.init(config)
-                .then(() => (window as any).Paytm.CheckoutJS.invoke())
-                .catch((err: any) => {
-                    setPaymentState('failed');
-                    setPaymentError('Could not launch Paytm payment. Please try again.');
-                });
+            // Step 2: Redirect to Paytm's hosted payment page (NO JS SDK needed)
+            // Paytm will redirect back to /settings/billing/payment-callback after payment
+            const callbackUrl = `${window.location.origin}/settings/billing/payment-callback?order_id=${orderRes.order_id}`;
+            redirectToPaytm(orderRes, callbackUrl);
 
         } catch (err: any) {
             setPaymentState('failed');
@@ -249,9 +201,8 @@ export default function BillingCheckout() {
         }
     };
 
-    // ── Admin-activated plan (₹0 or free upgrade during trial) ───────────────
+    // ── Free plan activation ──────────────────────────────────────────────────
     const handleAdminActivate = async () => {
-        // This is ONLY for ₹0 plans — requires backend validation
         if (finalPrice > 0) {
             toast({ title: 'Payment Required', description: 'Please complete payment to activate this plan.', variant: 'destructive' });
             return;
@@ -358,8 +309,22 @@ export default function BillingCheckout() {
         );
     }
 
+    // ── Redirecting state ─────────────────────────────────────────────────────
+    if (paymentState === 'redirecting') {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6">
+                <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
+                <h2 className="text-xl font-black text-slate-900">Redirecting to Paytm...</h2>
+                <p className="text-slate-500 font-bold text-sm text-center">
+                    You will be redirected to Paytm's secure payment page.<br />
+                    Please do not close this tab.
+                </p>
+            </div>
+        );
+    }
+
     // ── Main checkout UI ──────────────────────────────────────────────────────
-    const isProcessing = paymentState === 'creating_order' || paymentState === 'paytm_open' || paymentState === 'verifying';
+    const isProcessing = paymentState === 'creating_order' || paymentState === 'redirecting' || paymentState === 'verifying';
     const isFree = finalPrice === 0;
 
     return (
@@ -477,7 +442,6 @@ export default function BillingCheckout() {
                             <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">Payment Method</h3>
                         </div>
 
-                        {/* Paytm option */}
                         <div className="p-4 rounded-2xl border-2 border-purple-400 bg-purple-50/30 flex items-center gap-4">
                             <div className="w-5 h-5 rounded-full border-2 border-purple-500 bg-purple-500 flex items-center justify-center">
                                 <div className="w-2 h-2 bg-white rounded-full" />
@@ -511,9 +475,7 @@ export default function BillingCheckout() {
                             {isProcessing ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                    {paymentState === 'creating_order' ? 'Preparing Order...' :
-                                        paymentState === 'paytm_open' ? 'Complete Payment in Paytm...' :
-                                            'Verifying Payment...'}
+                                    {paymentState === 'creating_order' ? 'Preparing Order...' : 'Redirecting to Paytm...'}
                                 </>
                             ) : (
                                 <>
@@ -538,7 +500,6 @@ export default function BillingCheckout() {
                         {!isFree && ' Plan activates immediately upon payment confirmation.'}
                     </p>
 
-                    {/* What's included */}
                     {Object.keys(plan.features || {}).length > 0 && (
                         <div className="mt-4 pt-4 border-t border-slate-100">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">What's Included</p>
@@ -557,13 +518,13 @@ export default function BillingCheckout() {
                     )}
                 </div>
 
-                {/* Processing overlay message */}
-                {paymentState === 'paytm_open' && (
+                {/* Redirecting info */}
+                {paymentState === 'redirecting' && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
                         <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
                         <div>
-                            <p className="font-black text-amber-900 text-sm">Paytm checkout is open</p>
-                            <p className="text-xs font-bold text-amber-700">Complete your payment in the Paytm window. Do not close this page.</p>
+                            <p className="font-black text-amber-900 text-sm">Redirecting to Paytm...</p>
+                            <p className="text-xs font-bold text-amber-700">Complete your payment on Paytm's secure page. Do not close this tab.</p>
                         </div>
                     </div>
                 )}
