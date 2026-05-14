@@ -84,7 +84,7 @@ export const metadata: Metadata = {
         },
     },
     verification: {
-        google: 'TCX9_TuvX1DNk16y4y3Y15qfYvmH6tyUAVEL5CQ8S2A',
+        google: '4asvN_FQ0dORJNhDxI2DnWUP8aWhEo13xo6y6gwUCYs',
     },
     category: 'Business Software',
 }

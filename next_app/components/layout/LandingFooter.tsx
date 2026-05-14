@@ -36,6 +36,9 @@ export function LandingFooter() {
                         <Link href="/mandi-billing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi Billing</Link>
                         <Link href="/commission-agent-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Commission Agent</Link>
                         <Link href="/mandi-khata-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi Khata</Link>
+                        <Link href="/sabji-billing-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Sabji Billing</Link>
+                        <Link href="/fruit-vegetable-billing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Fruit & Veg Billing</Link>
+                        <Link href="/gst-mandi-compliance" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">GST Compliance</Link>
                         <Link href="/blog" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Blog</Link>
                         <Link href="/faq" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">FAQ</Link>
                         <Link href="/partners" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Partners</Link>
