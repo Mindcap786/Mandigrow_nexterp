@@ -9859,12 +9859,23 @@ def get_admin_tenants() -> list:
         if not owner and org_users:
             owner = org_users[0]
 
+        from frappe.utils import add_days
+
+        # Trial ends at: database field, OR 14 days after creation
+        trial_ends_at = getattr(org, "trial_ends_at", None)
+        if not trial_ends_at:
+            trial_ends_at = str(add_days(org.creation, 14))[:10]
+            
+        current_period_end = getattr(org, "subscription_end_date", None) or getattr(org, "current_period_end", None)
+
         processed.append({
             "id": org.name,
             "name": org.organization_name,
             "subscription_tier": org.subscription_tier or 'basic',
             "is_active": org.status == 'active',
             "status": org.status or 'trial',
+            "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
+            "current_period_end": str(current_period_end)[:10] if current_period_end else None,
             "created_at": org.creation,
             "tenant_type": 'mandi',
             "enabled_modules": ['mandi'],
