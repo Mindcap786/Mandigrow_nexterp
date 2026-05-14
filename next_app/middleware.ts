@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
         path === '/signup' ||
         path === '/subscribe' ||
         path === '/checkout' ||
+        path === '/settings/billing/payment-callback' ||
         path === '/join' ||
         path === '/contact' ||
         path === '/suspended' ||
