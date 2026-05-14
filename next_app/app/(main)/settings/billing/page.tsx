@@ -104,9 +104,14 @@ export default function SaasBillingPage() {
                 plan: (subResult?.plan) as Plan | undefined,
                 status: (subResult?.subscription?.status || 'trial') as Subscription['status'],
                 trial_ends_at: subResult?.subscription?.trial_ends_at ?? null,
-                current_period_end: null,
-                next_invoice_date: null,
+                // ✅ FIX: was hardcoded to null — now reads actual expiry from backend
+                current_period_end: subResult?.subscription?.current_period_end ?? null,
+                next_invoice_date: subResult?.subscription?.current_period_end ?? null,
+                admin_assigned_by: subResult?.subscription?.admin_assigned_by ?? undefined,
             };
+            // Store billing_cycle from API
+            const billingCycleFromApi = subResult?.subscription?.billing_cycle;
+            if (billingCycleFromApi) setBillingCycle(billingCycleFromApi as 'monthly' | 'yearly');
             setSubscription(subData);
             setUsage({ lots: 0, sales: 0, payments: 0, storageGb: 0 });
             setInvoices([]);
@@ -219,10 +224,32 @@ export default function SaasBillingPage() {
                                     <p className="font-bold opacity-70 text-sm">
                                         Up to {getUserCount(currentPlan)} {getUserCount(currentPlan) === '∞' ? 'unlimited' : ''} users
                                     </p>
-                                    {status === 'active' && nextBillingDate && (
-                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                                            Next Payment: {format(new Date(nextBillingDate), "dd MMM yyyy")} ({daysLeft} days)
-                                        </p>
+                                    {/* ── Billing Cycle Badge ─── */}
+                                    {status === 'active' && (
+                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest bg-current/10 border border-current/20 px-2 py-0.5 rounded-full">
+                                                {billingCycle === 'yearly' ? '📅 Annual Plan' : '📆 Monthly Plan'}
+                                            </span>
+                                            {expiryDateFormatted && (
+                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                                                    (daysLeft ?? 999) <= 7
+                                                        ? 'bg-red-100 text-red-700 border-red-200'
+                                                        : (daysLeft ?? 999) <= 30
+                                                        ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                                        : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                                }`}>
+                                                    {(daysLeft ?? 999) <= 7 ? '⚠️ ' : ''}Expires: {expiryDateFormatted}
+                                                    {daysLeft !== null && ` · ${daysLeft}d left`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                    {(status === 'trial' || status === 'trialing') && expiryDateFormatted && (
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                🕐 Trial ends: {expiryDateFormatted} · {daysLeft}d left
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>

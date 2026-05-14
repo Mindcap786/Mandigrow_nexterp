@@ -65,6 +65,7 @@ export default function TenantsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterPlan, setFilterPlan] = useState('all');
+    const [filterExpiryBefore, setFilterExpiryBefore] = useState(''); // YYYY-MM-DD
 
     const [isProvisioning, setIsProvisioning] = useState(false);
     const [provisionOpen, setProvisionOpen] = useState(false);
@@ -251,14 +252,27 @@ export default function TenantsPage() {
             }
         } else {
             matchStatus = filterStatus === 'all' || t.status === filterStatus ||
-                // Fallback for legacy records
                 (filterStatus === 'active' && !t.status && t.is_active) ||
                 (filterStatus === 'suspended' && !t.status && !t.is_active);
         }
 
+        // "Expiring Before" date filter — works across all statuses
+        let matchExpiry = true;
+        if (filterExpiryBefore) {
+            const expiresAt = t.status === 'trial' ? t.trial_ends_at : (t.current_period_end || t.trial_ends_at);
+            if (!expiresAt) {
+                matchExpiry = false;
+            } else {
+                const expiryDate = new Date(expiresAt);
+                const cutoff = new Date(filterExpiryBefore);
+                cutoff.setHours(23, 59, 59, 999); // include entire cutoff day
+                matchExpiry = expiryDate <= cutoff && expiryDate >= new Date();
+            }
+        }
+
         const matchPlan = filterPlan === 'all' || t.subscription_tier === filterPlan;
         const matchType = t.tenant_type === 'mandi' || (t.enabled_modules && t.enabled_modules.includes('mandi'));
-        return matchSearch && matchStatus && matchPlan && matchType;
+        return matchSearch && matchStatus && matchExpiry && matchPlan && matchType;
     });
 
     const stats = {
@@ -417,6 +431,18 @@ export default function TenantsPage() {
                     { label: 'Active', value: stats.active, icon: CheckCircle2, color: 'text-emerald-400', click: () => setFilterStatus('active') },
                     { label: 'Trial', value: stats.trial, icon: TrendingDown, color: 'text-yellow-400', click: () => setFilterStatus('trial') },
                     { label: 'Suspended', value: stats.suspended, icon: AlertTriangle, color: 'text-red-400', click: () => setFilterStatus('suspended') },
+                    {
+                        label: 'Expiring ≤15d',
+                        icon: Filter,
+                        color: 'text-orange-400',
+                        value: tenants.filter(t => {
+                            const exp = t.status === 'trial' ? t.trial_ends_at : (t.current_period_end || t.trial_ends_at);
+                            if (!exp) return false;
+                            const d = differenceInDays(new Date(exp), new Date());
+                            return d >= 0 && d <= 15;
+                        }).length,
+                        click: () => { setFilterStatus('expiring_soon'); setFilterExpiryBefore(''); }
+                    },
                 ].map(s => (
                     <Card
                         key={s.label}
@@ -445,8 +471,8 @@ export default function TenantsPage() {
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-40 bg-white shadow-sm border-slate-200 text-slate-900">
+                <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setFilterExpiryBefore(''); }}>
+                    <SelectTrigger className="w-44 bg-white shadow-sm border-slate-200 text-slate-900">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-50 border-slate-200 text-slate-900">
@@ -470,6 +496,29 @@ export default function TenantsPage() {
                         <SelectItem value="enterprise">Enterprise</SelectItem>
                     </SelectContent>
                 </Select>
+                {/* ── Expiring Before Date Picker ── */}
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-500 pointer-events-none" />
+                        <input
+                            type="date"
+                            value={filterExpiryBefore}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={e => { setFilterExpiryBefore(e.target.value); setFilterStatus('all'); }}
+                            className="pl-9 pr-3 h-9 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-300 cursor-pointer w-44"
+                            title="Show users expiring before this date"
+                        />
+                    </div>
+                    {filterExpiryBefore && (
+                        <button
+                            onClick={() => setFilterExpiryBefore('')}
+                            className="text-xs text-slate-400 hover:text-red-500 font-bold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                            title="Clear date filter"
+                        >
+                            ✕ Clear
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Tenant List */}
