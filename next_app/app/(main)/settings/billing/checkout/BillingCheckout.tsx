@@ -49,7 +49,7 @@ function loadPaytmScript(isStaging: boolean, merchantId: string): Promise<void> 
         if (existingScript) existingScript.remove();
         // CRITICAL: Use correct production host — securegw.paytm.in is DEPRECATED
         const baseUrl = isStaging
-            ? 'https://securegw-stage.paytm.in'
+            ? 'https://securestage.paytmpayments.com'
             : 'https://secure.paytmpayments.com';
         const src = `${baseUrl}/merchantpgpui/checkoutjs/merchants/${merchantId}`;
         const script = document.createElement('script') as HTMLScriptElement;
