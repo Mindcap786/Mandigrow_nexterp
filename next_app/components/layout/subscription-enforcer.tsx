@@ -14,6 +14,7 @@ const WARNING_STATUSES = new Set(['grace_period']);
 export function SubscriptionEnforcer() {
     const { user, profile, subscription, loading } = useAuth();
     const [blockLevel, setBlockLevel] = useState<'none' | 'warning' | 'blocked'>('none');
+    const [dismissed, setDismissed] = useState(false);
     const pathname = usePathname();
 
     useEffect(() => {
@@ -43,14 +44,23 @@ export function SubscriptionEnforcer() {
         }
     };
 
-    if (blockLevel === 'none') return null;
+    if (blockLevel === 'none' || (blockLevel === 'warning' && dismissed)) return null;
 
     const orgStatus = subscription?.status || profile?.organization?.status || 'unknown';
     const isSuspended = orgStatus === 'suspended';
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center text-center p-4">
-            <div className="bg-[#111] border border-red-500/30 p-8 rounded-2xl max-w-md shadow-2xl animate-in fade-in zoom-in">
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center text-center p-4 backdrop-blur-sm">
+            <div className="bg-[#111] border border-red-500/30 p-8 rounded-2xl max-w-md shadow-2xl animate-in fade-in zoom-in relative">
+                {blockLevel === 'warning' && (
+                    <button 
+                        onClick={() => setDismissed(true)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                        aria-label="Close"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                )}
                 <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     {isSuspended ? (
                         <AlertOctagon className="w-8 h-8 text-red-500" />
@@ -71,13 +81,25 @@ export function SubscriptionEnforcer() {
                         : "Your subscription has expired and the grace period has ended. Please renew to restore access."
                     }
                 </p>
-                <Button
-                    className="w-full bg-neon-blue text-black font-bold h-12"
-                    onClick={() => window.location.href = '/settings/billing'}
-                >
-                    <CreditCard className="w-4 h-4 mr-2" /> 
-                    {isSuspended ? 'Contact Support' : 'Renew Now to Restore Access'}
-                </Button>
+                <div className="space-y-3">
+                    <Button
+                        className="w-full bg-neon-blue text-black font-bold h-12 hover:bg-neon-blue/90"
+                        onClick={() => window.location.href = '/settings/billing'}
+                    >
+                        <CreditCard className="w-4 h-4 mr-2" /> 
+                        {isSuspended ? 'Contact Support' : 'Renew Now to Restore Access'}
+                    </Button>
+                    
+                    {blockLevel === 'warning' && (
+                        <Button
+                            variant="outline"
+                            className="w-full h-12 text-gray-300 border-gray-700 hover:bg-gray-800 hover:text-white"
+                            onClick={() => setDismissed(true)}
+                        >
+                            Continue to Platform
+                        </Button>
+                    )}
+                </div>
                 <p className="text-xs text-gray-600 mt-4">Contact support@mandigrow.com if this is an error.</p>
             </div>
         </div>
