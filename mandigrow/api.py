@@ -10853,8 +10853,10 @@ def _get_paytm_config():
         }
 
     # ── 1. Frappe 'Paytm Settings' doctype (configured via Frappe Desk) ─────────
-    # frappe/payments app stores credentials here — this is the authoritative source
+    # merchant_key is a Password field — MUST use get_decrypted_password, NOT raw SQL
     try:
+        from frappe.utils.password import get_decrypted_password
+
         rows = frappe.db.sql(
             "SELECT field, value FROM `tabSingles` WHERE doctype='Paytm Settings'",
             as_dict=True
@@ -10862,13 +10864,21 @@ def _get_paytm_config():
         if rows:
             ps = {r["field"]: (r["value"] or "") for r in rows}
             mid = (ps.get("merchant_id") or ps.get("api_key") or "").strip()
-            key = (ps.get("merchant_key") or ps.get("api_secret") or "").strip()
+
+            # CRITICAL: merchant_key is encrypted in tabSingles — decrypt it properly
+            try:
+                key = (get_decrypted_password("Paytm Settings", "Paytm Settings", "merchant_key") or "").strip()
+                frappe.logger().info(f"[paytm_cfg] merchant_key decrypted OK, length={len(key)}")
+            except Exception as dec_err:
+                frappe.logger().warning(f"[paytm_cfg] Decryption failed, falling back to raw: {dec_err}")
+                key = (ps.get("merchant_key") or ps.get("api_secret") or "").strip()
+
             website = ps.get("website") or "DEFAULT"
             industry = ps.get("industry_type_id") or "Retail"
             stg_raw = ps.get("staging") or ps.get("is_staging") or "0"
             is_stg = str(stg_raw) not in ("0", "false", "False", "no", "")
             if mid and key:
-                frappe.logger().info(f"[paytm_cfg] ✅ Source: Paytm Settings (Frappe Desk) | MID={mid} | staging={is_stg} | website={website}")
+                frappe.logger().info(f"[paytm_cfg] ✅ Source: Paytm Settings (Frappe Desk) | MID={mid} | staging={is_stg} | website={website} | key_len={len(key)}")
                 # Auto-sync to get_default so admin UI shows correct values
                 try:
                     frappe.db.set_default("paytm_merchant_id", mid)
@@ -10882,11 +10892,18 @@ def _get_paytm_config():
                     pass
                 return _build(mid, key, website, industry, is_stg)
     except Exception as ex:
-        frappe.logger().warning(f"[paytm_cfg] Paytm Settings tabSingles query failed: {ex}")
+        frappe.logger().warning(f"[paytm_cfg] Paytm Settings query failed: {ex}")
 
-    # ── 2. frappe.db.get_default() — Admin UI "COMMIT CONFIGURATION" values ──
+    # ── 2. frappe.db.get_default() — use decrypted key from Paytm Settings ──
+    # NOTE: paytm_merchant_key in get_default is synced from decrypted value above.
+    # If we reach here, Paytm Settings read failed — try get_default as last resort.
     mid = (frappe.db.get_default("paytm_merchant_id") or "").strip()
-    key = (frappe.db.get_default("paytm_merchant_key") or "").strip()
+    # Try to decrypt from Paytm Settings again since get_default may hold encrypted value
+    try:
+        from frappe.utils.password import get_decrypted_password
+        key = (get_decrypted_password("Paytm Settings", "Paytm Settings", "merchant_key") or "").strip()
+    except Exception:
+        key = (frappe.db.get_default("paytm_merchant_key") or "").strip()
     if mid and key:
         is_staging_raw = frappe.db.get_default("paytm_is_staging") or "0"
         is_staging = is_staging_raw not in ("0", "false", "False", "no", "")
