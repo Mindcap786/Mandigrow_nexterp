@@ -42,19 +42,23 @@ interface PaytmOrderResult {
 type PaymentState = 'idle' | 'creating_order' | 'paytm_open' | 'verifying' | 'success' | 'failed';
 
 // ─── Paytm JS SDK loader ───────────────────────────────────────────────────────
-function loadPaytmScript(isStaging: boolean): Promise<void> {
+function loadPaytmScript(isStaging: boolean, merchantId: string): Promise<void> {
     return new Promise((resolve, reject) => {
+        // Remove any existing script to force reload with correct MID
         const existingScript = document.getElementById('paytm-checkout-script');
-        if (existingScript) { resolve(); return; }
-        const src = isStaging
-            ? 'https://securegw-stage.paytm.in/merchantpgpui/checkoutjs/merchants/'
-            : 'https://securegw.paytm.in/merchantpgpui/checkoutjs/merchants/';
-        const script = document.createElement('script');
+        if (existingScript) existingScript.remove();
+        // CRITICAL: Use correct production host — securegw.paytm.in is DEPRECATED
+        const baseUrl = isStaging
+            ? 'https://securegw-stage.paytm.in'
+            : 'https://secure.paytmpayments.com';
+        const src = `${baseUrl}/merchantpgpui/checkoutjs/merchants/${merchantId}`;
+        const script = document.createElement('script') as HTMLScriptElement;
         script.id = 'paytm-checkout-script';
         script.src = src;
+        script.type = 'application/javascript';
         script.crossOrigin = 'anonymous';
         script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load Paytm script'));
+        script.onerror = () => reject(new Error(`Failed to load Paytm script from ${src}`));
         document.body.appendChild(script);
     });
 }
@@ -176,8 +180,8 @@ export default function BillingCheckout() {
 
             setOrderId(orderRes.order_id);
 
-            // Step 2: Load Paytm JS SDK
-            await loadPaytmScript(orderRes.is_staging);
+            // Step 2: Load Paytm JS SDK (must include MID in URL for production)
+            await loadPaytmScript(orderRes.is_staging, orderRes.merchant_id);
 
             setPaymentState('paytm_open');
 
