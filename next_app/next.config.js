@@ -105,15 +105,17 @@ const nextConfig = {
                         key: 'Content-Security-Policy',
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://checkout.razorpay.com https://js.stripe.com https://typhoon.smepay.in https://www.googletagmanager.com https://www.google-analytics.com https://secure.paytmpayments.com https://securestage.paytmpayments.com https://securegw.paytm.in",
-                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-                            "font-src 'self' https://fonts.gstatic.com data:",
+                            // Paytm SDK (main + CDN sub-resources like paytm.checkout.js, paytm.style.css)
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://checkout.razorpay.com https://js.stripe.com https://typhoon.smepay.in https://www.googletagmanager.com https://www.google-analytics.com https://*.paytmpayments.com https://securegw.paytm.in",
+                            // Paytm injects its own stylesheets from staticpg.paytmpayments.com
+                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.paytmpayments.com",
+                            "font-src 'self' https://fonts.gstatic.com data: https://*.paytmpayments.com",
                             "img-src 'self' data: blob: https:",
-                            "connect-src 'self' http://mandigrow.localhost:8000 ws://mandigrow.localhost:8000 http://127.0.0.1:8000 ws://127.0.0.1:8000 http://localhost:8000 ws://localhost:8000 https://*.frappe.cloud https://mandigrow.com https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://api.stripe.com https://typhoon.smepay.in https://www.google-analytics.com https://secure.paytmpayments.com https://securestage.paytmpayments.com https://securegw.paytm.in",
-                            "frame-src 'self' https://checkout.razorpay.com https://js.stripe.com https://typhoon.smepay.in https://secure.paytmpayments.com https://securestage.paytmpayments.com",
+                            "connect-src 'self' http://mandigrow.localhost:8000 ws://mandigrow.localhost:8000 http://127.0.0.1:8000 ws://127.0.0.1:8000 http://localhost:8000 ws://localhost:8000 https://*.frappe.cloud https://mandigrow.com https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://api.stripe.com https://typhoon.smepay.in https://www.google-analytics.com https://*.paytmpayments.com https://securegw.paytm.in",
+                            "frame-src 'self' https://checkout.razorpay.com https://js.stripe.com https://typhoon.smepay.in https://*.paytmpayments.com",
                             "object-src 'none'",
                             "base-uri 'self'",
-                            "form-action 'self' https://secure.paytmpayments.com https://securestage.paytmpayments.com",
+                            "form-action 'self' https://*.paytmpayments.com",
                             "frame-ancestors 'self'",
                         ].join('; '),
                     },
