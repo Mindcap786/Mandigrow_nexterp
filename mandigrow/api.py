@@ -10596,8 +10596,7 @@ def get_tenant_details(p_org_id: str) -> dict:
             "expiry": getattr(org, "trial_ends_at", None),
             "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
             "current_period_end": str(current_period_end)[:10] if current_period_end else None,
-            # grace_period_days is stored in Site Contact Settings, not per-org
-            "grace_period": 7,
+            "grace_period": getattr(org, "grace_period_days", None) or frappe.db.get_single_value("Site Contact Settings", f"grace_period_days_{getattr(org, 'billing_cycle', 'monthly')}") or (14 if getattr(org, 'billing_cycle', 'monthly') == 'yearly' else 7),
             "phone": getattr(org, "phone", ""),
             "billing_cycle": getattr(org, "billing_cycle", None) or "monthly",
             "rbac_matrix": {}
