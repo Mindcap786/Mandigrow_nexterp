@@ -106,7 +106,50 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Solutions Section */}
+            {/* SEO Keyword Section — Sabji Billing & Sabzi Mandi Software */}
+            <section className="py-20 px-6 bg-white relative z-10 border-t border-[#c8d6b0]">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12">
+                        <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">
+                            Complete Sabji Billing Software for Indian Mandis
+                        </h2>
+                        <p className="text-gray-700 text-lg font-medium max-w-3xl mx-auto">
+                            MandiGrow is India&apos;s most complete sabji billing software — built for vegetable traders who need fast, accurate lot billing at the mandi gate. Auto-calculate commission, hamali, and palledari on every sabji sale. Digital mandi khata software for every farmer and buyer.
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                        {[
+                            { title: 'Sabji Lot Billing in Seconds', desc: 'Bill by crate, carton, or kilogram. Auto-calculate totals for any sabji variety at the mandi gate.' },
+                            { title: 'Fruit Billing Software', desc: 'Complete fruit billing software — manage purchase bills, sales invoices, and GST for any fruit variety or lot size. Auto-valuation for perishable inventory.' },
+                            { title: 'Vegetable Billing Made Fast', desc: 'Vegetable billing made fast — scan crates, auto-calculate weights, and print GST-compliant pattis in seconds.' },
+                            { title: 'Digital Mandi Khata Software', desc: 'Replace paper bahis with digital mandi khata software. Every party balance is live, every settlement clean. Track advances, payments, and credits instantly.' },
+                            { title: 'Anaj Mandi Software', desc: 'Also for Anaj Mandi — grain and pulse traders. MandiGrow handles commodity lot tracking, sacks, quintal billing, and trader settlements for wheat, rice, dal, and pulses.' },
+                            { title: 'Why MandiGrow is the Best Sabzi Mandi Software', desc: 'Built for the morning auction and evening settlement — not adapted from a shop billing app. The only cloud mandi software with mobile, Hindi, GST, and khata all in one.' },
+                        ].map(({ title, desc }) => (
+                            <div key={title} className="p-8 rounded-3xl bg-[#f7fbf3] border border-emerald-100 hover:border-emerald-400 transition-colors shadow-sm">
+                                <h3 className="text-xl font-bold mb-3 text-gray-900">{title}</h3>
+                                <p className="text-gray-600 leading-relaxed">{desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap gap-4 justify-center">
+                        <Link href="/sabji-billing-software" className="px-6 py-3 bg-emerald-700 text-white font-bold rounded-full hover:bg-emerald-800 transition text-sm">
+                            Sabji Billing Software →
+                        </Link>
+                        <Link href="/fruit-vegetable-billing" className="px-6 py-3 bg-white text-emerald-700 font-bold rounded-full border border-emerald-300 hover:bg-emerald-50 transition text-sm">
+                            Fruit &amp; Vegetable Billing →
+                        </Link>
+                        <Link href="/gst-mandi-compliance" className="px-6 py-3 bg-white text-emerald-700 font-bold rounded-full border border-emerald-300 hover:bg-emerald-50 transition text-sm">
+                            GST Mandi Compliance →
+                        </Link>
+                        <Link href="/mandi-billing" className="px-6 py-3 bg-white text-emerald-700 font-bold rounded-full border border-emerald-300 hover:bg-emerald-50 transition text-sm">
+                            Mandi Billing Software →
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+
             <section id="solutions" className="py-24 px-6 bg-[#dce7c8] relative z-10 border-t border-[#c8d6b0]">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-20 px-4">

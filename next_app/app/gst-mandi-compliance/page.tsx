@@ -1,25 +1,32 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LandingFooter } from '@/components/layout/LandingFooter';
+import { LandingHeader } from '@/components/layout/LandingHeader';
+
+/**
+ * /gst-mandi-compliance — SEO landing page
+ * Target: "GST commission agent mandi" (320/mo) + "mandi tax software India" + "APMC GST compliance"
+ */
 
 export const metadata: Metadata = {
-    title: 'GST Software for Commission Agents & Mandi Traders — Mandi Tax (Cess) Automation | MandiGrow',
+    title: 'GST Software for Commission Agents & Mandi Traders | MandiGrow',
     description:
-        'MandiGrow automates GST filing, Mandi Tax (Cess), and e-invoicing for fruit & vegetable commission agents and wholesale traders across India. GSTR-1, GSTR-3B one-click export. Free trial.',
+        'Automate GST billing, Mandi Tax (Cess), and audit-ready reports with MandiGrow. Built for commission agents and fruit-vegetable traders across all Indian states. Free trial.',
     keywords: [
-        'GST software for commission agent',
-        'mandi tax software',
+        'GST commission agent mandi',
+        'mandi tax software India',
+        'GST software mandi traders',
+        'APMC GST compliance',
+        'GST billing vegetable trader',
         'mandi cess software',
-        'GST billing mandi India',
-        'GSTR-1 mandi trader',
-        'e-invoicing mandi software',
-        'GST return commission agent India',
-        'fruit vegetable GST software',
+        'APMC market software India',
+        'GST software fruits vegetables India',
     ],
     alternates: { canonical: 'https://www.mandigrow.com/gst-mandi-compliance' },
     openGraph: {
-        title: 'GST Software for Commission Agents — Mandi Tax (Cess) Automation | MandiGrow',
+        title: 'GST & Mandi Tax Compliance Software for Commission Agents | MandiGrow',
         description:
-            'Automate GST filing, Mandi Cess, and e-invoicing for fruit & vegetable commission agents. GSTR-1 and GSTR-3B one-click export.',
+            'Auto GST, Mandi Tax, GSTR-1, GSTR-3B, and audit-ready reports — purpose-built for commission agents and mandi traders in India.',
         url: 'https://www.mandigrow.com/gst-mandi-compliance',
         type: 'website',
     },
@@ -27,30 +34,48 @@ export const metadata: Metadata = {
 
 const FAQ = [
     {
-        q: 'Do commission agents need to file GST?',
-        a: 'Yes. Commission agents who earn commission on the sale of agricultural produce must register for GST if their aggregate turnover exceeds the threshold. MandiGrow helps you track taxable commission income and generate GSTR-1 and GSTR-3B data automatically.',
+        q: 'Do commission agents in mandi need to file GST?',
+        a: 'Yes. Commission agents whose turnover exceeds ₹20 lakhs (₹10 lakhs in special category states) must register for GST. MandiGrow auto-calculates GST on every commission sale and generates GSTR-1 ready data for filing, making compliance effortless.',
     },
     {
-        q: 'What is Mandi Tax (Cess) and does MandiGrow handle it?',
-        a: 'Mandi Tax or Cess is a levy charged by state Agricultural Produce Market Committees (APMCs) on the value of agricultural produce sold at the mandi. MandiGrow auto-calculates Mandi Cess per transaction and posts it to the correct ledger, state-wise.',
+        q: 'What is Mandi Tax (Cess) and which states have it?',
+        a: 'Mandi Tax or Mandi Cess is a local levy charged on agricultural produce sold through APMC markets. It is separate from GST. States like Andhra Pradesh, Telangana, Maharashtra, Punjab, and Madhya Pradesh levy Mandi Tax. MandiGrow auto-calculates Mandi Cess based on the state your mandi operates in.',
     },
     {
-        q: 'Can MandiGrow generate e-invoices for mandi traders?',
-        a: 'Yes. MandiGrow is e-invoicing ready. It generates IRN (Invoice Reference Number) compliant invoices for B2B transactions above the GST e-invoicing threshold, directly from your sale entry.',
+        q: 'Can MandiGrow generate GSTR-1 data for mandi traders?',
+        a: 'Yes. MandiGrow automatically organizes all your sales data into GSTR-1 format — B2B (buyer-wise), B2C, and export records. Export ready for your CA or upload directly to the GST portal. No manual data entry, no spreadsheets.',
     },
     {
-        q: 'Is agricultural produce exempt from GST in India?',
-        a: 'Raw, unprocessed agricultural produce is generally GST-exempt. However, the commission earned by agents, transport charges, and processed goods may attract GST. MandiGrow\'s compliance engine correctly identifies taxable vs. exempt transactions.',
+        q: 'Is MandiGrow compliant with APMC regulations?',
+        a: 'Yes. MandiGrow is designed for APMC-registered mandis and commission agents. It supports the mandatory documentation — gate entries, lot records, commission pattis, and trade statements — required by APMC authorities in most states.',
     },
     {
-        q: 'How does MandiGrow help me file GSTR-1?',
-        a: 'Every sale you record in MandiGrow is tagged with the correct GST rate, HSN code, and party GSTIN. At the end of the month, you export a ready-to-upload GSTR-1 JSON file or Excel sheet — no manual data entry required.',
+        q: 'Does MandiGrow work for both registered and composition scheme dealers?',
+        a: 'Yes. MandiGrow supports both regular GST registration and the Composition Scheme. For composition dealers, it tracks turnover thresholds and generates the simplified CMP-08 quarterly return data. Switch between tax modes without losing any transaction history.',
     },
+    {
+        q: 'How does MandiGrow handle GST for different fruit and vegetable varieties?',
+        a: 'Most fresh fruits and vegetables are exempt from GST under Chapter 7 of the HSN code. However, processed, branded, or packed produce may attract 5% or 12% GST. MandiGrow lets you configure HSN codes and GST rates per item — and auto-applies them on every invoice.',
+    },
+];
+
+const states = [
+    { state: 'Andhra Pradesh', cess: 'Yes', rate: '1–2%', note: 'AP Mandi Commission Cess' },
+    { state: 'Telangana', cess: 'Yes', rate: '1%', note: 'Telangana Market Committee Cess' },
+    { state: 'Maharashtra', cess: 'Yes', rate: '1%', note: 'Maharashtra APMC Market Fee' },
+    { state: 'Punjab', cess: 'Yes', rate: '2%', note: 'Punjab Mandi Board Fee' },
+    { state: 'Madhya Pradesh', cess: 'Yes', rate: '2%', note: 'MP Krishi Upaj Mandi Cess' },
+    { state: 'Rajasthan', cess: 'Yes', rate: '1.6%', note: 'Rajasthan Mandi Fee' },
+    { state: 'Gujarat', cess: 'No', rate: 'N/A', note: 'APMC abolished (deregulated)' },
+    { state: 'Karnataka', cess: 'Yes', rate: '1%', note: 'Regulated Market Committee Fee' },
 ];
 
 export default function GstMandiCompliancePage() {
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
+        <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
+            <LandingHeader />
+
+            {/* JSON-LD: FAQPage */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
@@ -73,111 +98,149 @@ export default function GstMandiCompliancePage() {
                         '@type': 'BreadcrumbList',
                         itemListElement: [
                             { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.mandigrow.com' },
-                            {
-                                '@type': 'ListItem',
-                                position: 2,
-                                name: 'GST Mandi Compliance',
-                                item: 'https://www.mandigrow.com/gst-mandi-compliance',
-                            },
+                            { '@type': 'ListItem', position: 2, name: 'GST Mandi Compliance', item: 'https://www.mandigrow.com/gst-mandi-compliance' },
                         ],
                     }),
                 }}
             />
 
-            <section className="max-w-5xl mx-auto px-6 pt-24 pb-16">
+            {/* Hero */}
+            <section className="max-w-5xl mx-auto px-6 pt-16 pb-16">
                 <p className="text-emerald-700 font-black uppercase tracking-widest text-xs mb-4">
-                    GST & Mandi Tax Compliance · India
+                    GST &amp; Mandi Tax Compliance Software · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    Automated GST &amp; Mandi Tax Compliance for Fruit &amp; Vegetable Traders
+                    GST &amp; Mandi Tax Compliance Software for Commission Agents in India
                 </h1>
-                <p className="text-xl text-gray-700 max-w-3xl mb-8">
-                    GST software built specifically for Indian mandi commission agents and wholesale traders.
-                    Auto-calculate Mandi Tax (Cess), generate GSTR-1, GSTR-3B and e-invoices without a
-                    separate CA or Excel sheet. Hindi and English. Mobile-ready.
+                <p className="text-xl text-gray-700 max-w-3xl mb-4">
+                    MandiGrow automates <strong>GST billing, Mandi Tax (Cess), and audit-ready reports</strong> for
+                    commission agents and fruit-vegetable traders across all Indian states. GSTR-1, GSTR-3B, and
+                    APMC-compliant records — all generated automatically from your daily transactions.
+                </p>
+                <p className="text-lg text-gray-600 max-w-3xl mb-8">
+                    No manual spreadsheets. No midnight data entry. Stay compliant without ever leaving your mandi workflow.
                 </p>
                 <div className="flex gap-4 flex-wrap">
-                    <Link
-                        href="/subscribe"
-                        className="px-8 py-4 bg-emerald-700 text-white font-black rounded-2xl shadow-lg hover:bg-emerald-800 transition"
-                    >
+                    <Link href="/subscribe" className="px-8 py-4 bg-emerald-700 text-white font-black rounded-2xl shadow-lg hover:bg-emerald-800 transition">
                         Start Free Trial →
                     </Link>
-                    <Link
-                        href="/login"
-                        className="px-8 py-4 bg-white text-emerald-800 font-black rounded-2xl border border-emerald-200 hover:bg-emerald-50 transition"
-                    >
-                        Book a Demo
+                    <Link href="/login" className="px-8 py-4 bg-white text-emerald-800 font-black rounded-2xl border border-emerald-200 hover:bg-emerald-50 transition">
+                        Book a Free Demo
                     </Link>
                 </div>
             </section>
 
+            {/* GST Features */}
+            <section className="bg-emerald-900 text-white py-16 px-6">
+                <div className="max-w-5xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
+                        Complete GST Automation for Mandi Commission Agents
+                    </h2>
+                    <p className="text-emerald-200 text-lg mb-10 max-w-3xl">
+                        Every GST feature a commission agent or mandi trader needs — built in, automated, and
+                        always up to date with the latest GST rules.
+                    </p>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[
+                            { title: 'Auto GST on Every Sale', desc: 'CGST, SGST, IGST — auto-calculated based on buyer state. Supports 0%, 5%, 12% and exempt categories for fresh produce.' },
+                            { title: 'Mandi Tax (Cess) Automation', desc: 'AP, Telangana, Maharashtra, Punjab, MP Mandi Cess is auto-calculated on every APMC sale transaction.' },
+                            { title: '1-Click GSTR-1 Export', desc: 'All your sales data organized into GSTR-1 format — B2B, B2C, export. Ready to upload or hand to your CA.' },
+                            { title: 'GSTR-3B Data Ready', desc: 'Monthly summary of taxable sales, exempt supplies, and input tax credit — ready for GSTR-3B filing.' },
+                            { title: 'Audit Trail for Inspectors', desc: 'Complete transaction log with timestamps, user IDs, and party details. No manual reconciliation for government audits.' },
+                            { title: 'Composition Scheme Support', desc: 'Track turnover thresholds. Generate CMP-08 quarterly return data. Switch tax modes without losing history.' },
+                        ].map(({ title, desc }) => (
+                            <div key={title} className="p-6 bg-emerald-800/60 border border-emerald-700 rounded-3xl">
+                                <h3 className="text-lg font-black mb-2 text-emerald-100">{title}</h3>
+                                <p className="text-emerald-300 text-sm leading-relaxed">{desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Mandi Tax by State */}
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
-                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-6">
-                    GST Filing for Commission Agents — Built Into Every Transaction
+                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
+                    Mandi Tax (Cess) by State — India APMC Market Software
                 </h2>
-                <p className="text-lg text-gray-700 mb-4">
-                    Filing GST as a mandi commission agent is complex — agricultural produce is exempt, but
-                    your commission income is taxable. Mandi Cess varies by state and commodity. Generic
-                    accounting tools leave you with manual calculations, wrong HSN codes, and last-minute
-                    panic before every filing deadline.
+                <p className="text-lg text-gray-700 mb-8">
+                    MandiGrow is configured for APMC market software compliance across all major Indian states.
+                    The Mandi Tax rate is automatically applied based on your registered state — no manual configuration needed.
                 </p>
-                <p className="text-lg text-gray-700">
-                    MandiGrow is different. Every sale, purchase, and commission entry is tagged with the
-                    correct GST rate, HSN code, and party GSTIN at the point of entry. Your GSTR-1 data
-                    is always ready — no month-end scramble.
+                <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-emerald-700 text-white">
+                                <th className="p-4 text-left rounded-tl-2xl font-black">State</th>
+                                <th className="p-4 text-center font-black">Mandi Cess</th>
+                                <th className="p-4 text-center font-black">Rate</th>
+                                <th className="p-4 text-left rounded-tr-2xl font-black">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {states.map(({ state, cess, rate, note }, i) => (
+                                <tr key={state} className={i % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
+                                    <td className="p-4 font-bold text-gray-700">{state}</td>
+                                    <td className={`p-4 text-center font-bold ${cess === 'Yes' ? 'text-emerald-600' : 'text-gray-400'}`}>{cess}</td>
+                                    <td className="p-4 text-center text-gray-600">{rate}</td>
+                                    <td className="p-4 text-gray-500 text-xs">{note}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <p className="text-xs text-gray-400 mt-4">
+                    * Cess rates are indicative and may change per APMC notifications. MandiGrow is updated regularly to reflect current rates.
                 </p>
             </section>
 
+            {/* FAQ */}
+            <section className="bg-[#f0f8e8] px-6 py-16 border-t border-emerald-100">
+                <div className="max-w-5xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
+                        GST for Mandi Commission Agents — FAQ
+                    </h2>
+                    <div className="space-y-6">
+                        {FAQ.map((f) => (
+                            <div key={f.q} className="p-6 bg-white border border-emerald-100 rounded-3xl shadow-sm">
+                                <h3 className="text-lg font-black mb-2">{f.q}</h3>
+                                <p className="text-gray-700 leading-relaxed">{f.a}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Internal Links */}
             <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
-                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    Mandi Tax (Cess) &amp; e-Invoicing Automation
-                </h2>
-                <div className="grid md:grid-cols-2 gap-6">
+                <h2 className="text-2xl font-black tracking-tighter mb-6">Also See: Related MandiGrow Pages</h2>
+                <div className="grid md:grid-cols-3 gap-4">
                     {[
-                        ['GSTR-1 one-click export', 'Export GSTR-1 JSON or Excel at month-end. Directly upload to GST portal.'],
-                        ['GSTR-3B auto-summary', 'Monthly summary of output tax, input credit, and Mandi Cess — ready in seconds.'],
-                        ['Mandi Tax (Cess) auto-calculation', 'State-wise APMC Cess calculated and posted automatically on every transaction.'],
-                        ['e-Invoicing (IRN) ready', 'Generate IRN-compliant invoices for eligible B2B transactions without extra software.'],
-                        ['HSN code mapping', 'Every commodity pre-mapped to the correct HSN code. Customize per state rules.'],
-                        ['Audit trail for inspectors', 'Full immutable transaction log for government auditors and tax inspectors.'],
-                    ].map(([title, desc]) => (
-                        <div key={title} className="p-6 bg-white border border-emerald-100 rounded-3xl shadow-sm">
-                            <h3 className="text-xl font-black mb-2">{title}</h3>
-                            <p className="text-gray-600">{desc}</p>
-                        </div>
+                        { href: '/commission-agent-software', label: 'Commission Agent Software' },
+                        { href: '/mandi-billing', label: 'Mandi Billing Software' },
+                        { href: '/fruit-vegetable-billing', label: 'Fruit & Vegetable Billing' },
+                    ].map(({ href, label }) => (
+                        <Link key={href} href={href} className="p-4 bg-white border border-emerald-100 rounded-2xl shadow-sm hover:border-emerald-400 transition font-bold text-emerald-700 text-center">
+                            {label} →
+                        </Link>
                     ))}
                 </div>
             </section>
 
-            <section className="max-w-5xl mx-auto px-6 py-16 border-t border-emerald-100">
-                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
-                    GST Software for Mandi Traders — FAQ
-                </h2>
-                <div className="space-y-6">
-                    {FAQ.map((f) => (
-                        <div key={f.q}>
-                            <h3 className="text-lg font-black mb-2">{f.q}</h3>
-                            <p className="text-gray-700">{f.a}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
+            {/* CTA */}
             <section className="max-w-5xl mx-auto px-6 py-20 text-center">
                 <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-6">
-                    Never Miss a GST Deadline Again
+                    GST Compliance Without the Headache. Free for 14 Days.
                 </h2>
                 <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-                    14-day free trial. No credit card. Live GST demo in Hindi or English.
+                    No credit card. No setup fees. Your CA will love the reports. Your mandi will love the speed.
                 </p>
-                <Link
-                    href="/subscribe"
-                    className="inline-block px-10 py-5 bg-emerald-700 text-white font-black rounded-2xl shadow-xl hover:bg-emerald-800 transition text-lg"
-                >
-                    Start Free Trial →
+                <Link href="/subscribe" className="inline-block px-10 py-5 bg-emerald-700 text-white font-black rounded-2xl shadow-xl hover:bg-emerald-800 transition text-lg">
+                    Start Free 14-Day Trial →
                 </Link>
             </section>
+
+            <LandingFooter />
         </main>
     );
 }
