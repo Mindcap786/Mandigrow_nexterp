@@ -10092,6 +10092,127 @@ def get_site_contact_settings() -> dict:
     settings = frappe.get_doc("Site Contact Settings")
     return settings.as_dict()
 
+
+@frappe.whitelist(allow_guest=True)
+def send_contact_email(name: str, email: str, phone: str = "", subject: str = "Contact Form Submission", message: str = "") -> dict:
+    """
+    Receives a contact form submission and forwards it to the sales email
+    configured in Site Contact Settings, using the same SMTP account as OTPs.
+    """
+    import smtplib
+    import ssl
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from frappe.utils.password import get_decrypted_password
+
+    # ── Validate input ────────────────────────────────────────────────────────
+    name    = (name    or "").strip()
+    email   = (email   or "").strip()
+    phone   = (phone   or "").strip()
+    subject = (subject or "Contact Form Submission").strip()
+    message = (message or "").strip()
+
+    if not name or not email:
+        frappe.throw(_("Name and email are required."))
+
+    # ── Get the sales / support recipient from Site Contact Settings ──────────
+    try:
+        settings = frappe.get_doc("Site Contact Settings")
+        recipient = (getattr(settings, "email_sales", None) or
+                     getattr(settings, "email_support", None) or "").strip()
+    except Exception:
+        recipient = ""
+
+    if not recipient:
+        frappe.throw(_("Sales email not configured. Please ask your admin to set it in Site Contact Settings."))
+
+    # ── Get SMTP credentials (same account as OTP emails) ────────────────────
+    acct = frappe.db.get_value(
+        "Email Account",
+        {"enable_outgoing": 1, "default_outgoing": 1},
+        ["name", "email_id", "smtp_server", "smtp_port", "login_id", "use_tls"],
+        as_dict=True
+    )
+    if not acct:
+        frappe.throw(_("Outgoing email not configured. Please contact support."))
+
+    smtp_pw = get_decrypted_password("Email Account", acct["name"], "password") or ""
+    if not smtp_pw:
+        frappe.throw(_("SMTP password not configured. Please contact support."))
+
+    # ── Build the email ───────────────────────────────────────────────────────
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#f9fafb;border-radius:12px;">
+      <div style="background:#047857;padding:20px 24px;border-radius:10px 10px 0 0;">
+        <h2 style="color:#ffffff;margin:0;font-size:20px;">📩 New Contact Form Submission</h2>
+        <p style="color:#a7f3d0;margin:4px 0 0;font-size:13px;">MandiGrow Website — {subject}</p>
+      </div>
+      <div style="background:#ffffff;padding:24px;border-radius:0 0 10px 10px;border:1px solid #e5e7eb;border-top:none;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr style="border-bottom:1px solid #f3f4f6;">
+            <td style="padding:10px 8px;font-weight:bold;color:#6b7280;width:130px;">Name</td>
+            <td style="padding:10px 8px;color:#111827;">{name}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f3f4f6;">
+            <td style="padding:10px 8px;font-weight:bold;color:#6b7280;">Email</td>
+            <td style="padding:10px 8px;"><a href="mailto:{email}" style="color:#047857;">{email}</a></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f3f4f6;">
+            <td style="padding:10px 8px;font-weight:bold;color:#6b7280;">Phone</td>
+            <td style="padding:10px 8px;color:#111827;">{phone or "—"}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f3f4f6;">
+            <td style="padding:10px 8px;font-weight:bold;color:#6b7280;">Interest</td>
+            <td style="padding:10px 8px;color:#111827;">{subject}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 8px;font-weight:bold;color:#6b7280;vertical-align:top;">Message</td>
+            <td style="padding:10px 8px;color:#111827;white-space:pre-wrap;">{message or "—"}</td>
+          </tr>
+        </table>
+        <div style="margin-top:20px;padding:12px 16px;background:#f0fdf4;border-radius:8px;border-left:4px solid #047857;">
+          <p style="margin:0;font-size:12px;color:#065f46;">
+            Reply directly to <strong>{email}</strong> to respond to this lead.
+          </p>
+        </div>
+      </div>
+      <p style="text-align:center;color:#9ca3af;font-size:11px;margin-top:16px;">MandiGrow — India's #1 Mandi ERP</p>
+    </div>
+    """
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"[MandiGrow Lead] {subject} — {name}"
+        msg["From"]    = f"MandiGrow Contact <{acct['email_id']}>"
+        msg["To"]      = recipient
+        msg["Reply-To"] = f"{name} <{email}>"
+        msg.attach(MIMEText(html_body, "html"))
+
+        smtp_host  = str(acct.get("smtp_server") or "smtp-relay.brevo.com")
+        smtp_port  = int(acct.get("smtp_port") or 587)
+        smtp_login = str(acct.get("login_id") or acct["email_id"])
+        ctx        = ssl.create_default_context()
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as srv:
+            srv.ehlo()
+            if acct.get("use_tls"):
+                srv.starttls(context=ctx)
+            srv.login(smtp_login, smtp_pw)
+            srv.sendmail(acct["email_id"], [recipient], msg.as_string())
+
+        frappe.logger().info(f"[send_contact_email] Contact form from {email} forwarded to {recipient}")
+        return {"success": True, "message": "Message sent successfully"}
+
+    except smtplib.SMTPAuthenticationError as e:
+        frappe.log_error(f"SMTP Auth failed for contact email: {e}", "send_contact_email")
+        frappe.throw(_("Email delivery failed: SMTP authentication error."))
+    except smtplib.SMTPException as e:
+        frappe.log_error(f"SMTP error sending contact email: {e}", "send_contact_email")
+        frappe.throw(_("Email delivery failed. Please try again."))
+    except Exception as e:
+        frappe.log_error(f"Contact email failed: {e}", "send_contact_email")
+        frappe.throw(_("Failed to send message. Please try again."))
+
 @frappe.whitelist(allow_guest=False)
 def update_site_contact_settings(settings: dict) -> dict:
     """
