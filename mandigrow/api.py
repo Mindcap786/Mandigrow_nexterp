@@ -11128,7 +11128,7 @@ def _paytm_verify_checksum(body_json_str: str, merchant_key: str, checksum: str)
 
 @frappe.whitelist(allow_guest=False)
 def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
-                        coupon_code: str = None) -> dict:
+                        coupon_code: str = None, callback_url: str = None) -> dict:
     """
     Creates a Paytm transaction token for the given plan.
     
@@ -11231,7 +11231,7 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
             "mid": mid,
             "websiteName": paytm_cfg.get("website", "WEBSTAGING"),
             "orderId": order_id,
-            "callbackUrl": f"{frappe.utils.get_url()}/api/method/mandigrow.api.paytm_payment_callback",
+            "callbackUrl": f"{callback_url}?order_id={order_id}" if callback_url else f"{frappe.utils.get_url()}/api/method/mandigrow.api.paytm_payment_callback",
             "txnAmount": {"value": amount_str, "currency": "INR"},
             "userInfo": {
                 "custId": org_id[:50],       # Paytm max custId = 64 chars
