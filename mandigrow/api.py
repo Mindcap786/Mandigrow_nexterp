@@ -10578,6 +10578,13 @@ def get_tenant_details(p_org_id: str) -> dict:
     if not owner and users:
         owner = users[0]
         
+    from frappe.utils import add_days
+    trial_ends_at = getattr(org, "trial_ends_at", None)
+    if not trial_ends_at:
+        trial_ends_at = add_days(org.creation, 14)
+
+    current_period_end = getattr(org, "subscription_end_date", None) or getattr(org, "current_period_end", None)
+
     return {
         "org": {
             "id": org.name,
@@ -10587,6 +10594,8 @@ def get_tenant_details(p_org_id: str) -> dict:
             "is_active": getattr(org, "is_active", True),
             "creation": org.creation,
             "expiry": getattr(org, "trial_ends_at", None),
+            "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
+            "current_period_end": str(current_period_end)[:10] if current_period_end else None,
             # grace_period_days is stored in Site Contact Settings, not per-org
             "grace_period": 7,
             "phone": getattr(org, "phone", ""),
