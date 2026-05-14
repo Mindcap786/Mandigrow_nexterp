@@ -41,6 +41,8 @@ export async function middleware(request: NextRequest) {
         path === '/wholesale-trader-erp' ||
         path === '/gst-mandi-compliance' ||
         path === '/sabzi-mandi-software' ||
+        path === '/sabji-billing-software' ||
+        path === '/fruit-vegetable-billing' ||
         path === '/features' ||
         path === '/pricing' ||
         path === '/te' ||
