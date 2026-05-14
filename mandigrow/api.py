@@ -9909,6 +9909,14 @@ def create_coupon(code, discount_type="percent", discount_value=0, max_uses=100,
         frappe.throw(_("Mandi Coupon DocType not found. Run: bench migrate"))
     if frappe.db.exists("Mandi Coupon", {"code": code.upper()}):
         frappe.throw(_("Coupon code {0} already exists").format(code.upper()))
+    
+    if valid_until:
+        from frappe.utils import get_datetime
+        try:
+            valid_until = get_datetime(valid_until).strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            pass
+
     doc = frappe.get_doc({"doctype": "Mandi Coupon", "code": code.upper().strip(),
         "discount_type": discount_type, "discount_value": discount_value,
         "max_uses": max_uses, "times_used": 0, "is_active": 1,
