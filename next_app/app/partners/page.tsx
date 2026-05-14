@@ -44,10 +44,10 @@ export default function PartnersPage() {
       .then((data: any) => {
         if (data && data.length > 0) {
           // Sort plans by price
-          const sortedPlans = data.sort((a: any, b: any) => (a.base_price || 0) - (b.base_price || 0));
+          const sortedPlans = data.sort((a: any, b: any) => (a.price_monthly || 0) - (b.price_monthly || 0));
           const formattedPlans = sortedPlans.map((p: any) => ({
-            name: p.plan_name.charAt(0).toUpperCase() + p.plan_name.slice(1),
-            price: p.base_price || 0
+            name: p.display_name || p.plan_name || p.name,
+            price: p.price_monthly || 0
           }));
           setPlans(formattedPlans);
           
