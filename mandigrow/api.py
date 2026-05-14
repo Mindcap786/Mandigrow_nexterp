@@ -11226,10 +11226,15 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
         user_email = frappe.db.get_value("User", user, "email") or user
         user_name  = frappe.db.get_value("User", user, "first_name") or ""
 
+        # websiteName controls which payment methods Paytm shows:
+        # "WEBSTAGING" → only UPI (test mode, limited methods)
+        # "DEFAULT"    → all methods: UPI + Debit/Credit Cards + Net Banking + Wallets
+        # Use the configured value from admin settings, falling back to correct default per env
+        default_website = "WEBSTAGING" if is_staging else "DEFAULT"
         body = {
             "requestType": "Payment",
             "mid": mid,
-            "websiteName": paytm_cfg.get("website", "WEBSTAGING"),
+            "websiteName": paytm_cfg.get("website") or default_website,
             "orderId": order_id,
             "callbackUrl": f"{callback_url}?order_id={order_id}" if callback_url else f"{frappe.utils.get_url()}/api/method/mandigrow.api.paytm_payment_callback",
             "txnAmount": {"value": amount_str, "currency": "INR"},
