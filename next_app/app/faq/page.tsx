@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
+import { LandingHeader } from '@/components/layout/LandingHeader';
 
 /**
  * /faq — public FAQ page
@@ -77,7 +78,8 @@ const FAQ = [
 
 export default function FaqPage() {
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
+        <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
+            <LandingHeader />
             {/* FAQPage JSON-LD scoped to this URL */}
             <script
                 type="application/ld+json"

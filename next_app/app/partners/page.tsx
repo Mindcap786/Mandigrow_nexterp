@@ -16,6 +16,15 @@ export default function PartnersPage() {
     hero_subtitle: "Join MandiGrow's Partner Network. Earn 30% recurring commission on every mandi you onboard — for the lifetime of the subscription."
   });
 
+  // Calculator State
+  const [mandisCount, setMandisCount] = useState(10);
+  const [planType, setPlanType] = useState(1); // Default to middle plan
+  const [plans, setPlans] = useState([
+    { name: 'Starter', price: 1999 },
+    { name: 'Professional', price: 3999 },
+    { name: 'Enterprise', price: 7999 }
+  ]);
+
   useEffect(() => {
     // Fetch dynamic settings from Frappe admin
     callApiGet('mandigrow.api.get_partner_settings')
@@ -29,8 +38,30 @@ export default function PartnersPage() {
         }
       })
       .catch(console.error);
+
+    // Fetch live plans for the calculator
+    callApiGet('mandigrow.api.get_plans')
+      .then((data: any) => {
+        if (data && data.length > 0) {
+          // Sort plans by price
+          const sortedPlans = data.sort((a: any, b: any) => (a.base_price || 0) - (b.base_price || 0));
+          const formattedPlans = sortedPlans.map((p: any) => ({
+            name: p.plan_name.charAt(0).toUpperCase() + p.plan_name.slice(1),
+            price: p.base_price || 0
+          }));
+          setPlans(formattedPlans);
+          
+          // Set planType to the middle plan if available
+          if (formattedPlans.length >= 3) {
+             setPlanType(Math.floor(formattedPlans.length / 2));
+          } else if (formattedPlans.length > 0) {
+             setPlanType(0);
+          }
+        }
+      })
+      .catch(console.error);
   }, []);
-  
+
   // Update HTML data-theme attribute directly for the partners.css to work
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -52,15 +83,6 @@ export default function PartnersPage() {
     { q: "Is there an exclusive territory for agency partners?", a: "Yes. Agency partners can apply for district-level territory exclusivity. Once approved, no other MandiGrow partner will be allowed to sell in your territory. State-level exclusivity is available for State Distributor tier partners." },
     { q: "When and how do I receive my commission?", a: "Commissions are calculated on the 1st of every month and transferred within 5 working days via NEFT/UPI to your bank account. You can track all earnings in real time on your partner dashboard." },
     { q: "Can I offer MandiGrow under my own brand name?", a: "Yes — white-labeling is available for Agency and State Distributor partners. You can present MandiGrow as your own product with your logo and brand colors. This is ideal for software firms and CA firms who want to build their own SaaS brand." }
-  ];
-
-  // Calculator State
-  const [mandisCount, setMandisCount] = useState(10);
-  const [planType, setPlanType] = useState(1); // 0=Starter, 1=Growth, 2=Enterprise
-  const plans = [
-    { name: 'Starter', price: 1999 },
-    { name: 'Growth Plan', price: 3999 },
-    { name: 'Enterprise', price: 7999 }
   ];
 
   // Scroll Reveal Observer

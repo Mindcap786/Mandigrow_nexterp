@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
+import { LandingHeader } from '@/components/layout/LandingHeader';
 
 /**
  * /mandi-billing — feature landing page
@@ -59,7 +60,8 @@ const FAQ = [
 
 export default function MandiBillingPage() {
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
+        <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
+            <LandingHeader />
             {/* JSON-LD: FAQPage scoped to this page */}
             <script
                 type="application/ld+json"

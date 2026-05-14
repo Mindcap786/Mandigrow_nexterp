@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LandingFooter } from '@/components/layout/LandingFooter';
+import { LandingHeader } from '@/components/layout/LandingHeader';
 
 export const metadata: Metadata = {
     title: 'Commission Agent Software for Mandi Traders | MandiGrow',
@@ -48,7 +50,8 @@ const FAQ = [
 
 export default function CommissionAgentPage() {
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
+        <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
+            <LandingHeader />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
@@ -177,6 +180,7 @@ export default function CommissionAgentPage() {
                     Start Free Trial →
                 </Link>
             </section>
+            <LandingFooter />
         </main>
     );
 }
