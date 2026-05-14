@@ -176,10 +176,12 @@ export default function BillingCheckout() {
 
         try {
             // Step 1: Create order on backend
+            const callbackBaseUrl = `${window.location.origin}/settings/billing/payment-callback`;
             const orderRes: PaytmOrderResult = await callApi('mandigrow.api.create_paytm_order', {
                 plan_name: plan.plan_name || plan.name,
                 billing_cycle: cycle,
                 coupon_code: couponStatus?.isValid ? couponCode.trim().toUpperCase() : null,
+                callback_url: callbackBaseUrl,
             }) as PaytmOrderResult;
 
             if (!orderRes?.success) {
@@ -189,9 +191,8 @@ export default function BillingCheckout() {
             setOrderId(orderRes.order_id);
             setPaymentState('redirecting');
 
-            // Step 2: Redirect to Paytm's hosted payment page (NO JS SDK needed)
-            // Paytm will redirect back to /settings/billing/payment-callback after payment
-            const callbackUrl = `${window.location.origin}/settings/billing/payment-callback?order_id=${orderRes.order_id}`;
+            // Step 2: Redirect to Paytm's hosted payment page
+            const callbackUrl = `${callbackBaseUrl}?order_id=${orderRes.order_id}`;
             redirectToPaytm(orderRes, callbackUrl);
 
         } catch (err: any) {
