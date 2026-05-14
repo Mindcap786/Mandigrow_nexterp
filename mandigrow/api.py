@@ -11475,39 +11475,48 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
 @frappe.whitelist(allow_guest=True)
 def paytm_payment_callback():
     """
-    Paytm server-to-server callback (webhook).
-    Paytm calls this URL after payment regardless of browser state.
-    This handles the case where user closes browser after payment.
+    Paytm browser redirect callback.
+    Paytm redirects the USER'S BROWSER to this URL after payment.
     
-    Idempotent: same order_id cannot activate subscription twice (checked in verify_paytm_payment).
+    Because callbackUrl is the Next.js frontend page (/settings/billing/payment-callback),
+    Paytm will POST or redirect there. The frontend page calls verify_paytm_payment.
+    
+    This endpoint is ALSO kept as a fallback for cases where the old callbackUrl
+    (pointing to Frappe backend) was stored in Paytm's system from earlier orders.
+    In that case, we activate the plan server-side and redirect to the frontend.
+    
+    Idempotent: same order_id cannot activate subscription twice.
     """
     import json
     try:
         post_data = frappe.request.form.to_dict() if hasattr(frappe.request, 'form') else {}
         if not post_data:
-            post_data = json.loads(frappe.request.data or '{}')
+            try:
+                post_data = json.loads(frappe.request.data or '{}')
+            except Exception:
+                post_data = {}
 
-        order_id = post_data.get("ORDERID") or post_data.get("orderId")
+        order_id = post_data.get("ORDERID") or post_data.get("orderId") or \
+                   frappe.form_dict.get("order_id") or frappe.form_dict.get("ORDERID")
         txn_status = post_data.get("STATUS") or post_data.get("resultStatus", "")
-        org_id = None
 
-        # Try to resolve org from order_id prefix (MG-ORG00001-...)
-        if order_id and order_id.startswith("MG-"):
-            parts = order_id.split("-")
-            if len(parts) >= 2:
-                org_prefix = parts[1].lower()
-                # Match against actual org IDs
-                possible_orgs = frappe.db.sql(
-                    "SELECT name FROM `tabMandi Organization` WHERE name LIKE %s LIMIT 1",
-                    (f"%{org_prefix}%",), as_dict=True
-                )
-                if possible_orgs:
-                    org_id = possible_orgs[0]["name"]
+        frappe.logger().info(f"[paytm_callback] order={order_id} status={txn_status} raw_post_keys={list(post_data.keys())}")
 
-        frappe.logger().info(f"[paytm_callback] order={order_id} status={txn_status} org={org_id}")
+        # ── Determine frontend redirect URL ───────────────────────────────────
+        # Always redirect browser to the Next.js callback page which handles
+        # plan verification and shows success/fail to user
+        site_url = frappe.utils.get_url()
+        # Try to derive the frontend URL (Vercel/Next.js host)
+        # If order_id present, the frontend page will call verify_paytm_payment itself
+        frontend_callback = frappe.db.get_single_value("Website Settings", "home_page") or site_url
+        # Prefer the configured mandigrow.com URL
+        frontend_base = "https://mandigrow.com"
+        redirect_url = f"{frontend_base}/settings/billing/payment-callback"
+        if order_id:
+            redirect_url = f"{redirect_url}?order_id={order_id}"
 
         if txn_status == "TXN_SUCCESS" and order_id:
-            # Use the existing pending audit log to find the right user context
+            # Server-side activation as fallback (for old orders where callbackUrl = Frappe)
             pending = frappe.db.sql("""
                 SELECT organization, notes FROM `tabSubscription Audit Log`
                 WHERE action = 'custom_plan' AND notes LIKE %s
@@ -11524,7 +11533,6 @@ def paytm_payment_callback():
                 except Exception:
                     plan_name = billing_cycle = coupon_code = None
 
-                # Check idempotency
                 already = frappe.db.get_value(
                     "Subscription Audit Log",
                     {"organization": org_id_from_log, "action": "plan_change",
@@ -11532,13 +11540,10 @@ def paytm_payment_callback():
                     "name"
                 )
                 if not already and plan_name:
-                    # Verify with Paytm then activate
-                    # Run as the org's admin user
                     admin_user = frappe.db.get_value("User",
                         {"mandi_organization": org_id_from_log, "role_type": "admin"}, "name")
                     if not admin_user:
                         admin_user = "Administrator"
-
                     frappe.set_user(admin_user)
                     activate_result = change_tenant_plan(
                         plan_name=plan_name,
@@ -11546,12 +11551,21 @@ def paytm_payment_callback():
                         payment_confirmed=True,
                         coupon_code=coupon_code,
                     )
-                    frappe.logger().info(f"[paytm_callback] webhook activation result: {activate_result}")
+                    frappe.logger().info(f"[paytm_callback] server-side activation: {activate_result}")
 
-        return "OK"
+        # ── Redirect browser to Next.js frontend ──────────────────────────────
+        frappe.local.response["type"] = "redirect"
+        frappe.local.response["location"] = redirect_url
+        return
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "paytm_payment_callback Failed")
+        # Still redirect to frontend even on error
+        try:
+            frappe.local.response["type"] = "redirect"
+            frappe.local.response["location"] = "https://mandigrow.com/settings/billing/payment-callback?error=1"
+        except Exception:
+            pass
         return "ERROR"
 
 
@@ -11964,7 +11978,7 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
         try:
             frappe.get_doc({
                 "doctype": "Subscription Audit Log",
-                "organization_id": org_id,
+                "organization": org_id,
                 "action": "plan_changed",
                 "old_value": frappe.db.get_value("Mandi Organization", org_id, "subscription_tier") or "unknown",
                 "new_value": plan_name,
