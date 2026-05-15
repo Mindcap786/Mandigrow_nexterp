@@ -296,5 +296,13 @@
   },
   "sales": {
     "bulk_lot_sale_subtitle": "Normal sale process for bulk buyers at once"
+  },
+  "seo_pages": {
+    "fruit_h1": "Fruit & Vegetable Billing Software for Indian Wholesale Traders",
+    "fruit_p": "MandiGrow is India's #1 fruit and vegetable billing software for wholesale traders, commission agents, and mandi operators. Manage purchase bills, sales invoices, perishable stock tracking, GST compliance, and party payments — all in one cloud platform.",
+    "gst_h1": "GST Mandi Compliance Software for Commission Agents & Traders",
+    "gst_p": "Generate GST-compliant bills, automate Mandi Tax (Cess), and export GSTR-1 and GSTR-3B instantly. Built specifically for APMC, sabzi mandi, and agricultural wholesale markets.",
+    "mandi_h1": "The Fastest Mandi Billing Software for Fruits & Vegetable Traders",
+    "mandi_p": "MandiGrow generates GST-compliant bills for fruits and vegetable trade in under 10 seconds. Built for mandi commission agents, sabzi mandi wholesalers and wholesale dealers across India. Hindi and English. Mobile and desktop. Free 14-day trial."
   }
 }

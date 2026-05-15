@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
 import { LandingHeader } from '@/components/layout/LandingHeader';
+import { TranslatedText } from '@/components/i18n/translated-text';
 
 /**
  * /gst-mandi-compliance — SEO landing page
@@ -110,12 +111,10 @@ export default function GstMandiCompliancePage() {
                     GST &amp; Mandi Tax Compliance Software · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    GST &amp; Mandi Tax Compliance Software for Commission Agents in India
+                    <TranslatedText tKey="seo_pages.gst_h1" fallback="GST &amp; Mandi Tax Compliance Software for Commission Agents in India" />
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-4">
-                    MandiGrow automates <strong>GST billing, Mandi Tax (Cess), and audit-ready reports</strong> for
-                    commission agents and fruit-vegetable traders across all Indian states. GSTR-1, GSTR-3B, and
-                    APMC-compliant records — all generated automatically from your daily transactions.
+                    <TranslatedText tKey="seo_pages.gst_p" fallback="Generate GST-compliant bills, automate Mandi Tax (Cess), and export GSTR-1 and GSTR-3B instantly. Built specifically for APMC, sabzi mandi, and agricultural wholesale markets." />
                 </p>
                 <p className="text-lg text-gray-600 max-w-3xl mb-8">
                     No manual spreadsheets. No midnight data entry. Stay compliant without ever leaving your mandi workflow.

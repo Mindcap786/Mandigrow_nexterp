@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
 import { LandingHeader } from '@/components/layout/LandingHeader';
+import { TranslatedText } from '@/components/i18n/translated-text';
 
 /**
  * /fruit-vegetable-billing — SEO landing page
@@ -96,12 +97,10 @@ export default function FruitVegetableBillingPage() {
                     Fruit &amp; Vegetable Billing Software · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    Fruit &amp; Vegetable Billing Software for Indian Wholesale Traders
+                    <TranslatedText tKey="seo_pages.fruit_h1" fallback="Fruit &amp; Vegetable Billing Software for Indian Wholesale Traders" />
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-4">
-                    MandiGrow is India&apos;s #1 <strong>fruit and vegetable billing software</strong> for wholesale
-                    traders, commission agents, and mandi operators. Manage purchase bills, sales invoices, perishable
-                    stock tracking, GST compliance, and party payments — all in one cloud platform.
+                    <TranslatedText tKey="seo_pages.fruit_p" fallback="MandiGrow is India's #1 fruit and vegetable billing software for wholesale traders, commission agents, and mandi operators. Manage purchase bills, sales invoices, perishable stock tracking, GST compliance, and party payments — all in one cloud platform." />
                 </p>
                 <p className="text-lg text-gray-600 max-w-3xl mb-8">
                     <strong>Vegetable billing made fast:</strong> Scan crates, auto-calculate weights, and print

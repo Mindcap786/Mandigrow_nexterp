@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
 import { LandingHeader } from '@/components/layout/LandingHeader';
+import { TranslatedText } from '@/components/i18n/translated-text';
 
 /**
  * /mandi-billing — feature landing page
@@ -103,13 +104,10 @@ export default function MandiBillingPage() {
                     Mandi Billing Software · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    The Fastest Mandi Billing Software for Fruits &amp; Vegetable Traders
+                    <TranslatedText tKey="seo_pages.mandi_h1" fallback="The Fastest Mandi Billing Software for Fruits &amp; Vegetable Traders" />
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-8">
-                    MandiGrow generates GST-compliant bills for fruits and vegetable trade in
-                    under 10 seconds. Built for mandi commission agents, sabzi mandi
-                    wholesalers and wholesale dealers across India. Hindi and English. Mobile
-                    and desktop. Free 14-day trial.
+                    <TranslatedText tKey="seo_pages.mandi_p" fallback="MandiGrow generates GST-compliant bills for fruits and vegetable trade in under 10 seconds. Built for mandi commission agents, sabzi mandi wholesalers and wholesale dealers across India. Hindi and English. Mobile and desktop. Free 14-day trial." />
                 </p>
                 <div className="flex gap-4 flex-wrap">
                     <Link
