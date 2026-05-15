@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles, ChevronDown } from 'lucide-react'
 import { useLanguage } from '@/components/i18n/language-provider'
 import { LanguageSwitcher } from '@/components/i18n/language-switcher'
 
@@ -24,7 +24,32 @@ export function LandingHeader() {
                         <span className="text-xl font-bold tracking-tighter text-gray-900">MandiGrow</span>
                     </Link>
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
-                        <Link href="/#features" className="hover:text-emerald-800 transition-colors">{t('landing.nav_features')}</Link>
+                        <div className="relative group">
+                            <button className="flex items-center gap-1 hover:text-emerald-800 transition-colors py-4">
+                                {t('landing.nav_features')} <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:rotate-180 transition-transform" />
+                            </button>
+                            <div className="absolute top-full -left-4 mt-0 w-[480px] bg-white rounded-2xl shadow-xl shadow-emerald-900/10 border border-emerald-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 p-6 grid grid-cols-2 gap-x-8 gap-y-4 pointer-events-none group-hover:pointer-events-auto z-50">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-4">Core Software</h4>
+                                    <div className="space-y-3">
+                                        <Link href="/mandi-billing" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Mandi Billing</Link>
+                                        <Link href="/commission-agent-software" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Commission Agent Software</Link>
+                                        <Link href="/mandi-khata-software" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Mandi Khata (Ledger)</Link>
+                                        <Link href="/gst-mandi-compliance" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">GST &amp; Mandi Compliance</Link>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-4">Commodity &amp; State</h4>
+                                    <div className="space-y-3">
+                                        <Link href="/sabji-billing-software" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Sabji Billing Software</Link>
+                                        <Link href="/fruit-vegetable-billing" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Fruit &amp; Veg Billing</Link>
+                                        <Link href="/mandi-software-andhra-pradesh" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Andhra Pradesh APMC</Link>
+                                        <Link href="/mandi-software-telangana" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Telangana AMC</Link>
+                                        <Link href="/mandi-software-maharashtra" className="block text-gray-900 hover:text-emerald-700 font-bold text-sm">Maharashtra APMC</Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <Link href="/#solutions" className="hover:text-emerald-800 transition-colors">{t('landing.nav_solutions')}</Link>
                         <Link href="/subscribe" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.subscription_billing')}</Link>
                         <Link href="/partners" className="hover:text-emerald-800 transition-colors">Partner Program</Link>
