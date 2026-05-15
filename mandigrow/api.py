@@ -13039,78 +13039,274 @@ def on_login(login_manager):
     # ─────────────────────────────────────────────────────────────────────
 
 @frappe.whitelist(allow_guest=True)
-def create_partner_application(name, phone, city, partner_type, background=None):
+def create_partner_application(name, phone, city, partner_type, background=None, email=None):
     """
-    Called by Next.js frontend to create a new Partner application.
+    Called by Next.js /api/partner-apply route.
+    Saves application to Mandi Partner Profile with status=Pending.
     """
+    import re
     try:
+        # Prevent duplicate applications from same mobile
+        if frappe.db.exists("Mandi Partner Profile", {"mobile_number": phone}):
+            return {"success": False, "error": "An application with this phone number already exists."}
+
         doc = frappe.get_doc({
-            "doctype": "Mandi Partner Profile",
+            "doctype":      "Mandi Partner Profile",
             "partner_name": name,
+            "email":        email or "",
             "mobile_number": phone,
-            "city": city,
+            "city":         city,
             "partner_type": partner_type,
-            "background": background,
-            "status": "Pending"
+            "background":   background or "",
+            "status":       "Pending"
         })
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
-        return {"success": True, "message": "Application created"}
+        return {"success": True, "id": doc.name, "message": "Application created"}
     except Exception as e:
-        frappe.log_error(f"Failed to create partner app: {str(e)}", "Partner API")
+        frappe.log_error(frappe.get_traceback(), "create_partner_application Failed")
         return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def get_partner_applications(status=None):
+    """
+    Called by /admin/partners page to list all partner applications.
+    Requires admin session (allow_guest=False).
+    Returns all records from Mandi Partner Profile, optionally filtered by status.
+    """
+    try:
+        filters = {}
+        if status and status != "All":
+            filters["status"] = status
+
+        records = frappe.get_all(
+            "Mandi Partner Profile",
+            filters=filters,
+            fields=[
+                "name", "partner_name", "email", "mobile_number", "city",
+                "partner_type", "status", "referral_code", "frappe_user",
+                "total_onboarded", "total_commission_earned",
+                "background", "rejection_reason", "creation"
+            ],
+            order_by="creation desc",
+            limit=200,
+            ignore_permissions=True
+        )
+        return {"success": True, "data": records, "total": len(records)}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_partner_applications Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def approve_partner(partner_id):
+    """
+    Admin action: Approve a partner application.
+    1. Generates a unique referral code
+    2. Creates a Frappe user with the partner's email
+    3. Sets a temporary password
+    4. Sends welcome email with login credentials + referral link
+    5. Updates status to Approved
+    """
+    import random
+    import string
+
+    try:
+        partner = frappe.get_doc("Mandi Partner Profile", partner_id)
+
+        if partner.status == "Approved":
+            return {"success": False, "error": "Partner is already approved."}
+
+        if not partner.email:
+            return {"success": False, "error": "Cannot approve: partner has no email address. Ask them to reapply with email."}
+
+        # ── 1. Generate unique referral code ────────────────────────────────
+        def make_code():
+            prefix = (partner.partner_name or "MG")[:3].upper().replace(" ", "")
+            suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+            return f"{prefix}{suffix}"
+
+        referral_code = make_code()
+        # Ensure uniqueness
+        attempts = 0
+        while frappe.db.exists("Mandi Partner Profile", {"referral_code": referral_code}) and attempts < 10:
+            referral_code = make_code()
+            attempts += 1
+
+        # ── 2. Create Frappe User ────────────────────────────────────────────
+        temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+        frappe_user_id = partner.email
+
+        if frappe.db.exists("User", frappe_user_id):
+            # User already exists — just link it
+            user_doc = frappe.get_doc("User", frappe_user_id)
+        else:
+            user_doc = frappe.get_doc({
+                "doctype":     "User",
+                "email":       frappe_user_id,
+                "first_name":  (partner.partner_name or "Partner").split()[0],
+                "last_name":   ' '.join((partner.partner_name or "Partner").split()[1:]) or "",
+                "mobile_no":   partner.mobile_number or "",
+                "enabled":     1,
+                "user_type":   "Website User",
+                "new_password": temp_password,
+            })
+            user_doc.insert(ignore_permissions=True)
+
+        # ── 3. Update Partner Profile ────────────────────────────────────────
+        frappe.db.set_value("Mandi Partner Profile", partner_id, {
+            "status":        "Approved",
+            "referral_code": referral_code,
+            "frappe_user":   frappe_user_id,
+        }, update_modified=True)
+        frappe.db.commit()
+
+        # ── 4. Send welcome email ────────────────────────────────────────────
+        site_url = frappe.utils.get_url()
+        referral_link = f"{site_url}/ref/{referral_code}"
+        login_url     = f"{site_url}/partner/dashboard"
+
+        welcome_subject = f"Welcome to MandiGrow Partner Program — Your Account is Ready!"
+        welcome_body = f"""
+Dear {partner.partner_name},
+
+Congratulations! Your MandiGrow Partner application has been APPROVED.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR LOGIN CREDENTIALS:
+  Email:    {frappe_user_id}
+  Password: {temp_password}
+  Login:    {login_url}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+YOUR REFERRAL LINK:
+  {referral_link}
+
+Share this link with mandi owners. When they sign up using your link,
+you will automatically earn 30% recurring commission on their subscription.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT STEPS:
+1. Log in at: {login_url}
+2. Change your password immediately
+3. Copy your referral link and start sharing
+4. WhatsApp us at +91-XXXXXXXXXX for your training session
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Welcome to the MandiGrow family!
+
+Team MandiGrow
+mandigrow.com
+        """.strip()
+
+        try:
+            frappe.sendmail(
+                recipients=[frappe_user_id],
+                subject=welcome_subject,
+                message=welcome_body.replace('\n', '<br>'),
+                delayed=False
+            )
+        except Exception as mail_err:
+            frappe.log_error(str(mail_err), "approve_partner: welcome email failed (non-fatal)")
+
+        return {
+            "success":       True,
+            "referral_code": referral_code,
+            "referral_link": referral_link,
+            "frappe_user":   frappe_user_id,
+            "temp_password": temp_password,
+            "message":       f"Partner approved. Referral code: {referral_code}. Welcome email sent to {frappe_user_id}."
+        }
+
+    except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "approve_partner Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def reject_partner(partner_id, reason=""):
+    """
+    Admin action: Reject a partner application.
+    Updates status to Rejected, saves reason, sends rejection email.
+    """
+    try:
+        partner = frappe.get_doc("Mandi Partner Profile", partner_id)
+
+        frappe.db.set_value("Mandi Partner Profile", partner_id, {
+            "status":           "Rejected",
+            "rejection_reason": reason,
+        }, update_modified=True)
+        frappe.db.commit()
+
+        # Send rejection email if partner has email
+        if partner.email:
+            try:
+                frappe.sendmail(
+                    recipients=[partner.email],
+                    subject="MandiGrow Partner Application Update",
+                    message=f"""
+Dear {partner.partner_name},<br><br>
+Thank you for applying to the MandiGrow Partner Program.<br><br>
+After reviewing your application, we are unable to approve it at this time.<br>
+<b>Reason:</b> {reason or 'Does not meet current partner criteria.'}<br><br>
+You are welcome to reapply after 30 days or contact us on WhatsApp for clarification.<br><br>
+Team MandiGrow
+                    """,
+                    delayed=False
+                )
+            except Exception as mail_err:
+                frappe.log_error(str(mail_err), "reject_partner: email failed (non-fatal)")
+
+        return {"success": True, "message": f"Partner {partner_id} rejected."}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "reject_partner Failed")
+        return {"success": False, "error": str(e)}
+
 
 @frappe.whitelist(allow_guest=True)
 def get_partner_settings():
     """
-    Called by Next.js frontend to dynamically render the marketing page content.
+    Called by Next.js frontend to dynamically render partner page marketing content.
     """
     if frappe.db.exists("Mandi Partner Settings", "Mandi Partner Settings"):
         return frappe.get_doc("Mandi Partner Settings").as_dict()
     return {}
 
-@frappe.whitelist(allow_guest=True)
-def partner_login(mobile_number, otp):
-    # Dummy OTP validation for MVP
-    if not otp or len(otp) < 4:
-        frappe.throw("Invalid OTP")
-        
-    partner = frappe.db.get_value("Mandi Partner Profile", {"mobile_number": mobile_number}, ["name", "partner_name", "status"], as_dict=True)
-    
-    if not partner:
-        frappe.throw("No partner account found with this mobile number")
-        
-    if partner.status != "Approved":
-        frappe.throw(f"Your account is currently {partner.status}. Please contact support.")
-        
-    return {"success": True, "partner": partner}
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=False)
 def get_partner_dashboard(partner_id):
-    # Fetch Onboarded Mandis
-    mandis = frappe.get_all("Mandi Organization", 
-        filters={"onboarding_partner": partner_id},
-        fields=["name", "organization_name", "creation", "subscription_status"]
-    )
-    
-    # Fetch Payouts
-    payouts = frappe.get_all("Mandi Partner Payout",
-        filters={"partner": partner_id},
-        fields=["name", "payout_month", "payout_year", "commission_amount", "status", "payment_date"],
-        order_by="creation desc"
-    )
-    
-    # Fetch Partner details
-    partner = frappe.get_doc("Mandi Partner Profile", partner_id)
-    
-    return {
-        "success": True,
-        "mandis": mandis,
-        "payouts": payouts,
-        "partner": {
-            "name": partner.name,
-            "partner_name": partner.partner_name,
-            "total_onboarded": partner.total_onboarded,
-            "total_commission_earned": partner.total_commission_earned
+    """Partner-facing dashboard data — mandis referred + payout history."""
+    try:
+        if not frappe.db.exists("Mandi Partner Profile", partner_id):
+            return {"success": False, "error": "Partner not found"}
+
+        mandis = frappe.get_all(
+            "Mandi Organization",
+            filters={"onboarding_partner": partner_id},
+            fields=["name", "organization_name", "creation", "subscription_status"]
+        )
+        payouts = frappe.get_all(
+            "Mandi Partner Payout",
+            filters={"partner": partner_id},
+            fields=["name", "payout_month", "payout_year", "commission_amount", "status", "payment_date"],
+            order_by="creation desc"
+        )
+        partner = frappe.get_doc("Mandi Partner Profile", partner_id)
+
+        return {
+            "success": True,
+            "mandis":  mandis,
+            "payouts": payouts,
+            "partner": {
+                "name":                   partner.name,
+                "partner_name":           partner.partner_name,
+                "referral_code":          partner.referral_code or "",
+                "total_onboarded":        partner.total_onboarded or 0,
+                "total_commission_earned": float(partner.total_commission_earned or 0),
+            }
         }
-    }
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_partner_dashboard Failed")
+        return {"success": False, "error": str(e)}

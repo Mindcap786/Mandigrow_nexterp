@@ -8,12 +8,16 @@
  "engine": "InnoDB",
  "field_order": [
   "partner_name",
+  "email",
   "mobile_number",
   "city",
   "partner_type",
   "status",
+  "rejection_reason",
   "background",
   "cb1",
+  "referral_code",
+  "frappe_user",
   "bank_account_number",
   "ifsc_code",
   "upi_id",
@@ -30,6 +34,15 @@
    "label": "Partner Name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "options": "Email",
+   "in_list_view": 1,
+   "label": "Email Address",
+   "reqd": 0,
+   "description": "Used to create Frappe login account on approval."
   },
   {
    "fieldname": "mobile_number",
@@ -57,6 +70,13 @@
    "options": "Pending\nApproved\nRejected"
   },
   {
+   "fieldname": "rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Rejection Reason",
+   "depends_on": "eval:doc.status=='Rejected'",
+   "description": "Filled by admin when rejecting. Sent to applicant via email."
+  },
+  {
    "fieldname": "background",
    "fieldtype": "Small Text",
    "label": "Background"
@@ -64,6 +84,22 @@
   {
    "fieldname": "cb1",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "referral_code",
+   "fieldtype": "Data",
+   "label": "Referral Code",
+   "read_only": 1,
+   "unique": 1,
+   "description": "Auto-generated on approval. Used in mandigrow.com/ref/CODE referral links."
+  },
+  {
+   "fieldname": "frappe_user",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Frappe Login Account",
+   "read_only": 1,
+   "description": "Frappe user account created on approval. Partner logs in with this email."
   },
   {
    "fieldname": "bank_account_number",
@@ -107,7 +143,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 16:58:49.449565",
+ "modified": "2026-05-15 11:20:00.000000",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Partner Profile",
@@ -129,7 +165,7 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "search_fields": "mobile_number,city",
+ "search_fields": "mobile_number,city,email",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
