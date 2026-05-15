@@ -40,6 +40,9 @@ export default function TenantDetailPage() {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    // Global grace period from super admin settings
+    const [globalGracePeriod, setGlobalGracePeriod] = useState({ monthly: 7, yearly: 14 });
+
     // Subscription Management State
     const [isManageOpen, setIsManageOpen] = useState(false);
     const [isActioning, setIsActioning] = useState(false);
@@ -52,7 +55,7 @@ export default function TenantDetailPage() {
         max_mobile_users: 0,
         trial_ends_at: null as string | null,
         extend_days: 0,
-        grace_period_days: 7,
+        grace_period_days: 7, // will be replaced by global setting on load
         billing_cycle: 'monthly' as 'monthly' | 'yearly',
         rbac_matrix: {} as Record<string, boolean>
     });
@@ -97,8 +100,25 @@ export default function TenantDetailPage() {
         if (id) {
             fetchDetails();
             fetchPlans();
+            fetchGlobalGracePeriod();
         }
     }, [id]);
+
+    // Fetch global grace period from super admin billing settings
+    const fetchGlobalGracePeriod = async () => {
+        try {
+            const result: any = await callApi('mandigrow.api.get_global_settings', {
+                keys: ['grace_period_days_monthly', 'grace_period_days_yearly']
+            });
+            if (result) {
+                const monthly = result.grace_period_days_monthly?.value ?? 7;
+                const yearly = result.grace_period_days_yearly?.value ?? 14;
+                setGlobalGracePeriod({ monthly, yearly });
+            }
+        } catch (e) {
+            console.warn('[TenantDetail] Could not fetch global grace period, using defaults:', e);
+        }
+    };
 
     const fetchDetails = async () => {
         setLoading(true);
@@ -106,14 +126,18 @@ export default function TenantDetailPage() {
             const result: any = await callApi('mandigrow.api.get_tenant_details', { p_org_id: id });
             setData(result);
             if (result?.org) {
+                const billingCycle = result.org.billing_cycle || 'monthly';
+                // Use global grace period based on tenant's billing cycle
+                // Fall back to org's stored grace_period_days if it was manually set previously
+                const globalDefault = billingCycle === 'yearly' ? globalGracePeriod.yearly : globalGracePeriod.monthly;
                 setOverride({
                     subscription_tier: result.org.subscription_tier || 'basic',
                     max_web_users: result.org.max_web_users ?? 1,
                     max_mobile_users: result.org.max_mobile_users ?? 0,
                     trial_ends_at: result.org.current_period_end || result.org.trial_ends_at,
                     extend_days: 0,
-                    grace_period_days: 7,
-                    billing_cycle: result.org.billing_cycle || 'monthly',
+                    grace_period_days: result.org.grace_period_days ?? globalDefault,
+                    billing_cycle: billingCycle,
                     rbac_matrix: result.org.rbac_matrix || {}
                 });
             }
@@ -499,6 +523,8 @@ export default function TenantDetailPage() {
                                                             onClick={() => setOverride(prev => ({ 
                                                                 ...prev, 
                                                                 billing_cycle: 'monthly',
+                                                                // Auto-update grace period to match global monthly setting
+                                                                grace_period_days: globalGracePeriod.monthly,
                                                                 // Auto-calculate expiry: today + 30 days
                                                                 trial_ends_at: calcExpiryFromCycle('monthly'),
                                                                 extend_days: 0
@@ -512,6 +538,8 @@ export default function TenantDetailPage() {
                                                             onClick={() => setOverride(prev => ({ 
                                                                 ...prev, 
                                                                 billing_cycle: 'yearly',
+                                                                // Auto-update grace period to match global yearly setting
+                                                                grace_period_days: globalGracePeriod.yearly,
                                                                 // Auto-calculate expiry: today + 365 days
                                                                 trial_ends_at: calcExpiryFromCycle('yearly'),
                                                                 extend_days: 0
@@ -589,6 +617,9 @@ export default function TenantDetailPage() {
                                                             className="bg-white border-slate-200 text-slate-900 text-xl font-black h-12 rounded-xl text-center"
                                                         />
                                                         <p className="text-[10px] text-slate-400 font-medium">Users can log in during grace period. Access is fully blocked after it ends.</p>
+                                                        <p className="text-[10px] text-indigo-400 font-bold">
+                                                            Global default: Monthly = {globalGracePeriod.monthly}d · Yearly = {globalGracePeriod.yearly}d
+                                                        </p>
                                                         {(() => {
                                                             const finalExpiry = override.extend_days > 0
                                                                 ? addDays(new Date(override.trial_ends_at || new Date().toISOString()), override.extend_days)
