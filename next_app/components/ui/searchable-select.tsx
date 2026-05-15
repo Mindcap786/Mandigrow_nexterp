@@ -30,6 +30,8 @@ interface SearchableSelectProps {
     className?: string
     id?: string
     autoOpenOnFocus?: boolean
+    error?: boolean
+    onSelected?: (value: string) => void
 }
 
 export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSelectProps>(({

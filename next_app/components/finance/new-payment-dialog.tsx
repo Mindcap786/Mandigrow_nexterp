@@ -7,7 +7,7 @@ import { useEnterToTab } from "@/hooks/use-enter-to-tab";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, ArrowUpRight, Landmark, QrCode } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowUpRight, Landmark, QrCode, Zap } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";

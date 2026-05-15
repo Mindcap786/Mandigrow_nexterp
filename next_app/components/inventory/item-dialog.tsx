@@ -262,7 +262,6 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 gst_rate: initialItem?.gst_rate || 0,
                 tracking_type: initialItem?.tracking_type || "none",
                 ...sanitized,
-                name: initialAttrs.base_name || initialItem?.name || "",
                 variety,
                 grade,
                 custom_attributes: otherAttrs,

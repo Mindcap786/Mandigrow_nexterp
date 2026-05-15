@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
+import { PlansGrid } from '@/components/pricing/PlansGrid';
 
 export const metadata: Metadata = {
     title: 'MandiGrow Pricing — Mandi ERP Plans from ₹1,999/mo',
@@ -23,66 +24,7 @@ export const metadata: Metadata = {
     },
 };
 
-const PLANS = [
-    {
-        name: 'Starter',
-        price: '₹1,999',
-        period: '/month',
-        description: 'Perfect for single-branch commission agents and small mandis',
-        highlight: false,
-        features: [
-            'Up to 3 users',
-            'Unlimited sales & purchase bills',
-            'Auto commission calculation',
-            'Real-time khata & ledger',
-            'GST billing & invoicing',
-            'Daily daybook',
-            'WhatsApp patti share',
-            '7 regional languages',
-            'Android mobile app',
-            'Email support',
-        ],
-    },
-    {
-        name: 'Professional',
-        price: '₹3,999',
-        period: '/month',
-        description: 'For growing mandis with multiple staff and higher volumes',
-        highlight: true,
-        badge: 'Most Popular',
-        features: [
-            'Up to 10 users',
-            'Everything in Starter',
-            'Lot & gate entry management',
-            'APMC levy reporting',
-            'Farmer batch settlements',
-            'Multi-commodity support',
-            'Advanced daybook & P&L',
-            'Cheque & UPI reconciliation',
-            'Stock & inventory tracking',
-            'Priority WhatsApp support',
-        ],
-    },
-    {
-        name: 'Enterprise',
-        price: 'Custom',
-        period: '',
-        description: 'For large APMC committees, multi-branch operators and state-level traders',
-        highlight: false,
-        features: [
-            'Unlimited users',
-            'Everything in Professional',
-            'Multi-branch with consolidation',
-            'APMC committee admin panel',
-            'Custom commission structures',
-            'API access for integration',
-            'Dedicated onboarding manager',
-            'SLA-backed uptime guarantee',
-            'On-site training',
-            'Dedicated account manager',
-        ],
-    },
-];
+// Plans are fetched dynamically via PlansGrid component
 
 const FAQ = [
     {
@@ -182,48 +124,7 @@ export default function PricingPage() {
 
             {/* Plans */}
             <section className="max-w-7xl mx-auto px-6 pb-20">
-                <div className="grid md:grid-cols-3 gap-8 items-start">
-                    {PLANS.map((plan) => (
-                        <div
-                            key={plan.name}
-                            className={`rounded-3xl p-8 ${
-                                plan.highlight
-                                    ? 'bg-emerald-900 text-white shadow-2xl scale-105 ring-2 ring-emerald-500'
-                                    : 'bg-white border border-emerald-100 shadow-sm'
-                            }`}
-                        >
-                            {plan.badge && (
-                                <div className="inline-block px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-black uppercase tracking-wider mb-4">
-                                    {plan.badge}
-                                </div>
-                            )}
-                            <h2 className={`text-2xl font-black mb-2 ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>{plan.name}</h2>
-                            <p className={`text-sm mb-6 ${plan.highlight ? 'text-emerald-200' : 'text-gray-500'}`}>{plan.description}</p>
-                            <div className="flex items-baseline gap-1 mb-6">
-                                <span className={`text-5xl font-black tracking-tighter ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>{plan.price}</span>
-                                <span className={`font-bold ${plan.highlight ? 'text-emerald-300' : 'text-gray-500'}`}>{plan.period}</span>
-                            </div>
-                            <Link
-                                href="/subscribe"
-                                className={`block text-center py-3 rounded-xl font-black mb-8 transition-all ${
-                                    plan.highlight
-                                        ? 'bg-white text-emerald-900 hover:bg-emerald-50'
-                                        : 'bg-emerald-700 text-white hover:bg-emerald-800'
-                                }`}
-                            >
-                                {plan.price === 'Custom' ? 'Contact Sales' : 'Start Free Trial'}
-                            </Link>
-                            <ul className="space-y-3">
-                                {plan.features.map((feat) => (
-                                    <li key={feat} className={`flex items-start gap-3 text-sm font-medium ${plan.highlight ? 'text-emerald-100' : 'text-gray-700'}`}>
-                                        <span className={`flex-shrink-0 mt-0.5 ${plan.highlight ? 'text-emerald-400' : 'text-emerald-600'}`}>✓</span>
-                                        {feat}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
+                <PlansGrid isSubscribePage={false} />
             </section>
 
             {/* Trust signals */}

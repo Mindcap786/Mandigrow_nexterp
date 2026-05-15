@@ -122,6 +122,13 @@ export default function PartnersPage() {
     return () => document.removeEventListener('keydown', handleEsc);
   }, []);
 
+  const MODAL_TITLES: Record<string, string> = {
+    freelancer: 'Apply as Freelancer Partner',
+    agency:     'Apply as Agency / Firm Partner',
+    state:      'Talk to Our Sales Team',
+    '':         'Apply to Partner with MandiGrow',
+  };
+
   const submitForm = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -130,18 +137,20 @@ export default function PartnersPage() {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      await fetch('/api/partner-apply', {
+      const res = await fetch('/api/partner-apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+
+      if (!res.ok) throw new Error('Submission failed');
       
       setIsSubmitting(false);
       setIsSuccess(true);
       setTimeout(() => {
         closeModal();
         setIsSuccess(false);
-      }, 1800);
+      }, 2200);
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);
@@ -152,10 +161,10 @@ export default function PartnersPage() {
     <>
       <div className="partners-page-wrapper">
         
-<nav className="nav" role="navigation" ariaLabel="Main navigation">
+<nav className="nav" role="navigation" aria-label="Main navigation">
   <div className="nav-inner">
-    <a href="/" className="logo" ariaLabel="MandiGrow home">
-      <svg className="logo-mark" viewBox="0 0 36 36" fill="none" ariaHidden="true">
+    <a href="/" className="logo" aria-label="MandiGrow home">
+      <svg className="logo-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true">
         <rect width="36" height="36" rx="8" fill="#1a6b3a"/>
         <path d="M18 6 C18 6 10 10 10 18 C10 24 13.5 28 18 29 C22.5 28 26 24 26 18 C26 10 18 6 18 6Z" fill="white" opacity="0.9"/>
         <path d="M18 12 L18 29" stroke="#1a6b3a" strokeWidth="2" strokeLinecap="round"/>
@@ -185,14 +194,14 @@ export default function PartnersPage() {
 <section className="hero">
   <div className="container-narrow">
     <div className="hero-badge">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" ariaHidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
       Partner Program — Now Open All India
     </div>
     <h1 dangerouslySetInnerHTML={{ __html: partnerSettings.hero_title }}></h1>
     <p className="hero-sub">{partnerSettings.hero_subtitle}</p>
     <div className="hero-actions">
       <button className="btn btn-primary" onClick={() => openModal('')}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         Become a Partner
       </button>
       <a href="#how-it-works" className="btn btn-ghost">See How It Works</a>
@@ -240,25 +249,25 @@ export default function PartnersPage() {
     <div className="steps-grid">
       <div className="step-card reveal">
         <span className="step-num">01</span>
-        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <h3>Apply &amp; Get Certified</h3>
         <p>Fill the partner form. We'll train you on MandiGrow in 2 hours via WhatsApp/call. You'll get a partner ID, demo account, and your own referral link.</p>
       </div>
       <div className="step-card reveal">
         <span className="step-num">02</span>
-        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.65 5 2 2 0 0 1 3.62 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.65 5 2 2 0 0 1 3.62 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <h3>Pitch Mandis in Your Area</h3>
         <p>Visit APMCs, grain mandis, and traders in your city or district. We provide pitch decks, brochures in Telugu/Hindi, and demo videos. You show, they sign.</p>
       </div>
       <div className="step-card reveal">
         <span className="step-num">03</span>
-        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
         <h3>Earn Every Month</h3>
         <p>As long as the mandi keeps their MandiGrow subscription, you earn {partnerSettings.commission_percentage}% of the monthly fee — directly credited to your bank. No limits, no expiry.</p>
       </div>
       <div className="step-card reveal">
         <span className="step-num">04</span>
-        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <svg className="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         <h3>Scale Your Network</h3>
         <p>Build a team. Refer sub-partners and earn a bonus on their closures too. Top partners in our network earn ₹50,000+/month without ever writing a single line of code.</p>
       </div>
@@ -286,23 +295,23 @@ export default function PartnersPage() {
         </div>
         <ul className="tier-features" role="list">
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             {partnerSettings.commission_percentage}% recurring commission on every plan
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Personal referral link + dashboard
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             WhatsApp + Zoom sales support
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Brochures in Telugu, Hindi, English
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Monthly payout via NEFT/UPI
           </li>
         </ul>
@@ -322,31 +331,31 @@ export default function PartnersPage() {
         </div>
         <ul className="tier-features" role="list">
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             {partnerSettings.commission_percentage}% recurring + onboarding bonus per client
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Exclusive territory rights (district/state)
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             White-label option with your branding
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Dedicated account manager from MandiGrow
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Priority technical support (2hr SLA)
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Co-marketing support &amp; joint demos
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Listed on MandiGrow.com as certified agency
           </li>
         </ul>
@@ -366,28 +375,28 @@ export default function PartnersPage() {
         </div>
         <ul className="tier-features" role="list">
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Full state exclusivity &amp; territory lock
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Recruit and manage sub-partners
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Revenue share on entire state network
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Custom pricing authority for state
           </li>
           <li>
-            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg className="tier-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Board-level relationship with MandiGrow
           </li>
         </ul>
         <div className="tier-cta">
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal('state')}>Talk to Shauddin</button>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => openModal('state')}>Talk to Our Sales Team</button>
         </div>
       </div>
     </div>
@@ -446,32 +455,32 @@ export default function PartnersPage() {
     </div>
     <div className="benefits-grid">
       <div className="benefit-card reveal">
-        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
         <h3>Sales Pitch Kits</h3>
         <p>Ready-to-use pitch decks, WhatsApp scripts, and brochures in Telugu, Hindi, and English. No preparation needed — just show up and present.</p>
       </div>
       <div className="benefit-card reveal">
-        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <h3>Exclusive Territory</h3>
         <p>Agency partners get district/state territory protection — no other MandiGrow partner can poach your clients. Your mandis stay yours.</p>
       </div>
       <div className="benefit-card reveal">
-        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <h3>Free Demo Access</h3>
         <p>Full MandiGrow demo account to showcase live to mandi owners. Walk them through commission slips, ledger, and daybook in real time.</p>
       </div>
       <div className="benefit-card reveal">
-        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         <h3>Real-Time Dashboard</h3>
         <p>Track your referred mandis, subscription status, earned commissions, and pending payouts — all in one partner portal.</p>
       </div>
       <div className="benefit-card reveal">
-        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <h3>Training &amp; Onboarding</h3>
         <p>2-hour onboarding call with Shauddin personally. Ongoing WhatsApp group for partner Q&amp;A, product updates, and closing support.</p>
       </div>
       <div className="benefit-card reveal">
-        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" ariaHidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <svg className="benefit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         <h3>Monthly Payouts</h3>
         <p>Commissions calculated on the 1st of every month and transferred within 5 business days via NEFT/UPI. No delays, no minimum threshold.</p>
       </div>
@@ -490,7 +499,7 @@ export default function PartnersPage() {
       <div className="testimonial-card reveal">
         <p className="testimonial-quote">"I onboarded 8 mandis in Guntur district in 3 months. MandiGrow gave me all the pitch material in Telugu. The mandi owners signed the same day I demo'd the commission slip feature."</p>
         <div className="testimonial-meta">
-          <div className="testimonial-avatar" ariaHidden="true">R</div>
+          <div className="testimonial-avatar" aria-hidden="true">R</div>
           <div>
             <div className="testimonial-name">Ravi Kumar</div>
             <div className="testimonial-role">Freelancer Partner · Guntur, AP</div>
@@ -501,7 +510,7 @@ export default function PartnersPage() {
       <div className="testimonial-card reveal">
         <p className="testimonial-quote">"As a CA firm, we already handled accounts for 15 mandis. Offering them MandiGrow was natural. We earn recurring commission from existing clients — no extra effort needed."</p>
         <div className="testimonial-meta">
-          <div className="testimonial-avatar" ariaHidden="true">S</div>
+          <div className="testimonial-avatar" aria-hidden="true">S</div>
           <div>
             <div className="testimonial-name">Sunita Agarwal &amp; Co.</div>
             <div className="testimonial-role">Agency Partner · Nagpur, MH</div>
@@ -512,7 +521,7 @@ export default function PartnersPage() {
       <div className="testimonial-card reveal">
         <p className="testimonial-quote">"I was working in an IT company earning ₹35k. Now I run my own MandiGrow agency with 4 staff. Last month we earned ₹1.1L from commissions alone. Best decision of my life."</p>
         <div className="testimonial-meta">
-          <div className="testimonial-avatar" ariaHidden="true">M</div>
+          <div className="testimonial-avatar" aria-hidden="true">M</div>
           <div>
             <div className="testimonial-name">Mohammed Rafi</div>
             <div className="testimonial-role">Agency Partner · Hyderabad, TS</div>
@@ -535,9 +544,9 @@ export default function PartnersPage() {
     <div className="faq-list reveal">
       {faqs.map((faq, idx) => (
         <div key={idx} className={`faq-item ${openFaq === idx ? 'open' : ''}`}>
-          <button className="faq-question" ariaExpanded={openFaq === idx} onClick={() => setOpenFaq(openFaq === idx ? null : idx)}>
+          <button className="faq-question" aria-expanded={openFaq === idx} onClick={() => setOpenFaq(openFaq === idx ? null : idx)}>
             {faq.q}
-            <svg className="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" ariaHidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg className="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div className="faq-answer">{faq.a}</div>
         </div>
@@ -555,7 +564,7 @@ export default function PartnersPage() {
     <p>You are early. The market is wide open. The mandis that adopt MandiGrow today will stay for 10 years. Your commission is recurring — forever.</p>
     <button className="btn btn-primary" onClick={() => openModal('')}>
       Apply to Become a Partner
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" ariaHidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
     <p className="final-cta-note">Free to join · No investment required · Training provided · Payout every month</p>
   </div>
@@ -566,12 +575,12 @@ export default function PartnersPage() {
 
 
 
-<div className={`modal-overlay ${isModalOpen ? 'open' : ''}`} id="apply-modal" role="dialog" ariaModal="true" ariaLabelledby="modal-title" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
+<div className={`modal-overlay ${isModalOpen ? 'open' : ''}`} id="apply-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
   <div className="modal">
     <div className="modal-header">
-      <h2 className="modal-title" id="modal-title">Apply to Partner with MandiGrow</h2>
-      <button className="modal-close" onClick={closeModal} ariaLabel="Close modal">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" ariaHidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <h2 className="modal-title" id="modal-title">{MODAL_TITLES[partnerType] ?? 'Apply to Partner with MandiGrow'}</h2>
+      <button className="modal-close" onClick={closeModal} aria-label="Close modal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <form id="partner-form" onSubmit={submitForm}>
@@ -605,9 +614,15 @@ export default function PartnersPage() {
         <textarea id="f-background" name="background" placeholder="E.g. I'm a software freelancer in Vijayawada, I already know 20+ mandi owners in Krishna district..." rows={3}></textarea>
       </div>
       <button type="submit" className="form-submit" disabled={isSubmitting} style={{ background: isSuccess ? 'var(--color-gold)' : undefined }}>
-        {isSubmitting ? 'Sending...' : isSuccess ? '✓ Application Submitted!' : 'Submit Application →'}
+        {isSubmitting ? 'Sending...' : isSuccess
+          ? '✓ Application Received — Our Sales Team Will Contact You!'
+          : partnerType === 'state' ? 'Send Request to Sales Team →' : 'Submit Application →'}
       </button>
-      <p className="form-note">We'll call you on WhatsApp within 24 hours to discuss partnership details.</p>
+      <p className="form-note">
+        {partnerType === 'state'
+          ? 'Our sales team will reach you on WhatsApp within 24 hours to discuss State Distributor partnership.'
+          : "We'll call you on WhatsApp within 24 hours to discuss partnership details."}
+      </p>
     </form>
   </div>
 </div>

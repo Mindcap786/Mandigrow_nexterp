@@ -707,6 +707,7 @@ export function QuickPurchaseForm() {
                                 packing_cost: '',
                                 loading_cost: '',
                                 other_cut: '',
+                                less_units: '',
                             })}
                             className="bg-slate-900 text-white hover:bg-black rounded-2xl h-12 px-6 font-black tracking-widest text-[10px] shadow-xl shadow-slate-200 uppercase flex items-center gap-2 group transition-all"
                         >

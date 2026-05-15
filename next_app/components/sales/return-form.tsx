@@ -27,6 +27,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
+const PAGE_SIZE = 50;
+
 export default function SalesReturnForm() {
     const { profile } = useAuth();
     const router = useRouter();
