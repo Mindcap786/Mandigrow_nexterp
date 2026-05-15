@@ -31,7 +31,7 @@ export default function PartnerDashboardPage() {
     const fetchDashboard = async (partnerId: string) => {
         setLoading(true);
         try {
-            const res: any = await callApi('mandigrow.api.get_partner_dashboard', { partner_id: partnerId });
+            const res: any = await callApi('mandigrow.api.get_partner_dashboard');
             if (res.success) {
                 setData(res);
             } else {
