@@ -24,18 +24,17 @@ export default function MainLayout({
 }: {
     children: React.ReactNode
 }) {
-    // Default to desktop (web) layout. If we're actually on a native shell,
-    // the effect below flips isNative before paint completes. This avoids
-    // the bare-slate flash that made every navigation feel like a hard refresh.
-    const [isNative, setIsNative] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isCapacitor, setIsCapacitor] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState<number>(288);
 
     useEffect(() => {
         // Initial detection
-        setIsNative(isMobileAppView());
+        setIsMobile(isMobileAppView());
+        setIsCapacitor(isNativePlatform());
 
         // Listen for window resize to toggle UI between Desktop/Native modes
-        const handleResize = () => setIsNative(isMobileAppView());
+        const handleResize = () => setIsMobile(isMobileAppView());
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -47,13 +46,14 @@ export default function MainLayout({
         return () => window.removeEventListener('sidebar-collapse', handler);
     }, []);
 
-    // ── NATIVE MOBILE LAYOUT ───────────────────────────────────────────────────
-    if (isNative) {
+    // ── NATIVE & MOBILE WEB LAYOUT ─────────────────────────────────────────────
+    if (isMobile) {
         return (
             <StockAlertsProvider>
                 <div
                     className={cn(
-                        "fixed inset-0 flex flex-col bg-[#EFEFEF] select-none touch-manipulation",
+                        "flex flex-col bg-[#EFEFEF] select-none touch-manipulation min-h-screen",
+                        isCapacitor ? "fixed inset-0" : "", // Only use rigid shell for actual native app
                         "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
                         "pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]",
                     )}
@@ -67,16 +67,14 @@ export default function MainLayout({
                     {/* System-level alerts (subscription expired, etc.) */}
                     <SystemAlerts />
 
-                    {/* Scrollable main content — offset for fixed top bar + bottom nav */}
+                    {/* Main content */}
                     <main
                         className={cn(
-                            "flex-1 overflow-y-auto overscroll-y-contain",
-                            "[-webkit-overflow-scrolling:touch] custom-scrollbar",
+                            isCapacitor 
+                                ? "flex-1 overflow-y-auto overscroll-y-contain custom-scrollbar min-h-0" 
+                                : "flex-1 pb-24", // Natural scrolling for mobile web to fix address bar masking
                             "pt-14",
-                            // Force flex child to respect parent height for scrolling
-                            "min-h-0",
-                            // Bottom padding: 60px BottomNav + padding
-                            "pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+20px)]",
+                            isCapacitor && "pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+20px)]"
                         )}
                     >
                         {children}
@@ -157,7 +155,7 @@ export default function MainLayout({
                 <NetworkStatus />
                 <PullToRefresh />
                 <SubscriptionExpiryWarning />
-                {!isNative && <SupportHelpdeskWidget />}
+                {!isCapacitor && <SupportHelpdeskWidget />}
                 <PlatformPrintBranding />
             </div>
         </StockAlertsProvider>
