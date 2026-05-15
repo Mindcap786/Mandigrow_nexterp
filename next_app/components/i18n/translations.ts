@@ -405,7 +405,9 @@ export const translations = {
             hi: "Hindi (हिन्दी)",
             te: "Telugu (తెలుగు)",
             ta: "Tamil (தமிழ்)",
-            kn: "Kannada (ಕನ್ನಡ)"
+            kn: "Kannada (ಕನ್ನಡ)",
+            ml: "Malayalam (മലയാളം)",
+            ur: "اردو (Urdu)"
         }
     },
     hi: {
@@ -585,7 +587,9 @@ export const translations = {
             hi: "हिंदी (Hindi)",
             te: "తెలుగు (Telugu)",
             ta: "తమిళం (Tamil)",
-            kn: "ಕನ್ನಡ (Kannada)"
+            kn: "ಕನ್ನಡ (Kannada)",
+            ml: "മലയാളം (Malayalam)",
+            ur: "اردو (Urdu)"
         }
     },
     te: {
@@ -752,7 +756,9 @@ export const translations = {
             hi: "హిందీ (Hindi)",
             te: "తెలుగు (Telugu)",
             ta: "తమిళం (Tamil)",
-            kn: "ಕನ್ನಡ (Kannada)"
+            kn: "కన్నడ (Kannada)",
+            ml: "మలయాళం (Malayalam)",
+            ur: "اردو (Urdu)"
         }
     },
     ta: {
@@ -917,6 +923,9 @@ export const translations = {
             en: "English",
             hi: "இந்தி (Hindi)",
             te: "தெலுங்கு (Telugu)",
+            kn: "ಕನ್ನಡ (Kannada)",
+            ml: "மலயாளம் (Malayalam)",
+            ur: "اردو (Urdu)"
         }
     },
     kn: {
@@ -1056,7 +1065,9 @@ export const translations = {
             hi: "ಹಿಂದಿ (Hindi)",
             te: "ತೆಲುಗು (Telugu)",
             ta: "ತಮಿಳು (Tamil)",
-            kn: "ಕನ್ನಡ (Kannada)"
+            kn: "ಕನ್ನಡ (Kannada)",
+            ml: "ಮಲಯಾಳ (Malayalam)",
+            ur: "اردو (Urdu)"
         }
     }
 };

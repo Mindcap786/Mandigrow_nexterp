@@ -45,7 +45,8 @@
   "common": {
     "version": "v2.0.0",
     "copyright_short": "© 2026",
-    "logout": "لॉग आउट",
+    "logout": "लॉग आउट",
+
     "search": "खोजें",
     "loading": "लोड हो रहा है...",
     "edit": "संपादित करें",
