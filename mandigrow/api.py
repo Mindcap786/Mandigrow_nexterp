@@ -13123,13 +13123,21 @@ def create_partner_application(name, phone, city, partner_type, background=None,
         if frappe.db.exists("Mandi Partner Profile", {"mobile_number": phone}):
             return {"success": False, "error": "An application with this phone number already exists."}
 
+        # Map incoming lowercase keys from Next.js to Frappe Select options
+        type_map = {
+            "freelancer": "Freelancer",
+            "agency": "Agency",
+            "state": "State Distributor"
+        }
+        mapped_type = type_map.get(partner_type, "Freelancer")
+
         doc = frappe.get_doc({
             "doctype":      "Mandi Partner Profile",
             "partner_name": name,
             "email":        email or "",
             "mobile_number": phone,
             "city":         city,
-            "partner_type": partner_type,
+            "partner_type": mapped_type,
             "background":   background or "",
             "status":       "Pending"
         })
