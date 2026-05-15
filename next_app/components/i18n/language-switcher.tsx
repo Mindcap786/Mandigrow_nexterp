@@ -50,7 +50,7 @@ export function LanguageSwitcher() {
                 className="w-48 p-1 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[9999]"
             >
                 <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Select Language
+                    {t('nav.language') || "Select Language"}
                 </div>
                 {languages.map((lang) => (
                     <DropdownMenuItem

@@ -7,7 +7,7 @@
 export type SupportedLanguage = 'en' | 'hi' | 'te' | 'ta' | 'kn' | 'ml' | 'ur';
 
 /** Languages that use right-to-left text direction. */
-export const RTL_LANGUAGES: SupportedLanguage[] = [];
+export const RTL_LANGUAGES: SupportedLanguage[] = ['ur'];
 
 /** Human-readable metadata for each supported language. */
 export const LANGUAGE_CONFIG: Record<
@@ -80,7 +80,7 @@ export const LANGUAGE_CONFIG: Record<
     label: 'Urdu',
     native: 'اردو',
     flag: '🇮🇳',
-    dir: 'ltr',
+    dir: 'rtl',
     fontFamily: '"Noto Nastaliq Urdu", "Noto Sans Arabic", serif',
     googleFontName: 'Noto+Nastaliq+Urdu',
   },

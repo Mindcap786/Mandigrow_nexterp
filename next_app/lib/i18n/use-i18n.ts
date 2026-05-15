@@ -29,6 +29,13 @@ const MANDI_GLOSSARY: Record<string, Record<SupportedLanguage, string>> = {
   bora:     { en: 'Bora',     hi: 'बोरा',      te: 'బోరా',       ta: 'போரா',      kn: 'ಬೋರಾ',      ml: 'ബോറ',       ur: 'بورا'      },
   tola:     { en: 'Tola',     hi: 'तोला',      te: 'తోలా',       ta: 'தோலா',      kn: 'ತೋಲ',       ml: 'തൊല',       ur: 'تولہ'     },
   mandi_fee:{ en: 'Mandi Fee',hi: 'मंडी फीस',  te: 'మండి ఫీజు',  ta: 'மண்டி கட்டணம்', kn: 'ಮಂಡಿ ಶುಲ್ಕ', ml: 'മണ്ഡി ഫീ', ur: 'منڈی فیس'  },
+  commission:{en: 'Commission',hi:'कमीशन',    te: 'కమీషన్',     ta: 'கமிஷன்',     kn: 'ಕಮಿಷನ್',    ml: 'കമ്മീഷൻ',   ur: 'کمیشن'     },
+  udhaar:   { en: 'Udhaar',   hi: 'उधार',      te: 'ఉధార్',      ta: 'உதார்',      kn: 'ಉಧಾರ್',     ml: 'ഉധാർ',      ur: 'ادھار'     },
+  naqad:    { en: 'Naqad',    hi: 'नकद',       te: 'నగదు',       ta: 'ரொக்கம்',    kn: 'ನಗದು',      ml: 'പണം',       ur: 'نقد'       },
+  katchi_parchi: { en: 'Katchi Parchi', hi: 'कच्ची पर्ची', te: 'కచ్చి పర్చి', ta: 'கச்சி பர்ச்சி', kn: 'ಕಚ್ಚಿ ಪರ್ಚಿ', ml: 'കച്ചി പർച്ചി', ur: 'کچی پرچی' },
+  pakki_parchi:  { en: 'Pakki Parchi',  hi: 'पक्की पर्ची', te: 'పక్కి పర్చి', ta: 'பக்கி பர்ச்சி', kn: 'ಪಕ್ಕಿ ಪರ್ಚಿ', ml: 'പക്കി പർച്ചി', ur: 'پکی پرچی' },
+  lot:      { en: 'Lot',      hi: 'लॉट',       te: 'లాట్',       ta: 'லாட்',       kn: 'ಲಾಟ್',      ml: 'ലോട്ട്',    ur: 'لاٹ'       },
+  arrive:   { en: 'Arrival',  hi: 'आवक',       te: 'రాక',        ta: 'வரத்து',     kn: 'ಆಗಮನ',      ml: 'വരവ്',      ur: 'آمد'       },
 };
 
 // ---------------------------------------------------------------------------
