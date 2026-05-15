@@ -242,13 +242,13 @@ export function PlansGrid({ isSubscribePage = false }: PlansGridProps) {
                             <div className="mt-8">
                                 <Link
                                     href={
-                                        isSubscribePage
-                                            ? price === 0
-                                                ? '/contact'
-                                                : `/checkout?plan_id=${encodeURIComponent(plan.plan_name || plan.name)}&cycle=${billing}`
-                                            : price === 0
+                                        // Pricing page (/pricing): drive users to /subscribe to pick a plan
+                                        !isSubscribePage
+                                            ? price === 0 ? '/contact' : '/subscribe'
+                                        // Subscribe page (/subscribe): start free trial → register with plan pre-selected
+                                        : price === 0
                                             ? '/contact'
-                                            : '/subscribe'
+                                            : `/register?plan=${encodeURIComponent(plan.plan_name || plan.name)}&cycle=${billing}`
                                     }
                                     className={cn(
                                         'block text-center py-3.5 rounded-2xl font-black text-sm transition-all active:scale-95',
@@ -258,10 +258,10 @@ export function PlansGrid({ isSubscribePage = false }: PlansGridProps) {
                                     )}
                                 >
                                     {price === 0
-                                        ? 'Contact Sales'
+                                        ? 'Contact Sales →'
                                         : isSubscribePage
-                                        ? 'Select Plan →'
-                                        : 'Start Free Trial →'}
+                                        ? 'Start Free Trial →'
+                                        : 'See Plans →'}
                                 </Link>
                             </div>
                         </div>

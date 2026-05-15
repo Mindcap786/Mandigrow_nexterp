@@ -198,8 +198,43 @@ export default function AdminBillingPlansPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-6 flex-1 pt-6">
-                                
-                                {/* Dimension 1: Base Plan */}
+
+                                {/* ⭐ FEATURE LIST — Most important section, shown first */}
+                                <div className="space-y-3 bg-emerald-50 p-4 rounded-xl border-2 border-emerald-200">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-black text-emerald-700 uppercase tracking-[0.2em] flex items-center gap-2">
+                                            <Activity className="w-3.5 h-3.5" /> Public Feature List
+                                        </h4>
+                                        <span className="text-[9px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full uppercase">
+                                            Shown on /subscribe & /pricing
+                                        </span>
+                                    </div>
+                                    <textarea
+                                        value={Array.isArray(plan.features?.feature_list) ? plan.features.feature_list.join('\n') : ''}
+                                        onChange={(e) => {
+                                            const newPlans = [...plans];
+                                            newPlans[index].features = { 
+                                                ...(newPlans[index].features || {}), 
+                                                feature_list: e.target.value.split('\n').filter(Boolean)
+                                            };
+                                            setPlans(newPlans);
+                                        }}
+                                        placeholder={`One feature per line, e.g.:\n1 Web & Mobile User\nWhatsApp Bill Sharing\nKisan Patti Generation`}
+                                        className="w-full bg-white border border-emerald-200 rounded-lg text-slate-800 text-xs p-3 h-36 resize-y focus:outline-none focus:border-emerald-400 font-mono leading-relaxed"
+                                    />
+                                    {/* Live bullet preview */}
+                                    {Array.isArray(plan.features?.feature_list) && plan.features.feature_list.filter((f: string) => f?.trim()).length > 0 && (
+                                        <div className="bg-white rounded-lg border border-emerald-100 p-3 space-y-1.5">
+                                            <p className="text-[9px] text-emerald-600 font-black uppercase tracking-widest mb-2">Live Preview →</p>
+                                            {plan.features.feature_list.filter((f: string) => f?.trim()).map((feat: string, fi: number) => (
+                                                <div key={fi} className="flex items-center gap-2 text-[11px] text-slate-700">
+                                                    <span className="w-4 h-4 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center flex-shrink-0 text-[8px] font-black">✓</span>
+                                                    {feat}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="space-y-3">
                                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                                         <Layers className="w-3 h-3 text-indigo-600" /> Base Subscription
@@ -331,22 +366,6 @@ export default function AdminBillingPlansPage() {
                                                 }}
                                                 placeholder="e.g. Zap, Crown, Monitor"
                                                 className="bg-white border-slate-200 text-[11px] h-8"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5 col-span-2">
-                                            <Label className="text-[9px] font-bold text-slate-500 uppercase">Features List (One per line)</Label>
-                                            <textarea
-                                                value={Array.isArray(plan.features?.feature_list) ? plan.features.feature_list.join('\n') : ''}
-                                                onChange={(e) => {
-                                                    const newPlans = [...plans];
-                                                    newPlans[index].features = { 
-                                                        ...(newPlans[index].features || {}), 
-                                                        feature_list: e.target.value.split('\n') 
-                                                    };
-                                                    setPlans(newPlans);
-                                                }}
-                                                placeholder="e.g. Unlimited Bills&#10;WhatsApp Support&#10;Regional Languages"
-                                                className="w-full bg-white border border-slate-200 rounded-lg text-slate-700 text-xs p-2 h-32 resize-y focus:outline-none focus:border-indigo-300"
                                             />
                                         </div>
                                     </div>
