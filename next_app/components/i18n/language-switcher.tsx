@@ -8,7 +8,7 @@ import { Languages, Check } from "lucide-react"
 import { motion } from "framer-motion"
 
 export function LanguageSwitcher() {
-    const { language, setLanguage } = useLanguage()
+    const { language, setLanguage, t } = useLanguage()
 
     const languages: { code: Language; label: string; native: string; flag: string; rtl?: boolean }[] = [
         { code: 'en', label: 'English',   native: 'English',    flag: '🇺🇸' },

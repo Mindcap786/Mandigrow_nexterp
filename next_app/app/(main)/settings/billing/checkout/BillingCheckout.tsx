@@ -325,7 +325,7 @@ export default function BillingCheckout() {
     }
 
     // ── Main checkout UI ──────────────────────────────────────────────────────
-    const isProcessing = paymentState === 'creating_order' || paymentState === 'redirecting' || paymentState === 'verifying';
+    const isProcessing = paymentState === 'creating_order' || paymentState === 'verifying';
     const isFree = finalPrice === 0;
 
     return (
@@ -519,16 +519,6 @@ export default function BillingCheckout() {
                     )}
                 </div>
 
-                {/* Redirecting info */}
-                {paymentState === 'redirecting' && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
-                        <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                        <div>
-                            <p className="font-black text-amber-900 text-sm">Redirecting to Paytm...</p>
-                            <p className="text-xs font-bold text-amber-700">Complete your payment on Paytm's secure page. Do not close this tab.</p>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

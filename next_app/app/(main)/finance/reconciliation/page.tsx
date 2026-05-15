@@ -29,7 +29,7 @@ type ChequeRecord = {
     cheque_no: string;
     cheque_date: string;
     clearance_date?: string;
-    cheque_status: "Pending" | "Cleared" | "Cancelled";
+    cheque_status: "Pending" | "Cleared" | "Cancelled" | "Instant";
     narration: string;
     amount: number;
     party_id: string;

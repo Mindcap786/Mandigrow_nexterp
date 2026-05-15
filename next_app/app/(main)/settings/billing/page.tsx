@@ -32,6 +32,7 @@ const PLAN_ICONS: Record<string, any> = {
 interface Plan {
     id: string;
     name: string;
+    plan_name?: string;
     display_name: string;
     price_monthly: number;
     price_yearly: number;

@@ -177,10 +177,10 @@ export default function FeatureFlagsPage() {
                                         {meta.label}
                                     </Badge>
                                     <div className="flex-1 h-px bg-slate-100" />
-                                    <span className="text-xs text-slate-400 font-bold">{categoryFlags.length} flags</span>
+                                    <span className="text-xs text-slate-400 font-bold">{(categoryFlags as any[]).length} flags</span>
                                 </div>
                                 <div className="space-y-2">
-                                    {categoryFlags.map(flag => {
+                                    {(categoryFlags as any[]).map(flag => {
                                         const isOn = !!flag.is_enabled;
                                         const isLocked = flag.flag_key === 'multi_tenant_isolation';
                                         const isTogglingThis = toggling === flag.flag_key;
@@ -201,7 +201,7 @@ export default function FeatureFlagsPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3 shrink-0">
-                                                    {isLocked && <Shield className="w-4 h-4 text-red-400" title="Security constraint — cannot be disabled" />}
+                                                    {isLocked && <span title="Security constraint — cannot be disabled"><Shield className="w-4 h-4 text-red-400" /></span>}
                                                     <button
                                                         disabled={isTogglingThis || isLocked}
                                                         onClick={() => toggleFlag(flag.flag_key, isOn)}

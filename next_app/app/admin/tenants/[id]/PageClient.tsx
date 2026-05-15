@@ -356,7 +356,7 @@ export default function TenantDetailPage() {
                 setIsCreatingOwner(true);
                 try {
                     await callApi('mandigrow.api.provision_team_member', {
-                        email: `admin@${id.toLowerCase()}.com`,
+                        email: `admin@${String(id).toLowerCase()}.com`,
                         full_name: 'Tenant Admin',
                         password: 'mandi123',
                         role: 'admin',
