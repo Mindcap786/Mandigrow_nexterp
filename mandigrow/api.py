@@ -12958,8 +12958,9 @@ def reset_invoice_sequence(contact_id: str):
         frappe.log_error(frappe.get_traceback(), "reset_invoice_sequence Failed")
         return {"success": False, "error": str(e)}
 
-@frappe.whitelist(allow_guest=True)
+
 def on_login(login_manager):
+
     """
     Called after a user successfully logs in.
     1. Enforces 'Single Session per User' by killing ALL previous sessions
