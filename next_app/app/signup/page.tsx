@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, Mail, Lock, User, Phone, AtSign, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
@@ -26,6 +26,7 @@ export default function SignupPage() {
         username: '',
         phone:    '',
         password: '',
+        refCode:  '',
     });
     const [agreed, setAgreed] = useState(false);
     
@@ -40,6 +41,14 @@ export default function SignupPage() {
         if (k === 'email')    v = v.trim();
         setForm(f => ({ ...f, [k]: v }));
     };
+
+    // Grab referral code from cookie on mount
+    useEffect(() => {
+        const match = document.cookie.match(/(^| )mg_ref_code=([^;]+)/);
+        if (match) {
+            setForm(f => ({ ...f, refCode: match[2] }));
+        }
+    }, []);
 
     function validateLocal(): string | null {
         if (!form.orgName.trim())                  return 'Organisation name is required.';

@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
             username: body.username,
             phone:    body.phone,
             plan:     body.plan,
+            refCode:  body.refCode,
         };
     } catch {
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

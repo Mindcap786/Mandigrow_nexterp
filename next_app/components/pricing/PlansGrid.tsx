@@ -248,7 +248,7 @@ export function PlansGrid({ isSubscribePage = false }: PlansGridProps) {
                                         // Subscribe page (/subscribe): start free trial → register with plan pre-selected
                                         : price === 0
                                             ? '/contact'
-                                            : `/register?plan=${encodeURIComponent(plan.plan_name || plan.name)}&cycle=${billing}`
+                                            : `/signup?plan=${encodeURIComponent(plan.plan_name || plan.name)}&cycle=${billing}`
                                     }
                                     className={cn(
                                         'block text-center py-3.5 rounded-2xl font-black text-sm transition-all active:scale-95',

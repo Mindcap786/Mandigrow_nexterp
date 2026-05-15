@@ -47,6 +47,7 @@ export interface ProvisionInput {
     username: string;
     phone?: string;
     plan?: string;
+    refCode?: string;
 }
 
 export class ProvisionError extends Error {
@@ -221,6 +222,7 @@ export async function* provisionTenantStream(
                 username:  input.username,
                 org_name:  input.orgName,
                 phone:     input.phone || '',
+                ref_code:  input.refCode || '',
             });
             createdFrappeUser = result.user_id;
             createdFrappeOrg  = result.org_id;
