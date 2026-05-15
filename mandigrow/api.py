@@ -11332,6 +11332,60 @@ def create_paytm_order(plan_name: str, billing_cycle: str = "monthly",
         return {"success": False, "error": f"Payment initiation error: {str(e)}"}
 
 
+def process_partner_commission(org_id: str, payment_amount: float, txn_id: str):
+    """
+    Automated Payout Engine (Step 6)
+    Calculates and creates a Mandi Partner Payout record if the organization was referred by a partner.
+    """
+    try:
+        org = frappe.get_doc("Mandi Organization", org_id)
+        partner_id = org.get("onboarding_partner")
+        if not partner_id:
+            return  # No partner to commission
+            
+        payment_amount = float(payment_amount or 0)
+        if payment_amount <= 0:
+            return
+
+        commission_percent = frappe.db.get_single_value("Mandi Partner Settings", "commission_percentage")
+        if commission_percent is None:
+            commission_percent = 30
+        commission_percent = float(commission_percent)
+
+        commission_amount = (payment_amount * commission_percent) / 100
+
+        from frappe.utils import getdate
+        import calendar
+        now = getdate()
+        payout_month = calendar.month_name[now.month]
+        payout_year = str(now.year)
+
+        # Create the payout record
+        payout = frappe.get_doc({
+            "doctype": "Mandi Partner Payout",
+            "partner": partner_id,
+            "organization": org_id,
+            "payout_month": payout_month,
+            "payout_year": payout_year,
+            "subscription_amount": payment_amount,
+            "commission_amount": commission_amount,
+            "status": "Unpaid",
+            "transaction_reference": txn_id
+        })
+        payout.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+        # Update lifetime earnings
+        partner = frappe.get_doc("Mandi Partner Profile", partner_id)
+        partner.total_commission_earned = float(partner.total_commission_earned or 0) + commission_amount
+        partner.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        frappe.logger().info(f"[Payout Engine] Created payout for {partner_id}: {commission_amount} (from {payment_amount})")
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "process_partner_commission Failed")
+
+
 @frappe.whitelist(allow_guest=False)
 def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
     """
@@ -11482,6 +11536,9 @@ def verify_paytm_payment(order_id: str, paytm_response: str = None) -> dict:
             )
 
             if activate_result.get("success"):
+                # Run the Payout Engine for the referring partner (if any)
+                process_partner_commission(org_id, txn_amount, txn_id)
+
                 return {
                     "success": True,
                     "message": activate_result.get("message"),
