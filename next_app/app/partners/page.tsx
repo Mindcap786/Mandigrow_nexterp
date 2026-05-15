@@ -595,6 +595,12 @@ export default function PartnersPage() {
         </div>
       </div>
       <div className="form-row">
+        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <label htmlFor="f-email">Email Address</label>
+          <input type="email" id="f-email" name="email" placeholder="yourname@gmail.com" required />
+        </div>
+      </div>
+      <div className="form-row">
         <div className="form-group">
           <label htmlFor="f-city">City / District</label>
           <input type="text" id="f-city" name="city" placeholder="Guntur, Andhra Pradesh" required />
