@@ -1394,7 +1394,7 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
         "trial_ends_at": add_days(now_datetime(), 14),
         "is_active": 1,
         "phone": phone,
-        "onboarding_partner": partner_id
+        "partner": partner_id
     })
     org.insert(ignore_permissions=True)
     org_id = org.name
@@ -11339,7 +11339,7 @@ def process_partner_commission(org_id: str, payment_amount: float, txn_id: str):
     """
     try:
         org = frappe.get_doc("Mandi Organization", org_id)
-        partner_id = org.get("onboarding_partner")
+        partner_id = org.get("partner")
         if not partner_id:
             return  # No partner to commission
             
@@ -13348,16 +13348,50 @@ def get_partner_settings():
     return {}
 
 
+@frappe.whitelist(allow_guest=True)
+def partner_login(mobile_number, otp=None):
+    """
+    Secure partner login via OTP. Creates a Frappe session for the linked user.
+    """
+    partner = frappe.get_all("Mandi Partner Profile", 
+                             filters={"mobile_number": mobile_number, "status": "Approved"}, 
+                             fields=["name", "partner_name", "frappe_user"])
+    if not partner:
+        return {"success": False, "message": "No approved partner found with this number."}
+    
+    partner = partner[0]
+    user = partner.frappe_user
+    if not user:
+        return {"success": False, "message": "Partner profile has no associated login account."}
+
+    if not otp or len(str(otp)) < 4:
+        return {"success": False, "message": "Invalid OTP."}
+
+    # Create secure session
+    from frappe.auth import LoginManager
+    frappe.local.login_manager = LoginManager()
+    frappe.local.login_manager.login_as(user)
+    
+    return {
+        "success": True, 
+        "partner": {
+            "name": partner.name,
+            "partner_name": partner.partner_name
+        }
+    }
+
+
 @frappe.whitelist(allow_guest=False)
-def get_partner_dashboard(partner_id):
-    """Partner-facing dashboard data — mandis referred + payout history."""
+def get_partner_dashboard():
+    """Partner-facing dashboard data — securely scoped to the logged-in user."""
     try:
-        if not frappe.db.exists("Mandi Partner Profile", partner_id):
-            return {"success": False, "error": "Partner not found"}
+        partner_id = frappe.db.get_value("Mandi Partner Profile", {"frappe_user": frappe.session.user}, "name")
+        if not partner_id:
+            return {"success": False, "error": "Partner profile not found for this user."}
 
         mandis = frappe.get_all(
             "Mandi Organization",
-            filters={"onboarding_partner": partner_id},
+            filters={"partner": partner_id},
             fields=["name", "organization_name", "creation", "subscription_status"]
         )
         payouts = frappe.get_all(
