@@ -333,6 +333,22 @@ export default function AdminBillingPlansPage() {
                                                 className="bg-white border-slate-200 text-[11px] h-8"
                                             />
                                         </div>
+                                        <div className="space-y-1.5 col-span-2">
+                                            <Label className="text-[9px] font-bold text-slate-500 uppercase">Features List (One per line)</Label>
+                                            <textarea
+                                                value={Array.isArray(plan.features?.feature_list) ? plan.features.feature_list.join('\n') : ''}
+                                                onChange={(e) => {
+                                                    const newPlans = [...plans];
+                                                    newPlans[index].features = { 
+                                                        ...(newPlans[index].features || {}), 
+                                                        feature_list: e.target.value.split('\n') 
+                                                    };
+                                                    setPlans(newPlans);
+                                                }}
+                                                placeholder="e.g. Unlimited Bills&#10;WhatsApp Support&#10;Regional Languages"
+                                                className="w-full bg-white border border-slate-200 rounded-lg text-slate-700 text-xs p-2 h-32 resize-y focus:outline-none focus:border-indigo-300"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
