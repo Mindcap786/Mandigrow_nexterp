@@ -1355,7 +1355,7 @@ def direct_smtp_test(to_email: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=True)
-def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter", otp: str = None) -> dict:
+def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter", otp: str = None, ref_code: str = None) -> dict:
     if not otp:
         frappe.throw(_("OTP is required for registration."))
         
@@ -1381,6 +1381,10 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
 
     from frappe.utils import add_days, now_datetime
 
+    partner_id = None
+    if ref_code:
+        partner_id = frappe.db.get_value("Mandi Partner Profile", {"referral_code": ref_code}, "name")
+
     # 1. Create Mandi Organization (The actual tenant record)
     org = frappe.get_doc({
         "doctype": "Mandi Organization",
@@ -1389,10 +1393,22 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
         "status": "trial",
         "trial_ends_at": add_days(now_datetime(), 14),
         "is_active": 1,
-        "phone": phone
+        "phone": phone,
+        "onboarding_partner": partner_id
     })
     org.insert(ignore_permissions=True)
     org_id = org.name
+
+    if partner_id:
+        # Increment total_onboarded for the partner
+        frappe.db.set_value(
+            "Mandi Partner Profile", 
+            partner_id, 
+            "total_onboarded", 
+            frappe.db.get_value("Mandi Partner Profile", partner_id, "total_onboarded") + 1,
+            update_modified=False
+        )
+
 
     # 2. Provision ALL tenant resources atomically (company, accounts, storage, etc.)
     setup_report = setup_new_tenant(org_id)
