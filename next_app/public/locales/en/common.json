@@ -277,5 +277,24 @@
   },
   "sales": {
     "bulk_lot_sale_subtitle": "Normal sale process for bulk buyers at once"
-  }
+  },
+  "landing.seo_title": "Complete Sabji Billing Software for Indian Mandis",
+  "landing.seo_subtitle": "MandiGrow is India's most complete sabji billing software — built for vegetable traders who need fast, accurate lot billing at the mandi gate. Auto-calculate commission, hamali, and palledari on every sabji sale. Digital mandi khata software for every farmer and buyer.",
+  "landing.seo_feature1_title": "Sabji Lot Billing in Seconds",
+  "landing.seo_feature1_desc": "Bill by crate, carton, or kilogram. Auto-calculate totals for any sabji variety at the mandi gate.",
+  "landing.seo_feature2_title": "Fruit Billing Software",
+  "landing.seo_feature2_desc": "Complete fruit billing software — manage purchase bills, sales invoices, and GST for any fruit variety or lot size. Auto-valuation for perishable inventory.",
+  "landing.seo_feature3_title": "Vegetable Billing Made Fast",
+  "landing.seo_feature3_desc": "Vegetable billing made fast — scan crates, auto-calculate weights, and print GST-compliant pattis in seconds.",
+  "landing.seo_feature4_title": "Digital Mandi Khata Software",
+  "landing.seo_feature4_desc": "Replace paper bahis with digital mandi khata software. Every party balance is live, every settlement clean. Track advances, payments, and credits instantly.",
+  "landing.seo_feature5_title": "Anaj Mandi Software",
+  "landing.seo_feature5_desc": "Also for Anaj Mandi — grain and pulse traders. MandiGrow handles commodity lot tracking, sacks, quintal billing, and trader settlements for wheat, rice, dal, and pulses.",
+  "landing.seo_feature6_title": "Why MandiGrow is the Best Sabzi Mandi Software",
+  "landing.seo_feature6_desc": "Built for the morning auction and evening settlement — not adapted from a shop billing app. The only cloud mandi software with mobile, Hindi, GST, and khata all in one.",
+  "landing.seo_link1": "Sabji Billing Software →",
+  "landing.seo_link2": "Fruit & Vegetable Billing →",
+  "landing.seo_link3": "GST Mandi Compliance →",
+  "landing.seo_link4": "Mandi Billing Software →",
+  "landing.android_app": "📱 Android App"
 }
