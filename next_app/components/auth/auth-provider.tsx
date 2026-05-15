@@ -341,11 +341,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (pathname !== '/suspended' && pathname !== '/settings/billing') {
                     router.push('/suspended');
                 }
-            } else if (subStatus === 'expired' || subStatus === 'grace_period') {
+            } else if (subStatus === 'expired') {
                 if (pathname !== '/settings/billing' && pathname !== '/suspended') {
                     router.push('/settings/billing');
                 }
             }
+            // For 'grace_period', we deliberately DO NOT block routing here.
+            // The SubscriptionEnforcer component will handle showing the dismissible warning modal.
         }
 
         // Versioning check — Forces logout if a security bump was triggered on the backend
