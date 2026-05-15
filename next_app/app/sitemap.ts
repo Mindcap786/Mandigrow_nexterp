@@ -20,6 +20,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/wholesale-trader-erp`,          lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
         { url: `${BASE_URL}/gst-mandi-compliance`,          lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
         { url: `${BASE_URL}/sabzi-mandi-software`,          lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+        { url: `${BASE_URL}/sabji-billing-software`,        lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+        { url: `${BASE_URL}/fruit-vegetable-billing`,       lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
         { url: `${BASE_URL}/faq`,                           lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
         { url: `${BASE_URL}/blog`,                          lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
         ...blogEntries,
