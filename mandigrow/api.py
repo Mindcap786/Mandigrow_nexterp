@@ -244,6 +244,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         LEFT JOIN `tabAccount` acc ON gl.account = acc.name
         WHERE gl.is_cancelled = 0
           AND gl.company = %s
+          AND gl.against_voucher_type NOT IN ('Mandi Sale Return', 'Mandi Purchase Return')
           AND (
               -- Non-cheque entries
               ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date = %s)
@@ -13494,10 +13495,6 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         from mandigrow.mandigrow.logic.automation import post_sale_ledger
         frappe.flags._posting_sale_ledger = False
         post_sale_ledger(sale)
-        
-        # Rebuild daybook
-        from mandigrow.mandigrow.tasks import rebuild_daybook_entries
-        rebuild_daybook_entries(p_organization_id, sale.saledate, sale.saledate)
         
         frappe.db.commit()
         return {"success": True, "message": "Adjustment applied and ledger updated."}
