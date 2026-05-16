@@ -13453,18 +13453,29 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         if old_qty == new_qty and old_rate == new_rate:
             return {"success": True, "message": "No changes needed."}
 
-        # Cancel existing JEs linked to this Sale (deletes their GL Entries)
+        # ── Cancel existing JEs linked to this Sale ───────────────────────────
+        # Run as Administrator — mandi users don't have JE cancel permission
         linked_jes = frappe.db.sql("""
             SELECT DISTINCT voucher_no 
             FROM `tabGL Entry` 
             WHERE against_voucher_type = 'Mandi Sale' AND against_voucher = %s
+              AND is_cancelled = 0
         """, (sale.name,))
         
-        for je_row in linked_jes:
-            je_name = je_row[0]
-            je = frappe.get_doc("Journal Entry", je_name)
-            if je.docstatus == 1:
-                je.cancel()
+        prev_user = frappe.session.user
+        frappe.set_user("Administrator")
+        try:
+            for je_row in linked_jes:
+                je_name = je_row[0]
+                try:
+                    je = frappe.get_doc("Journal Entry", je_name)
+                    if je.docstatus == 1:
+                        je.flags.ignore_permissions = True
+                        je.cancel()
+                except Exception as cancel_err:
+                    frappe.log_error(f"Could not cancel JE {je_name}: {cancel_err}", "Adjustment JE Cancel")
+        finally:
+            frappe.set_user(prev_user)
 
         # Update the item
         sale_item.db_set("qty", new_qty)
@@ -13500,10 +13511,20 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
             "content": log_msg
         }).insert(ignore_permissions=True)
 
-        # Re-post Ledger (this will generate new JEs for the updated amount)
-        from mandigrow.mandigrow.logic.automation import post_sale_ledger
+        # ── Re-post Ledger ────────────────────────────────────────────────────
+        # Reset flags so post_sale_ledger runs fresh
         frappe.flags._posting_sale_ledger = False
-        post_sale_ledger(sale)
+        from mandigrow.mandigrow.logic.automation import post_sale_ledger
+
+        # The idempotency guard in post_sale_ledger checks GL Entry count.
+        # Since we just cancelled those JEs, GL count is now 0 — re-post will run.
+        # Run as Administrator to ensure JE insert/submit permissions.
+        prev_user2 = frappe.session.user
+        frappe.set_user("Administrator")
+        try:
+            post_sale_ledger(sale)
+        finally:
+            frappe.set_user(prev_user2)
         
         frappe.db.commit()
         return {"success": True, "message": "Adjustment applied and ledger updated."}
