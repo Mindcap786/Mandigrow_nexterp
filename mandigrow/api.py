@@ -6021,6 +6021,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "cheque_no": doc.chequeno or "",
             "bank_name": doc.bankname or "",
             "items": items,
+            "sale_adjustments": _parse_adjustments(doc.user_remark),
         }
     except frappe.DoesNotExistError:
         frappe.throw(f"Sale {sale_id} not found", frappe.NotFoundError)
@@ -13495,4 +13496,30 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "create_comprehensive_sale_adjustment Failed")
         return {"success": False, "error": str(e)}
+
+
+def _parse_adjustments(remark):
+    adjustments = []
+    if not remark: return adjustments
+    for line in remark.split("\n"):
+        if "[Adjustment]:" in line:
+            try:
+                parts = line.split("|")
+                item = parts[0].replace("[Adjustment]:", "").strip()
+                qty_part = parts[1].strip().replace("Qty ", "")
+                rate_part = parts[2].strip().replace("Rate ", "")
+                reason_part = parts[3].strip().replace("Reason:", "")
+                old_qty, new_qty = qty_part.split("->")
+                old_rate, new_rate = rate_part.split("->")
+                adjustments.append({
+                    "id": len(adjustments) + 1,
+                    "old_qty": float(old_qty.strip()),
+                    "new_qty": float(new_qty.strip()),
+                    "old_value": float(old_rate.strip()),
+                    "new_value": float(new_rate.strip()),
+                    "reason": reason_part.strip()
+                })
+            except Exception:
+                continue
+    return adjustments
 
