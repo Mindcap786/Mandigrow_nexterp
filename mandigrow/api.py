@@ -13449,8 +13449,8 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
 
         # Cancel existing JEs linked to this Sale (deletes their GL Entries)
         linked_jes = frappe.db.sql("""
-            SELECT DISTINCT parent 
-            FROM `tabJournal Entry Account` 
+            SELECT DISTINCT voucher_no 
+            FROM `tabGL Entry` 
             WHERE against_voucher_type = 'Mandi Sale' AND against_voucher = %s
         """, (sale.name,))
         
