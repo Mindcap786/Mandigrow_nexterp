@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Background circle - deep green -->
+  <circle cx="96" cy="96" r="96" fill="#1B5E20"/>
+  <!-- Inner white ring -->
+  <circle cx="96" cy="96" r="88" fill="white"/>
+  <!-- Inner green fill -->
+  <circle cx="96" cy="96" r="81" fill="#1B5E20"/>
+
+  <!-- M letterform -->
+  <!-- Left leg -->
+  <rect x="22" y="62" width="22" height="74" rx="3" fill="white"/>
+  <!-- Right leg -->
+  <rect x="148" y="62" width="22" height="74" rx="3" fill="white"/>
+  <!-- Left diagonal -->
+  <polygon points="22,62 44,62 80,118 58,118" fill="white"/>
+  <!-- Right diagonal -->
+  <polygon points="170,62 148,62 112,118 134,118" fill="white"/>
+  <!-- Valley bridge -->
+  <rect x="58" y="106" width="76" height="16" rx="3" fill="white"/>
+
+  <!-- Left leaf -->
+  <ellipse cx="44" cy="58" rx="16" ry="9" transform="rotate(-30 44 58)" fill="white"/>
+  <ellipse cx="34" cy="52" rx="11" ry="6" transform="rotate(-30 34 52)" fill="#1B5E20"/>
+
+  <!-- Right leaf -->
+  <ellipse cx="148" cy="58" rx="16" ry="9" transform="rotate(30 148 58)" fill="white"/>
+  <ellipse cx="158" cy="52" rx="11" ry="6" transform="rotate(30 158 52)" fill="#1B5E20"/>
+
+  <!-- Orange center dot -->
+  <circle cx="96" cy="50" r="6" fill="#E87010"/>
+</svg>

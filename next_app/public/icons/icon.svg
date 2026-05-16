@@ -1,42 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background: Deep forest green rounded square -->
-  <rect width="512" height="512" rx="96" ry="96" fill="#1B5E20"/>
+  <!-- Outer circle ring - white border -->
+  <circle cx="256" cy="256" r="256" fill="#1B5E20"/>
+  <circle cx="256" cy="256" r="236" fill="white"/>
+  <circle cx="256" cy="256" r="218" fill="#1B5E20"/>
 
-  <!-- White M mark with bar-chart peaks (left bar shorter, right bar taller) -->
-  <!-- M base line -->
-  <rect x="96" y="372" width="320" height="32" rx="10" fill="white"/>
+  <!-- M letterform with leaf peaks (white on green) -->
+  <!-- Left leg of M -->
+  <rect x="98" y="180" width="58" height="190" rx="6" fill="white"/>
+  <!-- Right leg of M -->
+  <rect x="356" y="180" width="58" height="190" rx="6" fill="white"/>
+  <!-- Left diagonal (M valley left) -->
+  <polygon points="98,180 156,180 228,310 170,310" fill="white"/>
+  <!-- Right diagonal (M valley right) -->
+  <polygon points="414,180 356,180 284,310 342,310" fill="white"/>
+  <!-- Bottom bridge filling the valley -->
+  <rect x="170" y="290" width="172" height="40" rx="6" fill="white"/>
 
-  <!-- Left bar of M (shorter) -->
-  <rect x="96" y="180" width="68" height="224" rx="10" fill="white"/>
+  <!-- Left leaf peak (top of left M arm) -->
+  <ellipse cx="156" cy="168" rx="36" ry="20" transform="rotate(-30 156 168)" fill="white"/>
+  <ellipse cx="134" cy="155" rx="26" ry="14" transform="rotate(-30 134 155)" fill="#1B5E20"/>
 
-  <!-- Middle left diagonal descending (M valley) - left half -->
-  <polygon points="96,180 164,180 220,300 164,300" fill="white"/>
+  <!-- Right leaf peak (top of right M arm) -->
+  <ellipse cx="356" cy="168" rx="36" ry="20" transform="rotate(30 356 168)" fill="white"/>
+  <ellipse cx="378" cy="155" rx="26" ry="14" transform="rotate(30 378 155)" fill="#1B5E20"/>
 
-  <!-- Middle peak (center of M) -->
-  <polygon points="164,180 256,340 256,340 220,300 256,120 292,300 256,340" fill="white"/>
-
-  <!-- Full M shape using path -->
-  <!-- Cleaner approach: draw complete M -->
-  <path d="
-    M 96 372
-    L 96 168
-    L 164 168
-    L 256 308
-    L 348 168
-    L 416 168
-    L 416 372
-    L 348 372
-    L 348 268
-    L 256 408
-    L 164 268
-    L 164 372
-    Z
-  " fill="white"/>
-
-  <!-- Right bar of M (taller - chart going up) -->
-  <!-- Already handled by M path above -->
-
-  <!-- Optional: small orange accent leaf/sprout on top of right peak -->
-  <ellipse cx="360" cy="148" rx="22" ry="12" transform="rotate(-35 360 148)" fill="#F57C00" opacity="0.9"/>
-  <ellipse cx="348" cy="140" rx="14" ry="8" transform="rotate(15 348 140)" fill="#F57C00" opacity="0.85"/>
+  <!-- Small orange accent dot / seed between the two leaves -->
+  <circle cx="256" cy="145" r="14" fill="#E87010"/>
 </svg>

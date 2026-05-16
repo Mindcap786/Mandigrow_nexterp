@@ -108,7 +108,7 @@ export const viewport = {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-    themeColor: '#050510',
+    themeColor: '#1B5E20',
     // CRITICAL for iOS: enables env(safe-area-inset-*) CSS variables for notch/Dynamic Island
     viewportFit: 'cover',
     // Android 13+ Chromium WebView: resize layout viewport when keyboard shows,
@@ -126,6 +126,16 @@ export default function RootLayout({
         // They default to 'en' / 'ltr' and update on client after hydration
         <html lang="en" dir="ltr" className="light">
             <head>
+            {/* ── Favicon chain: covers all browsers + Google Search ─────────── */}
+                {/* SVG favicon (modern browsers, Google uses this) */}
+                <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+                {/* Fallback ICO for IE and legacy crawlers */}
+                <link rel="shortcut icon" href="/icons/icon.svg" />
+                {/* Apple Touch Icon (iOS home screen, iMessage link previews) */}
+                <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon.svg" />
+                {/* Chrome / Android PWA theme */}
+                <meta name="msapplication-TileColor" content="#1B5E20" />
+                {/* ─────────────────────────────────────────────────────────────── */}
                 {/* Preconnect to Google Fonts for Indic / Urdu script support */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
