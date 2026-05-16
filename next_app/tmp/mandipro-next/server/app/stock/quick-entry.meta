@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(main)/layout,_N_T_/(main)/stock/layout,_N_T_/(main)/stock/quick-entry/layout,_N_T_/(main)/stock/quick-entry/page,_N_T_/stock/quick-entry"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1haW4p/stock/quick-entry/__PAGE__",
+    "/!KG1haW4p/stock/quick-entry",
+    "/!KG1haW4p/stock",
+    "/!KG1haW4p",
+    "/_index",
+    "/_head"
+  ]
+}

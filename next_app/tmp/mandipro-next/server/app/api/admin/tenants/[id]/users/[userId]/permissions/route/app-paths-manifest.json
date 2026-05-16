@@ -1,0 +1,3 @@
+{
+  "/api/admin/tenants/[id]/users/[userId]/permissions/route": "app/api/admin/tenants/[id]/users/[userId]/permissions/route.js"
+}

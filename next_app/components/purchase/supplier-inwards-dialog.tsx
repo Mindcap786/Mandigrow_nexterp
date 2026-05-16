@@ -115,6 +115,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                     other_expenses: lot.arrival?.other_expenses || 0,
                     totalLotPaid: 0, 
                     totalLotBalance: 0, 
+                    created_at: lot.arrival?.creation || lot.creation || lot.arrival?.created_at || lot.created_at,
                 };
             }
             const itemTotal = calculateLotGrossValue(lot);
@@ -164,7 +165,14 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
         // The backend (_get_ledger_summary) already computed paid/balance correctly per arrival.
         // lot.paid_amount and lot.balance_due are the apportioned values per lot.
         // We simply sum them across lots in the same group.
-        const fifoGroups = [...finalGroups].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const fifoGroups = [...finalGroups].sort((a: any, b: any) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) return dateA - dateB;
+            const createA = new Date(a.created_at || 0).getTime();
+            const createB = new Date(b.created_at || 0).getTime();
+            return createA - createB;
+        });
 
         fifoGroups.forEach((group: any) => {
             const totalLotPaid   = Number(group.totalLotPaid   || 0);
@@ -200,7 +208,12 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
             const timeB = isNaN(dateB) ? 0 : dateB;
 
             if (timeA !== timeB) return timeB - timeA;
-            return String(b.key || '').localeCompare(String(a.key || ''));
+            
+            const createA = new Date(a.created_at || 0).getTime();
+            const createB = new Date(b.created_at || 0).getTime();
+            if (createA !== createB) return createB - createA;
+            
+            return String(b.key || '').localeCompare(String(a.key || ''), undefined, { numeric: true });
         });
     }, [supplier, dateRange, inwardSearch]);
 

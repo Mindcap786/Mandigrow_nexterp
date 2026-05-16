@@ -1,0 +1,3 @@
+{
+  "/api/billing/coupon-validate/route": "app/api/billing/coupon-validate/route.js"
+}

@@ -1,0 +1,3 @@
+{
+  "/api/cron/dunning/route": "app/api/cron/dunning/route.js"
+}

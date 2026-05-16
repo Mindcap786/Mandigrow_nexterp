@@ -1,0 +1,3 @@
+module.exports=[303171,a=>{"use strict";var b=a.i(187924);a.s(["default",0,function({error:a,reset:c}){return(0,b.jsx)("html",{children:(0,b.jsx)("body",{children:(0,b.jsxs)("div",{style:{padding:"2rem",fontFamily:"sans-serif"},children:[(0,b.jsx)("h2",{children:"Something went wrong!"}),(0,b.jsx)("p",{style:{color:"#b00"},children:"An unexpected error occurred. Please try again."}),a.digest&&(0,b.jsxs)("p",{style:{fontSize:12,color:"#666"},children:["Reference: ",a.digest]}),(0,b.jsx)("button",{onClick:()=>c(),style:{marginTop:"1rem",padding:"0.5rem 1rem"},children:"Try again"})]})})})}])}];
+
+//# sourceMappingURL=app_global-error_tsx_0xerkr6._.js.map

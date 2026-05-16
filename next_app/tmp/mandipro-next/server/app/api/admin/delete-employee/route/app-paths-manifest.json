@@ -1,0 +1,3 @@
+{
+  "/api/admin/delete-employee/route": "app/api/admin/delete-employee/route.js"
+}

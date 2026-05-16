@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/mandi-software-andhra-pradesh/layout,_N_T_/mandi-software-andhra-pradesh/page,_N_T_/mandi-software-andhra-pradesh"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/mandi-software-andhra-pradesh/__PAGE__",
+    "/mandi-software-andhra-pradesh",
+    "/_index",
+    "/_head"
+  ]
+}

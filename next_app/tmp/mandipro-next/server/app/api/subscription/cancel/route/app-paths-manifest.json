@@ -1,0 +1,3 @@
+{
+  "/api/subscription/cancel/route": "app/api/subscription/cancel/route.js"
+}

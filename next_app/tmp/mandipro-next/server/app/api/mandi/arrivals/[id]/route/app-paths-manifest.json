@@ -1,0 +1,3 @@
+{
+  "/api/mandi/arrivals/[id]/route": "app/api/mandi/arrivals/[id]/route.js"
+}

@@ -1,0 +1,3 @@
+{
+  "/api/admin/billing/invoice-preview/route": "app/api/admin/billing/invoice-preview/route.js"
+}

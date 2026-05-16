@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(main)/layout,_N_T_/(main)/sales/layout,_N_T_/(main)/sales/challan/layout,_N_T_/(main)/sales/challan/page,_N_T_/sales/challan"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1haW4p/sales/challan/__PAGE__",
+    "/!KG1haW4p/sales/challan",
+    "/!KG1haW4p/sales",
+    "/!KG1haW4p",
+    "/_index",
+    "/_head"
+  ]
+}

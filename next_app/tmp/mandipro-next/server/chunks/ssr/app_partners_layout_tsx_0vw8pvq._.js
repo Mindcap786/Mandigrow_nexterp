@@ -1,0 +1,3 @@
+module.exports=[186766,a=>{"use strict";var b=a.i(907997);a.s(["default",0,function({children:a}){return(0,b.jsx)(b.Fragment,{children:a})},"metadata",0,{title:"Partner Program — Earn 30% Commission | MandiGrow",description:"Join MandiGrow's Partner Network. Earn 30% recurring commission selling India's #1 Mandi ERP to APMCs across India.",openGraph:{title:"Partner Program — Earn 30% Commission | MandiGrow",description:"Join MandiGrow's Partner Network. Earn 30% recurring commission selling India's #1 Mandi ERP to APMCs across India.",images:[{url:"https://www.mandigrow.com/images/og-partners.jpg"}]}}])},501726,a=>{a.n(a.i(186766))}];
+
+//# sourceMappingURL=app_partners_layout_tsx_0vw8pvq._.js.map

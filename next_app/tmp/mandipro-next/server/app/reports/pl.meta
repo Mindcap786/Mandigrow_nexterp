@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(main)/layout,_N_T_/(main)/reports/layout,_N_T_/(main)/reports/pl/layout,_N_T_/(main)/reports/pl/page,_N_T_/reports/pl"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1haW4p/reports/pl/__PAGE__",
+    "/!KG1haW4p/reports/pl",
+    "/!KG1haW4p/reports",
+    "/!KG1haW4p",
+    "/_index",
+    "/_head"
+  ]
+}

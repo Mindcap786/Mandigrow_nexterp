@@ -1,0 +1,3 @@
+{
+  "/api/admin/tenants/[id]/extend-trial/route": "app/api/admin/tenants/[id]/extend-trial/route.js"
+}
