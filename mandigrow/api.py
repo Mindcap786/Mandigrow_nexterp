@@ -13471,6 +13471,15 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         sale_item.db_set("rate", new_rate)
         sale_item.db_set("amount", new_qty * new_rate)
         
+        # Adjust stock in Mandi Lot if quantity changed
+        if old_qty != new_qty and sale_item.lot_id:
+            qty_diff = old_qty - new_qty
+            frappe.db.sql("""
+                UPDATE `tabMandi Lot`
+                SET current_qty = current_qty + %s
+                WHERE name = %s
+            """, (qty_diff, sale_item.lot_id))
+        
         # Reload sale to incorporate item updates
         sale.reload()
         
