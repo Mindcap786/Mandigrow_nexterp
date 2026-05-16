@@ -91,6 +91,16 @@ export const metadata: Metadata = {
         google: '4asvN_FQ0dORJNhDxI2DnWUP8aWhEo13xo6y6gwUCYs',
     },
     category: 'Business Software',
+    icons: {
+        icon: [
+            { url: '/icons/icon.svg', type: 'image/svg+xml' },
+            { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+        ],
+        apple: [
+            { url: '/icons/apple-icon-180.png', sizes: '180x180', type: 'image/png' },
+        ],
+        shortcut: '/favicon.ico',
+    },
 }
 
 export const viewport = {
@@ -128,7 +138,7 @@ export default function RootLayout({
                             '@type': 'Organization',
                             name: 'MandiGrow',
                             url: 'https://www.mandigrow.com',
-                            logo: 'https://www.mandigrow.com/logo.png',
+                            logo: 'https://www.mandigrow.com/icons/icon.svg',
                             description:
                                 "India's #1 mandi ERP software for fruits and vegetable merchants, commission agents and wholesale traders.",
                             sameAs: [
