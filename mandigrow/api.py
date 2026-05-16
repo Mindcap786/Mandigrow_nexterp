@@ -5988,6 +5988,10 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
         # Calculate items total for correct subtotal rendering in UI
         items_total = sum(float(i.get("amount") or 0) for i in items)
 
+        # Fetch adjustments from comments
+        comments = frappe.get_all("Comment", filters={"reference_doctype": "Mandi Sale", "reference_name": sale_id, "comment_type": "Comment"}, fields=["content"])
+        all_remarks = "\n".join([c.content for c in comments])
+
         return {
             "id": doc.name,
             "sale_date": str(doc.saledate or ""),
@@ -6021,7 +6025,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "cheque_no": doc.chequeno or "",
             "bank_name": doc.bankname or "",
             "items": items,
-            "sale_adjustments": _parse_adjustments(doc.user_remark),
+            "sale_adjustments": _parse_adjustments(all_remarks),
         }
     except frappe.DoesNotExistError:
         frappe.throw(f"Sale {sale_id} not found", frappe.NotFoundError)
@@ -13475,11 +13479,16 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         sale.db_set("invoice_total", sale.invoice_total)
         sale.db_set("status", sale.status)
 
-        # Log adjustment in remarks
+        # Log adjustment in remarks via Frappe Comment
         item_code = sale_item.item_id or "Item"
         log_msg = f"[Adjustment]: {item_code} | Qty {old_qty} -> {new_qty} | Rate {old_rate} -> {new_rate} | Reason: {p_reason}"
-        current_remark = sale.get("user_remark") or ""
-        sale.db_set("user_remark", (current_remark + "\n" + log_msg).strip())
+        frappe.get_doc({
+            "doctype": "Comment",
+            "comment_type": "Comment",
+            "reference_doctype": "Mandi Sale",
+            "reference_name": sale.name,
+            "content": log_msg
+        }).insert(ignore_permissions=True)
 
         # Re-post Ledger (this will generate new JEs for the updated amount)
         from mandigrow.mandigrow.logic.automation import post_sale_ledger
