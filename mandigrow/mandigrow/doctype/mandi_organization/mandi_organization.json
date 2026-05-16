@@ -33,7 +33,8 @@
   "gstin",
   "phone",
   "erp_company",
-  "payment_settings"
+  "payment_settings",
+  "onboarding_partner"
  ],
  "fields": [
   {
@@ -191,6 +192,13 @@
    "fieldname": "payment_settings",
    "fieldtype": "JSON",
    "label": "Payment Settings"
+  },
+  {
+   "fieldname": "onboarding_partner",
+   "fieldtype": "Link",
+   "label": "Onboarding Partner",
+   "options": "Mandi Partner Profile",
+   "description": "The partner who referred this organization"
   }
  ],
  "grid_page_length": 50,

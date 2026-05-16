@@ -7590,6 +7590,15 @@ def commit_mandi_session(**kwargs) -> dict:
     buyer_loading = float(kwargs.get("buyer_loading_charges") or 0)
     buyer_packing = float(kwargs.get("buyer_packing_charges") or 0)
     buyer_payable = float(kwargs.get("buyer_payable") or 0)
+    
+    # Auto-generate a unified lot_prefix if not provided from UI
+    if not lot_prefix:
+        import random
+        while True:
+            candidate = str(random.randint(100000, 999999))
+            if not frappe.db.exists("Mandi Lot", {"lot_code": candidate}):
+                lot_prefix = candidate
+                break
 
     purchase_bill_ids = []
     lot_names = []
@@ -7655,16 +7664,6 @@ def commit_mandi_session(**kwargs) -> dict:
             #   Cr Commission Income
             #   Cr Expense Recovery
             arrival.insert(ignore_permissions=True)
-            
-            # Auto-generate a unique 6-digit lot_code if not provided from UI
-            if not lot_prefix and arrival.items:
-                import random
-                while True:
-                    candidate = str(random.randint(100000, 999999))
-                    if not frappe.db.exists("Mandi Lot", {"lot_code": candidate}):
-                        break
-                arrival.items[0].lot_code = candidate
-                arrival.items[0].db_update()
                 
             arrival.submit()  # ← THIS posts the GL entries and farmer ledger
 
@@ -10528,8 +10527,8 @@ def impersonate_tenant(user_id: str) -> dict:
     if not target_org:
         frappe.throw(_("User {0} is not linked to any organization.").format(user_id))
 
-    # Switch session context (this is persistent for the Administrator user)
-    frappe.db.set_value("User", "Administrator", "mandi_organization", target_org)
+    # Switch session context (this is persistent for the current Super Admin user)
+    frappe.db.set_value("User", frappe.session.user, "mandi_organization", target_org)
     frappe.db.commit()
 
     return {
@@ -10545,7 +10544,7 @@ def restore_admin_context() -> dict:
     if not is_super_admin():
         return {"success": False}
         
-    frappe.db.set_value("User", "Administrator", "mandi_organization", None)
+    frappe.db.set_value("User", frappe.session.user, "mandi_organization", None)
     frappe.db.commit()
     return {"success": True}
 
