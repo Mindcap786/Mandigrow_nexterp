@@ -303,27 +303,7 @@ export default function RootLayout({
                 />
                 {/* Fallback theme-color for older iOS that don't read viewport.themeColor above */}
                 <meta name="theme-color" content="#050510" />
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-                    "@context": "https://schema.org",
-                    "@type": "SoftwareApplication",
-                    "name": "MandiGrow",
-                    "applicationCategory": "BusinessApplication",
-                    "operatingSystem": "Web, Android, iOS",
-                    "description": "Cloud ERP for Indian Mandi operators, commission agents, fruit and vegetable traders, and warehouse managers.",
-                    "url": "https://www.mandigrow.com",
-                    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
-                    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "12" },
-                    "publisher": { "@type": "Organization", "name": "MandiGrow", "url": "https://www.mandigrow.com", "address": { "@type": "PostalAddress", "addressRegion": "Andhra Pradesh", "addressCountry": "IN" } }
-                })}} />
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-                    "@context": "https://schema.org",
-                    "@type": "FAQPage",
-                    "mainEntity": [
-                        { "@type": "Question", "name": "What is MandiGrow?", "acceptedAnswer": { "@type": "Answer", "text": "MandiGrow is a cloud-based Mandi ERP for Indian commission agents, fruit & vegetable traders, and warehouse managers. Includes billing, GST, farmer payments, and multi-warehouse inventory." } },
-                        { "@type": "Question", "name": "Is MandiGrow GST compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Built-in GST reporting, Mandi Tax (Cess) automation, and audit trails for government inspectors." } },
-                        { "@type": "Question", "name": "Which states is MandiGrow available in?", "acceptedAnswer": { "@type": "Answer", "text": "MandiGrow is available across all Indian states including Andhra Pradesh, Telangana, Maharashtra, Punjab, Haryana and Uttar Pradesh." } }
-                    ]
-                })}} />
+
             </head>
             <body className={`${inter.className} min-h-screen bg-gray-50 antialiased`}>
                 {/* CapacitorProvider: adds native class, deep links, back button, keyboard */}
