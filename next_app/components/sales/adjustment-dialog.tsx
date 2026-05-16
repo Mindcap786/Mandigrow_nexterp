@@ -33,7 +33,7 @@ export function AdjustmentDialog({ saleItem, onRefresh }: { saleItem: any, onRef
             if (isNaN(qty) || isNaN(rate)) throw new Error("Invalid Quantity or Rate");
 
             // New Comprehensive RPC
-            const res = await callApi('mandigrow.api.create_comprehensive_sale_adjustment', {
+            const res: any = await callApi('mandigrow.api.create_comprehensive_sale_adjustment', {
                 p_organization_id: profile.organization_id,
                 p_sale_item_id: saleItem.id,
                 p_new_qty: qty,
@@ -41,6 +41,9 @@ export function AdjustmentDialog({ saleItem, onRefresh }: { saleItem: any, onRef
                 p_reason: reason
             });
 
+            if (res && res.success === false) {
+                throw new Error(res.error || "Failed to post adjustment");
+            }
 
             setOpen(false);
             onRefresh();
