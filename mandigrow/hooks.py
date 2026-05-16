@@ -180,6 +180,10 @@ doc_events = {
 	"Journal Entry": {
 		"on_submit": "mandigrow.mandigrow.logic.automation.on_journal_submit"
 	},
+	# Enforce single-session limit for every new Frappe User created via MandiGrow
+	"User": {
+		"after_insert": "mandigrow.api.enforce_single_session_on_user"
+	},
 }
 
 # Scheduled Tasks

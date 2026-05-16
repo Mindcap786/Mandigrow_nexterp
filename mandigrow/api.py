@@ -13037,6 +13037,22 @@ def reset_invoice_sequence(contact_id: str):
         return {"success": False, "error": str(e)}
 
 
+def enforce_single_session_on_user(doc, method=None):
+    """
+    Frappe `User.after_insert` hook.
+    Ensures every new Frappe User created via MandiGrow is born with
+    simultaneous_sessions = 1, regardless of the default set in System Settings.
+    This is the forward defense for the session concurrency vulnerability.
+    """
+    if doc.name in ("Administrator", "Guest"):
+        return
+    try:
+        frappe.db.set_value("User", doc.name, "simultaneous_sessions", 1, update_modified=False)
+        frappe.logger().info(f"[enforce_single_session] Set simultaneous_sessions=1 for new user: {doc.name}")
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "enforce_single_session_on_user failed")
+
+
 def on_login(login_manager):
 
     """
@@ -13089,6 +13105,15 @@ def on_login(login_manager):
     except Exception:
         pass
     # ────────────────────────────────────────────────────────────────────
+
+    # ── Harden: always ensure simultaneous_sessions=1 at login ───────────
+    # Defense-in-depth: even if someone manually set it to 2+ via Frappe desk,
+    # we reset it here on every successful login.
+    if user != "Administrator" and user != "Guest":
+        current_sim = frappe.db.get_value("User", user, "simultaneous_sessions") or 1
+        if current_sim != 1:
+            frappe.db.set_value("User", user, "simultaneous_sessions", 1, update_modified=False)
+            frappe.logger().warning(f"[on_login] Reset simultaneous_sessions from {current_sim} → 1 for {user}")
 
     # ── Single-device enforcement: kill ALL other sessions ────────────────
     # We must query the SIDs to kill BEFORE the new session is committed,
