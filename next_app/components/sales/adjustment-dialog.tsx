@@ -33,17 +33,14 @@ export function AdjustmentDialog({ saleItem, onRefresh }: { saleItem: any, onRef
             if (isNaN(qty) || isNaN(rate)) throw new Error("Invalid Quantity or Rate");
 
             // New Comprehensive RPC
-            const { data, error } = await supabase
-                .schema('mandi')
-                .rpc('create_comprehensive_sale_adjustment', {
-                    p_organization_id: profile.organization_id,
-                    p_sale_item_id: saleItem.id,
-                    p_new_qty: qty,
-                    p_new_rate: rate,
-                    p_reason: reason
-                });
+            const res = await callApi('mandigrow.api.create_comprehensive_sale_adjustment', {
+                p_organization_id: profile.organization_id,
+                p_sale_item_id: saleItem.id,
+                p_new_qty: qty,
+                p_new_rate: rate,
+                p_reason: reason
+            });
 
-            if (error) throw error;
 
             setOpen(false);
             onRefresh();
