@@ -1681,7 +1681,7 @@ def get_unlinked_staff() -> list:
             org_filter["organization_id"] = org_id
         elif "company" in employee_fields:
             # Fallback: match by company linked to org
-            company = frappe.db.get_value("Mandi Organization", org_id, "company")
+            company = _get_user_company()
             if company:
                 org_filter["company"] = company
 
