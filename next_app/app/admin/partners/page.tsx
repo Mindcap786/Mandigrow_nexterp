@@ -5,7 +5,7 @@ import { callApi } from '@/lib/frappeClient';
 import { 
     Users, Search, Loader2, CheckCircle2, Clock, XCircle, 
     Building2, RefreshCw, Copy, ExternalLink, Mail,
-    ChevronDown, Shield, Star
+    ChevronDown, Shield, Star, Key
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +55,32 @@ export default function PartnersAdminPage() {
                 fetchPartners();
             } else {
                 toast({ title: 'Error', description: res?.error || 'Approval failed', variant: 'destructive' });
+            }
+        } catch (e: any) {
+            toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleResetPassword = async (partner: any) => {
+        const tempPwd = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4);
+        setActionLoading(partner.name);
+        try {
+            const res: any = await callApi('mandigrow.api.admin_user_action', { 
+                action: 'reset_password', 
+                user_id: partner.frappe_user || partner.email, 
+                payload: { newPassword: tempPwd } 
+            });
+            if (res?.success) {
+                toast({ title: 'Password Reset Successful', description: `New temp password generated for ${partner.partner_name}.` });
+                setApprovalResult({
+                    referral_code: partner.referral_code,
+                    referral_link: `${window.location.origin}/ref/${partner.referral_code}`,
+                    temp_password: tempPwd
+                });
+            } else {
+                toast({ title: 'Error', description: res?.error || 'Reset failed', variant: 'destructive' });
             }
         } catch (e: any) {
             toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -285,6 +311,17 @@ export default function PartnersAdminPage() {
 
                                                 {/* Action Buttons */}
                                                 <div className="flex flex-col gap-2">
+                                                    {partner.status === 'Approved' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleResetPassword(partner)}
+                                                            disabled={actionLoading === partner.name}
+                                                            className="border-amber-200 text-amber-700 hover:bg-amber-50 font-bold text-xs"
+                                                        >
+                                                            {actionLoading === partner.name ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Key className="w-3 h-3 mr-1"/>} Reset Password
+                                                        </Button>
+                                                    )}
                                                     {partner.status === 'Pending' && (
                                                         <>
                                                             <Button
