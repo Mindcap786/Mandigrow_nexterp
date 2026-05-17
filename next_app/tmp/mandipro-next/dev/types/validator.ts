@@ -902,6 +902,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../../app/auction-management-software/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/auction-management-software">> = Specific
+  const handler = {} as typeof import("../../../../app/auction-management-software/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../../app/auth/callback/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/auth/callback">> = Specific
@@ -965,10 +974,28 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../../app/farmer-payment-management/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/farmer-payment-management">> = Specific
+  const handler = {} as typeof import("../../../../app/farmer-payment-management/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../../app/features/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/features">> = Specific
   const handler = {} as typeof import("../../../../app/features/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/fruit-trader-software/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/fruit-trader-software">> = Specific
+  const handler = {} as typeof import("../../../../app/fruit-trader-software/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -983,10 +1010,28 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../../app/gst-billing-for-arhtiyas/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/gst-billing-for-arhtiyas">> = Specific
+  const handler = {} as typeof import("../../../../app/gst-billing-for-arhtiyas/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../../app/gst-mandi-compliance/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/gst-mandi-compliance">> = Specific
   const handler = {} as typeof import("../../../../app/gst-mandi-compliance/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/inventory-management-mandi/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/inventory-management-mandi">> = Specific
+  const handler = {} as typeof import("../../../../app/inventory-management-mandi/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -1037,10 +1082,55 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../../app/mandi-software-delhi/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/mandi-software-delhi">> = Specific
+  const handler = {} as typeof import("../../../../app/mandi-software-delhi/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/mandi-software-guntur/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/mandi-software-guntur">> = Specific
+  const handler = {} as typeof import("../../../../app/mandi-software-guntur/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/mandi-software-hyderabad/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/mandi-software-hyderabad">> = Specific
+  const handler = {} as typeof import("../../../../app/mandi-software-hyderabad/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../../app/mandi-software-maharashtra/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/mandi-software-maharashtra">> = Specific
   const handler = {} as typeof import("../../../../app/mandi-software-maharashtra/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/mandi-software-nashik/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/mandi-software-nashik">> = Specific
+  const handler = {} as typeof import("../../../../app/mandi-software-nashik/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/mandi-software-pune/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/mandi-software-pune">> = Specific
+  const handler = {} as typeof import("../../../../app/mandi-software-pune/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -1212,6 +1302,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/terms">> = Specific
   const handler = {} as typeof import("../../../../app/terms/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/vegetable-market-software/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/vegetable-market-software">> = Specific
+  const handler = {} as typeof import("../../../../app/vegetable-market-software/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../../app/warehouse-management-mandi/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/warehouse-management-mandi">> = Specific
+  const handler = {} as typeof import("../../../../app/warehouse-management-mandi/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

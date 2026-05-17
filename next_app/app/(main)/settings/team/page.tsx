@@ -64,16 +64,16 @@ export default function TeamPage() {
     const [rbacUserType, setRbacUserType] = useState('web');
     const [savingRbac, setSavingRbac] = useState(false);
 
+    // Only tenant_admin / owner / super_admin can manage team access
+    const isTenantAdmin = profile?.role === 'tenant_admin' || profile?.role === 'owner' || profile?.role === 'super_admin' || profile?.role === 'company_admin';
+    const canManageAccess = isTenantAdmin;
+
     useEffect(() => {
         if (profile) {
-            const isAdmin = profile.role === 'tenant_admin' || profile.role === 'owner' || profile.role === 'super_admin' || profile.role === 'company_admin';
-            // Default to true if missing (matching PermissionMatrix logic), unless explicitly restricted
-            const hasTeamAccess = profile.rbac_matrix?.['nav.team_access'] !== false;
-            
-            const authorized = isAdmin || hasTeamAccess;
+            const authorized = isTenantAdmin;
             setIsAuthorized(authorized);
             
-            if (authorized && profile.organization_id) {
+            if (profile.organization_id) {
                 fetchTeam();
             }
         }
@@ -162,16 +162,16 @@ export default function TeamPage() {
 
     const handleAuthorize = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!canManageAccess) { toast.error('Only the Tenant Admin can grant access.'); return; }
         const emp = employees.find(e => e.id === selectedEmployeeId);
         if (!emp && !authEmail) return;
 
         setSending(true);
+        setAuthError(null);
         try {
             if (!authEmail) throw new Error('Login email is required.');
             if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
 
-            // Call the new Frappe provisioning API
-            // This ensures the user is created WITHIN the Admin's organization
             const result: any = await callApi('mandigrow.api.provision_team_member', {
                 email: authEmail,
                 full_name: emp?.name || authEmail.split('@')[0],
@@ -185,6 +185,8 @@ export default function TeamPage() {
             if (result.status === 'success') {
                 toast.success(result.message || `Access granted successfully!`);
                 setSelectedEmployeeId('');
+                setAuthEmail('');
+                setAuthUsername('');
                 setPassword('mandi123');
                 setOpen(false);
                 setAuthError(null);
@@ -194,26 +196,28 @@ export default function TeamPage() {
             }
         } catch (error: any) {
             let errorMsg = error.message || 'Authorization failed.';
-            
-            // Check if it's a validation/duplicate error to show in red mark
-            if (errorMsg.includes("already exists") || errorMsg.includes("already taken") || errorMsg.includes("DuplicateEntryError")) {
-                // If it's frappe throw format, it might contain JSON or array. Let's sanitize.
-                if (errorMsg.includes("['") && errorMsg.includes("']")) {
-                    try {
-                        const parsed = JSON.parse(errorMsg.replace(/'/g, '"'));
-                        if (Array.isArray(parsed) && parsed.length > 0) errorMsg = parsed[0];
-                    } catch(e) {}
-                }
-                
-                // Remove frappe python traceback details if present
-                if (errorMsg.includes('frappe.exceptions.')) {
-                    errorMsg = errorMsg.split(':').pop()?.trim() || errorMsg;
-                }
-                if (errorMsg.includes('\\n')) {
-                    const lines = errorMsg.split('\\n');
-                    errorMsg = lines[lines.length - 1];
-                }
-                
+
+            // Sanitize Frappe exception format
+            if (errorMsg.includes('frappe.exceptions.')) {
+                errorMsg = errorMsg.split('\n').pop()?.trim() || errorMsg;
+            }
+            if (errorMsg.includes("['") && errorMsg.includes("']")) {
+                try {
+                    const parsed = JSON.parse(errorMsg.replace(/'/g, '"'));
+                    if (Array.isArray(parsed) && parsed.length > 0) errorMsg = parsed[0];
+                } catch(e) {}
+            }
+
+            // Detect email duplicate
+            const isEmailDupe = errorMsg.toLowerCase().includes('email') && 
+                (errorMsg.includes('already exists') || errorMsg.includes('already registered'));
+            const isUsernameDupe = errorMsg.toLowerCase().includes('username') || errorMsg.toLowerCase().includes('userid');
+
+            if (isEmailDupe) {
+                setAuthError({ title: 'Email Already Registered', message: `The email "${authEmail}" is already in use. Please use a different email address for this employee.` });
+            } else if (isUsernameDupe) {
+                setAuthError({ title: 'Username Already Taken', message: `The @username "${authUsername}" is already taken. Try adding numbers or initials.` });
+            } else if (errorMsg.includes('already exists') || errorMsg.includes('already taken') || errorMsg.includes('DuplicateEntryError') || errorMsg.includes('already registered')) {
                 setAuthError({ title: 'Validation Error', message: errorMsg });
             } else {
                 toast.error(errorMsg);
@@ -247,16 +251,16 @@ export default function TeamPage() {
 
     const handleRevokeAccess = async () => {
         if (!revokeConfig.user) return;
+        if (!canManageAccess) { toast.error('Only the Tenant Admin can revoke access.'); return; }
         setRevokeConfig(prev => ({ ...prev, isRevoking: true }));
 
         try {
-            // action: "delete" disables user AND unlinks all linked Employee records
             await callApi('mandigrow.api.update_team_member', {
                 user_id: revokeConfig.user.id,
                 settings: { action: 'delete' }
             });
 
-            toast.success(`Access for ${revokeConfig.user.full_name} has been revoked and employee record unlinked.`);
+            toast.success(`Access for ${revokeConfig.user.full_name} has been revoked.`);
             setRevokeConfig({ open: false, user: null, isRevoking: false });
             fetchTeam();
         } catch (error: any) {
@@ -513,7 +517,7 @@ export default function TeamPage() {
                         </div>
                         <h1 className="text-4xl font-[1000] text-black tracking-tighter uppercase mb-4">Access Denied</h1>
                         <p className="text-slate-500 font-bold max-w-md mx-auto">
-                            You do not have administrative privileges to manage team access. Only organization owners can view and modify team permissions.
+                            Only the Tenant Admin can manage team access and permissions.
                         </p>
                         <Button 
                             className="mt-8 bg-black text-white hover:bg-slate-800 font-black uppercase tracking-widest h-14 px-8 rounded-2xl"
@@ -814,7 +818,11 @@ export default function TeamPage() {
                                         
                                         <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                                             <div className="flex gap-1.5 items-center">
-                                                {member.is_active !== false ? (
+                                                {(member.role === 'tenant_admin' || member.role === 'owner') ? (
+                                                    <span className="flex items-center gap-1 text-[10px] font-black text-amber-700 uppercase tracking-tighter bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                                                        <Shield className="w-3 h-3" /> Tenant Admin
+                                                    </span>
+                                                ) : member.is_active !== false ? (
                                                     <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
                                                         <CheckCircle2 className="w-3 h-3" /> System Active
                                                     </span>
@@ -826,25 +834,36 @@ export default function TeamPage() {
                                             </div>
                                             
                                             <div className="flex gap-2 items-center">
-                                                {member.role !== 'tenant_admin' && member.role !== 'owner' && (
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="ghost" 
-                                                        className="h-9 w-9 p-0 text-red-100 hover:text-red-500 hover:bg-red-50 rounded-xl"
-                                                        onClick={() => setRevokeConfig({ open: true, user: member, isRevoking: false })}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
+                                                {/* Delete button — disabled for tenant_admin/owner */}
+                                                {canManageAccess && (
+                                                    (member.role === 'tenant_admin' || member.role === 'owner') ? (
+                                                        <div
+                                                            className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed"
+                                                            title="Cannot delete the Tenant Admin account"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </div>
+                                                    ) : (
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="ghost" 
+                                                            className="h-9 w-9 p-0 text-red-100 hover:text-red-500 hover:bg-red-50 rounded-xl"
+                                                            onClick={() => setRevokeConfig({ open: true, user: member, isRevoking: false })}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    )
                                                 )}
+                                                {/* Permissions — only tenant admin can edit, and only for non-admin members */}
                                                 {(member.role === 'tenant_admin' || member.role === 'owner') ? (
                                                     <div
                                                         className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 cursor-not-allowed"
-                                                        title="Admin accounts cannot be permission-edited"
+                                                        title="Tenant admin permissions cannot be modified"
                                                     >
                                                         <Lock className="w-3.5 h-3.5" />
                                                         <span className="text-[9px] font-black uppercase tracking-widest">Protected</span>
                                                     </div>
-                                                ) : (
+                                                ) : canManageAccess ? (
                                                     <Button 
                                                         size="sm" 
                                                         variant="ghost" 
@@ -860,7 +879,7 @@ export default function TeamPage() {
                                                     >
                                                         <Settings className="w-4 h-4" />
                                                     </Button>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </div>
                                     </div>

@@ -1,5 +1,5 @@
 var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/refund-policy/page.js")
-R.c("server/chunks/ssr/[root-of-the-server]__0a46x1u._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__009bo~_._.js")
 R.c("server/chunks/ssr/node_modules_next_dist_esm_build_templates_app-page_09ss-a-.js")
 R.c("server/chunks/ssr/[root-of-the-server]__0g65qhv._.js")
 R.c("server/chunks/ssr/node_modules_10n6ife._.js")

@@ -193,6 +193,14 @@
       "namedRegex": "^/purchase/bills/invoice/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/ref/[code]",
+      "regex": "^/ref/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcode": "nxtPcode"
+      },
+      "namedRegex": "^/ref/(?<nxtPcode>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/sales/invoice/[id]",
       "regex": "^/sales/invoice/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -743,6 +751,12 @@
       "namedRegex": "^/auction\\-live(?:/)?$"
     },
     {
+      "page": "/auction-management-software",
+      "regex": "^/auction\\-management\\-software(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auction\\-management\\-software(?:/)?$"
+    },
+    {
       "page": "/auth/callback",
       "regex": "^/auth/callback(?:/)?$",
       "routeKeys": {},
@@ -839,6 +853,12 @@
       "namedRegex": "^/faq(?:/)?$"
     },
     {
+      "page": "/farmer-payment-management",
+      "regex": "^/farmer\\-payment\\-management(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/farmer\\-payment\\-management(?:/)?$"
+    },
+    {
       "page": "/farmers",
       "regex": "^/farmers(?:/)?$",
       "routeKeys": {},
@@ -899,6 +919,12 @@
       "namedRegex": "^/finance/reminders(?:/)?$"
     },
     {
+      "page": "/fruit-trader-software",
+      "regex": "^/fruit\\-trader\\-software(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/fruit\\-trader\\-software(?:/)?$"
+    },
+    {
       "page": "/fruit-vegetable-billing",
       "regex": "^/fruit\\-vegetable\\-billing(?:/)?$",
       "routeKeys": {},
@@ -917,6 +943,12 @@
       "namedRegex": "^/gate\\-logs(?:/)?$"
     },
     {
+      "page": "/gst-billing-for-arhtiyas",
+      "regex": "^/gst\\-billing\\-for\\-arhtiyas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/gst\\-billing\\-for\\-arhtiyas(?:/)?$"
+    },
+    {
       "page": "/gst-mandi-compliance",
       "regex": "^/gst\\-mandi\\-compliance(?:/)?$",
       "routeKeys": {},
@@ -933,6 +965,12 @@
       "regex": "^/inventory/storage\\-map(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/inventory/storage\\-map(?:/)?$"
+    },
+    {
+      "page": "/inventory-management-mandi",
+      "regex": "^/inventory\\-management\\-mandi(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventory\\-management\\-mandi(?:/)?$"
     },
     {
       "page": "/join",
@@ -977,10 +1015,40 @@
       "namedRegex": "^/mandi\\-software\\-andhra\\-pradesh(?:/)?$"
     },
     {
+      "page": "/mandi-software-delhi",
+      "regex": "^/mandi\\-software\\-delhi(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/mandi\\-software\\-delhi(?:/)?$"
+    },
+    {
+      "page": "/mandi-software-guntur",
+      "regex": "^/mandi\\-software\\-guntur(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/mandi\\-software\\-guntur(?:/)?$"
+    },
+    {
+      "page": "/mandi-software-hyderabad",
+      "regex": "^/mandi\\-software\\-hyderabad(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/mandi\\-software\\-hyderabad(?:/)?$"
+    },
+    {
       "page": "/mandi-software-maharashtra",
       "regex": "^/mandi\\-software\\-maharashtra(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/mandi\\-software\\-maharashtra(?:/)?$"
+    },
+    {
+      "page": "/mandi-software-nashik",
+      "regex": "^/mandi\\-software\\-nashik(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/mandi\\-software\\-nashik(?:/)?$"
+    },
+    {
+      "page": "/mandi-software-pune",
+      "regex": "^/mandi\\-software\\-pune(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/mandi\\-software\\-pune(?:/)?$"
     },
     {
       "page": "/mandi-software-telangana",
@@ -1331,10 +1399,22 @@
       "namedRegex": "^/terms(?:/)?$"
     },
     {
+      "page": "/vegetable-market-software",
+      "regex": "^/vegetable\\-market\\-software(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/vegetable\\-market\\-software(?:/)?$"
+    },
+    {
       "page": "/warehouse",
       "regex": "^/warehouse(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/warehouse(?:/)?$"
+    },
+    {
+      "page": "/warehouse-management-mandi",
+      "regex": "^/warehouse\\-management\\-mandi(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/warehouse\\-management\\-mandi(?:/)?$"
     },
     {
       "page": "/wholesale-trader-erp",

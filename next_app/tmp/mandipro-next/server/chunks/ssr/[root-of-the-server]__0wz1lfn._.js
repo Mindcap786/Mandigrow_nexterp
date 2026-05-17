@@ -148,6 +148,54 @@ module.exports=[193695,(a,b,c)=>{b.exports=a.x("next/dist/shared/lib/no-fallback
 <p>MandiGrow is built with Indian mandi trade in mind — including the specific workflows, deductions, and compliance requirements of AP and Telangana. It is the only cloud ERP that offers Telugu-language mandi pattis, AP Mandi Cess automation, and mobile gate entry — all in one platform.</p>
 
 <p>Try MandiGrow free for 14 days at <a href="https://www.mandigrow.com">MandiGrow.com</a>. Live demo available in Telugu.</p>
-`}];a.s(["POSTS",0,b,"getPost",0,a=>b.find(b=>b.slug===a)])}];
+`},{slug:"managing-empty-crates-sabzi-mandi",title:"How to Manage Empty Crates and Inventory in Sabzi Mandi (2026)",description:"Losing money on empty crates? Learn the best practices for tracking crate deposits, returns, and inventory using mandi ERP software.",keywords:["mandi crate tracking software","empty crate management","sabzi mandi inventory","vegetable trader crate software","mandi ERP crate tracking"],publishedAt:"2026-05-18",author:"MandiGrow Team",readMinutes:6,body:`
+<p>For fruit and vegetable wholesalers, plastic crates are a massive hidden cost. A busy commission agent in a major APMC market like Azadpur or Vashi might have thousands of crates circulating among farmers, buyers, and transporters on any given day. Without a strict tracking system, 10-15% of these crates go missing annually, wiping out profit margins.</p>
+
+<h2>The Empty Crate Problem</h2>
+
+<p>Most traders handle crates in one of three ways:</p>
+<ol>
+  <li><strong>The Trust System:</strong> Relying on memory and goodwill. (Result: High losses).</li>
+  <li><strong>Paper Diaries:</strong> Writing down crate issues and returns in a separate bahi. (Result: Impossible to reconcile at month-end).</li>
+  <li><strong>Deposit System:</strong> Charging a deposit per crate on the sale bill. (Result: Good, but requires tracking who paid the deposit and when they returned the crate to issue a refund).</li>
+</ol>
+
+<h2>How to Track Crates Digitally</h2>
+
+<p>A purpose-built mandi ERP like MandiGrow treats empty crates as a first-class currency. Here is how the workflow looks when automated:</p>
+
+<p><strong>1. Issue on Sale:</strong> When billing a buyer for 50 crates of tomatoes, the software automatically adds a line item for 50 crates. If you charge a ₹100 deposit per crate, the ₹5000 is added to the buyer's bill and khata instantly.</p>
+<p><strong>2. Crate Ledger:</strong> MandiGrow maintains a separate 'Crate Ledger' for every party, alongside their financial ledger. You can instantly see that Buyer A owes you ₹45,000 and 120 empty crates.</p>
+<p><strong>3. Returns and Refunds:</strong> When the buyer returns 40 crates the next morning, you log a 'Crate Receipt'. The software automatically credits ₹4000 back to their financial ledger and reduces their crate balance to 80.</p>
+
+<h2>Stop Leaking Profit</h2>
+<p>If you lose just 5 crates a day at ₹150 per crate, that is ₹2.2 Lakhs lost per year. Crate tracking software pays for itself in the first month.</p>
+<p>Start tracking your crates efficiently today. Try MandiGrow free for 14 days at <a href="https://www.mandigrow.com">MandiGrow.com</a>.</p>
+        `},{slug:"guide-starting-commission-agent-business",title:"How to Start a Commission Agent (Arhtiya) Business in an Indian Mandi",description:"A comprehensive guide to starting an Arhtiya or commission agent business in Indian APMC markets. Licensing, capital, and software requirements.",keywords:["how to start commission agent business","arhtiya business India","mandi license APMC","starting a mandi business","fruit wholesale business plan"],publishedAt:"2026-05-19",author:"MandiGrow Team",readMinutes:8,body:`
+<p>The commission agent (Arhtiya) acts as the crucial bridge between farmers bringing their produce to the APMC market and the wholesale buyers or retailers. While it is a highly profitable, cash-flowing business, starting an Arhtiya firm requires navigating APMC regulations, building farmer trust, and deploying significant working capital.</p>
+
+<h2>Step 1: The APMC License</h2>
+<p>You cannot legally operate as a commission agent inside a regulated market yard without an APMC license. The process varies by state, but generally requires:</p>
+<ul>
+  <li>Applying to the local Agricultural Produce Market Committee.</li>
+  <li>Providing proof of a shop or godown space within or near the mandi.</li>
+  <li>Submitting a bank guarantee or security deposit (often between ₹1 Lakh to ₹5 Lakhs depending on the market tier).</li>
+</ul>
+
+<h2>Step 2: Working Capital (The Advance System)</h2>
+<p>The primary reason farmers come to a specific Arhtiya is financial support. Commission agents frequently provide cash advances (credit) to farmers for seeds, fertilizers, and personal needs months before the harvest. When the farmer brings the crop to sell, the advance is deducted from the final settlement (patti). You must have sufficient working capital to float these advances.</p>
+
+<h2>Step 3: Managing the Daily Auction</h2>
+<p>Mandi trading is fast and chaotic. Produce arrives between 3 AM and 6 AM. The open auction happens quickly. As the Arhtiya, you record the winning bidder and the rate. Immediately after the auction, two things must happen:</p>
+<ol>
+  <li>The buyer must be billed (Sale Invoice).</li>
+  <li>The farmer must be paid (Sale Patti), minus your commission (typically 4-8%), APMC cess, hamali, and any previous advances.</li>
+</ol>
+
+<h2>Step 4: Adopt Mandi Software from Day One</h2>
+<p>Many new agents start with paper bahis and quickly lose track of farmer advances, buyer outstanding balances, and crate inventory. Modern agents start with a digital Mandi ERP like MandiGrow.</p>
+<p>MandiGrow handles lot tracking, auto-calculates commission, generates instant farmer pattis in local languages (Hindi, Telugu, Marathi), and maintains a live Khata for every party. It ensures you never lose money due to a calculation error in the chaos of the morning auction.</p>
+<p>Equip your new mandi business for success. Try MandiGrow at <a href="https://www.mandigrow.com">MandiGrow.com</a>.</p>
+        `}];a.s(["POSTS",0,b,"getPost",0,a=>b.find(b=>b.slug===a)])}];
 
 //# sourceMappingURL=%5Broot-of-the-server%5D__0wz1lfn._.js.map

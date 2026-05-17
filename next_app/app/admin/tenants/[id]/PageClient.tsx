@@ -811,11 +811,16 @@ export default function TenantDetailPage() {
                             <CardHeader className="pb-2"><CardTitle className="text-xs text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users className="w-3 h-3 text-emerald-500" /> Active Users</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="flex items-end gap-1.5">
-                                    <p className="text-2xl font-black text-slate-900 leading-none">{data?.users?.length ?? 0}</p>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">
+                                        {data?.seat_info?.current ?? data?.users?.filter((u: any) => u.enabled !== 0).length ?? 0}
+                                    </p>
                                     <span className="text-sm font-bold text-slate-400 mb-0.5">
-                                        / {org.max_users_override === -1 ? '∞' : (org.max_users_override || override.max_web_users || 1)}
+                                        / {org.max_users_override === -1 ? '∞' : (org.max_users_override ?? data?.seat_info?.max_users ?? override.max_web_users ?? '∞')}
                                     </span>
                                 </div>
+                                {org.max_users_override && (
+                                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mt-1">Custom Override Active</p>
+                                )}
                             </CardContent>
                         </Card>
                         <Card className="bg-white shadow-sm border-slate-200">

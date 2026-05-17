@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/fruit-trader-software/layout,_N_T_/fruit-trader-software/page,_N_T_/fruit-trader-software"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/fruit-trader-software/__PAGE__",
+    "/fruit-trader-software",
+    "/_index",
+    "/_head"
+  ]
+}
