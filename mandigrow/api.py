@@ -1455,23 +1455,30 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
 
 
 @frappe.whitelist(allow_guest=False)
-def provision_team_member(email: str, full_name: str, password: str = "mandi123", role: str = "member", organization_id: str = None, employee_id: str = None) -> dict:
+def provision_team_member(
+    email: str,
+    full_name: str,
+    password: str = "mandi123",
+    role: str = "member",
+    organization_id: str = None,
+    employee_id: str = None,
+    username: str = None,
+    rbac_matrix: str = None
+) -> dict:
     """
-    Creates a new team member user. If organization_id is provided and the caller is a Super Admin,
-    it uses that org. Otherwise, it uses the caller's organization.
-    Links the created user to the Employee record if employee_id is provided.
+    Creates a new team member user within the caller's organization (or a specified org for SA).
+    Enforces email + username uniqueness, seat limits, and saves the RBAC permission matrix.
     """
+    import json
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription, enforce_seat_limit
-    
+
     admin_org = organization_id if (is_super_admin() and organization_id) else _get_user_org()
-    
+
     if not admin_org:
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
 
     # ── Normalize role to a valid Frappe role_type value ─────────────────────
-    # Frappe User.role_type only accepts: super_admin | admin | manager | clerk
-    # Frontend sends "member" / "staff" / "employee" — map them to "clerk"
     VALID_ROLE_TYPES = {"super_admin", "admin", "manager", "clerk"}
     ROLE_MAP = {
         "member": "clerk", "staff": "clerk", "employee": "clerk",
@@ -1482,35 +1489,48 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
     if normalized_role not in VALID_ROLE_TYPES:
         normalized_role = "clerk"  # Ultimate fallback
 
-    # ── Subscription enforcement: block if org is locked/expired ──────────
+    # ── Subscription + seat enforcement ──────────────────────────────────────
     if not is_super_admin():
         enforce_active_subscription(admin_org)
-    # ── Seat limit enforcement: block if at user capacity ────────────────
     enforce_seat_limit(admin_org)
 
     user_name = None
 
-    # ── Uniqueness checks (email + username) ─────────────────────────────────
-    # Check email uniqueness across all orgs first
+    # ── Username uniqueness check ─────────────────────────────────────────────
+    if username:
+        if frappe.db.exists("User", {"username": username}):
+            frappe.throw(
+                _("The username '@{0}' is already taken. Please choose a different one.").format(username),
+                frappe.DuplicateEntryError
+            )
+
+    # ── Email uniqueness check ────────────────────────────────────────────────
     if frappe.db.exists("User", {"email": email, "mandi_organization": ["!=", admin_org]}):
-        # Email exists but belongs to a DIFFERENT org
         frappe.throw(
-            _("An account with email {0} already exists in another organization.").format(email),
+            _("An account with email '{0}' already exists in another organization.").format(email),
             frappe.DuplicateEntryError
         )
 
     if frappe.db.exists("User", email):
-        # Email already registered in THIS org — link to employee and return success
+        # User exists in THIS org — update and link
         user = frappe.get_doc("User", email)
         if not user.mandi_organization:
             user.mandi_organization = admin_org
             user.role_type = normalized_role
+            if username:
+                user.username = username
             user.save(ignore_permissions=True)
             user_name = user.name
         elif user.mandi_organization == admin_org:
-             user_name = user.name
+            if username and user.username != username:
+                user.username = username
+                user.save(ignore_permissions=True)
+            user_name = user.name
         else:
-             frappe.throw(_("An account with email {0} is already registered with another organization.").format(email), frappe.DuplicateEntryError)
+            frappe.throw(
+                _("An account with email '{0}' is already registered with another organization.").format(email),
+                frappe.DuplicateEntryError
+            )
     else:
         # Create new Frappe user
         user = frappe.get_doc({
@@ -1521,18 +1541,32 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
             "send_welcome_email": 0,
             "mandi_organization": admin_org,
             "role_type": normalized_role,
-            "business_domain": "mandi"
+            "business_domain": "mandi",
+            "username": username
         })
         user.flags.ignore_password_policy = True
         user.insert(ignore_permissions=True)
         user_name = user.name
-        
+
         from frappe.utils.password import update_password
         update_password(user.name, password)
-        
-        # Standard roles for internal team
         user.add_roles("System Manager")
 
+    # ── Save RBAC matrix if provided ─────────────────────────────────────────
+    if rbac_matrix and user_name:
+        try:
+            saved_user = frappe.get_doc("User", user_name)
+            if isinstance(rbac_matrix, dict):
+                saved_user.rbac_matrix = json.dumps(rbac_matrix)
+            elif isinstance(rbac_matrix, str):
+                json.loads(rbac_matrix)  # Validate JSON
+                saved_user.rbac_matrix = rbac_matrix
+            saved_user.save(ignore_permissions=True)
+            frappe.db.commit()
+        except Exception as e:
+            frappe.log_error(f"provision_team_member rbac_matrix error: {e}", "Team Access")
+
+    # ── Link employee record ──────────────────────────────────────────────────
     if employee_id and user_name and frappe.db.exists("Employee", employee_id):
         emp = frappe.get_doc("Employee", employee_id)
         if not emp.user_id:
@@ -1552,124 +1586,156 @@ def get_team_members() -> list:
         
     return frappe.get_all("User",
         filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
-        fields=["name as id", "full_name", "email", "role_type as role", "creation", "username"],
+        fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
         order_by="creation desc"
     )
 
 
 @frappe.whitelist(allow_guest=False)
+def update_team_member(user_id: str, settings: dict) -> dict:
+    """
+    Updates a team member: enabled status, rbac_matrix, or revoke access (disable + unlink Employee).
+    Pass settings={"action": "delete"} to revoke access cleanly.
+    """
+    import json
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+
+    org_id = _get_user_org()
+    if not org_id and not is_super_admin():
+        frappe.throw(_("Unauthorized: No organization context"))
+
+    user = frappe.get_doc("User", user_id)
+    if org_id and user.mandi_organization != org_id:
+        if not is_super_admin():
+            frappe.throw(_("Unauthorized: User does not belong to your organization"))
+
+    if isinstance(settings, str):
+        settings = json.loads(settings)
+
+    action = settings.get("action")
+
+    # ── Hard Revoke: disable user + unlink Employee record ───────────────────
+    if action == "delete":
+        user.enabled = 0
+        user.save(ignore_permissions=True)
+        linked_employees = frappe.get_all(
+            "Employee",
+            filters={"user_id": user_id},
+            fields=["name"],
+            ignore_permissions=True
+        )
+        for emp_ref in linked_employees:
+            emp_doc = frappe.get_doc("Employee", emp_ref.name)
+            emp_doc.user_id = ""
+            emp_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+        return {"status": "success", "message": "User access revoked and employee record unlinked."}
+
+    # ── Standard field updates ────────────────────────────────────────────────
+    if "enabled" in settings:
+        user.enabled = int(settings["enabled"])
+
+    if "rbac_matrix" in settings:
+        try:
+            matrix_val = settings["rbac_matrix"]
+            if isinstance(matrix_val, dict):
+                user.rbac_matrix = json.dumps(matrix_val)
+            elif isinstance(matrix_val, str):
+                json.loads(matrix_val)  # Validate JSON
+                user.rbac_matrix = matrix_val
+        except Exception:
+            pass
+
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"status": "success", "message": "User updated successfully"}
+
+
+@frappe.whitelist(allow_guest=False)
 def get_unlinked_staff() -> list:
     """
-    Returns all staff employees for the current org, with their authorization status.
+    Returns Employees from the Employee doctype who have NOT yet been granted
+    system (Frappe User) access. Used to populate the 'Authorize Employee' dropdown.
 
-    Sources (merged & deduplicated by email):
-    1. Frappe Employee doctype — populated via Master Data > Employees.
-    2. Mandi Contact with contact_type=staff — legacy/alternative source.
+    Pulls from the standard Frappe Employee doctype (which is populated from
+    Master Data > Employees in the UI). Only returns employees whose user_id
+    field is blank (not yet authorized).
 
-    Each record includes:
-        id, name, email, user_id (None=not authorized, set=authorized), status, source
-
-    The frontend should filter: unlinked = records where user_id is None/null.
+    Returns fields: id, name, email, status, user_id (null = not yet authorized)
     """
     org_id = _get_user_org()
     if not org_id:
         return []
 
-    # Track by email to deduplicate across sources
-    seen_emails = {}  # email → result dict
     result = []
 
-    # ── Resolve org's company for Employee filtering ──────────────────────────
-    # _get_user_company() uses same resolution order as create_employee() so we
-    # get exactly the same company value that was stored on Employee creation.
-    org_company = _get_user_company()
-
-    # ── Source 1: Frappe Employee doctype ─────────────────────────────────────
+    # ── Primary source: Frappe Employee doctype ──────────────────────────────
+    # This is what gets populated when users add staff from Master Data > Employees.
+    # Filter by organization_id (custom field on Employee) if it exists.
     try:
-        if org_company:
-            employees = frappe.get_all("Employee",
-                filters={"company": org_company},
-                fields=["name as id", "employee_name as name", "personal_email as email",
-                        "company_email", "cell_number as phone", "user_id",
-                        "status", "designation"],
-                ignore_permissions=True,
-                limit_page_length=500
-            )
-            for emp in employees:
-                emp_status = (emp.get("status") or "Active").lower()
-                if emp_status not in ("active", ""):
-                    continue  # Skip Left/Inactive employees
-                email = (emp.get("email") or emp.get("company_email") or "").strip().lower()
-                rec = {
-                    "id": emp["id"],
-                    "name": emp.get("name") or emp["id"],
-                    "email": email,
-                    "phone": emp.get("phone") or "",
-                    "role": emp.get("designation") or "",
-                    "user_id": emp.get("user_id") or None,
-                    "status": "active",
-                    "source": "employee",
-                }
-                result.append(rec)
-                if email:
-                    seen_emails[email] = rec
-    except Exception as e:
-        frappe.log_error(f"get_unlinked_staff Employee fetch error: {e}", "Team Access")
+        employee_fields = [f.fieldname for f in frappe.get_meta("Employee").fields]
+        org_filter = {}
+        if "mandi_organization" in employee_fields:
+            org_filter["mandi_organization"] = org_id
+        elif "organization_id" in employee_fields:
+            org_filter["organization_id"] = org_id
+        elif "company" in employee_fields:
+            # Fallback: match by company linked to org
+            company = frappe.db.get_value("Mandi Organization", org_id, "company")
+            if company:
+                org_filter["company"] = company
 
-    # ── Source 2: Mandi Contact with contact_type=staff ───────────────────────
-    # Always run this — it's the primary source for many orgs.
-    try:
-        # Build a map of authorized system users by email and phone for fast lookup
-        org_users = frappe.get_all("User",
-            filters={"mandi_organization": org_id, "enabled": 1},
-            fields=["name", "email", "mobile_no", "full_name"],
-            ignore_permissions=True
-        )
-        authorized_emails = {u.email.strip().lower(): u.name for u in org_users if u.email}
-        authorized_phones = {(u.mobile_no or "").strip(): u.name for u in org_users if u.mobile_no}
-
-        staff_contacts = frappe.get_all("Mandi Contact",
-            filters={"organization_id": org_id, "contact_type": "staff"},
-            fields=["name as id", "full_name as name", "email", "phone"],
+        employees = frappe.get_all("Employee",
+            filters={"status": "Active", **org_filter},
+            fields=["name as id", "employee_name as name", "personal_email as email",
+                    "company_email", "user_id"],
             ignore_permissions=True,
             limit_page_length=500
         )
-        for contact in staff_contacts:
-            email = (contact.get("email") or "").strip().lower()
-            phone = (contact.get("phone") or "").strip()
-
-            # Skip if already added from Employee doctype (by email)
-            if email and email in seen_emails:
-                # But update user_id if we can determine authorization via email
-                linked_user = authorized_emails.get(email)
-                if linked_user and not seen_emails[email].get("user_id"):
-                    seen_emails[email]["user_id"] = linked_user
-                continue
-
-            # Detect if this contact is already a system user (by email or phone)
-            linked_user = (
-                authorized_emails.get(email) if email else None
-            ) or (
-                authorized_phones.get(phone) if phone else None
-            )
-
-            rec = {
-                "id": contact["id"],
-                "name": contact.get("name") or "",
-                "email": email or phone or "",  # Use phone as display if no email
-                "user_id": linked_user or None,
+        for emp in employees:
+            # Use company_email if personal_email is missing
+            email = emp.get("email") or emp.get("company_email") or ""
+            result.append({
+                "id": emp["id"],
+                "name": emp.get("name") or emp["id"],
+                "email": email,
+                "user_id": emp.get("user_id") or None,  # None = not yet authorized
                 "status": "active",
-                "source": "contact",
-            }
-            result.append(rec)
-            if email:
-                seen_emails[email] = rec
-
+            })
     except Exception as e:
-        frappe.log_error(f"get_unlinked_staff Contact fetch error: {e}", "Team Access")
+        frappe.log_error(f"get_unlinked_staff Employee fetch error: {e}", "Team Access")
+
+    # ── Fallback: Mandi Contact with staff type (legacy) ────────────────────
+    if not result:
+        try:
+            staff_contacts = frappe.get_all("Mandi Contact",
+                filters={"organization_id": org_id, "contact_type": "staff"},
+                fields=["name as id", "full_name as name", "phone as email"],
+                ignore_permissions=True
+            )
+            authorized_names = set()
+            org_users = frappe.get_all("User",
+                filters={"mandi_organization": org_id, "enabled": 1},
+                fields=["full_name"],
+                ignore_permissions=True
+            )
+            for u in org_users:
+                if u.full_name:
+                    authorized_names.add(u.full_name.strip().lower())
+
+            for contact in staff_contacts:
+                contact_name_lower = (contact.get("name") or "").strip().lower()
+                result.append({
+                    "id": contact["id"],
+                    "name": contact.get("name") or "",
+                    "email": contact.get("email") or "",
+                    "user_id": "linked" if contact_name_lower in authorized_names else None,
+                    "status": "active",
+                })
+        except Exception:
+            pass
 
     return result
-
 
 
 
@@ -10730,20 +10796,9 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
 
     if "subscription_tier" in config:
         old = org.subscription_tier
-        new_tier = config["subscription_tier"]
-        org.subscription_tier = new_tier
-        # Keep plan_id in sync — subscription_tier and plan_id must always match
-        # so get_tenant_subscription and get_subscription_state return the same plan
-        # regardless of which field they prefer.
-        if frappe.db.exists("App Plan", new_tier):
-            org.plan_id = new_tier
-        else:
-            # Try matching by plan_name field
-            plan_by_name = frappe.db.get_value("App Plan", {"plan_name": new_tier}, "name")
-            if plan_by_name:
-                org.plan_id = plan_by_name
-        if old != new_tier:
-            changes.append(f"tier: {old} → {new_tier}")
+        org.subscription_tier = config["subscription_tier"]
+        if old != config["subscription_tier"]:
+            changes.append(f"tier: {old} → {config['subscription_tier']}")
 
     if "billing_cycle" in config:
         org.billing_cycle = config["billing_cycle"]
@@ -10780,20 +10835,8 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
         pass
 
     if "max_users_override" in config:
-        # max_users_override column does NOT exist on tabMandi Organization.
-        # Store it inside the payment_settings JSON column instead (which exists).
         try:
-            import json as _json
-            _ps = {}
-            try:
-                _raw = frappe.db.get_value("Mandi Organization", organization_id, "payment_settings")
-                if _raw:
-                    _ps = _json.loads(_raw) if isinstance(_raw, str) else (_raw or {})
-            except Exception:
-                pass
-            _ps["max_users_override"] = int(config["max_users_override"])
-            org.payment_settings = _json.dumps(_ps)
-            changes.append(f"max_users_override: {config['max_users_override']}")
+            org.max_users_override = int(config["max_users_override"])
         except Exception:
             pass
 
@@ -11033,12 +11076,10 @@ def get_tenant_subscription() -> dict:
     }
 
     # ── Resolve Current Plan ─────────────────────────────────────────────────
-    # Resolution order: subscription_tier (admin panel writes this field directly) →
-    # plan_id (written by Paytm/checkout flow) → plan (legacy)
-    # Both fields are kept in sync going forward; this order handles stale legacy data.
+    # Mandi Organization uses "plan_id" (Link→App Plan) as primary; "subscription_tier" as fallback
     current_plan_name = (
-        getattr(org, "subscription_tier", None) or
         getattr(org, "plan_id", None) or
+        getattr(org, "subscription_tier", None) or
         getattr(org, "plan", None)
     )
     current_plan = None
@@ -11074,31 +11115,11 @@ def get_tenant_subscription() -> dict:
         matched = next((p for p in all_plans if p["name"] == current_plan_name), None)
         current_plan = matched
 
-    # ── Seat usage from subscription_guard (authoritative) ───────────────────
-    seats_data = {"max_users": None, "current_user_count": 0, "seats_remaining": None}
-    try:
-        from mandigrow.mandigrow.logic.subscription_guard import get_subscription_state
-        sub_state = get_subscription_state(org_id)
-        seats_data = {
-            "max_users": sub_state["max_users"],
-            "current_user_count": sub_state["current_user_count"],
-            "seats_remaining": sub_state["seats_remaining"],
-        }
-        # Also enrich subscription with expiry_date from the guard
-        if not subscription.get("current_period_end") and sub_state.get("expiry_date"):
-            subscription["current_period_end"] = str(sub_state["expiry_date"])[:10]
-        if not subscription.get("trial_ends_at") and sub_state.get("expiry_date") and status in ("trial", "trialing"):
-            subscription["trial_ends_at"] = str(sub_state["expiry_date"])[:10]
-    except Exception:
-        pass
-
     return {
         "subscription": subscription,
         "plan": current_plan,
         "all_plans": all_plans,
-        "seats": seats_data,
     }
-
 
 # ── Paytm Payment Gateway Integration ─────────────────────────────────────────
 #
