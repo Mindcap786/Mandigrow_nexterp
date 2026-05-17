@@ -1512,8 +1512,18 @@ def provision_team_member(
         )
 
     if frappe.db.exists("User", email):
-        # User exists in THIS org — update and link
         user = frappe.get_doc("User", email)
+        
+        # Security: Prevent overriding an admin account or an account already linked to another employee
+        existing_emp = frappe.db.get_value("Employee", {"user_id": user.name})
+        
+        if user.role_type == "admin" or "System Manager" in [r.role for r in user.get("roles")]:
+            frappe.throw(_("Cannot override or modify a tenant admin account via team provisioning. Please use a different email."))
+            
+        if existing_emp and existing_emp != employee_id:
+            frappe.throw(_("The email '{0}' is already registered and linked to another employee.").format(email), frappe.DuplicateEntryError)
+
+        # User exists in THIS org — update and link
         if not user.mandi_organization:
             user.mandi_organization = admin_org
             user.role_type = normalized_role
