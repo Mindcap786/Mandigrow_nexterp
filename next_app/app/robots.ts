@@ -15,6 +15,8 @@ export default function robots(): MetadataRoute.Robots {
                     '/wholesale-trader-erp',
                     '/gst-mandi-compliance',
                     '/sabzi-mandi-software',
+                    '/sabji-billing-software',
+                    '/fruit-vegetable-billing',
                     '/faq',
                     '/blog',
                     '/login',
