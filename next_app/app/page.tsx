@@ -197,27 +197,35 @@ export default function LandingPage() {
             {/* SEO Keyword Section — Sabji Billing & Sabzi Mandi Software */}
             <section className="py-20 px-6 bg-white relative z-10 border-t border-[#c8d6b0]">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">
-                            Complete Sabji Billing Software for Indian Mandis
+                    <div className="text-center">
+                        <h2 className="text-center text-[1.75rem] font-bold text-[#0b2e14] mb-2">
+                            Complete Mandi Software for Every Market & Trader
                         </h2>
-                        <p className="text-gray-700 text-lg font-medium max-w-3xl mx-auto">
-                            MandiGrow is India's most complete sabji billing software — built for vegetable traders who need fast, accurate lot billing at the mandi gate. Auto-calculate commission, hamali, and palledari on every sabji sale. Digital mandi khata software for every farmer and buyer.
+                        <p className="text-center text-[#5a6355] mb-8">
+                            From sabzi mandi to anaj mandi — MandiGrow handles billing, khata, GST and settlements.
                         </p>
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                         {[
-                            { title: 'Sabji Lot Billing in Seconds', desc: 'Bill by crate, carton, or kilogram. Auto-calculate totals for any sabji variety at the mandi gate.' },
-                            { title: 'Fruit Billing Software', desc: 'Complete fruit billing software — manage purchase bills, sales invoices, and GST for any fruit variety or lot size. Auto-valuation for perishable inventory.' },
-                            { title: 'Vegetable Billing Made Fast', desc: 'Vegetable billing made fast — scan crates, auto-calculate weights, and print GST-compliant pattis in seconds.' },
-                            { title: 'Digital Mandi Khata Software', desc: 'Replace paper bahis with digital mandi khata software. Every party balance is live, every settlement clean. Track advances, payments, and credits instantly.' },
-                            { title: 'Anaj Mandi Software', desc: 'Also for Anaj Mandi — grain and pulse traders. MandiGrow handles commodity lot tracking, sacks, quintal billing, and trader settlements for wheat, rice, dal, and pulses.' },
-                            { title: 'Why MandiGrow is the Best Sabzi Mandi Software', desc: 'Built for the morning auction and evening settlement — not adapted from a shop billing app. The only cloud mandi software with mobile, Hindi, GST, and khata all in one.' },
-                        ].map(({ title, desc }) => (
-                            <div key={title} className="p-8 rounded-3xl bg-[#f7fbf3] border border-emerald-100 hover:border-emerald-400 transition-colors shadow-sm">
+                            { title: 'Sabji Lot Billing in Seconds', desc: 'Bill by crate, carton, or kilogram. Auto-calculate totals for any sabji variety at the mandi gate.', href: '/sabji-billing-software' },
+                            { title: 'Fruit Billing Software', desc: 'Complete fruit billing software — manage purchase bills, sales invoices, and GST for any fruit variety or lot size. Auto-valuation for perishable inventory.', href: '/fruit-vegetable-billing' },
+                            { title: 'Vegetable Billing Made Fast', desc: 'Vegetable billing made fast — scan crates, auto-calculate weights, and print GST-compliant pattis in seconds.', href: '/fruit-vegetable-billing' },
+                            { title: 'Digital Mandi Khata Software', desc: 'Replace paper bahis with digital mandi khata software. Every party balance is live, every settlement clean. Track advances, payments, and credits instantly.', href: '/mandi-khata-software' },
+                            { title: 'Anaj Mandi Software', desc: 'Also for Anaj Mandi — grain and pulse traders. MandiGrow handles commodity lot tracking, sacks, quintal billing, and trader settlements for wheat, rice, dal, and pulses.', href: '/anaj-mandi-software' },
+                            { title: 'Why MandiGrow is the Best Sabzi Mandi Software', desc: 'Built for the morning auction and evening settlement — not adapted from a shop billing app. The only cloud mandi software with mobile, Hindi, GST, and khata all in one.', href: '/sabzi-mandi-software' },
+                        ].map(({ title, desc, href }) => (
+                            <Link 
+                                key={title} 
+                                href={href} 
+                                aria-label={`Learn more about ${title}`}
+                                className="p-8 rounded-3xl bg-[#f7fbf3] border border-emerald-100 hover:border-emerald-400 transition-all shadow-sm flex flex-col h-full group"
+                            >
                                 <h3 className="text-xl font-bold mb-3 text-gray-900">{title}</h3>
-                                <p className="text-gray-600 leading-relaxed">{desc}</p>
-                            </div>
+                                <p className="text-gray-600 leading-relaxed mb-6 flex-grow">{desc}</p>
+                                <span className="text-emerald-700 font-bold text-sm mt-auto group-hover:text-emerald-800 transition-colors">
+                                    Learn more →
+                                </span>
+                            </Link>
                         ))}
                     </div>
                     <div className="flex flex-wrap gap-4 justify-center">
