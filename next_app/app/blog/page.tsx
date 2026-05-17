@@ -11,7 +11,9 @@ export const metadata: Metadata = {
     alternates: { canonical: 'https://www.mandigrow.com/blog' },
 };
 
-const POSTS = [
+import { POSTS as OLD_POSTS } from './posts';
+
+const NEW_POSTS = [
     {
         title: 'Tally vs. MandiGrow: Why General Accounting Software Fails Fruit & Vegetable Traders',
         slug: 'tally-vs-mandigrow-mandi-software',
@@ -42,6 +44,21 @@ const POSTS = [
     },
 ];
 
+const ALL_POSTS = [
+    ...NEW_POSTS,
+    ...OLD_POSTS.map(p => ({
+        title: p.title,
+        slug: p.slug,
+        excerpt: p.description,
+        date: new Date(p.publishedAt).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        }),
+        category: 'Mandi Guide'
+    }))
+];
+
 export default function BlogIndexPage() {
     return (
         <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
@@ -59,7 +76,7 @@ export default function BlogIndexPage() {
                 </p>
 
                 <div className="grid md:grid-cols-2 gap-8">
-                    {POSTS.map((post) => (
+                    {ALL_POSTS.map((post) => (
                         <Link
                             key={post.slug}
                             href={`/blog/${post.slug}`}
