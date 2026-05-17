@@ -1584,11 +1584,37 @@ def get_team_members() -> list:
     if not org_id:
         return []
         
-    return frappe.get_all("User",
-        filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
-        fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
-        order_by="creation desc"
-    )
+    try:
+        return frappe.get_all("User",
+            filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
+            fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
+            order_by="creation desc"
+        )
+    except Exception as e:
+        if "Unknown column" in str(e) and "rbac_matrix" in str(e):
+            # Self-healing: Create the missing custom field on-the-fly
+            from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+            create_custom_fields({
+                "User": [
+                    {
+                        "fieldname": "rbac_matrix",
+                        "label": "RBAC Matrix",
+                        "fieldtype": "JSON",
+                        "insert_after": "role_profile_name"
+                    }
+                ]
+            })
+            frappe.db.commit()
+            
+            # Retry the query
+            return frappe.get_all("User",
+                filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
+                fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
+                order_by="creation desc"
+            )
+        else:
+            frappe.log_error(f"get_team_members error: {e}", "Team Access")
+            return []
 
 
 @frappe.whitelist(allow_guest=False)
