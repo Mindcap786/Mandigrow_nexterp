@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, Mail, Trash2, Shield, User, AlertTriangle, CheckCircle2, XCircle, Eye, EyeOff, Calendar, Settings, ShieldCheck, ShieldAlert, Lock } from 'lucide-react';
+import { Loader2, UserPlus, Mail, Trash2, Shield, User, Users, AlertTriangle, CheckCircle2, XCircle, Eye, EyeOff, Calendar, Settings, ShieldCheck, ShieldAlert, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -52,6 +52,13 @@ export default function TeamPage() {
         user: null as any,
         isRevoking: false
     });
+    const [subscriptionInfo, setSubscriptionInfo] = useState<{
+        status: string;
+        expiryDate: string | null;
+        daysLeft: number | null;
+        maxUsers: number | string;
+        planName: string;
+    } | null>(null);
 
     // RBAC Modal (Manage Existing)
     const [rbacUser, setRbacUser] = useState<any>(null);
@@ -87,12 +94,48 @@ export default function TeamPage() {
             const staffData: any = await callApi('mandigrow.api.get_unlinked_staff');
             if (Array.isArray(staffData)) setEmployees(staffData);
 
-            // 3. Fetch current plan limit stats
-            setPlanLimit({ 
-                current: memberData?.length || 0, 
-                max: 'unlimited', 
-                plan: 'Enterprise' 
-            });
+            // 3. Fetch real subscription info for expiry + seat limits
+            try {
+                const subResult: any = await callApi('mandigrow.api.get_tenant_subscription');
+                const sub = subResult?.subscription;
+                const plan = subResult?.plan;
+                const seats = subResult?.seats; // Authoritative from subscription_guard
+                const status = sub?.status || 'trial';
+                const expiryDate = (status === 'trial' || status === 'trialing')
+                    ? sub?.trial_ends_at
+                    : sub?.current_period_end;
+                const daysLeft = expiryDate
+                    ? Math.max(0, Math.round((new Date(expiryDate).getTime() - Date.now()) / 86400000))
+                    : null;
+
+                // Use seats.max_users (from subscription_guard) as authoritative source
+                // It already applies per-tenant overrides and plan-level limits
+                const maxUsersRaw = seats?.max_users ?? plan?.max_total_users ?? plan?.max_users ?? null;
+                const maxUsers = (maxUsersRaw === null || maxUsersRaw === -1 || maxUsersRaw >= 999999)
+                    ? 'unlimited'
+                    : maxUsersRaw;
+                const currentCount = seats?.current_user_count ?? (Array.isArray(memberData) ? memberData.length : 0);
+
+                setSubscriptionInfo({
+                    status,
+                    expiryDate: expiryDate ?? null,
+                    daysLeft,
+                    maxUsers,
+                    planName: plan?.display_name || plan?.name || 'Enterprise',
+                });
+                setPlanLimit({
+                    current: currentCount,
+                    max: maxUsers,
+                    plan: plan?.display_name || plan?.name || 'Enterprise',
+                });
+            } catch {
+                // Fallback plan limit if subscription call fails
+                setPlanLimit({
+                    current: Array.isArray(memberData) ? memberData.length : 0,
+                    max: 'unlimited',
+                    plan: 'Enterprise',
+                });
+            }
 
         } catch (error) {
             console.error("fetchTeam error:", error);
@@ -309,13 +352,25 @@ export default function TeamPage() {
 
                     {/* FAB: Authorize Employee */}
                     <div className="fixed bottom-24 right-5 z-50">
-                        <Button 
-                            className="bg-blue-600 text-white hover:bg-blue-700 font-black h-14 px-5 rounded-2xl shadow-2xl flex items-center gap-2 shadow-blue-300"
-                            onClick={() => setOpen(true)}
-                        >
-                            <UserPlus className="w-5 h-5" />
-                            <span className="text-[11px] uppercase tracking-widest">Authorize</span>
-                        </Button>
+                        {planLimit && planLimit.max !== 'unlimited' && planLimit.current >= Number(planLimit.max) ? (
+                            <div className="flex flex-col items-end gap-1">
+                                <Button
+                                    disabled
+                                    className="bg-slate-300 text-slate-500 font-black h-14 px-5 rounded-2xl shadow-none cursor-not-allowed flex items-center gap-2"
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                    <span className="text-[11px] uppercase tracking-widest">Limit Reached</span>
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button
+                                className="bg-blue-600 text-white hover:bg-blue-700 font-black h-14 px-5 rounded-2xl shadow-2xl flex items-center gap-2 shadow-blue-300"
+                                onClick={() => setOpen(true)}
+                            >
+                                <UserPlus className="w-5 h-5" />
+                                <span className="text-[11px] uppercase tracking-widest">Authorize</span>
+                            </Button>
+                        )}
                     </div>
 
                     {/* Mobile Authorize BottomSheet */}
@@ -446,6 +501,26 @@ export default function TeamPage() {
                                 {planLimit.current} Active {planLimit.max !== 'unlimited' ? `/ ${planLimit.max} Seats` : 'Users'} · {planLimit.plan}
                             </div>
                         )}
+                        {subscriptionInfo?.expiryDate && (
+                            <div className={`flex items-center gap-2 mt-2 px-3 py-1.5 rounded-xl text-[10px] font-black border w-fit uppercase tracking-widest ${
+                                subscriptionInfo.status === 'grace_period'
+                                    ? 'bg-orange-50 border-orange-200 text-orange-700'
+                                    : subscriptionInfo.status === 'expired' || subscriptionInfo.status === 'suspended'
+                                    ? 'bg-red-50 border-red-200 text-red-700'
+                                    : subscriptionInfo.daysLeft !== null && subscriptionInfo.daysLeft <= 7
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            }`}>
+                                <Calendar className="w-3 h-3" />
+                                {subscriptionInfo.status === 'trial' || subscriptionInfo.status === 'trialing'
+                                    ? 'Trial Expires'
+                                    : subscriptionInfo.status === 'grace_period'
+                                    ? '⚠️ Grace Ends'
+                                    : 'Plan Expires'
+                                }: {new Date(subscriptionInfo.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                {subscriptionInfo.daysLeft !== null && ` · ${subscriptionInfo.daysLeft}d left`}
+                            </div>
+                        )}
                     </div>
 
                     <Dialog open={open} onOpenChange={(o) => {
@@ -458,10 +533,25 @@ export default function TeamPage() {
                         }
                     }}>
                         <DialogTrigger asChild>
-                            <Button className="bg-black text-white hover:bg-slate-800 font-black uppercase tracking-widest h-14 px-8 rounded-2xl shadow-xl transition-all active:scale-95 group">
-                                <UserPlus className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" /> 
-                                Authorize Employee
-                            </Button>
+                            {planLimit && planLimit.max !== 'unlimited' && planLimit.current >= Number(planLimit.max) ? (
+                                <div className="flex flex-col items-end gap-1">
+                                    <Button
+                                        disabled
+                                        className="bg-slate-300 text-slate-500 font-black uppercase tracking-widest h-14 px-8 rounded-2xl shadow-none cursor-not-allowed"
+                                    >
+                                        <UserPlus className="w-5 h-5 mr-2" />
+                                        Seat Limit Reached
+                                    </Button>
+                                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">
+                                        Upgrade to add more users
+                                    </p>
+                                </div>
+                            ) : (
+                                <Button className="bg-black text-white hover:bg-slate-800 font-black uppercase tracking-widest h-14 px-8 rounded-2xl shadow-xl transition-all active:scale-95 group">
+                                    <UserPlus className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                                    Authorize Employee
+                                </Button>
+                            )}
                         </DialogTrigger>
                         <DialogContent className="bg-white border-slate-200 text-black sm:max-w-xl rounded-[40px] p-0 overflow-hidden max-h-[90vh] flex flex-col shadow-2xl">
                             <div className="bg-blue-600 p-8 text-white shrink-0">
@@ -636,7 +726,7 @@ export default function TeamPage() {
                                                         )}
                                                         <span className="text-[10px] text-slate-300">•</span>
                                                         <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                                                            <Calendar className="w-2.5 h-2.5" /> Joined {member.created_at ? format(new Date(member.created_at), 'MMM yyyy') : 'Recently'}
+                                                            <Calendar className="w-2.5 h-2.5" /> Joined {member.creation ? format(new Date(member.creation), 'MMM yyyy') : 'Recently'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -708,7 +798,21 @@ export default function TeamPage() {
                            Inactive in System <Badge variant="outline" className="text-slate-500 border-slate-200 bg-white h-5 px-1.5">{unlinkedEmployees.length}</Badge>
                         </h2>
                         <div className="space-y-4">
-                            {unlinkedEmployees.length === 0 && !loading && (
+                            {unlinkedEmployees.length === 0 && !loading && employees.length === 0 && (
+                                <div className="p-12 border-2 border-dashed border-slate-200 rounded-[40px] text-center bg-white/50">
+                                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
+                                        <Users className="w-8 h-8 text-blue-300" />
+                                    </div>
+                                    <p className="text-slate-700 font-black text-sm">No Staff Found</p>
+                                    <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mt-1 mb-4">Add employees before granting access</p>
+                                    <p className="text-slate-500 text-xs font-medium max-w-xs mx-auto">
+                                        To authorize employees, first add them under{' '}
+                                        <span className="font-black text-blue-600">Master Data → Staff / Contacts</span>
+                                        {' '}with contact type set to <span className="font-black">Staff</span>.
+                                    </p>
+                                </div>
+                            )}
+                            {unlinkedEmployees.length === 0 && !loading && employees.length > 0 && (
                                 <div className="p-12 border-2 border-dashed border-slate-200 rounded-[40px] text-center bg-white/50">
                                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
                                         <CheckCircle2 className="w-8 h-8 text-emerald-300" />
@@ -717,6 +821,7 @@ export default function TeamPage() {
                                     <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mt-1">Everyone has system access.</p>
                                 </div>
                             )}
+
                             {unlinkedEmployees.map(emp => (
                                 <div key={emp.id} className="p-5 bg-white border border-slate-200 rounded-3xl flex flex-col gap-4 hover:border-indigo-300 hover:shadow-lg transition-all duration-300 group">
                                     <div className="flex justify-between items-start">

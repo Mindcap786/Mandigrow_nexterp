@@ -1538,88 +1538,116 @@ def get_team_members() -> list:
 @frappe.whitelist(allow_guest=False)
 def get_unlinked_staff() -> list:
     """
-    Returns Employees from the Employee doctype who have NOT yet been granted
-    system (Frappe User) access. Used to populate the 'Authorize Employee' dropdown.
+    Returns all staff employees for the current org, with their authorization status.
 
-    Pulls from the standard Frappe Employee doctype (which is populated from
-    Master Data > Employees in the UI). Only returns employees whose user_id
-    field is blank (not yet authorized).
+    Sources (merged & deduplicated by email):
+    1. Frappe Employee doctype — populated via Master Data > Employees.
+    2. Mandi Contact with contact_type=staff — legacy/alternative source.
 
-    Returns fields: id, name, email, status, user_id (null = not yet authorized)
+    Each record includes:
+        id, name, email, user_id (None=not authorized, set=authorized), status, source
+
+    The frontend should filter: unlinked = records where user_id is None/null.
     """
     org_id = _get_user_org()
     if not org_id:
         return []
 
+    # Track by email to deduplicate across sources
+    seen_emails = {}  # email → result dict
     result = []
 
-    # ── Primary source: Frappe Employee doctype ──────────────────────────────
-    # This is what gets populated when users add staff from Master Data > Employees.
-    # Filter by organization_id (custom field on Employee) if it exists.
-    try:
-        employee_fields = [f.fieldname for f in frappe.get_meta("Employee").fields]
-        org_filter = {}
-        if "mandi_organization" in employee_fields:
-            org_filter["mandi_organization"] = org_id
-        elif "organization_id" in employee_fields:
-            org_filter["organization_id"] = org_id
-        elif "company" in employee_fields:
-            # Fallback: match by company linked to org
-            company = frappe.db.get_value("Mandi Organization", org_id, "company")
-            if company:
-                org_filter["company"] = company
+    # ── Resolve org's company for Employee filtering ──────────────────────────
+    # _get_user_company() uses same resolution order as create_employee() so we
+    # get exactly the same company value that was stored on Employee creation.
+    org_company = _get_user_company()
 
-        employees = frappe.get_all("Employee",
-            filters={"status": "Active", **org_filter},
-            fields=["name as id", "employee_name as name", "personal_email as email",
-                    "company_email", "user_id"],
-            ignore_permissions=True,
-            limit_page_length=500
-        )
-        for emp in employees:
-            # Use company_email if personal_email is missing
-            email = emp.get("email") or emp.get("company_email") or ""
-            result.append({
-                "id": emp["id"],
-                "name": emp.get("name") or emp["id"],
-                "email": email,
-                "user_id": emp.get("user_id") or None,  # None = not yet authorized
-                "status": "active",
-            })
+    # ── Source 1: Frappe Employee doctype ─────────────────────────────────────
+    try:
+        if org_company:
+            employees = frappe.get_all("Employee",
+                filters={"company": org_company},
+                fields=["name as id", "employee_name as name", "personal_email as email",
+                        "company_email", "cell_number as phone", "user_id",
+                        "status", "designation"],
+                ignore_permissions=True,
+                limit_page_length=500
+            )
+            for emp in employees:
+                emp_status = (emp.get("status") or "Active").lower()
+                if emp_status not in ("active", ""):
+                    continue  # Skip Left/Inactive employees
+                email = (emp.get("email") or emp.get("company_email") or "").strip().lower()
+                rec = {
+                    "id": emp["id"],
+                    "name": emp.get("name") or emp["id"],
+                    "email": email,
+                    "phone": emp.get("phone") or "",
+                    "role": emp.get("designation") or "",
+                    "user_id": emp.get("user_id") or None,
+                    "status": "active",
+                    "source": "employee",
+                }
+                result.append(rec)
+                if email:
+                    seen_emails[email] = rec
     except Exception as e:
         frappe.log_error(f"get_unlinked_staff Employee fetch error: {e}", "Team Access")
 
-    # ── Fallback: Mandi Contact with staff type (legacy) ────────────────────
-    if not result:
-        try:
-            staff_contacts = frappe.get_all("Mandi Contact",
-                filters={"organization_id": org_id, "contact_type": "staff"},
-                fields=["name as id", "full_name as name", "phone as email"],
-                ignore_permissions=True
-            )
-            authorized_names = set()
-            org_users = frappe.get_all("User",
-                filters={"mandi_organization": org_id, "enabled": 1},
-                fields=["full_name"],
-                ignore_permissions=True
-            )
-            for u in org_users:
-                if u.full_name:
-                    authorized_names.add(u.full_name.strip().lower())
+    # ── Source 2: Mandi Contact with contact_type=staff ───────────────────────
+    # Always run this — it's the primary source for many orgs.
+    try:
+        # Build a map of authorized system users by email and phone for fast lookup
+        org_users = frappe.get_all("User",
+            filters={"mandi_organization": org_id, "enabled": 1},
+            fields=["name", "email", "mobile_no", "full_name"],
+            ignore_permissions=True
+        )
+        authorized_emails = {u.email.strip().lower(): u.name for u in org_users if u.email}
+        authorized_phones = {(u.mobile_no or "").strip(): u.name for u in org_users if u.mobile_no}
 
-            for contact in staff_contacts:
-                contact_name_lower = (contact.get("name") or "").strip().lower()
-                result.append({
-                    "id": contact["id"],
-                    "name": contact.get("name") or "",
-                    "email": contact.get("email") or "",
-                    "user_id": "linked" if contact_name_lower in authorized_names else None,
-                    "status": "active",
-                })
-        except Exception:
-            pass
+        staff_contacts = frappe.get_all("Mandi Contact",
+            filters={"organization_id": org_id, "contact_type": "staff"},
+            fields=["name as id", "full_name as name", "email", "phone"],
+            ignore_permissions=True,
+            limit_page_length=500
+        )
+        for contact in staff_contacts:
+            email = (contact.get("email") or "").strip().lower()
+            phone = (contact.get("phone") or "").strip()
+
+            # Skip if already added from Employee doctype (by email)
+            if email and email in seen_emails:
+                # But update user_id if we can determine authorization via email
+                linked_user = authorized_emails.get(email)
+                if linked_user and not seen_emails[email].get("user_id"):
+                    seen_emails[email]["user_id"] = linked_user
+                continue
+
+            # Detect if this contact is already a system user (by email or phone)
+            linked_user = (
+                authorized_emails.get(email) if email else None
+            ) or (
+                authorized_phones.get(phone) if phone else None
+            )
+
+            rec = {
+                "id": contact["id"],
+                "name": contact.get("name") or "",
+                "email": email or phone or "",  # Use phone as display if no email
+                "user_id": linked_user or None,
+                "status": "active",
+                "source": "contact",
+            }
+            result.append(rec)
+            if email:
+                seen_emails[email] = rec
+
+    except Exception as e:
+        frappe.log_error(f"get_unlinked_staff Contact fetch error: {e}", "Team Access")
 
     return result
+
 
 
 
@@ -10999,11 +11027,31 @@ def get_tenant_subscription() -> dict:
         matched = next((p for p in all_plans if p["name"] == current_plan_name), None)
         current_plan = matched
 
+    # ── Seat usage from subscription_guard (authoritative) ───────────────────
+    seats_data = {"max_users": None, "current_user_count": 0, "seats_remaining": None}
+    try:
+        from mandigrow.mandigrow.logic.subscription_guard import get_subscription_state
+        sub_state = get_subscription_state(org_id)
+        seats_data = {
+            "max_users": sub_state["max_users"],
+            "current_user_count": sub_state["current_user_count"],
+            "seats_remaining": sub_state["seats_remaining"],
+        }
+        # Also enrich subscription with expiry_date from the guard
+        if not subscription.get("current_period_end") and sub_state.get("expiry_date"):
+            subscription["current_period_end"] = str(sub_state["expiry_date"])[:10]
+        if not subscription.get("trial_ends_at") and sub_state.get("expiry_date") and status in ("trial", "trialing"):
+            subscription["trial_ends_at"] = str(sub_state["expiry_date"])[:10]
+    except Exception:
+        pass
+
     return {
         "subscription": subscription,
         "plan": current_plan,
         "all_plans": all_plans,
+        "seats": seats_data,
     }
+
 
 # ── Paytm Payment Gateway Integration ─────────────────────────────────────────
 #
