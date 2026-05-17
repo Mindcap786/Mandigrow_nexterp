@@ -101,6 +101,8 @@ export default function TenantDetailPage() {
             fetchDetails();
             fetchPlans();
             fetchGlobalGracePeriod();
+            // Auto-run DB migration for rbac_matrix column if not yet created
+            callApi('mandigrow.api.run_rbac_migration', {}).catch(() => {/* ignore if already exists */});
         }
     }, [id]);
 
