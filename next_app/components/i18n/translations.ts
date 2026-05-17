@@ -61,7 +61,8 @@ export const translations = {
             warehouse: "Warehouse",
             field_manager: "Field Manager",
             field_governance: "Field Governance",
-            mandi_commission: "Purchase + Sale"
+            mandi_commission: "Purchase + Sale",
+            quick_actions: "Quick Actions"
         },
         actions: {
             new_sale: "New Sale",
@@ -405,9 +406,7 @@ export const translations = {
             hi: "Hindi (हिन्दी)",
             te: "Telugu (తెలుగు)",
             ta: "Tamil (தமிழ்)",
-            kn: "Kannada (ಕನ್ನಡ)",
-            ml: "Malayalam (മലയാളം)",
-            ur: "اردو (Urdu)"
+            kn: "Kannada (ಕನ್ನಡ)"
         }
     },
     hi: {
@@ -475,7 +474,8 @@ export const translations = {
             ledgers: "लेजर",
             warehouse: "गोदام",
             field_manager: "क्षेत्र प्रबंधक",
-            field_governance: "क्षेत्र शासन"
+            field_governance: "क्षेत्र शासन",
+            quick_actions: "त्वरित कार्रवाइयां"
         },
         actions: {
             new_sale: "नया विक्रय",
@@ -587,9 +587,7 @@ export const translations = {
             hi: "हिंदी (Hindi)",
             te: "తెలుగు (Telugu)",
             ta: "తమిళం (Tamil)",
-            kn: "ಕನ್ನಡ (Kannada)",
-            ml: "മലയാളം (Malayalam)",
-            ur: "اردو (Urdu)"
+            kn: "ಕನ್ನಡ (Kannada)"
         }
     },
     te: {
@@ -644,7 +642,8 @@ export const translations = {
             next: "తరువాతి",
             pagination_info: "పేజీ {page} / {totalPages} • మొత్తం {total} రికార్డులు",
             team_access: "టీమ్ యాక్సెస్",
-            new_invoice: "ఇన్వాయిస్"
+            new_invoice: "ఇన్వాయిస్",
+            quick_actions: "త్వరిత చర్యలు"
         },
         actions: {
             new_sale: "కొత్త అమ్మకం",
@@ -756,9 +755,7 @@ export const translations = {
             hi: "హిందీ (Hindi)",
             te: "తెలుగు (Telugu)",
             ta: "తమిళం (Tamil)",
-            kn: "కన్నడ (Kannada)",
-            ml: "మలయాళం (Malayalam)",
-            ur: "اردو (Urdu)"
+            kn: "ಕನ್ನಡ (Kannada)"
         }
     },
     ta: {
@@ -804,6 +801,7 @@ export const translations = {
             command_center: "கண்ட்ரோல் சென்டர்",
             live_feed: "நேரடி தகவல்கள்",
             return: "திரும்பு",
+            quick_actions: "விரைவான செயல்கள்"
             filters: "வடிப்பான்கள்",
             filter_options: "வடிகட்டி விருப்பங்கள்",
             date_range: "தேதி வரம்பு",
@@ -923,9 +921,6 @@ export const translations = {
             en: "English",
             hi: "இந்தி (Hindi)",
             te: "தெலுங்கு (Telugu)",
-            kn: "ಕನ್ನಡ (Kannada)",
-            ml: "மலயாளம் (Malayalam)",
-            ur: "اردو (Urdu)"
         }
     },
     kn: {
@@ -1065,9 +1060,7 @@ export const translations = {
             hi: "ಹಿಂದಿ (Hindi)",
             te: "ತೆಲುಗು (Telugu)",
             ta: "ತಮಿಳು (Tamil)",
-            kn: "ಕನ್ನಡ (Kannada)",
-            ml: "ಮಲಯಾಳ (Malayalam)",
-            ur: "اردو (Urdu)"
+            kn: "ಕನ್ನಡ (Kannada)"
         }
     }
 };

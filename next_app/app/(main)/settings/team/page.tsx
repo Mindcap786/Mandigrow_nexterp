@@ -41,10 +41,8 @@ export default function TeamPage() {
     const [userType, setUserType] = useState('web');
     const [sending, setSending] = useState(false);
     const [authError, setAuthError] = useState<{ title: string; message: string } | null>(null);
-    const [authRbacMatrix, setAuthRbacMatrix] = useState<Record<string, boolean>>({
-        'nav.field_governance': false,
-        'nav.trading_pl': false
-    });
+    const [authRbacMatrix, setAuthRbacMatrix] = useState<Record<string, boolean>>({});
+    const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'taken' | 'available'>('idle');
     const [orgLimits, setOrgLimits] = useState<any>(null);
 
     const [revokeConfig, setRevokeConfig] = useState({
@@ -80,6 +78,24 @@ export default function TeamPage() {
             }
         }
     }, [profile]);
+
+    // Real-time username availability check
+    useEffect(() => {
+        if (!authUsername || authUsername.length < 3) {
+            setUsernameStatus('idle');
+            return;
+        }
+        setUsernameStatus('checking');
+        const timer = setTimeout(async () => {
+            try {
+                const res: any = await callApi('mandigrow.api.check_unique', { username: authUsername });
+                setUsernameStatus(res?.usernameTaken === true ? 'taken' : 'available');
+            } catch {
+                setUsernameStatus('idle');
+            }
+        }, 600);
+        return () => clearTimeout(timer);
+    }, [authUsername]);
 
     const fetchTeam = async () => {
         setLoading(true);
@@ -161,7 +177,9 @@ export default function TeamPage() {
                 full_name: emp?.name || authEmail.split('@')[0],
                 password: password,
                 role: 'member',
-                employee_id: selectedEmployeeId
+                employee_id: selectedEmployeeId,
+                username: authUsername ? authUsername.replace('@', '').trim() : undefined,
+                rbac_matrix: JSON.stringify(authRbacMatrix)
             });
 
             if (result.status === 'success') {
@@ -169,12 +187,37 @@ export default function TeamPage() {
                 setSelectedEmployeeId('');
                 setPassword('mandi123');
                 setOpen(false);
+                setAuthError(null);
                 fetchTeam();
             } else {
                 throw new Error(result.message || "Failed to create user.");
             }
         } catch (error: any) {
-            toast.error(error.message || 'Authorization failed.');
+            let errorMsg = error.message || 'Authorization failed.';
+            
+            // Check if it's a validation/duplicate error to show in red mark
+            if (errorMsg.includes("already exists") || errorMsg.includes("already taken") || errorMsg.includes("DuplicateEntryError")) {
+                // If it's frappe throw format, it might contain JSON or array. Let's sanitize.
+                if (errorMsg.includes("['") && errorMsg.includes("']")) {
+                    try {
+                        const parsed = JSON.parse(errorMsg.replace(/'/g, '"'));
+                        if (Array.isArray(parsed) && parsed.length > 0) errorMsg = parsed[0];
+                    } catch(e) {}
+                }
+                
+                // Remove frappe python traceback details if present
+                if (errorMsg.includes('frappe.exceptions.')) {
+                    errorMsg = errorMsg.split(':').pop()?.trim() || errorMsg;
+                }
+                if (errorMsg.includes('\\n')) {
+                    const lines = errorMsg.split('\\n');
+                    errorMsg = lines[lines.length - 1];
+                }
+                
+                setAuthError({ title: 'Validation Error', message: errorMsg });
+            } else {
+                toast.error(errorMsg);
+            }
         } finally {
             setSending(false);
         }
@@ -185,9 +228,8 @@ export default function TeamPage() {
         setSavingRbac(true);
         try {
             // Update permissions in Frappe User record
-            await callApi('mandigrow.api.update_settings', {
-                doctype: 'User',
-                name: rbacUser.id,
+            await callApi('mandigrow.api.update_team_member', {
+                user_id: rbacUser.id,
                 settings: {
                     rbac_matrix: JSON.stringify(rbacMatrix)
                 }
@@ -208,14 +250,13 @@ export default function TeamPage() {
         setRevokeConfig(prev => ({ ...prev, isRevoking: true }));
 
         try {
-            // Disable user in Frappe
-            await callApi('mandigrow.api.update_settings', {
-                doctype: 'User',
-                name: revokeConfig.user.id,
-                settings: { enabled: 0 }
+            // action: "delete" disables user AND unlinks all linked Employee records
+            await callApi('mandigrow.api.update_team_member', {
+                user_id: revokeConfig.user.id,
+                settings: { action: 'delete' }
             });
 
-            toast.success(`Access for ${revokeConfig.user.full_name} has been revoked.`);
+            toast.success(`Access for ${revokeConfig.user.full_name} has been revoked and employee record unlinked.`);
             setRevokeConfig({ open: false, user: null, isRevoking: false });
             fetchTeam();
         } catch (error: any) {
@@ -297,7 +338,10 @@ export default function TeamPage() {
                                             <button 
                                                 onClick={() => {
                                                     setRbacUser(member);
-                                                    setRbacMatrix(member.rbac_matrix || {});
+                                                    const matrix = typeof member.rbac_matrix === 'string'
+                                                        ? (() => { try { return JSON.parse(member.rbac_matrix); } catch { return {}; } })()
+                                                        : (member.rbac_matrix || {});
+                                                    setRbacMatrix(matrix);
                                                     setRbacUserType(member.user_type || 'web');
                                                 }}
                                                 className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest active:text-blue-600 active:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
@@ -611,11 +655,40 @@ export default function TeamPage() {
                                                 placeholder="e.g. malik786"
                                                 value={authUsername}
                                                 onChange={e => setAuthUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
-                                                className="bg-slate-50 border-slate-200 h-14 rounded-2xl text-black font-black text-lg pl-9"
+                                                className={cn(
+                                                    "bg-slate-50 border-slate-200 h-14 rounded-2xl text-black font-black text-lg pl-9",
+                                                    usernameStatus === 'taken' && "border-red-400 bg-red-50 focus-visible:ring-red-300",
+                                                    usernameStatus === 'available' && "border-emerald-400 bg-emerald-50/30"
+                                                )}
                                             />
+                                            {usernameStatus === 'checking' && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-slate-400" />}
+                                            {usernameStatus === 'available' && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
+                                            {usernameStatus === 'taken' && <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />}
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-bold italic">User can login using this ID instead of their email.</p>
+                                        {usernameStatus === 'taken' && (
+                                            <p className="text-[11px] text-red-600 font-black flex items-center gap-1.5">
+                                                <AlertTriangle className="w-3 h-3" /> This @UserID is already taken. Try adding numbers or initials.
+                                            </p>
+                                        )}
+                                        {usernameStatus === 'available' && (
+                                            <p className="text-[11px] text-emerald-600 font-bold">✓ @{authUsername} is available</p>
+                                        )}
+                                        {usernameStatus === 'idle' && (
+                                            <p className="text-[10px] text-slate-400 font-bold italic">User can login using this ID instead of their email.</p>
+                                        )}
                                     </div>
+                                    
+                                    {authError && (
+                                        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 mt-4">
+                                            <div className="p-1 bg-red-100 rounded-lg shrink-0 mt-0.5">
+                                                <AlertTriangle className="w-4 h-4 text-red-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black text-red-800 uppercase tracking-widest">{authError.title}</p>
+                                                <p className="text-sm text-red-600 font-bold leading-relaxed">{authError.message}</p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
@@ -778,7 +851,10 @@ export default function TeamPage() {
                                                         className="h-9 w-9 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
                                                         onClick={() => {
                                                             setRbacUser(member);
-                                                            setRbacMatrix(member.rbac_matrix || {});
+                                                            const matrix = typeof member.rbac_matrix === 'string'
+                                                                ? (() => { try { return JSON.parse(member.rbac_matrix); } catch { return {}; } })()
+                                                                : (member.rbac_matrix || {});
+                                                            setRbacMatrix(matrix);
                                                             setRbacUserType(member.user_type || 'web');
                                                         }}
                                                     >
