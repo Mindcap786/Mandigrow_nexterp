@@ -521,12 +521,12 @@ export default function TenantDetailPage() {
                                                         <div className="flex items-center gap-2 text-indigo-700">
                                                             <div className="p-2 bg-white rounded-lg shadow-sm"><Users className="w-4 h-4" /></div>
                                                             <div>
-                                                                <Label className="text-xs font-black uppercase tracking-tight text-indigo-700">Custom Seat Limit Override</Label>
-                                                                <p className="text-[10px] text-indigo-400 font-medium">Override plan default for this tenant only. Set -1 for unlimited.</p>
+                                                                <Label className="text-xs font-black uppercase tracking-tight text-indigo-700">Extra Seats Grant (Optional)</Label>
+                                                                <p className="text-[10px] text-indigo-400 font-medium">Only ADDS seats beyond plan default. Cannot restrict. Set 0 to use plan default. Set -1 for unlimited.</p>
                                                             </div>
                                                         </div>
-                                                        <Badge className={`text-[10px] font-black border-none ${override.max_web_users === -1 ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                                                            {override.max_web_users === -1 ? '∞ Unlimited' : `${override.max_web_users} Seats`}
+                                                        <Badge className={`text-[10px] font-black border-none ${override.max_web_users === -1 ? 'bg-purple-100 text-purple-700' : override.max_web_users === 0 ? 'bg-slate-100 text-slate-500' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                            {override.max_web_users === -1 ? '∞ Unlimited' : override.max_web_users === 0 ? 'Plan Default' : `${override.max_web_users} Seats`}
                                                         </Badge>
                                                     </div>
                                                     <div className="flex gap-2 items-center">
@@ -547,20 +547,27 @@ export default function TenantDetailPage() {
                                                             ∞ Unlimited
                                                         </Button>
                                                     </div>
-                                                    <div className="grid grid-cols-4 gap-2">
-                                                        {[3, 5, 10, 20].map(n => (
+                                                    <div className="grid grid-cols-5 gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOverride({ ...override, max_web_users: 0 })}
+                                                            className={`py-2 rounded-xl text-xs font-black border transition-all ${override.max_web_users === 0 ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
+                                                        >
+                                                            Plan Default
+                                                        </button>
+                                                        {[5, 10, 15, 20].map(n => (
                                                             <button
                                                                 key={n}
                                                                 type="button"
                                                                 onClick={() => setOverride({ ...override, max_web_users: n })}
                                                                 className={`py-2 rounded-xl text-xs font-black border transition-all ${override.max_web_users === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
                                                             >
-                                                                {n} Users
+                                                                +{n} Seats
                                                             </button>
                                                         ))}
                                                     </div>
                                                     <p className="text-[10px] text-indigo-400 font-medium bg-white/60 rounded-lg px-3 py-2">
-                                                        💡 Tenant sees their plan name only — not this number. Charge extra seats manually or via a custom invoice. Changes take effect immediately.
+                                                        💡 Override only takes effect if it grants MORE seats than the plan. If override &lt; plan limit, plan limit is used. Set 0 to remove override. Charge extra seats manually.
                                                     </p>
                                                 </div>
 

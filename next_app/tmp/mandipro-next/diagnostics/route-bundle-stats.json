@@ -2471,7 +2471,7 @@
   },
   {
     "route": "/admin/tenants/[id]",
-    "firstLoadUncompressedJsBytes": 1171057,
+    "firstLoadUncompressedJsBytes": 1171520,
     "firstLoadChunkPaths": [
       "tmp/mandipro-next/static/chunks/0x.73w57rn4ou.js",
       "tmp/mandipro-next/static/chunks/0h8ea52.j.8fg.js",
@@ -2489,8 +2489,8 @@
       "tmp/mandipro-next/static/chunks/0ty.8kk29qsbt.js",
       "tmp/mandipro-next/static/chunks/13r1ct4esvp1w.js",
       "tmp/mandipro-next/static/chunks/0zdypv92lsi70.js",
+      "tmp/mandipro-next/static/chunks/0wb94fjc8d6k9.js",
       "tmp/mandipro-next/static/chunks/0jmo6s0v1a8ph.js",
-      "tmp/mandipro-next/static/chunks/0m08d~j_guas6.js",
       "tmp/mandipro-next/static/chunks/0_m5ns~bagdfj.js",
       "tmp/mandipro-next/static/chunks/0f_trafojsq26.js",
       "tmp/mandipro-next/static/chunks/0skyycqm0pog~.js",
