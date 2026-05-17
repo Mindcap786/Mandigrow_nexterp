@@ -64,8 +64,9 @@ export default function TeamPage() {
     const [rbacUserType, setRbacUserType] = useState('web');
     const [savingRbac, setSavingRbac] = useState(false);
 
-    // Only tenant_admin / owner / super_admin can manage team access
-    const isTenantAdmin = profile?.role === 'tenant_admin' || profile?.role === 'owner' || profile?.role === 'super_admin' || profile?.role === 'company_admin';
+    // Actual role values in DB: 'admin' (tenant owner), 'manager', 'clerk', 'super_admin'
+    // 'tenant_admin' and 'owner' are legacy aliases — the DB stores 'admin'
+    const isTenantAdmin = profile?.role === 'admin' || profile?.role === 'tenant_admin' || profile?.role === 'owner' || profile?.role === 'super_admin' || profile?.role === 'company_admin';
     const canManageAccess = isTenantAdmin;
 
     useEffect(() => {
@@ -818,9 +819,9 @@ export default function TeamPage() {
                                         
                                         <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                                             <div className="flex gap-1.5 items-center">
-                                                {(member.role === 'tenant_admin' || member.role === 'owner') ? (
+                                                {(member.role === 'admin' || member.role === 'tenant_admin' || member.role === 'owner') ? (
                                                     <span className="flex items-center gap-1 text-[10px] font-black text-amber-700 uppercase tracking-tighter bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
-                                                        <Shield className="w-3 h-3" /> Tenant Admin
+                                                        <Shield className="w-3 h-3" /> Tenant Owner
                                                     </span>
                                                 ) : member.is_active !== false ? (
                                                     <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
@@ -834,12 +835,12 @@ export default function TeamPage() {
                                             </div>
                                             
                                             <div className="flex gap-2 items-center">
-                                                {/* Delete button — disabled for tenant_admin/owner */}
+                                                {/* Delete button — disabled for tenant owner */}
                                                 {canManageAccess && (
-                                                    (member.role === 'tenant_admin' || member.role === 'owner') ? (
+                                                    (member.role === 'admin' || member.role === 'tenant_admin' || member.role === 'owner') ? (
                                                         <div
                                                             className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed"
-                                                            title="Cannot delete the Tenant Admin account"
+                                                            title="Cannot delete the Tenant Owner account"
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                         </div>
@@ -854,11 +855,11 @@ export default function TeamPage() {
                                                         </Button>
                                                     )
                                                 )}
-                                                {/* Permissions — only tenant admin can edit, and only for non-admin members */}
-                                                {(member.role === 'tenant_admin' || member.role === 'owner') ? (
+                                                {/* Permissions — only tenant admin can edit non-admin members */}
+                                                {(member.role === 'admin' || member.role === 'tenant_admin' || member.role === 'owner') ? (
                                                     <div
                                                         className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 cursor-not-allowed"
-                                                        title="Tenant admin permissions cannot be modified"
+                                                        title="Tenant owner permissions cannot be modified"
                                                     >
                                                         <Lock className="w-3.5 h-3.5" />
                                                         <span className="text-[9px] font-black uppercase tracking-widest">Protected</span>

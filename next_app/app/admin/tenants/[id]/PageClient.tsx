@@ -1065,16 +1065,24 @@ export default function TenantDetailPage() {
                                         );
                                     })
                                 ) : (
-                                    data?.users?.map((user: any) => (
+                                    data?.users?.map((user: any) => {
+                                        const isOwner = user.role_type === 'admin';
+                                        return (
                                         <div key={user.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-white text-lg shadow">
+                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow ${isOwner ? 'bg-amber-500' : 'bg-slate-900'}`}>
                                                     {user.full_name?.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <p className="font-black text-slate-900">{user.full_name}</p>
-                                                        <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 text-slate-500">{user.role}</Badge>
+                                                        {isOwner ? (
+                                                            <Badge className="text-[9px] font-black uppercase bg-amber-100 text-amber-700 border border-amber-200">
+                                                                👑 Tenant Owner
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 text-slate-500">{user.role_type || user.role}</Badge>
+                                                        )}
                                                     </div>
                                                     <p className="text-xs text-slate-500 font-bold">{user.email}</p>
                                                     {user.phone && <p className="text-[10px] text-indigo-500 font-black mt-0.5">{user.phone}</p>}
@@ -1090,39 +1098,48 @@ export default function TenantDetailPage() {
                                                     >
                                                         <Key className="w-3.5 h-3.5 mr-1.5" /> Reset Password
                                                     </Button>
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        className="border-rose-100 text-rose-500 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-                                                        onClick={() => {
-                                                            setConfirmConfig({
-                                                                open: true,
-                                                                title: 'Revoke Security Credentials?',
-                                                                description: `This will permanently delete ${user.full_name}'s login credentials. This action cannot be undone.`,
-                                                                variant: 'destructive',
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        await callApi('mandigrow.api.admin_user_action', { 
-                                                                            action: 'delete', 
-                                                                            user_id: user.id 
-                                                                        });
-                                                                        toast({ title: 'Access Revoked', description: 'User has been purged from the system.'});
-                                                                        fetchDetails();
-                                                                    } catch (e: any) {
-                                                                        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                                                    {isOwner ? (
+                                                        <div
+                                                            className="flex items-center gap-1 border border-amber-200 text-amber-500 font-black uppercase text-[9px] tracking-widest rounded-xl px-3 py-2 bg-amber-50 cursor-not-allowed"
+                                                            title="Tenant Owner accounts cannot be deleted. Use Suspend instead."
+                                                        >
+                                                            <Lock className="w-3.5 h-3.5 mr-1" /> Owner Protected
+                                                        </div>
+                                                    ) : (
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            className="border-rose-100 text-rose-500 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                                                            onClick={() => {
+                                                                setConfirmConfig({
+                                                                    open: true,
+                                                                    title: 'Disable User Access?',
+                                                                    description: `This will disable ${user.full_name}'s login. Their HR records and transactions will remain intact.`,
+                                                                    variant: 'destructive',
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            await callApi('mandigrow.api.admin_user_action', { 
+                                                                                action: 'disable', 
+                                                                                user_id: user.id 
+                                                                            });
+                                                                            toast({ title: 'User Disabled', description: 'User access has been revoked.'});
+                                                                            fetchDetails();
+                                                                        } catch (e: any) {
+                                                                            toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                                                                        }
                                                                     }
-                                                                }
-                                                            });
-                                                        }}
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Purge
-                                                    </Button>
-                                                    </div>
+                                                                });
+                                                            }}
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Disable
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             )}
-
-                                            </div>
-                                        ))
-                                    )}
+                                        </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </CardContent>
                     </Card>
