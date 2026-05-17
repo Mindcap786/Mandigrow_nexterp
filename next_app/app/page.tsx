@@ -71,39 +71,87 @@ export default function LandingPage() {
             />
 
             {/* Hero Section */}
-            <main className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+            <main className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
                 {/* Background Glow */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
-                    <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                    </span>
-                    {t('auth.enterprise_live')}
+                {/* Left Content */}
+                <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
+                        <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                        </span>
+                        Enterprise-Grade Mandi Software
+                    </div>
+
+                    <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tighter">
+                        <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
+                        <span className="text-emerald-700 block mt-2">for Commission Agents & Traders.</span>
+                    </h1>
+
+                    <p className="text-lg md:text-xl text-gray-700 max-w-2xl mb-10 font-medium leading-relaxed">
+                        Auto commission, GST billing, mandi khata, and APMC compliance — 
+                        works on Android at the mandi gate and desktop in your office. 
+                        Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-8">
+                        <Link href="/signup" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
+                            Start Free Trial <ArrowRight className="w-5 h-5" />
+                        </Link>
+                        <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
+                            Already have an account? Sign in.
+                        </Link>
+                    </div>
+
+                    {/* Trust Bar */}
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 text-sm font-bold text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-yellow-500 text-lg leading-none">★</span> 
+                            Trusted by 200+ mandis
+                        </div>
+                        <div className="hidden sm:block w-1 h-1 bg-emerald-300 rounded-full"></div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-500 text-lg leading-none">✓</span> 
+                            No credit card required
+                        </div>
+                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-700 text-lg leading-none">📱</span> 
+                            Works on Android & Web
+                        </div>
+                    </div>
                 </div>
 
-                <HeroTitle 
-                    text={t('auth.hero_title')} 
-                    className="text-6xl md:text-8xl mb-8 leading-[1] max-w-5xl" 
-                />
+                {/* Right Content - Screenshot */}
+                <div className="flex-1 w-full max-w-[520px] relative z-10 mt-12 lg:mt-0 perspective-1000">
+                    <div className="hero-screenshot w-full aspect-[4/3] bg-white rounded-2xl border border-emerald-200 shadow-[0_30px_60px_-15px_rgba(4,120,87,0.3)] flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-white overflow-hidden transition-all duration-700 hover:transform-none"
+                         style={{ transform: 'perspective(1000px) rotateY(-12deg) rotateX(4deg) translateZ(0)', transformStyle: 'preserve-3d' }}>
+                        
+                        {/* Mockup Header */}
+                        <div className="w-full h-12 bg-gray-50 border-b border-emerald-100 flex items-center px-4 gap-2">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                            </div>
+                            <div className="mx-auto w-1/2 h-5 bg-white border border-gray-200 rounded text-[10px] text-gray-400 flex items-center justify-center font-mono">
+                                mandigrow.com/billing
+                            </div>
+                        </div>
 
-                <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mb-12 font-medium leading-relaxed">
-                    {t('auth.hero_description')}
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 w-full sm:w-auto">
-                    <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
-                        {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5" />
-                    </Link>
-                    {playstoreLink && (
-                        <a href={playstoreLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-2">
-                           {t('landing.android_app') || '📱 Android App'}
-                        </a>
-                    )}
-                    <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
-                        {t('auth.have_account')}
-                    </Link>
+                        {/* Mockup Body Placeholder */}
+                        <div className="flex-1 w-full flex items-center justify-center p-8">
+                            <div className="text-center">
+                                <Calculator className="w-12 h-12 text-emerald-300 mx-auto mb-3" />
+                                <div className="text-emerald-800/40 font-black text-xl mb-2">[Billing Screen Mockup]</div>
+                                <div className="text-emerald-600/40 font-medium text-sm">Replace div.hero-screenshot with real image</div>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Decorative Blob Behind Image */}
+                    <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-400/20 to-transparent rounded-3xl blur-2xl -z-10 transform translate-x-4 translate-y-4"></div>
                 </div>
             </main>
 
