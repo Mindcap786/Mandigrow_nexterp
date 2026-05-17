@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
 
 export const metadata: Metadata = {
-    title: 'MandiGrow Features — Mandi Commission, Farmer Ledger & APMC Billing Software',
+    title: 'MandiGrow Features: Mandi ERP Software with GST Billing, Auto Commission & Khata | India',
     description:
-        'Explore every MandiGrow feature: auto commission calculation, real-time farmer & trader ledger, daybook, APMC billing, GST invoicing, lot tracking and more. Built for Indian mandis.',
+        'MandiGrow software features: auto commission calculation, GST & e-invoicing, real-time mandi khata, APMC billing, gate entry, lot management, 7 regional languages, Android + web. Try free.',
     keywords: [
         'mandi ERP features',
         'mandi commission software',
@@ -28,6 +28,7 @@ export const metadata: Metadata = {
 
 const FEATURES = [
     {
+        id: 'auto-commission',
         icon: '💰',
         title: 'Auto Commission Calculation',
         description:
@@ -36,6 +37,7 @@ const FEATURES = [
             'Supports percentage-based and flat-rate commission. Handles split commission between multiple agents. Generates commission statements by party and date range in one click.',
     },
     {
+        id: 'mandi-khata',
         icon: '📒',
         title: 'Real-Time Farmer & Trader Ledger (Khata)',
         description:
@@ -44,6 +46,7 @@ const FEATURES = [
             'View outstanding balances, advances, part payments and credit notes for any party at any time. Share WhatsApp-ready PDF statements directly from the app.',
     },
     {
+        id: 'apmc-billing',
         icon: '🏛️',
         title: 'APMC Billing & Market Levy',
         description:
@@ -52,6 +55,7 @@ const FEATURES = [
             'Supports all state APMC Acts. Configurable levy rates per commodity and per market. Daily levy summary report ready for submission to the committee.',
     },
     {
+        id: 'gst-billing',
         icon: '🧾',
         title: 'GST Billing & E-Invoicing',
         description:
@@ -60,6 +64,7 @@ const FEATURES = [
             'HSN code mapping per item. Automatic IGST/CGST/SGST split based on buyer state. E-invoice ready. Invoice PDF shareable on WhatsApp in seconds.',
     },
     {
+        id: 'gate-entry',
         icon: '🌾',
         title: 'Gate Entry & Lot Management',
         description:
@@ -68,6 +73,7 @@ const FEATURES = [
             'Barcode and QR code support for lot identification. Real-time lot status: pending auction, sold, partially sold, returned. Wastage recording per lot.',
     },
     {
+        id: 'daybook',
         icon: '📊',
         title: 'Daily Daybook & Profit Report',
         description:
@@ -76,6 +82,7 @@ const FEATURES = [
             'Filter by date, party, commodity or transaction type. Export to Excel or PDF. Compare daily turnover across weeks and months.',
     },
     {
+        id: 'languages',
         icon: '🌐',
         title: '7 Regional Languages',
         description:
@@ -84,6 +91,7 @@ const FEATURES = [
             'Switch languages with one tap. Bills and pattis print in the language your farmers and buyers prefer. Staff training is faster when the software speaks their language.',
     },
     {
+        id: 'mobile-desktop',
         icon: '📱',
         title: 'Mobile + Desktop (Android & Web)',
         description:
@@ -92,6 +100,7 @@ const FEATURES = [
             'Offline mode available for gate entry and billing when connectivity is poor. Auto-syncs when internet is restored. No data is ever lost.',
     },
     {
+        id: 'party-master',
         icon: '👥',
         title: 'Buyer & Farmer Master',
         description:
@@ -100,6 +109,7 @@ const FEATURES = [
             'Import party lists from Excel on day one. Auto-suggest party names during billing. Duplicate detection prevents double entries.',
     },
     {
+        id: 'settlement',
         icon: '🏦',
         title: 'Payment & Settlement Management',
         description:
@@ -108,6 +118,7 @@ const FEATURES = [
             'Cheque clearing management with bounce tracking. UPI reference capture. Bank reconciliation report. Settlement history by party.',
     },
     {
+        id: 'inventory',
         icon: '📦',
         title: 'Inventory & Stock Tracking',
         description:
@@ -116,6 +127,7 @@ const FEATURES = [
             'Lot-wise and item-wise stock views. Minimum stock alerts. Storage location mapping for large mandis with multiple godowns.',
     },
     {
+        id: 'roles',
         icon: '🔒',
         title: 'Multi-User with Role Permissions',
         description:
@@ -252,15 +264,17 @@ export default function FeaturesPage() {
 
             {/* Feature Grid */}
             <section className="max-w-7xl mx-auto px-6 py-16">
-                <div className="text-center mb-16">
-                    <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-4">Complete Mandi Commission Management</h2>
-                    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Everything from gate entry to farmer settlement — automated, accurate, and auditable. India's most complete commission agent software.
+                <div className="mb-16">
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#0b2e14', maxWidth: '800px', margin: '0 auto 12px', textAlign: 'center' }}>
+                        MandiGrow Features: Auto Commission, GST Billing, Mandi Khata & APMC Compliance
+                    </h1>
+                    <p style={{ fontSize: '1.1rem', color: '#5a6355', textAlign: 'center', marginBottom: '40px' }}>
+                        Everything a mandi commission agent, trader, or warehouse manager needs — in one cloud platform.
                     </p>
                 </div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {FEATURES.map((f) => (
-                        <div key={f.title} className="bg-white border border-emerald-100 rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all">
+                        <div key={f.title} id={f.id} className="bg-white border border-emerald-100 rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all">
                             <div className="text-4xl mb-4">{f.icon}</div>
                             <h3 className="text-xl font-black text-gray-900 mb-3">{f.title}</h3>
                             <p className="text-gray-600 mb-4 leading-relaxed">{f.description}</p>
