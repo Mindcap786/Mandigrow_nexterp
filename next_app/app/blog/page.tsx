@@ -1,61 +1,72 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { POSTS } from './posts';
 import { LandingFooter } from '@/components/layout/LandingFooter';
+import { LandingHeader } from '@/components/layout/LandingHeader';
+import { ArrowRight, BookOpen } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'MandiGrow Blog — Mandi ERP, Billing & Fruits Vegetable Trade Insights',
+    title: 'MandiGrow Blog | Insights for Indian Mandi Businesses',
     description:
-        'Expert guides on mandi ERP software, GST billing, commission agent accounts and fruits & vegetable trade in India. Updated weekly by the MandiGrow team.',
+        'Expert guides, comparisons, and tips for commission agents, sabzi mandi traders, and agricultural wholesale markets in India.',
     alternates: { canonical: 'https://www.mandigrow.com/blog' },
-    openGraph: {
-        title: 'MandiGrow Blog — Mandi ERP & Fruits Vegetable Trade Insights',
-        description:
-            'Expert guides on mandi ERP software, GST billing and fruits & vegetable trade in India.',
-        url: 'https://www.mandigrow.com/blog',
-        type: 'website',
-    },
 };
 
-export default function BlogIndex() {
+const POSTS = [
+    {
+        title: 'Tally vs. MandiGrow: Why General Accounting Software Fails Fruit & Vegetable Traders',
+        slug: 'tally-vs-mandigrow-mandi-software',
+        excerpt: 'Discover why standard ERP and accounting tools like Tally aren\'t built for the fast-paced, lot-based reality of the sabzi mandi. Learn how native commission agent software saves you hours every night.',
+        date: 'May 17, 2026',
+        category: 'Software Comparison',
+    },
+    // Future posts will be added here
+];
+
+export default function BlogIndexPage() {
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
-            <section className="max-w-4xl mx-auto px-6 pt-24 pb-12">
+        <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
+            <LandingHeader />
+
+            <section className="max-w-6xl mx-auto px-6 pt-24 pb-16">
                 <p className="text-emerald-700 font-black uppercase tracking-widest text-xs mb-4">
-                    MandiGrow Blog
+                    Resources & Guides
                 </p>
-                <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-4">
-                    Mandi ERP, Billing &amp; Fruits Vegetable Trade Insights
+                <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
+                    The MandiGrow Blog
                 </h1>
-                <p className="text-xl text-gray-700 max-w-2xl">
-                    Practical guides for fruits and vegetable merchants, mandi commission
-                    agents and wholesale traders across India.
+                <p className="text-xl text-gray-700 max-w-3xl mb-12">
+                    Everything you need to scale your commission agency, understand GST compliance in APMC markets, and modernize your mandi wholesale business.
                 </p>
+
+                <div className="grid md:grid-cols-2 gap-8">
+                    {POSTS.map((post) => (
+                        <Link
+                            key={post.slug}
+                            href={`/blog/${post.slug}`}
+                            className="block p-8 bg-white border border-emerald-100 rounded-[2rem] hover:border-emerald-400 hover:shadow-xl transition-all group"
+                        >
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                                    {post.category}
+                                </span>
+                                <span className="text-gray-400 text-sm font-medium">
+                                    {post.date}
+                                </span>
+                            </div>
+                            <h2 className="text-2xl font-black tracking-tighter mb-4 group-hover:text-emerald-700 transition-colors">
+                                {post.title}
+                            </h2>
+                            <p className="text-gray-600 mb-6 line-clamp-3">
+                                {post.excerpt}
+                            </p>
+                            <div className="flex items-center text-emerald-700 font-bold group-hover:gap-2 transition-all">
+                                Read Article <ArrowRight className="w-4 h-4 ml-1" />
+                            </div>
+                        </Link>
+                    ))}
+                </div>
             </section>
 
-            <section className="max-w-4xl mx-auto px-6 pb-24">
-                <ul className="space-y-6">
-                    {POSTS.map((post) => (
-                        <li key={post.slug}>
-                            <Link
-                                href={`/blog/${post.slug}`}
-                                className="block p-7 bg-white border border-emerald-100 rounded-3xl shadow-sm hover:shadow-md transition"
-                            >
-                                <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-2">
-                                    {new Date(post.publishedAt).toLocaleDateString('en-IN', {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        year: 'numeric',
-                                    })}{' '}
-                                    · {post.readMinutes} min read
-                                </p>
-                                <h2 className="text-2xl font-black tracking-tight mb-3">{post.title}</h2>
-                                <p className="text-gray-600">{post.description}</p>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
-            </section>
             <LandingFooter />
         </main>
     );
