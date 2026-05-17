@@ -1490,8 +1490,17 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
 
     user_name = None
 
+    # ── Uniqueness checks (email + username) ─────────────────────────────────
+    # Check email uniqueness across all orgs first
+    if frappe.db.exists("User", {"email": email, "mandi_organization": ["!=", admin_org]}):
+        # Email exists but belongs to a DIFFERENT org
+        frappe.throw(
+            _("An account with email {0} already exists in another organization.").format(email),
+            frappe.DuplicateEntryError
+        )
+
     if frappe.db.exists("User", email):
-        # Update existing user's org if they aren't assigned to one
+        # Email already registered in THIS org — link to employee and return success
         user = frappe.get_doc("User", email)
         if not user.mandi_organization:
             user.mandi_organization = admin_org
@@ -1501,7 +1510,7 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
         elif user.mandi_organization == admin_org:
              user_name = user.name
         else:
-             frappe.throw(_("User with this email is already registered with another organization."), frappe.DuplicateEntryError)
+             frappe.throw(_("An account with email {0} is already registered with another organization.").format(email), frappe.DuplicateEntryError)
     else:
         # Create new Frappe user
         user = frappe.get_doc({
@@ -10771,8 +10780,20 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
         pass
 
     if "max_users_override" in config:
+        # max_users_override column does NOT exist on tabMandi Organization.
+        # Store it inside the payment_settings JSON column instead (which exists).
         try:
-            org.max_users_override = int(config["max_users_override"])
+            import json as _json
+            _ps = {}
+            try:
+                _raw = frappe.db.get_value("Mandi Organization", organization_id, "payment_settings")
+                if _raw:
+                    _ps = _json.loads(_raw) if isinstance(_raw, str) else (_raw or {})
+            except Exception:
+                pass
+            _ps["max_users_override"] = int(config["max_users_override"])
+            org.payment_settings = _json.dumps(_ps)
+            changes.append(f"max_users_override: {config['max_users_override']}")
         except Exception:
             pass
 

@@ -106,8 +106,18 @@ def get_subscription_state(org_id: str) -> dict:
     except Exception:
         pass
 
-    # Per-tenant override takes priority
-    max_users_override = cint(getattr(org, "max_users_override", 0))
+    # Per-tenant override — stored in payment_settings JSON since max_users_override
+    # column does not exist on tabMandi Organization in the current schema.
+    max_users_override = 0
+    try:
+        import json as _json
+        _ps_raw = frappe.db.get_value("Mandi Organization", org_id, "payment_settings")
+        if _ps_raw:
+            _ps = _json.loads(_ps_raw) if isinstance(_ps_raw, str) else (_ps_raw or {})
+            max_users_override = cint(_ps.get("max_users_override", 0))
+    except Exception:
+        pass
+
     if max_users_override == -1:
         max_users = 999999  # unlimited
     elif max_users_override > 0:
