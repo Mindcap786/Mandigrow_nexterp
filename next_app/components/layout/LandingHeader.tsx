@@ -35,7 +35,7 @@ export function LandingHeader() {
                         <Link href="/login" className="text-sm font-bold text-gray-700 hover:text-emerald-800 transition-colors">
                             {t('auth.sign_in_btn')}
                         </Link>
-                        <Link href="/login" className="hidden md:flex items-center gap-2 bg-emerald-700 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-emerald-800 transition-all hover:scale-105">
+                        <Link href="/login?mode=signup" className="hidden md:flex items-center gap-2 bg-emerald-700 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-emerald-800 transition-all hover:scale-105">
                             {t('landing.get_started')} <ArrowRight className="w-4 h-4" />
                         </Link>
                     </div>

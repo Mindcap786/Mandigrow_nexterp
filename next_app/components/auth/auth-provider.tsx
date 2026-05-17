@@ -287,7 +287,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/blog' ||
                          pathname?.startsWith('/blog/') ||
                          pathname?.startsWith('/public') ||
-                         pathname?.startsWith('/auth/callback');
+                         pathname?.startsWith('/auth/callback') ||
+                         pathname === '/signup' ||
+                         pathname?.startsWith('/signup/');
 
     // Routing and Security Enforcement
     useEffect(() => {

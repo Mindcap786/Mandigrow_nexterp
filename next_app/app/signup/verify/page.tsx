@@ -39,7 +39,7 @@ export default function VerifyPage() {
                 </Link>
                 <p className="text-xs text-slate-400">
                     Didn't receive it? Check spam, or{' '}
-                    <Link href="/signup" className="text-emerald-300 underline">try again</Link>.
+                    <Link href="/login?mode=signup" className="text-emerald-300 underline">try again</Link>.
                 </p>
             </div>
         </div>

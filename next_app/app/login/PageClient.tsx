@@ -45,7 +45,10 @@ export default function LoginClient() {
     // UI States
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [mode, setMode] = useState<'login' | 'signup' | 'unlock' | 'forgot_password'>('login')
+    const [mode, setMode] = useState<'login' | 'signup' | 'unlock' | 'forgot_password'>(() => {
+        const m = searchParams.get('mode');
+        return (m === 'signup' || m === 'login' || m === 'unlock' || m === 'forgot_password') ? m : 'login';
+    });
     const [authStep, setAuthStep] = useState<AuthStep>('info')
     const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking')
     const [actualEmail, setActualEmail] = useState('')

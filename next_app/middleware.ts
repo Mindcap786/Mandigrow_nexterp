@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
         path === '/checkout' ||
         path === '/settings/billing/payment-callback' ||
         path === '/join' ||
+        path.startsWith('/signup/') ||
         path === '/contact' ||
         path === '/suspended' ||
         path === '/auth/callback' ||

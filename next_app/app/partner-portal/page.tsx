@@ -73,7 +73,7 @@ export default function PartnerDashboardPage() {
 
     const { partner, mandis, payouts } = data;
     const unpaidCommission = payouts.filter((p: any) => p.status === 'Unpaid').reduce((sum: number, p: any) => sum + (p.commission_amount || 0), 0);
-    const refLink = `https://www.mandigrow.com/signup?ref=${partner.name}`;
+    const refLink = `https://www.mandigrow.com/login?mode=signup&ref=${partner.name}`;
 
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in duration-500">
