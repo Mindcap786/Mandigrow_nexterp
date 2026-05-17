@@ -513,6 +513,55 @@ export default function TenantDetailPage() {
                                                     <p className="text-[10px] text-slate-400 font-medium">Selecting a plan pre-fills standard limits. Manual overrides are tracked as "Custom".</p>
                                                 </div>
 
+                                                {/* ── Custom Seat Override ─────────────────────────────────── */}
+                                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100 rounded-2xl p-5 space-y-4 shadow-sm">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 text-indigo-700">
+                                                            <div className="p-2 bg-white rounded-lg shadow-sm"><Users className="w-4 h-4" /></div>
+                                                            <div>
+                                                                <Label className="text-xs font-black uppercase tracking-tight text-indigo-700">Custom Seat Limit Override</Label>
+                                                                <p className="text-[10px] text-indigo-400 font-medium">Override plan default for this tenant only. Set -1 for unlimited.</p>
+                                                            </div>
+                                                        </div>
+                                                        <Badge className={`text-[10px] font-black border-none ${override.max_web_users === -1 ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                            {override.max_web_users === -1 ? '∞ Unlimited' : `${override.max_web_users} Seats`}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex gap-2 items-center">
+                                                        <Input
+                                                            type="number"
+                                                            min={-1}
+                                                            max={999}
+                                                            value={override.max_web_users}
+                                                            onChange={e => setOverride({ ...override, max_web_users: parseInt(e.target.value) || 0 })}
+                                                            className="bg-white border-slate-200 text-slate-900 text-xl font-black h-12 rounded-xl text-center flex-1"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className="h-12 px-4 rounded-xl border-indigo-200 text-indigo-600 font-black text-xs hover:bg-indigo-50"
+                                                            onClick={() => setOverride({ ...override, max_web_users: -1 })}
+                                                        >
+                                                            ∞ Unlimited
+                                                        </Button>
+                                                    </div>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {[3, 5, 10, 20].map(n => (
+                                                            <button
+                                                                key={n}
+                                                                type="button"
+                                                                onClick={() => setOverride({ ...override, max_web_users: n })}
+                                                                className={`py-2 rounded-xl text-xs font-black border transition-all ${override.max_web_users === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
+                                                            >
+                                                                {n} Users
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-[10px] text-indigo-400 font-medium bg-white/60 rounded-lg px-3 py-2">
+                                                        💡 Tenant sees their plan name only — not this number. Charge extra seats manually or via a custom invoice. Changes take effect immediately.
+                                                    </p>
+                                                </div>
+
                                                 {/* Billing Cycle Selection */}
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-black text-slate-500 uppercase tracking-widest">Billing Cycle</Label>
