@@ -30,6 +30,46 @@ export default function LandingPage() {
 
             <LandingHeader />
 
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'SoftwareApplication',
+                        name: 'MandiGrow',
+                        applicationCategory: 'BusinessApplication',
+                        operatingSystem: 'Any, Web, Android',
+                        offers: {
+                            '@type': 'Offer',
+                            price: '0',
+                            priceCurrency: 'INR',
+                        },
+                        description: 'India\'s leading APMC Mandi ERP software for commission agents and wholesale fruit & vegetable traders.',
+                    }),
+                }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'FAQPage',
+                        mainEntity: [
+                            {
+                                '@type': 'Question',
+                                name: 'What is mandi software?',
+                                acceptedAnswer: { '@type': 'Answer', text: 'Mandi software is an ERP designed specifically for Indian agricultural wholesale markets to automate lot billing, commission, hamali, and digital khata.' }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Can I use MandiGrow on my mobile?',
+                                acceptedAnswer: { '@type': 'Answer', text: 'Yes, MandiGrow has a native Android app designed for fast gate entries during morning auctions.' }
+                            }
+                        ]
+                    }),
+                }}
+            />
+
             {/* Hero Section */}
             <main className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
                 {/* Background Glow */}
