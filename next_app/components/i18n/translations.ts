@@ -801,7 +801,7 @@ export const translations = {
             command_center: "கண்ட்ரோல் சென்டர்",
             live_feed: "நேரடி தகவல்கள்",
             return: "திரும்பு",
-            quick_actions: "விரைவான செயல்கள்"
+            quick_actions: "விரைவான செயல்கள்",
             filters: "வடிப்பான்கள்",
             filter_options: "வடிகட்டி விருப்பங்கள்",
             date_range: "தேதி வரம்பு",
