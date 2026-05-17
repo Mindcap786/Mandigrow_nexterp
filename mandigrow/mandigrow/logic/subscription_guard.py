@@ -124,41 +124,76 @@ def get_subscription_state(org_id: str) -> dict:
         current_user_count = 0
 
     # ── Subscription status computation ──────────────────────────────────
-    status = getattr(org, "status", None) or "trial"
+    # Read the raw DB status (may be wrong if admin set it manually)
+    db_status = getattr(org, "status", None) or "trial"
     billing_cycle = getattr(org, "billing_cycle", None) or "monthly"
-    grace_period_days = cint(getattr(org, "grace_period_days", 7)) or 7
 
-    # Determine the effective expiry date
-    # For active/paid plans, use subscription_end_date; for trials, use trial_ends_at
-    expiry_date_str = None
-    if status in ("active", "grace_period", "locked", "expired"):
-        expiry_date_str = getattr(org, "subscription_end_date", None) or getattr(org, "trial_ends_at", None)
-    else:
-        expiry_date_str = getattr(org, "trial_ends_at", None)
+    # ── RULE 1: Grace period ALWAYS comes from super-admin global settings ──
+    # Per-org grace_period_days field does NOT exist in the DB schema —
+    # reading getattr would always return the Python default (7), not the real value.
+    # The ONLY authoritative source is frappe.db.get_default (set via admin/settings page).
+    try:
+        global_grace_key = f"grace_period_days_{billing_cycle}"
+        grace_period_days = cint(frappe.db.get_default(global_grace_key))
+        if not grace_period_days:
+            grace_period_days = 14 if billing_cycle == "yearly" else 7
+    except Exception:
+        grace_period_days = 14 if billing_cycle == "yearly" else 7
+
+    # ── RULE 2: Determine effective expiry date ───────────────────────────
+    # subscription_end_date takes priority (paid plans); fall back to trial_ends_at.
+    expiry_date_str = (
+        getattr(org, "subscription_end_date", None)
+        or getattr(org, "trial_ends_at", None)
+    )
 
     days_left = 999
-    grace_ends_at = getattr(org, "grace_period_ends_at", None)
+    grace_ends_at = None   # Always recomputed — never trust a stale stored value
     is_locked = False
+    status = db_status     # Start with DB value; time-boundary checks below may override
 
     if expiry_date_str:
         try:
-            expiry_date = get_datetime(expiry_date_str)
+            expiry_dt = get_datetime(expiry_date_str)
             now = now_datetime()
-            days_left = date_diff(expiry_date, now)
 
-            # Compute grace end if not set
-            if not grace_ends_at:
-                grace_ends_at = str(add_days(expiry_date, grace_period_days))
+            # ── RULE 3: grace_ends_at = expiry + global_grace_days (strict, no more, no less) ──
+            grace_end_dt = add_days(expiry_dt, grace_period_days)
+            grace_ends_at = str(grace_end_dt)
 
-            grace_end_dt = get_datetime(grace_ends_at)
-
+            # ── RULE 4: Time-boundary driven status — overrides DB value ─────
+            # These rules are absolute and cannot be bypassed by manual DB edits.
             if now > grace_end_dt:
+                # Past grace period end → LOCKED.  Access completely denied.
                 status = "locked"
                 is_locked = True
-            elif now > expiry_date:
+                days_left = 0
+
+            elif now > expiry_dt:
+                # Past expiry but inside grace window → GRACE_PERIOD.
+                # days_left = days until ACCESS IS BLOCKED (not days until expiry).
                 status = "grace_period"
+                days_left = date_diff(grace_end_dt, now)
+
+            else:
+                # Subscription still valid → must be ACTIVE.
+                # If admin manually set status to grace_period/locked/expired while
+                # expiry is in the future, auto-correct it back to active.
+                if db_status in ("grace_period", "locked", "expired"):
+                    status = "active"
+                # days_left = days until subscription expires (natural meaning for active)
+                days_left = date_diff(expiry_dt, now)
+
         except Exception:
-            pass  # Parse failure — treat as active
+            pass  # Parse failure — treat as active, days_left = 999
+
+    # ── RULE 5: Explicit manual suspensions are hard overrides ───────────
+    # "suspended" and "archived" are deliberate admin actions (non-payment,
+    # abuse, etc.) and should never be overridden by the time-boundary logic above.
+    if db_status in ("suspended", "archived"):
+        status = db_status
+        is_locked = True
+        days_left = 0
 
     is_active = status in WRITE_ALLOWED_STATUSES
     is_write_allowed = status in WRITE_ALLOWED_STATUSES
@@ -171,7 +206,7 @@ def get_subscription_state(org_id: str) -> dict:
         "plan": plan_name,
         "plan_doc": plan_doc.as_dict() if plan_doc else None,
         "billing_cycle": billing_cycle,
-        "days_left": days_left,
+        "days_left": days_left,           # days until BLOCKED (grace end) or until expiry
         "expiry_date": str(expiry_date_str) if expiry_date_str else None,
         "grace_period_days": grace_period_days,
         "grace_period_ends_at": str(grace_ends_at) if grace_ends_at else None,

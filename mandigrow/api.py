@@ -10713,10 +10713,10 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
             pass
 
     if "grace_period_days" in config:
-        try:
-            org.grace_period_days = int(config["grace_period_days"])
-        except Exception:
-            pass
+        # Grace period is now globally controlled — we store it in frappe.db.get_default,
+        # NOT as a per-org field. Silently ignore per-org overrides from old UI.
+        # The admin settings page (admin/settings) is the sole source of truth.
+        pass
 
     if "max_users_override" in config:
         try:
@@ -10724,7 +10724,38 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
         except Exception:
             pass
 
-    org.last_status_change = now_datetime()
+    # ── AUTO-CORRECT STATUS BASED ON EXPIRY DATE ─────────────────────────────
+    # RULE: If the effective expiry date is in the FUTURE, the tenant is ACTIVE.
+    # This handles the case where:
+    #   - Admin extends a grace_period tenant's expiry to the future → back to active
+    #   - Admin renews an expired tenant by setting a new future expiry → back to active
+    # The status is corrected in-memory AND saved to DB so the dashboard immediately
+    # reflects the correct state without waiting for the scheduler.
+    try:
+        _effective_expiry = (
+            getattr(org, "subscription_end_date", None)
+            or getattr(org, "trial_ends_at", None)
+        )
+        if _effective_expiry:
+            _expiry_dt = get_datetime(_effective_expiry)
+            if _expiry_dt > now_datetime():
+                _old_status = org.status
+                if _old_status in ("grace_period", "locked", "expired", "suspended"):
+                    # Admin explicitly extended — restore to active, clear any suspension
+                    org.status = "active"
+                    org.is_active = 1
+                    changes.append(
+                        f"status auto-corrected: {_old_status} → active "
+                        f"(expiry extended to {str(_effective_expiry)[:10]})"
+                    )
+                elif _old_status != "active":
+                    # Catch any other non-active status when sub is valid
+                    org.status = "active"
+                    org.is_active = 1
+    except Exception:
+        pass
+    # ─────────────────────────────────────────────────────────────────────────
+
     org.save(ignore_permissions=True)
     frappe.db.commit()
 

@@ -17,7 +17,7 @@ State Machine:
 """
 
 import frappe
-from frappe.utils import now_datetime, get_datetime, add_days, date_diff
+from frappe.utils import now_datetime, get_datetime, add_days, date_diff, cint
 
 
 def daily():
@@ -81,7 +81,17 @@ def transition_expired_to_grace():
 
     for org in all_expired:
         org_id = org["name"]
-        grace_days = org.get("grace_period_days") or 7
+
+        # ── Grace period ALWAYS from global super-admin settings ──────────
+        billing_cycle = org.get("billing_cycle") or "monthly"
+        try:
+            global_grace_key = f"grace_period_days_{billing_cycle}"
+            grace_days = cint(frappe.db.get_default(global_grace_key))
+            if not grace_days:
+                grace_days = 14 if billing_cycle == "yearly" else 7
+        except Exception:
+            grace_days = org.get("grace_period_days") or 7
+
         expiry = org.get("subscription_end_date") or org.get("trial_ends_at")
 
         if not expiry:
@@ -155,10 +165,17 @@ def transition_grace_to_locked():
         org_id = org["name"]
         grace_end = org.get("grace_period_ends_at")
 
-        # If grace_period_ends_at not set, compute it
+        # If grace_period_ends_at not set, compute it from global settings
         if not grace_end:
             expiry = org.get("subscription_end_date") or org.get("trial_ends_at")
-            grace_days = org.get("grace_period_days") or 7
+            billing_cycle = org.get("billing_cycle") or "monthly"
+            try:
+                global_grace_key = f"grace_period_days_{billing_cycle}"
+                grace_days = cint(frappe.db.get_default(global_grace_key))
+                if not grace_days:
+                    grace_days = 14 if billing_cycle == "yearly" else 7
+            except Exception:
+                grace_days = org.get("grace_period_days") or 7
             if expiry:
                 grace_end = add_days(get_datetime(expiry), grace_days)
             else:
