@@ -33,7 +33,7 @@ type BannerConfig = {
 };
 
 function getBannerConfig(status: SubscriptionStatus): BannerConfig | null {
-    const { status: s, days_left, grace_period_days } = status;
+    const { status: s, days_left, grace_period_days, grace_ends_at } = status;
 
     if (s === 'active') {
         const daysLeftInt = Math.max(0, Math.ceil(days_left ?? 0));
@@ -70,13 +70,16 @@ function getBannerConfig(status: SubscriptionStatus): BannerConfig | null {
     }
 
     if (s === 'grace_period') {
+        // days_left here = days until access is BLOCKED (grace period end) — computed correctly by backend.
+        // grace_period_days = total grace window set by super admin.
         const daysLeft = Math.max(0, Math.ceil(days_left ?? 0));
+        const graceDays = grace_period_days ?? 7;
         return {
             type: 'danger',
             icon: AlertTriangle,
             message: daysLeft <= 1
-                ? '⚠️ Final warning: Your subscription has expired. Upgrade now to avoid suspension!'
-                : `Your subscription has expired. You have ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in your grace period before suspension.`,
+                ? `⚠️ Final warning: Your grace period ends today (${graceDays}-day window). Upgrade now to avoid suspension!`
+                : `Your subscription has expired. You have ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in your ${graceDays}-day grace period before your account is locked.`,
             cta: 'Upgrade Now',
             bgClass: 'bg-orange-950/90',
             borderClass: 'border-orange-500/40',
