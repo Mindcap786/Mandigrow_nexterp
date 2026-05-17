@@ -132,7 +132,7 @@ export default function TenantDetailPage() {
                 const globalDefault = billingCycle === 'yearly' ? globalGracePeriod.yearly : globalGracePeriod.monthly;
                 setOverride({
                     subscription_tier: result.org.subscription_tier || 'basic',
-                    max_web_users: result.org.max_web_users ?? 1,
+                    max_web_users: result.org.max_users_override ?? result.seat_info?.max_users ?? 1,
                     max_mobile_users: result.org.max_mobile_users ?? 0,
                     trial_ends_at: result.org.current_period_end || result.org.trial_ends_at,
                     extend_days: 0,
@@ -809,7 +809,14 @@ export default function TenantDetailPage() {
 
                         <Card className="bg-white shadow-sm border-slate-200">
                             <CardHeader className="pb-2"><CardTitle className="text-xs text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users className="w-3 h-3 text-emerald-500" /> Active Users</CardTitle></CardHeader>
-                            <CardContent><p className="text-2xl font-black text-slate-900">{data?.users?.length ?? 0}</p></CardContent>
+                            <CardContent>
+                                <div className="flex items-end gap-1.5">
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{data?.users?.length ?? 0}</p>
+                                    <span className="text-sm font-bold text-slate-400 mb-0.5">
+                                        / {org.max_users_override === -1 ? '∞' : (org.max_users_override || override.max_web_users || 1)}
+                                    </span>
+                                </div>
+                            </CardContent>
                         </Card>
                         <Card className="bg-white shadow-sm border-slate-200">
                             <CardHeader className="pb-2"><CardTitle className="text-xs text-slate-500 uppercase tracking-widest flex items-center gap-1"><CalendarPlus className="w-3 h-3 text-orange-400" /> Expiry</CardTitle></CardHeader>
