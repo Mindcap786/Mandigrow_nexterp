@@ -19,7 +19,27 @@ const POSTS = [
         date: 'May 17, 2026',
         category: 'Software Comparison',
     },
-    // Future posts will be added here
+    {
+        title: 'How to Calculate Commission, Hamali, and Mandi Tax (Cess) Automatically',
+        slug: 'how-to-calculate-commission-hamali-mandi-tax',
+        excerpt: 'Stop calculating commission and deductions manually. Learn how to automate your market fees, hamali, and palledari deductions directly from the mandi gate pass.',
+        date: 'May 18, 2026',
+        category: 'Mandi Operations',
+    },
+    {
+        title: 'The Complete Guide to APMC Mandi GST Compliance in 2026',
+        slug: 'apmc-mandi-gst-compliance-2026',
+        excerpt: 'Everything commission agents and wholesale vegetable traders need to know about GST, e-invoicing, and staying compliant within the APMC structure.',
+        date: 'May 19, 2026',
+        category: 'Tax & Compliance',
+    },
+    {
+        title: 'Paper Khata vs Digital Mandi Khata: Transitioning Your Commission Business',
+        slug: 'paper-khata-vs-digital-mandi-khata',
+        excerpt: 'The risks of paper bahis and the benefits of a live, digital mandi khata. See how to settle farmer accounts instantly without reconciliation headaches.',
+        date: 'May 20, 2026',
+        category: 'Business Growth',
+    },
 ];
 
 export default function BlogIndexPage() {
