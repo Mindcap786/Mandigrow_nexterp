@@ -95,7 +95,7 @@ def get_subscription_state(org_id: str) -> dict:
         return default
 
     # ── Resolve plan limits ──────────────────────────────────────────────
-    plan_name = getattr(org, "plan_id", None) or getattr(org, "subscription_tier", None) or "starter"
+    plan_name = getattr(org, "subscription_tier", None) or getattr(org, "plan_id", None) or "starter"
     plan_doc = None
     max_users = 2  # safe default
 

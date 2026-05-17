@@ -1469,6 +1469,19 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
     if not admin_org:
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
 
+    # ── Normalize role to a valid Frappe role_type value ─────────────────────
+    # Frappe User.role_type only accepts: super_admin | admin | manager | clerk
+    # Frontend sends "member" / "staff" / "employee" — map them to "clerk"
+    VALID_ROLE_TYPES = {"super_admin", "admin", "manager", "clerk"}
+    ROLE_MAP = {
+        "member": "clerk", "staff": "clerk", "employee": "clerk",
+        "user": "clerk", "viewer": "clerk", "salesman": "clerk",
+        "accountant": "clerk", "worker": "clerk",
+    }
+    normalized_role = ROLE_MAP.get(str(role).lower(), role) if role not in VALID_ROLE_TYPES else role
+    if normalized_role not in VALID_ROLE_TYPES:
+        normalized_role = "clerk"  # Ultimate fallback
+
     # ── Subscription enforcement: block if org is locked/expired ──────────
     if not is_super_admin():
         enforce_active_subscription(admin_org)
@@ -1482,7 +1495,7 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
         user = frappe.get_doc("User", email)
         if not user.mandi_organization:
             user.mandi_organization = admin_org
-            user.role_type = role
+            user.role_type = normalized_role
             user.save(ignore_permissions=True)
             user_name = user.name
         elif user.mandi_organization == admin_org:
@@ -1498,7 +1511,7 @@ def provision_team_member(email: str, full_name: str, password: str = "mandi123"
             "last_name": " ".join(full_name.split(" ")[1:]) if " " in full_name else "",
             "send_welcome_email": 0,
             "mandi_organization": admin_org,
-            "role_type": role,
+            "role_type": normalized_role,
             "business_domain": "mandi"
         })
         user.flags.ignore_password_policy = True
@@ -10708,9 +10721,20 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
 
     if "subscription_tier" in config:
         old = org.subscription_tier
-        org.subscription_tier = config["subscription_tier"]
-        if old != config["subscription_tier"]:
-            changes.append(f"tier: {old} → {config['subscription_tier']}")
+        new_tier = config["subscription_tier"]
+        org.subscription_tier = new_tier
+        # Keep plan_id in sync — subscription_tier and plan_id must always match
+        # so get_tenant_subscription and get_subscription_state return the same plan
+        # regardless of which field they prefer.
+        if frappe.db.exists("App Plan", new_tier):
+            org.plan_id = new_tier
+        else:
+            # Try matching by plan_name field
+            plan_by_name = frappe.db.get_value("App Plan", {"plan_name": new_tier}, "name")
+            if plan_by_name:
+                org.plan_id = plan_by_name
+        if old != new_tier:
+            changes.append(f"tier: {old} → {new_tier}")
 
     if "billing_cycle" in config:
         org.billing_cycle = config["billing_cycle"]
@@ -10988,10 +11012,12 @@ def get_tenant_subscription() -> dict:
     }
 
     # ── Resolve Current Plan ─────────────────────────────────────────────────
-    # Mandi Organization uses "plan_id" (Link→App Plan) as primary; "subscription_tier" as fallback
+    # Resolution order: subscription_tier (admin panel writes this field directly) →
+    # plan_id (written by Paytm/checkout flow) → plan (legacy)
+    # Both fields are kept in sync going forward; this order handles stale legacy data.
     current_plan_name = (
-        getattr(org, "plan_id", None) or
         getattr(org, "subscription_tier", None) or
+        getattr(org, "plan_id", None) or
         getattr(org, "plan", None)
     )
     current_plan = None
