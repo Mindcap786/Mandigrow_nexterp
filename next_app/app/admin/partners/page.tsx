@@ -50,9 +50,17 @@ export default function PartnersAdminPage() {
         try {
             const res: any = await callApi('mandigrow.api.approve_partner', { partner_id: partnerId });
             if (res?.success) {
-                toast({ title: '✅ Partner Approved', description: `Referral code: ${res.referral_code}. Welcome email sent.` });
                 setApprovalResult(res);
                 fetchPartners();
+                if (res.email_sent) {
+                    toast({ title: '✅ Partner Approved', description: `Email sent to ${res.frappe_user}. Referral: ${res.referral_code}` });
+                } else {
+                    toast({ 
+                        title: '✅ Approved — Email Failed', 
+                        description: `SMTP error. Share credentials manually: ${res.temp_password}`,
+                        variant: 'destructive'
+                    });
+                }
             } else {
                 toast({ title: 'Error', description: res?.error || 'Approval failed', variant: 'destructive' });
             }
@@ -63,24 +71,23 @@ export default function PartnersAdminPage() {
         }
     };
 
-    const handleResetPassword = async (partner: any) => {
-        const tempPwd = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4);
+    const handleResendCredentials = async (partner: any) => {
         setActionLoading(partner.name);
         try {
-            const res: any = await callApi('mandigrow.api.admin_user_action', { 
-                action: 'reset_password', 
-                user_id: partner.frappe_user || partner.email, 
-                payload: { newPassword: tempPwd } 
-            });
+            const res: any = await callApi('mandigrow.api.resend_partner_credentials', { partner_id: partner.name });
             if (res?.success) {
-                toast({ title: 'Password Reset Successful', description: `New temp password generated for ${partner.partner_name}.` });
-                setApprovalResult({
-                    referral_code: partner.referral_code,
-                    referral_link: `${window.location.origin}/ref/${partner.referral_code}`,
-                    temp_password: tempPwd
-                });
+                setApprovalResult(res);
+                if (res.email_sent) {
+                    toast({ title: '📧 Credentials Sent', description: `New password emailed to ${res.frappe_user}` });
+                } else {
+                    toast({ 
+                        title: '⚠️ Email Failed — Copy Manually', 
+                        description: `Password: ${res.temp_password} | Error: ${res.email_error}`,
+                        variant: 'destructive'
+                    });
+                }
             } else {
-                toast({ title: 'Error', description: res?.error || 'Reset failed', variant: 'destructive' });
+                toast({ title: 'Error', description: res?.error || 'Resend failed', variant: 'destructive' });
             }
         } catch (e: any) {
             toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -196,34 +203,48 @@ export default function PartnersAdminPage() {
                     ))}
                 </div>
 
-                {/* Approval Result Banner */}
+                {/* Approval / Resend Result Banner */}
                 {approvalResult && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col gap-3">
+                    <div className={`border rounded-2xl p-5 flex flex-col gap-3 ${approvalResult.email_sent === false ? 'bg-amber-50 border-amber-300' : 'bg-emerald-50 border-emerald-200'}`}>
                         <div className="flex items-center justify-between">
-                            <p className="font-black text-emerald-800 flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5" /> Partner Approved Successfully
+                            <p className={`font-black flex items-center gap-2 ${approvalResult.email_sent === false ? 'text-amber-800' : 'text-emerald-800'}`}>
+                                {approvalResult.email_sent === false 
+                                    ? <> ⚠️ Email Failed — Share Credentials Manually </>
+                                    : <><CheckCircle2 className="w-5 h-5" /> Partner Approved Successfully</>}
                             </p>
-                            <button onClick={() => setApprovalResult(null)} className="text-emerald-500 text-xs font-bold uppercase hover:text-emerald-700">Dismiss</button>
+                            <button onClick={() => setApprovalResult(null)} className="text-slate-500 text-xs font-bold uppercase hover:text-slate-700">Dismiss</button>
                         </div>
+                        {approvalResult.email_error && (
+                            <p className="text-xs text-amber-700 bg-amber-100 rounded-lg p-2 border border-amber-200">
+                                <span className="font-black">SMTP Error:</span> {approvalResult.email_error}
+                            </p>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                            <div className="bg-white rounded-xl p-3 border border-emerald-100">
-                                <p className="text-[10px] text-emerald-600 font-black uppercase mb-1">Referral Code</p>
+                            {approvalResult.frappe_user && (
+                                <div className="bg-white rounded-xl p-3 border">
+                                    <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Login Email</p>
+                                    <div className="flex items-center gap-2">
+                                        <code className="font-mono text-xs text-slate-700 break-all">{approvalResult.frappe_user}</code>
+                                        <button onClick={() => copyToClipboard(approvalResult.frappe_user)} className="text-slate-400 hover:text-slate-600 flex-shrink-0"><Copy className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="bg-white rounded-xl p-3 border">
+                                <p className="text-[10px] text-red-600 font-black uppercase mb-1">🔑 Password (share securely)</p>
                                 <div className="flex items-center gap-2">
-                                    <code className="font-mono font-black text-emerald-900">{approvalResult.referral_code}</code>
-                                    <button onClick={() => copyToClipboard(approvalResult.referral_code)} className="text-emerald-500 hover:text-emerald-700"><Copy className="w-3.5 h-3.5" /></button>
+                                    <code className="font-mono font-black text-slate-900">{approvalResult.temp_password}</code>
+                                    <button onClick={() => copyToClipboard(approvalResult.temp_password)} className="text-slate-400 hover:text-slate-600"><Copy className="w-3.5 h-3.5" /></button>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-3 border border-emerald-100">
-                                <p className="text-[10px] text-emerald-600 font-black uppercase mb-1">Referral Link</p>
-                                <div className="flex items-center gap-2">
-                                    <code className="font-mono text-xs text-emerald-900 truncate">{approvalResult.referral_link}</code>
-                                    <button onClick={() => copyToClipboard(approvalResult.referral_link)} className="text-emerald-500 hover:text-emerald-700 flex-shrink-0"><Copy className="w-3.5 h-3.5" /></button>
+                            {approvalResult.referral_code && (
+                                <div className="bg-white rounded-xl p-3 border">
+                                    <p className="text-[10px] text-emerald-600 font-black uppercase mb-1">Referral Link</p>
+                                    <div className="flex items-center gap-2">
+                                        <code className="font-mono text-xs text-emerald-900 truncate">{approvalResult.referral_link}</code>
+                                        <button onClick={() => copyToClipboard(approvalResult.referral_link ?? '')} className="text-emerald-500 hover:text-emerald-700 flex-shrink-0"><Copy className="w-3.5 h-3.5" /></button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bg-white rounded-xl p-3 border border-emerald-100">
-                                <p className="text-[10px] text-emerald-600 font-black uppercase mb-1">Temp Password</p>
-                                <code className="font-mono font-black text-slate-700">{approvalResult.temp_password}</code>
-                            </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -315,11 +336,11 @@ export default function PartnersAdminPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleResetPassword(partner)}
+                                                            onClick={() => handleResendCredentials(partner)}
                                                             disabled={actionLoading === partner.name}
                                                             className="border-amber-200 text-amber-700 hover:bg-amber-50 font-bold text-xs"
                                                         >
-                                                            {actionLoading === partner.name ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Key className="w-3 h-3 mr-1"/>} Reset Password
+                                                            {actionLoading === partner.name ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Mail className="w-3 h-3 mr-1"/>} Resend Credentials
                                                         </Button>
                                                     )}
                                                     {partner.status === 'Pending' && (
