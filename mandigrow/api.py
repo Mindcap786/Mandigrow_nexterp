@@ -2846,7 +2846,7 @@ def repair_arrival_financials(arrival_id):
         frappe.db.set_value("Mandi Arrival", doc.name, field, doc.get(field))
         
     # Cancel old JEs linked to this arrival
-    old_jes = frappe.get_all("Journal Entry", filters={"remarks": ["like", f"%{arrival_id}%"]}, fields=["name", "docstatus"])
+    old_jes = frappe.get_all("Journal Entry", filters={"user_remark": ["like", f"%{arrival_id}%"]}, fields=["name", "docstatus"])
     for oje in old_jes:
         if oje.docstatus == 1:
             try:
