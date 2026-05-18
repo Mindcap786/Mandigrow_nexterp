@@ -392,6 +392,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const showOnboarding = !loading && !!user && !profile && profileNotFound && !isPublicPath;
 
+    // ── Session Expiry / Concurrent Login Enforcement ──────────────────────
+    useEffect(() => {
+        const handleAuthFailed = () => {
+            console.warn('[Auth] Server indicates session is invalid/expired. Forcing immediate logout.');
+            if (window.location.pathname !== '/login') {
+                signOut();
+            }
+        };
+        window.addEventListener('frappe.auth.failed', handleAuthFailed as EventListener);
+        return () => window.removeEventListener('frappe.auth.failed', handleAuthFailed as EventListener);
+    }, []);
+    // ────────────────────────────────────────────────────────────────────────
+
     // ── Idle Auto-Logout (10 minutes of zero activity) ──────────────────────
     // Only active when the user is logged in and on a protected page.
     // Any mouse move, key press, scroll, or touch resets the timer.

@@ -95,6 +95,12 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
         json = { raw: text };
     }
 
+    if (json?.session_expired || res.status === 401) {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('frappe.auth.failed', { detail: { status: res.status } }));
+        }
+    }
+
     if (!res.ok) {
         const msgs = parseServerMessages(json);
         const message = msgs[0] || json?.message || json?.exception || `HTTP ${res.status} ${res.statusText}`;
