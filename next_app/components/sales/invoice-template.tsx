@@ -243,51 +243,67 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 {/* Left Side: Payment Details */}
                 <div className="space-y-4">
                     {/* Bank Details & QR from Settings → Bank Details page */}
-                    {(organization?.settings?.payment?.print_upi_qr || organization?.settings?.payment?.print_bank_details) && (
-                        <div className="py-4 border-t border-gray-100 flex flex-col gap-4">
-                            {/* UPI QR Code for Pending Balance */}
-                            {(organization?.settings?.payment?.print_upi_qr && organization?.settings?.payment?.upi_id) && (() => {
-                                if (balanceDue <= 0) return null;
-                                return (
-                                    <div className="flex flex-col items-center gap-1.5 p-2 bg-gray-50 rounded-xl border border-gray-100 w-fit">
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-orange-500 italic">Scan to Pay</span>
-                                        <QRCodeSVG
-                                            value={`upi://pay?pa=${organization.settings.payment.upi_id}&pn=${encodeURIComponent(organization.settings.payment.upi_name || organization.name)}&am=${balanceDue}&cu=INR`}
-                                            size={90}
-                                            level="H"
-                                            includeMargin={true}
-                                        />
-                                        <div className="flex flex-col items-center -mt-1">
-                                            <span className="text-[8px] font-black text-gray-900 uppercase">Pending Amount</span>
-                                            <span className="text-[10px] font-black text-black">₹{balanceDue.toLocaleString()}</span>
-                                        </div>
-                                        <span className="text-[7px] font-bold text-gray-400">{organization.settings.payment.upi_id}</span>
-                                    </div>
-                                );
-                            })()}
+                    {(organization?.settings?.payment?.print_upi_qr || organization?.settings?.payment?.print_bank_details) && (() => {
+                        const defaultPayment = organization?.settings?.payment || {};
+                        const selectedBank = sale.selected_bank_details || {};
+                        
+                        // Merge logic: If sale has a selected bank, use its details. Otherwise fallback to defaults.
+                        const upiId = selectedBank.upi_id || defaultPayment.upi_id;
+                        const accountHolder = selectedBank.account_holder || selectedBank.account_name || defaultPayment.account_holder || organization?.name;
+                        const accountNumber = selectedBank.account_no || selectedBank.account_number || selectedBank.acc_no || defaultPayment.account_number;
+                        const ifscCode = selectedBank.ifsc || selectedBank.ifsc_code || defaultPayment.ifsc_code;
+                        const bankName = selectedBank.bank_name || selectedBank.bank || defaultPayment.bank_name;
+                        const upiName = selectedBank.upi_name || defaultPayment.upi_name || organization?.name;
 
-                            {/* Bank Account Details */}
-                            {organization?.settings?.payment?.print_bank_details && organization?.settings?.payment?.account_number && (
-                                <div className="space-y-2">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block border-b border-gray-100 pb-1">Bank Account Details</span>
-                                    <div className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-0.5 text-[10px]">
-                                        {organization.settings.payment.bank_name && (
-                                            <><span className="text-gray-400 font-bold uppercase">Bank</span>
-                                            <span className="font-black text-gray-800">{organization.settings.payment.bank_name}</span></>
-                                        )}
-                                        <span className="text-gray-400 font-bold uppercase">A/C No</span>
-                                        <span className="font-black text-gray-800 font-mono">{organization.settings.payment.account_number}</span>
-                                        {organization.settings.payment.ifsc_code && (
-                                            <><span className="text-gray-400 font-bold uppercase">IFSC</span>
-                                            <span className="font-black text-gray-800 font-mono">{organization.settings.payment.ifsc_code}</span></>
-                                        )}
-                                        {(organization.settings.payment.account_holder || organization.name) && (
-                                            <><span className="text-gray-400 font-bold uppercase">Holder</span>
-                                            <span className="font-black text-gray-800 uppercase">{organization.settings.payment.account_holder || organization.name}</span></>
-                                        )}
+                        return (
+                            <div className="py-4 border-t border-gray-100 flex flex-col gap-4">
+                                {/* UPI QR Code for Pending Balance */}
+                                {(defaultPayment.print_upi_qr && upiId) && (() => {
+                                    if (balanceDue <= 0) return null;
+                                    return (
+                                        <div className="flex flex-col items-center gap-1.5 p-2 bg-gray-50 rounded-xl border border-gray-100 w-fit">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-orange-500 italic">Scan to Pay</span>
+                                            <QRCodeSVG
+                                                value={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${balanceDue}&cu=INR`}
+                                                size={90}
+                                                level="H"
+                                                includeMargin={true}
+                                            />
+                                            <div className="flex flex-col items-center -mt-1">
+                                                <span className="text-[8px] font-black text-gray-900 uppercase">Pending Amount</span>
+                                                <span className="text-[10px] font-black text-black">₹{balanceDue.toLocaleString()}</span>
+                                            </div>
+                                            <span className="text-[7px] font-bold text-gray-400">{upiId}</span>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Bank Account Details */}
+                                {defaultPayment.print_bank_details && accountNumber && (
+                                    <div className="space-y-2">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block border-b border-gray-100 pb-1">Bank Account Details</span>
+                                        <div className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-0.5 text-[10px]">
+                                            {bankName && (
+                                                <><span className="text-gray-400 font-bold uppercase">Bank</span>
+                                                <span className="font-black text-gray-800">{bankName}</span></>
+                                            )}
+                                            <span className="text-gray-400 font-bold uppercase">A/C No</span>
+                                            <span className="font-black text-gray-800 font-mono">{accountNumber}</span>
+                                            {ifscCode && (
+                                                <><span className="text-gray-400 font-bold uppercase">IFSC</span>
+                                                <span className="font-black text-gray-800 font-mono">{ifscCode}</span></>
+                                            )}
+                                            {accountHolder && (
+                                                <><span className="text-gray-400 font-bold uppercase">Name</span>
+                                                <span className="font-black text-gray-800 uppercase">{accountHolder}</span></>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
+                        );
+                    })()}
+
                         </div>
                     )}
                 </div>

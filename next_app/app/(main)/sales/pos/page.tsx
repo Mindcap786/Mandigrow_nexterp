@@ -1654,7 +1654,7 @@ export default function POSPage() {
 
                     {printQRCode && (() => {
                         const paymentSettings = orgSettings?.payment || {}
-                        const bankId = paymentSettings.source_bank_upi || paymentSettings.source_bank_details || selectedAccountId
+                        const bankId = selectedAccountId || paymentSettings.source_bank_upi || paymentSettings.source_bank_details
                         // Ensure it's a bank account specifically for bill details
                         const acc = accounts.find(a => a.id === bankId && a.account_sub_type === 'bank') 
                                    || accounts.find(a => a.account_sub_type === 'bank' && a.is_default)
@@ -1663,7 +1663,8 @@ export default function POSPage() {
                         if (!acc) return null;
 
                         const meta = acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                        const upiId = meta.upi_id || paymentSettings.upi_id
+                        const isDefaultOrSettingsBank = acc.id === paymentSettings.source_bank_upi || acc.id === paymentSettings.source_bank_details;
+                        const upiId = meta.upi_id || (isDefaultOrSettingsBank ? paymentSettings.upi_id : '');
                         const payAmt = amountReceived < grandTotal ? (grandTotal - amountReceived > 0 ? grandTotal - amountReceived : grandTotal) : grandTotal;
                         
                         if (payAmt > 0) {
@@ -1680,8 +1681,8 @@ export default function POSPage() {
 
                                         {/* Right: Bank Details */}
                                         {printBankDetails && (() => {
-                                            const accNo = meta.account_no || meta.account_number || meta.acc_no || paymentSettings.account_number || '';
-                                            const ifscCode = meta.ifsc || meta.ifsc_code || paymentSettings.ifsc_code || '';
+                                            const accNo = meta.account_no || meta.account_number || meta.acc_no || (isDefaultOrSettingsBank ? paymentSettings.account_number : '');
+                                            const ifscCode = meta.ifsc || meta.ifsc_code || (isDefaultOrSettingsBank ? paymentSettings.ifsc_code : '');
                                             return (
                                                 <div className="flex-grow text-[9px] border-l border-dotted border-black/30 pl-2 text-left min-w-0">
                                                     <div className="font-bold uppercase mb-0.5 text-[7px] opacity-70">Bank Details</div>

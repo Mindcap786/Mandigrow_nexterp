@@ -515,10 +515,7 @@ export default function BanksPage() {
                                 placeholder="merchant@upi"
                                 className="bg-slate-50 border-slate-200 h-11 font-mono font-bold text-black rounded-xl" />
                         </div>
-                        <p className="text-[10px] text-slate-400 font-bold">
-                            💡 To print this bank on invoices, go to{' '}
-                            <a href="/settings/bank-details" className="text-blue-600 underline">Settings → Bank Details</a>
-                        </p>
+
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                                 Opening Balance (₹) {editingId && <span className="text-amber-500 normal-case font-black ml-1">— locked for compliance; use Deposit/Withdraw for adjustments</span>}

@@ -6228,6 +6228,18 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
         # Fetch adjustments from comments
         comments = frappe.get_all("Comment", filters={"reference_doctype": "Mandi Sale", "reference_name": sale_id, "comment_type": "Comment"}, fields=["content"])
         all_remarks = "\n".join([c.content for c in comments])
+        
+        # Get bank details if a bank was selected
+        selected_bank_details = None
+        if doc.bankaccountid:
+            try:
+                import json
+                acc_desc = frappe.db.get_value("Account", doc.bankaccountid, "description")
+                if acc_desc and str(acc_desc).strip().startswith('{'):
+                    selected_bank_details = json.loads(str(acc_desc).strip())
+                    selected_bank_details["bank_name"] = frappe.db.get_value("Account", doc.bankaccountid, "name")
+            except Exception:
+                pass
 
         return {
             "id": doc.name,
@@ -6237,6 +6249,8 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "buyer_city": buyer_city,
             "buyer_gstin": buyer_gstin,
             "payment_mode": doc.paymentmode,
+            "bankaccountid": doc.bankaccountid,
+            "selected_bank_details": selected_bank_details,
             "items_total": items_total,
             "total_amount": float(doc.totalamount or 0),
             "total_amount_inc_tax": float(doc.invoice_total or 0),
@@ -9338,7 +9352,20 @@ def backfill_gl_entries() -> dict:
             )
             total_realized  = sum(flt(l.get("net_amount") or 0) for l in lots)
             total_commission = sum(flt(l.get("commission_amount") or 0) for l in lots)
-            net_payable = total_realized - total_commission - flt(a.get("advance") or 0)
+            
+            # Recalculate expenses
+            doc_data = frappe.get_doc("Mandi Arrival", a["name"])
+            sum_lot_costs = sum(flt(l.packing_cost) + flt(l.loading_cost) + flt(l.farmer_charges) for l in doc_data.items)
+            arrival_costs = flt(doc_data.hire_charges) + flt(doc_data.hamali_expenses) + flt(doc_data.other_expenses)
+            total_expenses = sum_lot_costs + arrival_costs
+
+            arrival_type_str = (a.get("arrival_type") or "direct").lower()
+            if arrival_type_str == "direct":
+                net_payable = total_realized + total_expenses - flt(a.get("advance") or 0)
+                total_commission = 0.0
+            else:
+                mandi_earnings = total_commission + total_expenses
+                net_payable = total_realized - mandi_earnings - flt(a.get("advance") or 0)
 
             frappe.db.set_value("Mandi Arrival", a["name"], {
                 "total_realized":      total_realized,

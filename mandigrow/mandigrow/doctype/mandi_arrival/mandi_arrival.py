@@ -84,10 +84,14 @@ class MandiArrival(Document):
             + flt(self.other_expenses or 0)
         )
         total_expenses = round(sum_lot_costs + arrival_costs, 2)
-        mandi_total_earnings = round(total_commission + total_expenses, 2)
-        net_payable = round(
-            total_realized - mandi_total_earnings, 2
-        )
+        
+        arrival_type_str = (self.arrival_type or "direct").lower()
+        if arrival_type_str == "direct":
+            mandi_total_earnings = 0.0 # Mandi does not earn commission/expenses on direct purchase
+            net_payable = round(total_realized + total_expenses, 2)
+        else:
+            mandi_total_earnings = round(total_commission + total_expenses, 2)
+            net_payable = round(total_realized - mandi_total_earnings, 2)
 
         self.total_realized = round(total_realized, 2)
         self.total_commission = round(total_commission, 2)

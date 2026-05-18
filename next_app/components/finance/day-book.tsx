@@ -1096,21 +1096,36 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
 
             // Detect pure write-off group: payment/receipt with NO liquid (cash/bank) leg.
             // No real cash moved — must NOT count as inflow/outflow in Liquid Assets card.
+            // CRITICAL FIX: Check renderLegs (all raw GL legs), NOT summaryLegs.
+            // summaryLegs for standalone receipt/payment only has the party leg.
+            // renderLegs has both the party leg AND the cash/bank leg.
+            const allGroupLegs = [...(group.renderLegs || []), ...(group.summaryLegs || [])];
             const isWriteOff = (groupFlow === 'payment' || groupFlow === 'receipt' ||
                                 groupFlow === 'paid_receipt' || groupFlow === 'receive_receipt') &&
-                !group.summaryLegs.some((l: any) => {
-                    const subType = String(l.account?.account_sub_type || '').toLowerCase();
-                    const accName = String(l.account?.name || '').toLowerCase();
+                !allGroupLegs.some((l: any) => {
+                    const subType = String(l.account?.account_sub_type || l.account?.type || '').toLowerCase();
+                    const accType = String(l.account?.account_type || '').toLowerCase();
+                    const accName = String(l.account?.name || l.account || '').toLowerCase();
                     return subType === 'cash' || subType === 'bank' ||
+                           accType === 'cash' || accType === 'bank' ||
                            accName.includes('bank') || accName.includes('cash');
                 });
 
             group.summaryLegs.forEach((leg: any) => {
                 const type = leg.displayType as string;
                 const val = Math.max(leg.displayDebit || 0, leg.displayCredit || 0);
-                const isBank = String(leg.account?.account_sub_type || '').toLowerCase() === 'bank'
-                    || String(leg.account?.name || '').toLowerCase().includes('bank')
-                    || String(leg.displayDescription || '').toLowerCase().includes('upi');
+                
+                // CRITICAL FIX: The leg in summaryLegs is often the party/expense leg.
+                // To accurately know if this was a bank/digital payment, we must check 
+                // all raw legs (renderLegs) for any bank/upi involvement.
+                const allGroupLegs = [...(group.renderLegs || []), ...(group.summaryLegs || [])];
+                const isBank = allGroupLegs.some((l: any) => {
+                    const subType = String(l.account?.account_sub_type || l.account?.type || '').toLowerCase();
+                    const accType = String(l.account?.account_type || '').toLowerCase();
+                    const accName = String(l.account?.name || l.account || '').toLowerCase();
+                    const desc = String(l.displayDescription || l.description || '').toLowerCase();
+                    return subType === 'bank' || accType === 'bank' || accName.includes('bank') || desc.includes('upi');
+                });
 
                 // 1. PURCHASE GROUP (Initial Transaction)
                 // Hits Card 1 ONLY.

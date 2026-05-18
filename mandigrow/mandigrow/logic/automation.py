@@ -431,13 +431,14 @@ def post_arrival_ledger(doc, method=None):
                 })
     
     elif arrival_type == "direct":
-        # Direct purchase: Stock Dr / Creditor Cr (full purchase value minus expenses)
+        # Direct purchase: Stock Dr / Creditor Cr (full purchase value PLUS expenses)
+        # Mandi bears expenses, so they are added to the supplier payable and the stock cost.
         total_expenses = _flt(doc.total_expenses)
-        net_payable = round(total_realized - total_expenses, 2)
-        if total_realized > 0:
+        net_payable = _flt(doc.net_payable_farmer)
+        if net_payable > 0:
             goods_accounts.append({
                 "account":                   get_stock_acc(company),
-                "debit_in_account_currency": total_realized,
+                "debit_in_account_currency": net_payable,
                 "against_voucher_type":      "Mandi Arrival",
                 "against_voucher":           doc.name,
                 "user_remark":               f"Direct purchase received from {party_name} — {bill_ref}{details_str}",
@@ -452,14 +453,8 @@ def post_arrival_ledger(doc, method=None):
                     "against_voucher":            doc.name,
                     "user_remark":                f"Goods payable to {party_name} — {bill_ref}",
                 })
-            if total_expenses > 0:
-                goods_accounts.append({
-                    "account":                    get_expense_acc(company),
-                    "credit_in_account_currency": total_expenses,
-                    "against_voucher_type":       "Mandi Arrival",
-                    "against_voucher":            doc.name,
-                    "user_remark":                f"Expense Recovery on {bill_ref} — {party_name}",
-                })
+            # For direct purchases, expenses are borne by the Mandi and added to the stock cost/payable.
+            # No separate Expense Recovery entry is needed since it's not recovered from the supplier.
 
     goods_je = None
     if goods_accounts:
