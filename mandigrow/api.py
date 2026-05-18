@@ -1589,17 +1589,33 @@ def provision_team_member(
 
 @frappe.whitelist(allow_guest=False)
 def get_team_members() -> list:
-    """Returns all users belonging to the same organization as the current user."""
+    """Returns all users belonging to the same organization as the current user.
+    
+    SECURITY: Platform super-admin accounts are ALWAYS excluded from this list.
+    Super-admins may temporarily have mandi_organization set during impersonation,
+    but they must NEVER be visible in a tenant's Team Access page.
+    This is an industry-standard practice — the SaaS vendor is never visible
+    inside the customer's account roster.
+    """
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin, PLATFORM_ADMIN_EMAILS
     org_id = _get_user_org()
     if not org_id:
         return []
-        
+
+    # Build the exclusion list: Administrator + all platform owner accounts
+    excluded = list(PLATFORM_ADMIN_EMAILS) + ["Administrator"]
+
     try:
-        return frappe.get_all("User",
-            filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
+        members = frappe.get_all("User",
+            filters={
+                "mandi_organization": org_id,
+                "enabled": 1,
+                "name": ["not in", excluded],
+            },
             fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
             order_by="creation desc"
         )
+        return members
     except Exception as e:
         if "Unknown column" in str(e) and "rbac_matrix" in str(e):
             # Self-healing: Create the missing custom field on-the-fly
@@ -1615,10 +1631,13 @@ def get_team_members() -> list:
                 ]
             })
             frappe.db.commit()
-            
-            # Retry the query
+            # Retry
             return frappe.get_all("User",
-                filters={"mandi_organization": org_id, "enabled": 1, "name": ["!=", "Administrator"]},
+                filters={
+                    "mandi_organization": org_id,
+                    "enabled": 1,
+                    "name": ["not in", excluded],
+                },
                 fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
                 order_by="creation desc"
             )
@@ -10712,7 +10731,18 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
 @frappe.whitelist(allow_guest=False)
 def impersonate_tenant(user_id: str) -> dict:
     """
-    Allows a Super Admin to view a tenant's data by switching their own mandi_organization.
+    Allows a Super Admin to view a tenant's data by temporarily storing
+    the target org in the Frappe session cache — NOT by modifying the
+    admin's mandi_organization field.
+
+    ARCHITECTURE (Industry Standard — how Shopify/Stripe/Intercom do it):
+    ─────────────────────────────────────────────────────────────────────
+    The platform admin's own user record is NEVER modified during impersonation.
+    Instead, we store the target org_id in a volatile session cache key
+    `impersonation_target_org`. The `_get_user_org()` helper reads this key
+    first for super-admin sessions, giving transparent org context without
+    polluting the User doctype — and without the admin ever appearing in
+    the tenant's Team Access roster.
     """
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
@@ -10722,25 +10752,44 @@ def impersonate_tenant(user_id: str) -> dict:
     if not target_org:
         frappe.throw(_("User {0} is not linked to any organization.").format(user_id))
 
-    # Switch session context (this is persistent for the current Super Admin user)
-    frappe.db.set_value("User", frappe.session.user, "mandi_organization", target_org)
-    frappe.db.commit()
+    # Store in session cache — volatile, never persisted to User record
+    frappe.cache().set_value(
+        f"impersonation_target_org:{frappe.session.user}",
+        target_org,
+        expires_in_sec=3600  # 1-hour auto-expiry
+    )
+
+    # ALSO clear any stale mandi_organization that may have been set by the
+    # old impersonation approach — clean up legacy pollution
+    from mandigrow.mandigrow.logic.tenancy import PLATFORM_ADMIN_EMAILS
+    if frappe.session.user in PLATFORM_ADMIN_EMAILS:
+        current_org_on_record = frappe.db.get_value("User", frappe.session.user, "mandi_organization")
+        if current_org_on_record:
+            frappe.db.set_value("User", frappe.session.user, "mandi_organization", None, update_modified=False)
+            frappe.db.commit()
 
     return {
-        "success": True, 
+        "success": True,
         "org_id": target_org,
-        "message": f"Session context switched to {target_org}"
+        "message": f"Impersonation context set to {target_org} (session-only, no user record modified)"
     }
 
 @frappe.whitelist(allow_guest=False)
 def restore_admin_context() -> dict:
-    """Resets Administrator's organization back to NULL."""
+    """Clears the impersonation session cache, restoring the super-admin to their own context."""
     from mandigrow.mandigrow.logic.tenancy import is_super_admin
     if not is_super_admin():
         return {"success": False}
-        
-    frappe.db.set_value("User", frappe.session.user, "mandi_organization", None)
-    frappe.db.commit()
+
+    # Clear session cache (new approach)
+    frappe.cache().delete_value(f"impersonation_target_org:{frappe.session.user}")
+
+    # Also clear any stale mandi_organization from the old approach (legacy cleanup)
+    current = frappe.db.get_value("User", frappe.session.user, "mandi_organization")
+    if current:
+        frappe.db.set_value("User", frappe.session.user, "mandi_organization", None, update_modified=False)
+        frappe.db.commit()
+
     return {"success": True}
 
 @frappe.whitelist(allow_guest=False)

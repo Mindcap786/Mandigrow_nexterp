@@ -35,16 +35,37 @@ TENANT_DOCTYPES = frozenset([
 ])
 
 
+# ── Platform Admin Identity ────────────────────────────────────────────────────
+# SINGLE SOURCE OF TRUTH: the set of email addresses that are platform owners.
+# Used in:
+#   - is_super_admin() — bypasses tenant permission checks
+#   - get_team_members() — excluded from ALL tenant team rosters (privacy)
+#   - impersonate_tenant() — identity is never written to mandi_organization
+#
+# To add a new super-admin, add their email here ONLY. Do not hardcode elsewhere.
+
+PLATFORM_ADMIN_EMAILS = frozenset([
+    "mindcap786@gmail.com",
+    # "cto@mandigrow.com",  # Add future platform admins here
+])
+
+
 # ── Core helpers ───────────────────────────────────────────────────────────────
 
 def is_super_admin(user=None):
-    """True for the literal Administrator account or the platform owner."""
+    """True for the Frappe Administrator account or any platform owner email."""
     user = user or frappe.session.user
-    return user in ["Administrator", "mindcap786@gmail.com"]
+    return user == "Administrator" or user in PLATFORM_ADMIN_EMAILS
 
 
 def get_current_org_or_none():
     """Return the organization_id for the current user, or None.
+
+    For regular users: reads User.mandi_organization (persistent, DB-linked).
+    For super-admins: reads the impersonation session cache key first.
+      This ensures impersonation context is transparent to tenant-scoped APIs
+      WITHOUT ever writing the admin's own mandi_organization field (which
+      would cause the admin account to appear in the tenant's Team Access page).
 
     Safe to call in contexts where no org is expected (Guest, signup flows).
     """
@@ -52,15 +73,18 @@ def get_current_org_or_none():
     if not user or user == "Guest":
         return None
 
-    org_id = frappe.db.get_value("User", user, "mandi_organization")
-    if org_id:
-        return org_id
-
-    # Administrator fallback: pick first org (for bench console / admin scripts)
+    # Super-admin: check impersonation session cache first
     if is_super_admin(user):
-        return frappe.db.get_value("Mandi Organization", {}, "name", order_by="creation asc")
+        cache_key = f"impersonation_target_org:{user}"
+        impersonated_org = frappe.cache().get_value(cache_key)
+        if impersonated_org:
+            return impersonated_org
+        # Super-admin not impersonating — return None (admin portal context)
+        return None
 
-    return None
+    # Regular user: read from their user record
+    org_id = frappe.db.get_value("User", user, "mandi_organization")
+    return org_id or None
 
 
 def get_current_org():
