@@ -13477,9 +13477,8 @@ def on_login(login_manager):
             frappe.db.set_value("User", user, "simultaneous_sessions", 1, update_modified=False)
             frappe.logger().warning(f"[on_login] Reset simultaneous_sessions from {current_sim} → 1 for {user}")
 
-    # ── Single-device enforcement: kill ALL other sessions ────────────────
-    # We must query the SIDs to kill BEFORE the new session is committed,
-    # because after commit the new SID will be in the table too.
+    # ── Single-device enforcement: STRICT BLOCK ────────────────
+    # We must query the SIDs BEFORE the new session is committed.
     new_sid = frappe.session.sid
 
     # Fetch all other SIDs for this user from MySQL
@@ -13488,19 +13487,15 @@ def on_login(login_manager):
         WHERE `user` = %s AND `sid` != %s
     """, (user, new_sid), as_dict=False)
 
-    killed = 0
-    for (sid,) in old_sids:
-        try:
-            # delete_session() removes from BOTH MySQL AND Redis atomically
-            delete_session(sid, user=user, reason="Logged In From Another Session")
-            killed += 1
-        except Exception:
-            # Non-fatal — log but don't block the new login
-            frappe.log_error(frappe.get_traceback(), f"on_login: failed to kill session {sid}")
+    if old_sids:
+        # User is actively logged in elsewhere. We block the new login attempt entirely.
+        # This guarantees two sessions can never be opened simultaneously.
+        frappe.throw(
+            "Access Denied: This account is already logged in on another device. Please log out from your active session first.",
+            frappe.AuthenticationError
+        )
 
-    if killed:
-        frappe.db.commit()
-        frappe.logger().info(f"[on_login] Killed {killed} previous session(s) for {user} (new sid: {new_sid})")
+
     # ─────────────────────────────────────────────────────────────────────
 
 @frappe.whitelist(allow_guest=True)
