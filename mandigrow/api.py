@@ -13858,11 +13858,36 @@ mandigrow.com
         """.strip()
 
         try:
-            frappe.sendmail(
-                recipients=[frappe_user_id],
-                subject=welcome_subject,
-                message=welcome_body.replace('\n', '<br>'),
-                delayed=False
+            site_url_for_mail = frappe.utils.get_url()
+            html_welcome = f"""
+<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;">
+  <h2 style="color:#047857;margin-bottom:4px;">Welcome to MandiGrow Partner Program!</h2>
+  <p style="color:#6b7280;font-size:14px;margin-top:0;">Congratulations, {partner.partner_name}! Your application has been <b style="color:#047857;">APPROVED</b>.</p>
+
+  <div style="background:#f0fdf4;border:2px solid #047857;padding:20px;border-radius:10px;margin:20px 0;">
+    <table style="width:100%;font-size:15px;border-collapse:collapse;">
+      <tr><td style="padding:6px 0;color:#6b7280;width:100px;"><b>Email</b></td><td style="padding:6px 0;color:#111827;">{frappe_user_id}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;"><b>Password</b></td><td style="padding:6px 0;color:#047857;font-size:20px;letter-spacing:4px;font-weight:bold;">{temp_password}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;"><b>Login URL</b></td><td style="padding:6px 0;"><a href="{login_url}" style="color:#047857;">{login_url}</a></td></tr>
+    </table>
+  </div>
+
+  <p style="color:#374151;"><b>Your Referral Link:</b><br><a href="{referral_link}" style="color:#047857;font-size:16px;">{referral_link}</a></p>
+  <p style="color:#6b7280;font-size:13px;">Share this link with mandi owners. When they sign up using your link, you earn <b>30% recurring commission</b> on their subscription.</p>
+
+  <ol style="color:#374151;font-size:14px;line-height:2;">
+    <li>Log in at <a href="{login_url}" style="color:#047857;">{login_url}</a></li>
+    <li>Change your password immediately</li>
+    <li>Copy your referral link and start sharing</li>
+  </ol>
+
+  <p style="color:#047857;font-weight:bold;margin-top:24px;">Team MandiGrow — mandigrow.com</p>
+</div>
+""".strip()
+            _send_direct_smtp(
+                to_email=frappe_user_id,
+                subject="Welcome to MandiGrow Partner Program — Your Account is Ready!",
+                html_body=html_welcome
             )
         except Exception as mail_err:
             frappe.log_error(str(mail_err), "approve_partner: welcome email failed (non-fatal)")
@@ -13900,18 +13925,21 @@ def reject_partner(partner_id, reason=""):
         # Send rejection email if partner has email
         if partner.email:
             try:
-                frappe.sendmail(
-                    recipients=[partner.email],
+                html_reject = f"""
+<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;">
+  <h2 style="color:#374151;">MandiGrow Partner Application Update</h2>
+  <p style="color:#6b7280;">Dear {partner.partner_name},</p>
+  <p style="color:#6b7280;">Thank you for applying to the MandiGrow Partner Program.</p>
+  <p style="color:#374151;">After reviewing your application, we are unable to approve it at this time.</p>
+  <p><b>Reason:</b> {reason or 'Does not meet current partner criteria.'}</p>
+  <p style="color:#6b7280;">You are welcome to reapply after 30 days or contact us on WhatsApp for clarification.</p>
+  <p style="color:#047857;font-weight:bold;">Team MandiGrow — mandigrow.com</p>
+</div>
+""".strip()
+                _send_direct_smtp(
+                    to_email=partner.email,
                     subject="MandiGrow Partner Application Update",
-                    message=f"""
-Dear {partner.partner_name},<br><br>
-Thank you for applying to the MandiGrow Partner Program.<br><br>
-After reviewing your application, we are unable to approve it at this time.<br>
-<b>Reason:</b> {reason or 'Does not meet current partner criteria.'}<br><br>
-You are welcome to reapply after 30 days or contact us on WhatsApp for clarification.<br><br>
-Team MandiGrow
-                    """,
-                    delayed=False
+                    html_body=html_reject
                 )
             except Exception as mail_err:
                 frappe.log_error(str(mail_err), "reject_partner: email failed (non-fatal)")
@@ -13919,6 +13947,131 @@ Team MandiGrow
         return {"success": True, "message": f"Partner {partner_id} rejected."}
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "reject_partner Failed")
+        return {"success": False, "error": str(e)}
+
+
+def _send_direct_smtp(to_email: str, subject: str, html_body: str) -> None:
+    """
+    Send email via direct SMTP (bypasses Frappe email queue).
+    Used for partner credential emails to avoid '5.7.0 Please authenticate first' queue errors.
+    """
+    import smtplib, ssl
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from frappe.utils.password import get_decrypted_password
+
+    acct = frappe.db.get_value(
+        "Email Account",
+        {"enable_outgoing": 1, "default_outgoing": 1},
+        ["name", "email_id", "smtp_server", "smtp_port", "login_id", "use_tls"],
+        as_dict=True
+    )
+    if not acct:
+        frappe.throw("Outgoing email not configured.")
+
+    smtp_pw = get_decrypted_password("Email Account", acct["name"], "password") or ""
+    if not smtp_pw:
+        frappe.throw("SMTP password not configured.")
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"MandiGrow <{acct['email_id']}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    smtp_host = str(acct.get("smtp_server") or "smtp-relay.brevo.com")
+    smtp_port = int(acct.get("smtp_port") or 587)
+    smtp_login = str(acct.get("login_id") or acct["email_id"])
+    ctx = ssl.create_default_context()
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as srv:
+        srv.ehlo()
+        if acct.get("use_tls"):
+            srv.starttls(context=ctx)
+            srv.ehlo()
+        srv.login(smtp_login, smtp_pw)
+        srv.sendmail(acct["email_id"], [to_email], msg.as_string())
+
+
+@frappe.whitelist(allow_guest=False)
+def resend_partner_credentials(partner_id: str) -> dict:
+    """
+    Admin action: Resend login credentials to an approved partner.
+    Generates a new temp password, updates the Frappe user, and sends via direct SMTP.
+    """
+    import random, string
+
+    try:
+        partner = frappe.get_doc("Mandi Partner Profile", partner_id, ignore_permissions=True)
+
+        if partner.status != "Approved":
+            return {"success": False, "error": "Only approved partners can have credentials resent."}
+
+        if not partner.email:
+            return {"success": False, "error": "Partner has no email address."}
+
+        frappe_user_id = partner.email
+
+        # Generate new temporary password
+        temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+        # Update or create Frappe User
+        if frappe.db.exists("User", frappe_user_id):
+            user_doc = frappe.get_doc("User", frappe_user_id)
+            user_doc.new_password = temp_password
+            user_doc.flags.ignore_permissions = True
+            user_doc.save()
+        else:
+            user_doc = frappe.get_doc({
+                "doctype":     "User",
+                "email":       frappe_user_id,
+                "first_name":  (partner.partner_name or "Partner").split()[0],
+                "last_name":   ' '.join((partner.partner_name or "Partner").split()[1:]) or "",
+                "mobile_no":   partner.mobile_number or "",
+                "enabled":     1,
+                "user_type":   "Website User",
+                "new_password": temp_password,
+            })
+            user_doc.insert(ignore_permissions=True)
+
+        frappe.db.commit()
+
+        # Build email
+        site_url = frappe.utils.get_url()
+        referral_code = partner.referral_code or ""
+        referral_link = f"{site_url}/ref/{referral_code}" if referral_code else ""
+        login_url = f"{site_url}/partner/dashboard"
+
+        html_body = f"""
+<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;">
+  <h2 style="color:#047857;margin-bottom:4px;">MandiGrow Partner — Login Credentials</h2>
+  <p style="color:#6b7280;font-size:14px;margin-top:0;">Hi {partner.partner_name}, here are your updated login credentials.</p>
+
+  <div style="background:#f0fdf4;border:2px solid #047857;padding:20px;border-radius:10px;margin:20px 0;">
+    <table style="width:100%;font-size:15px;border-collapse:collapse;">
+      <tr><td style="padding:6px 0;color:#6b7280;width:100px;"><b>Email</b></td><td style="padding:6px 0;color:#111827;">{frappe_user_id}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;"><b>Password</b></td><td style="padding:6px 0;color:#047857;font-size:20px;letter-spacing:4px;font-weight:bold;">{temp_password}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;"><b>Login URL</b></td><td style="padding:6px 0;"><a href="{login_url}" style="color:#047857;">{login_url}</a></td></tr>
+    </table>
+  </div>
+
+  {f'<p style="color:#374151;"><b>Your Referral Link:</b> <a href="{referral_link}" style="color:#047857;">{referral_link}</a></p>' if referral_link else ''}
+
+  <p style="color:#9ca3af;font-size:12px;margin-top:24px;">Please change your password after first login. If you did not request this, contact us immediately.</p>
+  <p style="color:#047857;font-weight:bold;">Team MandiGrow — mandigrow.com</p>
+</div>
+""".strip()
+
+        _send_direct_smtp(
+            to_email=frappe_user_id,
+            subject="MandiGrow Partner — Your Login Credentials",
+            html_body=html_body
+        )
+
+        return {"success": True, "message": f"Credentials sent to {frappe_user_id}."}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "resend_partner_credentials Failed")
         return {"success": False, "error": str(e)}
 
 
