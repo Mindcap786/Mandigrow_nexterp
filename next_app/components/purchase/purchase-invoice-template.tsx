@@ -138,8 +138,10 @@ export default function PurchaseBillInvoice({
 
     const combinedPaid = effectiveAdvance === effectivePaidAmount ? effectiveAdvance : effectiveAdvance + effectivePaidAmount;
     
+    // DIRECT purchase: farmer reimburses transport/packing expenses → ADD them to payable.
+    // COMMISSION:      expenses are deducted from farmer's proceeds  → SUBTRACT via combinedExpenses.
     const finalPayable = arrivalType === 'direct' 
-        ? Math.max(0, totalNetGoodsValue + totalLotExpenses - totalArrivalExpenseShare - tripExpenses - combinedPaid - totalOtherCharges)
+        ? Math.max(0, totalNetGoodsValue + totalLotExpenses - totalArrivalExpenseShare + tripExpenses - combinedPaid - totalOtherCharges)
         : Math.max(0, totalNetGoodsValue - totalCommission - combinedExpenses - combinedPaid - totalOtherCharges)
 
     // Organization address

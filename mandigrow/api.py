@@ -2499,7 +2499,9 @@ def get_ledger_statement(contact_id: str, from_date: str = None, to_date: str = 
                     nm = item_name_map.get(lot.get("item_id"), {})
                     item_label = nm.get("name") or lot.get("item_id")
                     unit       = lot.get("unit") or nm.get("stock_uom") or "Kg"
-                    qty        = float(lot.get("net_qty") or lot.get("qty") or 0)
+                    # Use the original purchased qty (not net_qty which is post-deduction stock qty)
+                    # The less/cutting is reflected in the bill amount, not the unit count.
+                    qty        = float(lot.get("qty") or lot.get("initial_qty") or 0)
                     rate       = float(lot.get("supplier_rate") or 0)
                     items_detail.append({
                         "item":     item_label,
@@ -3175,8 +3177,9 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                     "user_remark": f"Payment received from {party_name_display or 'party'}",
                 }
                 if against_vtype:
-                    cash_leg["against_voucher_type"]  = against_vtype
-                    cash_leg["against_voucher"]       = against_vname
+                    # Only tag the PARTY leg to the bill — NOT the cash leg.
+                    # The cash leg must remain untagged so the Daybook's Liquid Assets
+                    # card can include it as a real cash movement (not an arrival/sale entry).
                     party_leg["against_voucher_type"] = against_vtype
                     party_leg["against_voucher"]      = against_vname
                 accounts.extend([cash_leg, party_leg])
@@ -3231,10 +3234,11 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                     "user_remark": f"Cash paid to {party_name_display or 'party'}",
                 }
                 if against_vtype:
+                    # Only tag the PARTY leg to the bill — NOT the cash leg.
+                    # The cash leg must remain untagged so the Daybook's Liquid Assets
+                    # card can include it as a real cash movement (not an arrival/sale entry).
                     party_leg["against_voucher_type"] = against_vtype
                     party_leg["against_voucher"]      = against_vname
-                    cash_leg["against_voucher_type"]  = against_vtype
-                    cash_leg["against_voucher"]       = against_vname
                 accounts.extend([party_leg, cash_leg])
 
             if discount > 0:
@@ -4003,11 +4007,9 @@ def get_dashboard_data() -> dict:
           AND acc.account_type IN ('Cash', 'Bank')
           -- Only Journal Entries (standalone payments/receipts)
           AND gl.voucher_type = 'Journal Entry'
-          -- EXCLUDE entries tagged against a Sale or Arrival (those are Card 1/3)
-          AND gl.voucher_no NOT IN (
-              SELECT DISTINCT parent FROM `tabJournal Entry Account`
-              WHERE reference_type IN ('Mandi Sale', 'Mandi Arrival')
-          )
+          -- EXCLUDE only if the cash/bank GL leg ITSELF is tagged against Sale/Arrival.
+          -- Note: After the create_voucher fix, cash legs are never tagged — only party legs are.
+          -- This allows Receive Money / Make Payment entries to appear in Liquid Assets.
           AND (gl.against_voucher_type IS NULL OR gl.against_voucher_type NOT IN ('Mandi Sale', 'Mandi Arrival'))
           -- EXCLUDE expense-side entries (Card 4)
           AND gl.voucher_no NOT IN (
@@ -4345,9 +4347,9 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     banks = [a for a in all_liquid if a.get('account_type') == "Bank"]
     cash_accounts = [a for a in all_liquid if a.get('account_type') == "Cash"]
 
-    # Fetch storage locations
+    # Fetch storage locations — scoped to THIS org only (prevents cross-org data leak)
     storage_locations = frappe.get_all("Mandi Storage Location",
-        filters={"is_active": 1, **_org_filter("Mandi Organization", org_id)},
+        filters={"is_active": 1, **_org_filter("Mandi Storage Location", org_id)},
         fields=["name as id", "location_name as name", "is_active"],
         ignore_permissions=True
     )
