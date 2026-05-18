@@ -110,7 +110,7 @@ export function calculateSaleTotals({
     const taxableSubTotal = subTotal - safeDiscountAmount;
 
     // Fees calculated on taxable subtotal (post-discount)
-    const marketFee = roundTo2(taxableSubTotal * (toNumber(taxSettings.market_fee_percent) / 100));
+    const marketFee = roundTo2(toNumber(taxSettings.market_fee_percent));
     const nirashrit = roundTo2(taxableSubTotal * (toNumber(taxSettings.nirashrit_percent) / 100));
     const miscFee = roundTo2(taxableSubTotal * (toNumber(taxSettings.misc_fee_percent) / 100));
 

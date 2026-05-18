@@ -7922,7 +7922,40 @@ def commit_mandi_session(**kwargs) -> dict:
 
             sale.totalamount = total_gross_amount
             sale.discountamount = total_less_amount
-            sale.invoice_total = buyer_payable
+            
+            # Fetch Org Settings to compute taxes for the Buyer Bill
+            org_settings = _get_org_info(kwargs.get("organization_id"))
+            taxable_val = total_gross_amount - total_less_amount
+            market_fee = float(org_settings.get("market_fee_percent") or 0)
+            nirashrit = round(taxable_val * (float(org_settings.get("nirashrit_percent") or 0) / 100), 2)
+            misc_fee = round(taxable_val * (float(org_settings.get("misc_fee_percent") or 0) / 100), 2)
+            
+            gst_total = 0
+            cgst_amount = 0
+            sgst_amount = 0
+            igst_amount = 0
+            if int(org_settings.get("gst_enabled") or 0):
+                gst_type = org_settings.get("gst_type") or "intra"
+                if gst_type == "inter":
+                    igst_amount = round(taxable_val * (float(org_settings.get("igst_percent") or 0) / 100), 2)
+                    gst_total = igst_amount
+                else:
+                    cgst_amount = round(taxable_val * (float(org_settings.get("cgst_percent") or 0) / 100), 2)
+                    sgst_amount = round(taxable_val * (float(org_settings.get("sgst_percent") or 0) / 100), 2)
+                    gst_total = cgst_amount + sgst_amount
+                    
+            sale.marketfee = market_fee
+            sale.nirashrit = nirashrit
+            sale.miscfee = misc_fee
+            sale.gsttotal = gst_total
+            if frappe.db.has_column("Mandi Sale", "cgst_amount"):
+                sale.cgst_amount = cgst_amount
+                sale.sgst_amount = sgst_amount
+                sale.igst_amount = igst_amount
+                
+            # Recalculate invoice_total just like frontend to be absolutely safe
+            computed_payable = round(taxable_val + market_fee + nirashrit + misc_fee + gst_total + buyer_loading + buyer_packing)
+            sale.invoice_total = computed_payable
             # Udhaar sale — status is Pending until buyer pays
             sale.status = "Pending"
 

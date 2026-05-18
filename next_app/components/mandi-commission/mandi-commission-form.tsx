@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
 import { callApi } from "@/lib/frappeClient";
+import { calculateSaleTotals } from "@/lib/sales-tax";
 
 import { useMandiSession, MandiSessionInput, MandiSessionFarmerRow, computeFarmerRow } from "@/hooks/mandi/useMandiSession";
 import { AddedFarmerCard } from "./farmer-row";
@@ -241,7 +242,23 @@ export function MandiCommissionForm() {
 
         // Derive saleRate as weighted average net rate
         const derivedSaleRate = totalNetQty > 0 ? parseFloat((totalNetAmount / totalNetQty).toFixed(2)) : 0;
-        const buyerPayable = buyerId ? totalNetAmount + buyerLoading + buyerPacking : 0;
+        
+        let buyerPayable = 0;
+        if (buyerId) {
+            const buyerStateCode = buyers.find(b => b.id === buyerId)?.state_code;
+            const taxTotals = calculateSaleTotals({
+                items: [{ amount: totalNetAmount }], // Pass the taxable total
+                taxSettings: settings || {},
+                orgStateCode: settings?.state_code,
+                buyerStateCode: buyerStateCode,
+                loadingCharges: buyerLoading,
+                unloadingCharges: buyerPacking,
+                otherExpenses: 0,
+                discountAmount: 0,
+            });
+            buyerPayable = taxTotals.grandTotal;
+        }
+
         const buyerName = buyers.find(b => b.id === buyerId)?.name;
 
         const input: MandiSessionInput = {
@@ -465,6 +482,8 @@ export function MandiCommissionForm() {
                         buyerName={buyers.find(b => b.id === buyerId)?.name}
                         buyerLoadingCharges={buyerLoading}
                         buyerPackingCharges={buyerPacking}
+                        taxSettings={settings}
+                        buyerStateCode={buyers.find(b => b.id === buyerId)?.state_code}
                     />
                 </div>
             </div>

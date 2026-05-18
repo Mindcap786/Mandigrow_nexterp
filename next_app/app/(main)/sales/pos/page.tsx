@@ -509,9 +509,9 @@ export default function POSPage() {
     const gstTotal = taxSettings.gst_enabled ? globalGstAmount : perItemGstTotal
     
     // Market charges from settings (auto-applied on taxable base)
-    const marketFeeAmount = Math.round(taxableSubTotal * taxSettings.market_fee_percent / 100)
-    const nirashritAmount = Math.round(taxableSubTotal * taxSettings.nirashrit_percent / 100)
-    const miscFeeAmount = Math.round(taxableSubTotal * taxSettings.misc_fee_percent / 100)
+    const marketFeeAmount = taxSettings.market_fee_percent;
+    const nirashritAmount = Math.round(taxableSubTotal * taxSettings.nirashrit_percent / 100);
+    const miscFeeAmount = Math.round(taxableSubTotal * taxSettings.misc_fee_percent / 100);
     
     const extraChargesTotal = additionalCharges.reduce((acc, c) => acc + c.amount, 0)
     const grandTotal = taxableSubTotal + gstTotal + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal
@@ -1295,7 +1295,7 @@ export default function POSPage() {
                                             setAmountReceived(val);
                                         }
                                     }}
-                                    className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl h-12 px-4 text-xl font-black shadow-sm focus:border-indigo-500 outline-none"
+                                    className="w-full bg-white border border-slate-200 text-slate-800 rounded-2xl h-16 px-4 text-3xl font-black shadow-sm focus:border-indigo-500 outline-none"
                                 />
                                 {amountReceived < grandTotal && amountReceived > 0 && (
                                     <div className="text-[10px] font-bold text-amber-600 italic mt-1 leading-tight">

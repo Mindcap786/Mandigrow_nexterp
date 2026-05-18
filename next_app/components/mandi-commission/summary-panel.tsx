@@ -4,12 +4,16 @@ import React from "react";
 import { TrendingUp, Users, IndianRupee, Percent } from "lucide-react";
 import { MandiSessionFarmerRow } from "@/hooks/mandi/useMandiSession";
 
+import { calculateSaleTotals } from "@/lib/sales-tax";
+
 interface SummaryPanelProps {
     farmers: MandiSessionFarmerRow[];
     buyerLoadingCharges: number;
     buyerPackingCharges: number;
     hasBuyer: boolean;
     buyerName?: string;
+    taxSettings?: any;
+    buyerStateCode?: string | null;
 }
 
 export function SummaryPanel({
@@ -18,6 +22,8 @@ export function SummaryPanel({
     buyerPackingCharges,
     hasBuyer,
     buyerName,
+    taxSettings,
+    buyerStateCode,
 }: SummaryPanelProps) {
     // Aggregates
     const totalQty = farmers.reduce((s, f) => s + (f.qty || 0), 0);
@@ -34,7 +40,20 @@ export function SummaryPanel({
     const buyerGross = farmers.reduce((s, f) => s + (f.grossAmount || 0), 0);
     const buyerLess = farmers.reduce((s, f) => s + (f.lessAmount || 0), 0);
     const buyerNet = farmers.reduce((s, f) => s + (f.netAmount || 0), 0);
-    const buyerPayable = buyerNet + buyerLoadingCharges + buyerPackingCharges;
+    
+    // Tax computation for Buyer Bill
+    const taxTotals = calculateSaleTotals({
+        items: [{ amount: buyerNet }],
+        taxSettings: taxSettings || {},
+        orgStateCode: taxSettings?.state_code,
+        buyerStateCode: buyerStateCode,
+        loadingCharges: buyerLoadingCharges,
+        unloadingCharges: buyerPackingCharges,
+        otherExpenses: 0,
+        discountAmount: 0,
+    });
+    
+    const buyerPayable = taxTotals.grandTotal;
 
     // Mandi earnings
     const mandiEarnings = totalCommission + totalLoading + totalOther;
@@ -99,6 +118,18 @@ export function SummaryPanel({
                         )}
                         {buyerPackingCharges > 0 && (
                             <SummaryLine label="Packing Charges" value={`+ ${fmt(buyerPackingCharges)}`} />
+                        )}
+                        {taxTotals.marketFee > 0 && (
+                            <SummaryLine label="Market Fee" value={`+ ${fmt(taxTotals.marketFee)}`} />
+                        )}
+                        {taxTotals.nirashrit > 0 && (
+                            <SummaryLine label="Nirashrit" value={`+ ${fmt(taxTotals.nirashrit)}`} />
+                        )}
+                        {taxTotals.miscFee > 0 && (
+                            <SummaryLine label="Misc Fee" value={`+ ${fmt(taxTotals.miscFee)}`} />
+                        )}
+                        {taxTotals.gstTotal > 0 && (
+                            <SummaryLine label={taxTotals.isIgst ? "IGST" : "CGST & SGST"} value={`+ ${fmt(taxTotals.gstTotal)}`} />
                         )}
                         <div className="border-t border-blue-200 pt-2 mt-1">
                             <SummaryLine label="Buyer Payable" value={fmt(buyerPayable)} big blue />
