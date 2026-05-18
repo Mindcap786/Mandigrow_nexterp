@@ -22,7 +22,7 @@ const MAX_FREE_PAGES = 3;
 
 export default function ProfitLossPage() {
     const { profile, loading: authLoading } = useAuth();
-    const [stats, setStats] = useState<any>(null);
+    const [serverStats, setServerStats] = useState<any>(null);
     const [rawSalesData, setRawSalesData] = useState<any[] | null>(null);
     const [selectedFruit, setSelectedFruit] = useState<string>("all");
     const [loading, setLoading] = useState(true);
@@ -44,18 +44,15 @@ export default function ProfitLossPage() {
         return Array.from(fruits).sort();
     }, [rawSalesData]);
 
-    // Filter computation effect — Now handled mostly by backend
-    useEffect(() => {
-        if (!stats?.items) return;
-        
-        // Fruit filtering still happens client-side for UX responsiveness
-        if (selectedFruit === 'all') return;
+    // Filter computation effect — Now handled correctly via useMemo to avoid loops
+    const stats = useMemo(() => {
+        if (!serverStats || !rawSalesData) return serverStats;
+        if (selectedFruit === 'all') return serverStats;
 
-        const filtered = stats.items.filter((i: any) => 
+        const filtered = rawSalesData.filter((i: any) => 
             i.item.toLowerCase().includes(selectedFruit.toLowerCase())
         );
-        
-        // Re-calculate totals for the filtered set
+
         const totalRevenue = filtered.reduce((s: number, i: any) => s + i.revenue, 0);
         const totalCost = filtered.reduce((s: number, i: any) => s + i.cost, 0);
         const totalExpenses = filtered.reduce((s: number, i: any) => s + i.expenses, 0);
@@ -63,11 +60,17 @@ export default function ProfitLossPage() {
         const totalProfit = totalRevenue - totalCost - totalExpenses + totalCommission;
         const margin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
 
-        // Note: This only updates stats for DISPLAY. A full refresh happens on date change.
-        // We don't want to overwrite the whole stats object here to avoid loops, 
-        // but for now this is the simplest way to support the existing UI filter.
-    }, [selectedFruit]);
-;
+        return {
+            ...serverStats,
+            items: filtered,
+            totalRevenue,
+            totalCost,
+            totalExpenses,
+            totalCommission,
+            totalProfit,
+            margin
+        };
+    }, [serverStats, rawSalesData, selectedFruit]);
 
     const safeFormat = (date: any, formatStr: string) => {
         if (!date) return "—";
@@ -149,7 +152,7 @@ export default function ProfitLossPage() {
             });
 
             if (res) {
-                setStats(res);
+                setServerStats(res);
                 setRawSalesData(res.items || []); // Keep items as raw for fruit filter memo
             }
         } catch (error) {

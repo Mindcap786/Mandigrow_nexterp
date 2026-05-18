@@ -878,7 +878,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
             "organization_id": org_id or "HQ",
             "organization": org_data,
             "subscription": subscription_data,
-            "rbac_matrix": "{}"
+            "rbac_matrix": getattr(user, "rbac_matrix", "{}") or "{}"
         }
 
     except frappe.DoesNotExistError:
@@ -1527,15 +1527,23 @@ def provision_team_member(
         if not user.mandi_organization:
             user.mandi_organization = admin_org
             user.role_type = normalized_role
+            user.enabled = 1
             if username:
                 user.username = username
             user.save(ignore_permissions=True)
             user_name = user.name
+            from frappe.utils.password import update_password
+            update_password(user.name, password)
+            user.add_roles("System Manager")
         elif user.mandi_organization == admin_org:
+            user.enabled = 1
             if username and user.username != username:
                 user.username = username
-                user.save(ignore_permissions=True)
+            user.save(ignore_permissions=True)
             user_name = user.name
+            from frappe.utils.password import update_password
+            update_password(user.name, password)
+            user.add_roles("System Manager")
         else:
             frappe.throw(
                 _("An account with email '{0}' is already registered with another organization.").format(email),
