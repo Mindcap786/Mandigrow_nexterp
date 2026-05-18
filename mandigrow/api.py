@@ -1490,9 +1490,16 @@ def provision_team_member(
         normalized_role = "clerk"  # Ultimate fallback
 
     # ── Subscription + seat enforcement ──────────────────────────────────────
+    # Only enforce seat limit for NEW users — not when re-provisioning an existing org member
+    _is_existing_org_user = frappe.db.exists("User", {
+        "name": email,
+        "mandi_organization": admin_org
+    })
     if not is_super_admin():
         enforce_active_subscription(admin_org)
-    enforce_seat_limit(admin_org)
+    if not _is_existing_org_user:
+        # Only count seat against limit for genuinely new users
+        enforce_seat_limit(admin_org)
 
     user_name = None
 
@@ -13544,20 +13551,20 @@ def on_login(login_manager):
 @frappe.whitelist(allow_guest=False)
 def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_new_qty, p_new_rate, p_reason):
     """Adjust a sale item, recalculate totals, and update the ledger atomically.
-    
-    Design: Post a DELTA journal entry only — do NOT cancel/re-post the original JE.
+
+    Design: Post a DELTA journal entry only - do NOT cancel/re-post the original JE.
     - No daybook entry needed for rate adjustments (per business requirement).
     - For sale price increase: Dr Debtors (buyer ledger), Cr Stock In Hand (delta)
     - For sale price decrease: Dr Stock In Hand (delta), Cr Debtors (buyer ledger)
-    - Only the party ledger gets updated — original daybook entries are untouched.
+    - Only the party ledger gets updated - original daybook entries are untouched.
     """
     try:
         from frappe.utils import flt, today
-        
+
         sale_item = frappe.get_doc("Mandi Sale Item", p_sale_item_id, ignore_permissions=True)
         if not sale_item:
             frappe.throw("Sale Item not found")
-            
+
         sale = frappe.get_doc("Mandi Sale", sale_item.parent, ignore_permissions=True)
         if sale.organization_id != p_organization_id:
             frappe.throw("Organization mismatch")
@@ -13566,7 +13573,7 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         old_rate = flt(sale_item.rate)
         new_qty = flt(p_new_qty)
         new_rate = flt(p_new_rate)
-        
+
         if old_qty == new_qty and old_rate == new_rate:
             return {"success": True, "message": "No changes needed."}
 
@@ -13580,7 +13587,7 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
             "rate": new_rate,
             "amount": new_amount
         }, update_modified=False)
-        
+
         # Adjust stock in Mandi Lot if quantity changed
         if old_qty != new_qty and sale_item.lot_id:
             qty_diff = old_qty - new_qty
@@ -13589,7 +13596,7 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
                 SET current_qty = current_qty + %s
                 WHERE name = %s
             """, (qty_diff, sale_item.lot_id))
-        
+
         # Reload sale and recalculate totals
         sale.reload()
         sale.recalculate_totals()
@@ -13601,7 +13608,7 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
 
         # Log adjustment via Frappe Comment (audit trail)
         item_code = sale_item.item_id or "Item"
-        log_msg = f"[Adjustment]: {item_code} | Qty {old_qty}→{new_qty} | Rate ₹{old_rate}→₹{new_rate} | Delta: ₹{delta:+.2f} | Reason: {p_reason}"
+        log_msg = f"[Adjustment]: {item_code} | Qty {old_qty}->{new_qty} | Rate Rs.{old_rate}->Rs.{new_rate} | Delta: Rs.{delta:+.2f} | Reason: {p_reason}"
         frappe.get_doc({
             "doctype": "Comment",
             "comment_type": "Comment",
@@ -13610,7 +13617,7 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
             "content": log_msg
         }).insert(ignore_permissions=True)
 
-        # ── Post Delta Ledger Entry (Party Ledger only — NO daybook) ───────────
+        # Post Delta Ledger Entry (Party Ledger only - NO daybook)
         if abs(delta) >= 0.01:
             company = None
             if getattr(sale, "organization_id", None):
@@ -13620,13 +13627,12 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
                 company = get_default_company()
 
             from mandigrow.mandigrow.logic.automation import (
-                ensure_company_party_defaults, ensure_customer_for_contact,
-                _party_name
+                ensure_company_party_defaults, ensure_customer_for_contact, _party_name
             )
             ensure_company_party_defaults(company)
             customer = ensure_customer_for_contact(sale.buyerid, company)
             party_name = _party_name(sale.buyerid)
-            
+
             debtor_account = frappe.db.get_value("Account", {
                 "account_type": "Receivable",
                 "company": company,
@@ -13649,6 +13655,29 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
                     "account_type": "Stock",
                     "company": company,
                     "is_group": 0
+                }, "name")
+
+            if debtor_account and stock_account:
+                abs_delta = abs(delta)
+                if delta > 0:
+                    dr_account, cr_account = debtor_account, stock_account
+                    dr_party, cr_party = customer, None
+                else:
+                    dr_account, cr_account = stock_account, debtor_account
+                    dr_party, cr_party = None, customer
+
+                dr_leg = {
+                    "account": dr_account,
+                    "debit_in_account_currency": abs_delta,
+                    "credit_in_account_currency": 0,
+                    "against_voucher_type": "Mandi Sale",
+                    "against_voucher": sale.name,
+                }
+                if dr_party:
+                    dr_leg["party_type"] = "Customer"
+                    dr_leg["party"] = dr_party
+
+                cr_leg = {
                     "account": cr_account,
                     "debit_in_account_currency": 0,
                     "credit_in_account_currency": abs_delta,
@@ -13659,26 +13688,26 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
                     cr_leg["party_type"] = "Customer"
                     cr_leg["party"] = cr_party
 
-                direction = "↑" if delta > 0 else "↓"
+                direction = "up" if delta > 0 else "down"
                 delta_je = frappe.new_doc("Journal Entry")
                 delta_je.voucher_type = "Journal Entry"
                 delta_je.company = company
                 delta_je.posting_date = sale.saledate or today()
-                delta_je.user_remark = f"[Rate Adj {direction}] {sale.name} | {item_code} {new_qty}×₹{new_rate} (was ₹{old_rate}) Δ₹{delta:+.2f} | {p_reason}"[:140]
+                delta_je.user_remark = f"[Rate Adj {direction}] {sale.name} | {item_code} {new_qty}xRs.{new_rate} (was Rs.{old_rate}) Delta Rs.{delta:+.2f} | {p_reason}"[:140]
                 delta_je.append("accounts", dr_leg)
                 delta_je.append("accounts", cr_leg)
                 delta_je.flags.ignore_permissions = True
                 delta_je.insert()
                 delta_je.flags.ignore_permissions = True
                 delta_je.submit()
-                
+
                 from mandigrow.mandigrow.logic.automation import _tag_gl_entries
                 _tag_gl_entries(delta_je.name, "Mandi Sale", sale.name)
 
         frappe.db.commit()
         return {
             "success": True,
-            "message": f"Adjustment applied. Delta ₹{delta:+.2f} posted to party ledger.",
+            "message": f"Adjustment applied. Delta Rs.{delta:+.2f} posted to party ledger.",
             "new_invoice_total": sale.invoice_total,
             "delta": delta
         }
@@ -13686,6 +13715,7 @@ def create_comprehensive_sale_adjustment(p_organization_id, p_sale_item_id, p_ne
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "create_comprehensive_sale_adjustment Failed")
         return {"success": False, "error": str(e)}
+
 
 @frappe.whitelist(allow_guest=True)
 def create_partner_application(name, phone, city, partner_type, background=None, email=None):

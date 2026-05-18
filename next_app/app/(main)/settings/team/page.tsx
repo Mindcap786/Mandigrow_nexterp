@@ -15,12 +15,26 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { PermissionMatrix } from '@/components/rbac/permission-matrix';
+import { NAV_ITEMS } from '@/lib/rbac/menus';
 import { cn } from '@/lib/utils';
 import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 import { NativeCard } from '@/components/mobile/NativeCard';
 import { NativeSectionLabel } from '@/components/mobile/NativeInput';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { snackbar } from '@/components/mobile/Snackbar';
+
+// Build a full deny-by-default matrix at module level so it's available synchronously
+const buildDenyAllMatrix = (): Record<string, boolean> => {
+    const matrix: Record<string, boolean> = {};
+    const traverse = (items: typeof NAV_ITEMS) => {
+        items.forEach(i => {
+            matrix[i.tKey] = false;
+            if (i.items) traverse(i.items as any);
+        });
+    };
+    traverse(NAV_ITEMS);
+    return matrix;
+};
 
 export default function TeamPage() {
     const { profile } = useAuth();
@@ -41,7 +55,9 @@ export default function TeamPage() {
     const [userType, setUserType] = useState('web');
     const [sending, setSending] = useState(false);
     const [authError, setAuthError] = useState<{ title: string; message: string } | null>(null);
-    const [authRbacMatrix, setAuthRbacMatrix] = useState<Record<string, boolean>>({});
+
+    // Build full deny-by-default matrix from all nav keys
+    const [authRbacMatrix, setAuthRbacMatrix] = useState<Record<string, boolean>>(() => buildDenyAllMatrix());
     const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'taken' | 'available'>('idle');
     const [orgLimits, setOrgLimits] = useState<any>(null);
 

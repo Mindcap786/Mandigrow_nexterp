@@ -5,6 +5,12 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { hasPermission } from '@/lib/rbac/definitions'
 import { MenuItem } from '@/lib/rbac/menus'
 
+// Navigation keys that are always accessible (no matter the matrix)
+const ALWAYS_ALLOWED = new Set(['nav.dashboard'])
+
+// Roles that bypass RBAC matrix entirely (full access)
+const ADMIN_ROLES = new Set(['tenant_admin', 'owner', 'admin', 'company_admin', 'super_admin'])
+
 export function usePermission() {
     const { profile } = useAuth()
     const [isImpersonating, setIsImpersonating] = useState(false)
@@ -19,19 +25,20 @@ export function usePermission() {
         const tKey = typeof item === 'string' ? item : item?.tKey;
         const menuItem = typeof item === 'string' ? null : item;
 
+        // Impersonating admins see everything
         if (isImpersonating) return true;
 
         const role = profile?.role;
         const isSuperAdmin = role === 'super_admin';
-        const isMandiAdmin = role === 'tenant_admin' || role === 'owner' || role === 'admin' || role === 'company_admin';
+        const isMandiAdmin = ADMIN_ROLES.has(role as string);
 
-        // 1. Admins (tenant_admin / owner) always get access to everything
-        if (isMandiAdmin) return true;
+        // 1. Admins / owners / super_admin always have full access
+        if (isMandiAdmin || isSuperAdmin) return true;
 
-        // 2. Super admin always gets access
-        if (isSuperAdmin) return true;
+        // 2. Dashboard is always visible
+        if (tKey && ALWAYS_ALLOWED.has(tKey)) return true;
 
-        // 3. Module Level filtering (only for employee users)
+        // 3. Module Level filtering
         if (menuItem?.module && profile?.organization?.enabled_modules) {
             const enabled = profile.organization.enabled_modules;
             if (!enabled.includes(menuItem.module)) {
@@ -43,16 +50,21 @@ export function usePermission() {
             }
         }
 
-        // 4. RBAC Matrix check — read directly from profile.rbac_matrix (User record)
-        //    This is set by the tenant admin via Team Access > Permissions
+        // 4. RBAC Matrix check — DENY BY DEFAULT for member-level users
+        //    If rbac_matrix exists (was saved), treat absence of key as DENIED.
+        //    If rbac_matrix is empty/null (legacy), fall through to role-based check.
         if (tKey) {
             const profileMatrix = (profile as any)?.rbac_matrix;
-            const matrix = typeof profileMatrix === 'string'
-                ? (() => { try { return JSON.parse(profileMatrix); } catch { return {}; } })()
-                : (profileMatrix || {});
+            const matrixRaw = typeof profileMatrix === 'string'
+                ? (() => { try { return JSON.parse(profileMatrix); } catch { return null; } })()
+                : (profileMatrix || null);
 
-            // If the key is explicitly set to false, deny access
-            if (matrix[tKey] === false) return false;
+            if (matrixRaw && typeof matrixRaw === 'object' && Object.keys(matrixRaw).length > 0) {
+                // Matrix has been configured — explicit deny-by-default
+                // If key is not in matrix or explicitly false → DENY
+                return matrixRaw[tKey] === true;
+            }
+            // No matrix configured → fall through to role-based check below
         }
 
         // 5. Role-based permission check for menu items with explicit permission requirements

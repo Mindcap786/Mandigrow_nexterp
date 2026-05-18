@@ -61,7 +61,7 @@ export function PermissionMatrix({ value, onChange, readOnly, className }: Permi
         setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const isChecked = (key: string) => value[key] !== false; // Default to true if missing
+    const isChecked = (key: string) => value[key] === true; // Deny-by-default: only show as checked if explicitly true
 
     return (
         <div className={cn("space-y-4", className)}>
