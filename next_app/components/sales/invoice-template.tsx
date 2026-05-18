@@ -303,9 +303,6 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                             </div>
                         );
                     })()}
-
-                        </div>
-                    )}
                 </div>
                 {/* Right Side: Indices & Totals */}
                 <div className="space-y-6">
