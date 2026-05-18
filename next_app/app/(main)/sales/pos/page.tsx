@@ -1582,7 +1582,13 @@ export default function POSPage() {
 
             {/* Print POS Receipt Component - Hidden normally, visible on print */}
             {showSuccess && (
-                <div className="hidden print:block print:w-[3in] print:max-w-[80mm] absolute top-0 left-0 bg-white text-black p-4 font-mono text-[12px] leading-tight print:p-2">
+                <div className="hidden print:block absolute top-0 left-0 bg-white text-black p-4 font-mono text-[12px] leading-tight print:p-0 print:m-0 w-full" style={{ maxWidth: '80mm' }}>
+                    <style type="text/css" media="print">
+                        {`
+                            @page { size: 80mm auto; margin: 0; }
+                            body { margin: 0; padding: 4mm; width: 80mm !important; }
+                        `}
+                    </style>
                     <div className="text-center mb-4">
                         <h1 className="font-bold text-lg leading-tight uppercase">{orgName}</h1>
                         <p className="text-[10px] uppercase mt-1 tracking-widest">Tax Invoice / Bill</p>
@@ -1652,72 +1658,67 @@ export default function POSPage() {
                         )}
                     </div>
 
-                    {printQRCode && (() => {
+                    {(printQRCode || printBankDetails) && (() => {
                         const paymentSettings = orgSettings?.payment || {}
-                        const bankId = selectedAccountId || paymentSettings.source_bank_upi || paymentSettings.source_bank_details
-                        // Ensure it's a bank account specifically for bill details
-                        const acc = accounts.find(a => a.id === bankId && a.account_sub_type === 'bank') 
-                                   || accounts.find(a => a.account_sub_type === 'bank' && a.is_default)
-                                   || accounts.find(a => a.account_sub_type === 'bank')
-                        
-                        if (!acc) return null;
-
-                        const meta = acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}
-                        const isDefaultOrSettingsBank = acc.id === paymentSettings.source_bank_upi || acc.id === paymentSettings.source_bank_details;
-                        const upiId = meta.upi_id || (isDefaultOrSettingsBank ? paymentSettings.upi_id : '');
+                        const upiId = paymentSettings.upi_id;
                         const payAmt = amountReceived < grandTotal ? (grandTotal - amountReceived > 0 ? grandTotal - amountReceived : grandTotal) : grandTotal;
                         
-                        if (payAmt > 0) {
-                            return (
-                                <div className="mt-2 border border-black rounded-lg p-2 flex flex-col items-center gap-1 text-center overflow-hidden break-inside-avoid">
-                                    <div className="uppercase font-black tracking-widest border-b border-black pb-0.5 mb-1 text-[9px] w-full">Scan to Pay (Digital)</div>
-                                    
-                                    <div className="flex flex-row items-start justify-start w-full gap-2">
-                                        {/* Left: QR Code */}
-                                        <div className="flex-shrink-0 flex flex-col items-center w-[100px]">
-                                            {upiId && <QRCodeSVG value={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(orgName)}&am=${payAmt.toFixed(2)}&cu=INR`} size={100} level="M" className="my-1" />}
-                                            {upiId && <div className="text-[7px] font-bold break-all opacity-80">{upiId}</div>}
-                                        </div>
+                        if (payAmt <= 0) return null;
 
-                                        {/* Right: Bank Details */}
-                                        {printBankDetails && (() => {
-                                            const accNo = meta.account_no || meta.account_number || meta.acc_no || (isDefaultOrSettingsBank ? paymentSettings.account_number : '');
-                                            const ifscCode = meta.ifsc || meta.ifsc_code || (isDefaultOrSettingsBank ? paymentSettings.ifsc_code : '');
-                                            return (
-                                                <div className="flex-grow text-[9px] border-l border-dotted border-black/30 pl-2 text-left min-w-0">
-                                                    <div className="font-bold uppercase mb-0.5 text-[7px] opacity-70">Bank Details</div>
-                                                    <table className="w-full border-collapse table-fixed">
-                                                        <tbody className="leading-tight">
+                        return (
+                            <div className="mt-2 border border-black rounded-lg p-2 flex flex-col items-center gap-1 text-center overflow-hidden break-inside-avoid">
+                                <div className="uppercase font-black tracking-widest border-b border-black pb-0.5 mb-1 text-[9px] w-full">Scan to Pay (Digital)</div>
+                                
+                                <div className="flex flex-row items-start justify-start w-full gap-2">
+                                    {/* Left: QR Code */}
+                                    {printQRCode && upiId && (
+                                        <div className="flex-shrink-0 flex flex-col items-center w-[100px]">
+                                            <QRCodeSVG value={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(orgName)}&am=${payAmt.toFixed(2)}&cu=INR`} size={100} level="M" className="my-1" />
+                                            <div className="text-[7px] font-bold break-all opacity-80">{upiId}</div>
+                                        </div>
+                                    )}
+
+                                    {/* Right: Bank Details */}
+                                    {printBankDetails && (() => {
+                                        const accNo = paymentSettings.account_number;
+                                        const ifscCode = paymentSettings.ifsc_code;
+                                        const bankName = paymentSettings.bank_name;
+                                        const accountHolder = paymentSettings.account_holder || orgName;
+                                        return (
+                                            <div className="flex-grow text-[9px] border-l border-dotted border-black/30 pl-2 text-left min-w-0">
+                                                <div className="font-bold uppercase mb-0.5 text-[7px] opacity-70">Bank Details</div>
+                                                <table className="w-full border-collapse table-fixed">
+                                                    <tbody className="leading-tight">
+                                                        {bankName && (
                                                             <tr className="border-b border-dotted border-black/10">
                                                                 <td className="py-0.5 font-medium opacity-60 text-[7px] w-[35%]">BANK</td>
-                                                                <td className="py-0.5 font-bold text-right truncate">{acc.name}</td>
+                                                                <td className="py-0.5 font-bold text-right truncate">{bankName}</td>
                                                             </tr>
-                                                            {accNo && (
-                                                                <tr className="border-b border-dotted border-black/10">
-                                                                    <td className="py-0.5 font-medium opacity-60 text-[7px]">A/C NO</td>
-                                                                    <td className="py-0.5 font-bold text-right text-[8px] tracking-tight">{accNo}</td>
-                                                                </tr>
-                                                            )}
-                                                            {ifscCode && (
-                                                                <tr className="border-b border-dotted border-black/10">
-                                                                    <td className="py-0.5 font-medium opacity-60 text-[7px]">IFSC</td>
-                                                                    <td className="py-0.5 font-bold text-right text-[8px] tracking-tight">{ifscCode}</td>
-                                                                </tr>
-                                                            )}
-                                                            <tr>
-                                                                <td className="py-0.5 font-medium opacity-60 text-[7px]">HOLDER</td>
-                                                                <td className="py-0.5 font-bold text-right truncate">{orgName}</td>
+                                                        )}
+                                                        {accNo && (
+                                                            <tr className="border-b border-dotted border-black/10">
+                                                                <td className="py-0.5 font-medium opacity-60 text-[7px]">A/C NO</td>
+                                                                <td className="py-0.5 font-bold text-right text-[8px] tracking-tight">{accNo}</td>
                                                             </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            )
+                                                        )}
+                                                        {ifscCode && (
+                                                            <tr className="border-b border-dotted border-black/10">
+                                                                <td className="py-0.5 font-medium opacity-60 text-[7px]">IFSC</td>
+                                                                <td className="py-0.5 font-bold text-right text-[8px] tracking-tight">{ifscCode}</td>
+                                                            </tr>
+                                                        )}
+                                                        <tr>
+                                                            <td className="py-0.5 font-medium opacity-60 text-[7px]">HOLDER</td>
+                                                            <td className="py-0.5 font-bold text-right truncate">{accountHolder}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )
                                         })()}
                                     </div>
                                 </div>
                             )
-                        }
-                        return null
                     })()}
 
                     {paymentMode === 'Cheque' && (

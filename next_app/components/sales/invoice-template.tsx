@@ -247,13 +247,13 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         const defaultPayment = organization?.settings?.payment || {};
                         const selectedBank = sale.selected_bank_details || {};
                         
-                        // Merge logic: If sale has a selected bank, use its details. Otherwise fallback to defaults.
-                        const upiId = selectedBank.upi_id || defaultPayment.upi_id;
-                        const accountHolder = selectedBank.account_holder || selectedBank.account_name || defaultPayment.account_holder || organization?.name;
-                        const accountNumber = selectedBank.account_no || selectedBank.account_number || selectedBank.acc_no || defaultPayment.account_number;
-                        const ifscCode = selectedBank.ifsc || selectedBank.ifsc_code || defaultPayment.ifsc_code;
-                        const bankName = selectedBank.bank_name || selectedBank.bank || defaultPayment.bank_name;
-                        const upiName = selectedBank.upi_name || defaultPayment.upi_name || organization?.name;
+                        // Use global organization payment settings for printed invoices
+                        const upiId = defaultPayment.upi_id;
+                        const accountHolder = defaultPayment.account_holder || organization?.name;
+                        const accountNumber = defaultPayment.account_number;
+                        const ifscCode = defaultPayment.ifsc_code;
+                        const bankName = defaultPayment.bank_name;
+                        const upiName = defaultPayment.upi_name || organization?.name;
 
                         return (
                             <div className="py-4 border-t border-gray-100 flex flex-col gap-4">
