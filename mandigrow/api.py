@@ -4777,12 +4777,22 @@ def save_bank_account(**kwargs) -> dict:
                 return {"success": False, "error": "Access denied: account belongs to another company."}
             # On edit: only update safe metadata — never account_name (triggers ERPNext rename)
             # Write description via raw SQL to avoid Small Text 255-char truncation
-            meta_json = account_payload.get("description") or "{}"
-            frappe.db.sql("""
-                UPDATE `tabAccount`
-                SET `description` = %s, `account_number` = %s
-                WHERE `name` = %s
-            """, (meta_json, kwargs.get("account_number") or "", account_id))
+            #
+            # KEY FIX: If all meta fields are None (caller only sent is_default),
+            # preserve the existing description instead of wiping it with nulls.
+            meta_fields = ["account_number", "bank_name", "ifsc_code", "upi_id", "account_holder"]
+            has_real_meta = any(kwargs.get(f) is not None for f in meta_fields)
+
+            if has_real_meta:
+                # Full save — write new description
+                meta_json = frappe.as_json(meta)
+                new_account_number = kwargs.get("account_number") or ""
+                frappe.db.sql("""
+                    UPDATE `tabAccount`
+                    SET `description` = %s, `account_number` = %s
+                    WHERE `name` = %s
+                """, (meta_json, new_account_number, account_id))
+            # else: default-only change — leave description and account_number untouched
 
             # Handle is_default and organization_id separately via set_value
             scalar_update = {}
@@ -4793,6 +4803,7 @@ def save_bank_account(**kwargs) -> dict:
             if scalar_update:
                 frappe.db.set_value("Account", account_id, scalar_update, update_modified=False)
             frappe.db.commit()
+
 
             
         # Unset is_default on other accounts for this company+type (use company — always exists)

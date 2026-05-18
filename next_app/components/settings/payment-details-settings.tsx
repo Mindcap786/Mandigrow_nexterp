@@ -57,10 +57,32 @@ export default function PaymentDetailsSettings() {
             const res: any = await callApi('mandigrow.api.get_payment_settings')
             if (res?.success) {
                 const s = res.settings || {}
-                setPayment({ ...defaultSettings, ...s })
-
                 const banks = res.banks || []
                 setBankAccounts(banks)
+
+                // Auto-correct: if account_holder looks like a bank label (same as bank name/id),
+                // re-resolve from the actual bank description metadata
+                let correctedSettings = { ...defaultSettings, ...s }
+                if (correctedSettings.text_bank_id && banks.length > 0) {
+                    const textBank = banks.find((b: any) => b.id === correctedSettings.text_bank_id)
+                    if (textBank) {
+                        const meta = parseMeta(textBank)
+                        if (meta.account_holder) {
+                            correctedSettings.account_holder = meta.account_holder
+                        }
+                        if (meta.bank_name) correctedSettings.bank_name = meta.bank_name
+                        if (meta.account_number) correctedSettings.account_number = meta.account_number
+                        if (meta.ifsc_code) correctedSettings.ifsc_code = meta.ifsc_code
+                    }
+                }
+                if (correctedSettings.qr_bank_id && banks.length > 0) {
+                    const qrBank = banks.find((b: any) => b.id === correctedSettings.qr_bank_id)
+                    if (qrBank) {
+                        const meta = parseMeta(qrBank)
+                        if (meta.upi_id) correctedSettings.upi_id = meta.upi_id
+                    }
+                }
+                setPayment(correctedSettings)
             }
         } catch (err) {
             console.error('[PaymentDetailsSettings] fetchAll error:', err)
