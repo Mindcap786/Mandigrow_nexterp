@@ -88,10 +88,10 @@ export default function PaymentDetailsSettings() {
             setPayment(prev => ({
                 ...prev,
                 text_bank_id: acc.id,
-                bank_name: meta.bank_name || '',
+                bank_name: meta.bank_name || acc.name || '',
                 account_number: meta.account_number || '',
                 ifsc_code: meta.ifsc_code || '',
-                account_holder: acc.name || '',
+                account_holder: meta.account_holder || '',
             }))
         } else {
             setPayment(prev => ({
@@ -113,9 +113,10 @@ export default function PaymentDetailsSettings() {
                 ...prev,
                 qr_bank_id: acc.id,
                 upi_id: meta.upi_id || '',
+                upi_name: meta.account_holder || acc.name || '',
             }))
         } else {
-            setPayment(prev => ({ ...prev, qr_bank_id: '', upi_id: '' }))
+            setPayment(prev => ({ ...prev, qr_bank_id: '', upi_id: '', upi_name: '' }))
         }
     }
 

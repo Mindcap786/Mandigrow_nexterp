@@ -1107,12 +1107,32 @@ export default function POSPage() {
                                     className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl h-10 px-3 text-xs font-bold shadow-sm focus:border-indigo-500 outline-none"
                                 >
                                     <option value="" disabled>Select deposit account...</option>
-                                    {accounts.filter(a => a.type === 'asset' && a.account_sub_type === 'bank').map(a => (
-                                        <option key={a.id} value={a.id}>{a.name}{a.is_default ? ' ⭐' : ''}</option>
-                                    ))}
+                                    {accounts.filter(a => a.type === 'asset' && a.account_sub_type === 'bank').map(a => {
+                                        const m = a.description?.startsWith('{') ? (() => { try { return JSON.parse(a.description); } catch { return {}; } })() : {};
+                                        return (
+                                            <option key={a.id} value={a.id}>
+                                                {a.name}{a.is_default ? ' ⭐' : ''}{m.upi_id ? ` · ${m.upi_id}` : ''}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
+
+                                {/* Live UPI ID badge — updates when bank changes */}
+                                {(() => {
+                                    const acc = accounts.find(a => a.id === selectedAccountId);
+                                    const meta = acc?.description?.startsWith('{') ? (() => { try { return JSON.parse(acc.description); } catch { return {}; } })() : {};
+                                    const upiId = meta.upi_id || orgSettings?.payment?.upi_id;
+                                    if (!upiId) return null;
+                                    return (
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-lg">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600">UPI</span>
+                                            <span className="text-[9px] font-mono font-bold text-emerald-800 truncate">{upiId}</span>
+                                        </div>
+                                    );
+                                })()}
                                 
                                 {showQR && (() => {
+
                                     // 1. Try selected account
                                     const acc = accounts.find(a => a.id === selectedAccountId)
                                     const meta = acc && acc.description?.startsWith('{') ? JSON.parse(acc.description) : {}

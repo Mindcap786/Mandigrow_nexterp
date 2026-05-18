@@ -521,36 +521,10 @@ export default function BanksPage() {
                                 placeholder="e.g. Ramesh Traders"
                                 className="bg-slate-50 border-slate-200 h-11 font-bold text-black rounded-xl" />
                         </div>
-                        {/* Invoice Print Options */}
-                        <div className="space-y-2 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">Invoice Print Options</p>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <input
-                                    type="checkbox"
-                                    checked={form.show_on_invoice}
-                                    onChange={e => setForm({ ...form, show_on_invoice: e.target.checked })}
-                                    className="w-4 h-4 rounded accent-blue-600"
-                                />
-                                <div>
-                                    <span className="text-sm font-black text-black block">Show Bank Details on Invoices</span>
-                                    <span className="text-[10px] text-slate-500 font-bold">Print A/C No, IFSC, Holder on sale invoices</span>
-                                </div>
-                            </label>
-                            {form.upi_id && (
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.show_upi_qr}
-                                        onChange={e => setForm({ ...form, show_upi_qr: e.target.checked })}
-                                        className="w-4 h-4 rounded accent-blue-600"
-                                    />
-                                    <div>
-                                        <span className="text-sm font-black text-black block">Show UPI QR Code on Invoices</span>
-                                        <span className="text-[10px] text-slate-500 font-bold">Print scan-to-pay QR for this bank's UPI</span>
-                                    </div>
-                                </label>
-                            )}
-                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold">
+                            💡 To print this bank on invoices, go to{' '}
+                            <a href="/settings/bank-details" className="text-blue-600 underline">Settings → Bank Details</a>
+                        </p>
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                                 Opening Balance (₹) {editingId && <span className="text-amber-500 normal-case font-black ml-1">— locked for compliance; use Deposit/Withdraw for adjustments</span>}
