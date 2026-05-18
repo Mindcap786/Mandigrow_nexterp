@@ -1018,22 +1018,22 @@ export default function POSPage() {
                                             type="number" 
                                             value={c.price} 
                                             onChange={(e) => updatePrice(c.item.unique_key, e.target.value)}
-                                            className="w-16 bg-transparent border-none focus:ring-0 p-0 font-black text-emerald-700 text-xs"
+                                            className="w-24 bg-transparent border-none focus:ring-0 p-0 font-black text-emerald-700 text-base"
                                             title="Adjust Sale Price"
                                         />
-                                        <div className="ml-1.5 pl-1.5 border-l border-emerald-200 text-[7px] uppercase tracking-tighter text-emerald-600 font-black leading-none">Price</div>
+                                        <div className="ml-2 pl-2 border-l border-emerald-200 text-[8px] uppercase tracking-tighter text-emerald-600 font-black leading-none">Price</div>
                                     </div>
                                 </div>
 
                                 {/* Qty & Total */}
-                                <div className="flex flex-col items-end justify-between self-stretch min-w-[80px]">
-                                    <div className="flex items-center bg-white rounded-xl border border-slate-200 h-7 p-0.5 shadow-sm">
-                                        <button onClick={() => updateQty(c.item.unique_key, (c.qty - 1).toString())} className="p-1 px-1.5 text-slate-400 hover:text-black rounded-lg transition-colors"><Minus className="w-3 h-3" /></button>
-                                        <div className="flex flex-col items-center">
-                                            <input type="number" value={c.qty} onChange={(e) => updateQty(c.item.unique_key, e.target.value)} className="w-8 text-center font-black text-xs text-black bg-transparent border-none focus:ring-0 p-0" />
-                                            <span className="text-[7px] font-black uppercase text-slate-400 -mt-1">{c.item.unit}</span>
+                                <div className="flex flex-col items-end justify-between self-stretch min-w-[100px]">
+                                    <div className="flex items-center bg-white rounded-xl border border-slate-200 h-10 p-1 shadow-sm">
+                                        <button onClick={() => updateQty(c.item.unique_key, (c.qty - 1).toString())} className="p-1.5 px-2 text-slate-400 hover:text-black rounded-lg transition-colors"><Minus className="w-3.5 h-3.5" /></button>
+                                        <div className="flex flex-col items-center px-1">
+                                            <input type="number" value={c.qty} onChange={(e) => updateQty(c.item.unique_key, e.target.value)} className="w-12 text-center font-black text-base text-black bg-transparent border-none focus:ring-0 p-0" />
+                                            <span className="text-[8px] font-black uppercase text-slate-400 -mt-1">{c.item.unit}</span>
                                         </div>
-                                        <button onClick={() => updateQty(c.item.unique_key, (c.qty + 1).toString())} className="p-1 px-1.5 text-slate-400 hover:text-black rounded-lg transition-colors"><Plus className="w-3 h-3" /></button>
+                                        <button onClick={() => updateQty(c.item.unique_key, (c.qty + 1).toString())} className="p-1.5 px-2 text-slate-400 hover:text-black rounded-lg transition-colors"><Plus className="w-3.5 h-3.5" /></button>
                                     </div>
                                     <div className="flex items-center gap-1.5 mt-auto">
                                         <div className="text-sm font-black text-slate-900">₹{(c.price * c.qty).toLocaleString('en-IN')}</div>

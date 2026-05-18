@@ -18,8 +18,12 @@ const defaultForm = {
     account_number: '',
     ifsc_code: '',
     upi_id: '',
-    opening_balance: ''
+    account_holder: '',
+    opening_balance: '',
+    show_on_invoice: false,
+    show_upi_qr: false,
 }
+
 
 export default function BanksPage() {
     const { profile } = useAuth()
@@ -193,7 +197,10 @@ export default function BanksPage() {
             account_number: meta.account_number || '',
             ifsc_code: meta.ifsc_code || '',
             upi_id: meta.upi_id || '',
-            opening_balance: bank.opening_balance?.toString() || ''
+            account_holder: meta.account_holder || '',
+            opening_balance: bank.opening_balance?.toString() || '',
+            show_on_invoice: !!meta.show_on_invoice,
+            show_upi_qr: !!meta.show_upi_qr,
         })
         setDialogOpen(true)
     }
@@ -213,7 +220,10 @@ export default function BanksPage() {
                 account_number: form.account_number,
                 bank_name: form.description,
                 ifsc_code: form.ifsc_code,
-                upi_id: form.upi_id
+                upi_id: form.upi_id,
+                account_holder: form.account_holder,
+                show_on_invoice: form.show_on_invoice ? 1 : 0,
+                show_upi_qr: form.show_upi_qr ? 1 : 0,
             })
 
             if (res?.success) {
@@ -504,6 +514,42 @@ export default function BanksPage() {
                             <Input value={form.upi_id} onChange={e => setForm({ ...form, upi_id: e.target.value })}
                                 placeholder="merchant@upi"
                                 className="bg-slate-50 border-slate-200 h-11 font-mono font-bold text-black rounded-xl" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Account Holder Name</Label>
+                            <Input value={form.account_holder} onChange={e => setForm({ ...form, account_holder: e.target.value })}
+                                placeholder="e.g. Ramesh Traders"
+                                className="bg-slate-50 border-slate-200 h-11 font-bold text-black rounded-xl" />
+                        </div>
+                        {/* Invoice Print Options */}
+                        <div className="space-y-2 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">Invoice Print Options</p>
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={form.show_on_invoice}
+                                    onChange={e => setForm({ ...form, show_on_invoice: e.target.checked })}
+                                    className="w-4 h-4 rounded accent-blue-600"
+                                />
+                                <div>
+                                    <span className="text-sm font-black text-black block">Show Bank Details on Invoices</span>
+                                    <span className="text-[10px] text-slate-500 font-bold">Print A/C No, IFSC, Holder on sale invoices</span>
+                                </div>
+                            </label>
+                            {form.upi_id && (
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.show_upi_qr}
+                                        onChange={e => setForm({ ...form, show_upi_qr: e.target.checked })}
+                                        className="w-4 h-4 rounded accent-blue-600"
+                                    />
+                                    <div>
+                                        <span className="text-sm font-black text-black block">Show UPI QR Code on Invoices</span>
+                                        <span className="text-[10px] text-slate-500 font-bold">Print scan-to-pay QR for this bank's UPI</span>
+                                    </div>
+                                </label>
+                            )}
                         </div>
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">

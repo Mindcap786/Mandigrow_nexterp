@@ -14,6 +14,12 @@
   "email_sales",
   "email_legal",
   "playstore_app_link",
+  "document_footer_presented_by_text",
+  "document_footer_powered_by_text",
+  "document_footer_developed_by_text",
+  "watermark_text",
+  "is_watermark_enabled",
+  "is_compliance_visible_to_tenants",
   "address_line1",
   "address_line2",
   "city",
@@ -113,6 +119,38 @@
    "fieldname": "support_hours",
    "fieldtype": "Data",
    "label": "Support Hours"
+  },
+  {
+   "fieldname": "document_footer_presented_by_text",
+   "fieldtype": "Data",
+   "label": "Presented By (Left Footer)"
+  },
+  {
+   "fieldname": "document_footer_powered_by_text",
+   "fieldtype": "Data",
+   "label": "Powered By (Center Footer)"
+  },
+  {
+   "fieldname": "document_footer_developed_by_text",
+   "fieldtype": "Data",
+   "label": "Developed By (Right Footer)"
+  },
+  {
+   "fieldname": "watermark_text",
+   "fieldtype": "Data",
+   "label": "Background Watermark Text"
+  },
+  {
+   "fieldname": "is_watermark_enabled",
+   "fieldtype": "Check",
+   "label": "Enable Watermark",
+   "default": "0"
+  },
+  {
+   "fieldname": "is_compliance_visible_to_tenants",
+   "fieldtype": "Check",
+   "label": "Show Compliance Page to Tenants",
+   "default": "1"
   },
   {
    "fieldname": "grace_period_monthly",
