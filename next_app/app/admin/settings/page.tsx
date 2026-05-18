@@ -45,11 +45,10 @@ export default function AdminSettingsPage() {
     const fetchInfo = async () => {
         setLoading(true);
         try {
-            const [orgsRes, subsRes, flagsRes, brandingRes, settingsRes] = await Promise.allSettled([
+            const [orgsRes, subsRes, flagsRes, settingsRes] = await Promise.allSettled([
                 supabase.schema('core').from('organizations').select('id', { count: 'exact', head: true }),
                 supabase.schema('core').from('subscriptions').select('status').eq('status', 'active'),
                 supabase.schema('core').from('feature_flags').select('key, is_enabled').is('organization_id', null),
-                supabase.schema('core').from('platform_branding_settings').select('*').maybeSingle(),
                 callApi('mandigrow.api.get_global_settings', { keys: ['global_trial_days', 'grace_period_days_monthly', 'grace_period_days_yearly', 'payment_reminder_days_monthly', 'payment_reminder_days_yearly'] }),
             ]);
 
@@ -61,8 +60,17 @@ export default function AdminSettingsPage() {
                     : false,
             });
 
-            if (brandingRes.status === 'fulfilled' && brandingRes.value.data) {
-                setBranding(brandingRes.value.data);
+            const brandingApiRes = await callApi('mandigrow.api.get_branding_settings');
+            if (brandingApiRes?.message) {
+                const b = brandingApiRes.message;
+                setBranding({
+                    document_footer_powered_by_text:   b.document_footer_powered_by_text   || '',
+                    document_footer_presented_by_text: b.document_footer_presented_by_text || '',
+                    document_footer_developed_by_text: b.document_footer_developed_by_text || '',
+                    is_watermark_enabled:              b.is_watermark_enabled               || false,
+                    watermark_text:                    b.watermark_text                    || '',
+                    is_compliance_visible_to_tenants:  b.is_compliance_visible_to_tenants  ?? true,
+                });
             }
 
             if (settingsRes.status === 'fulfilled' && settingsRes.value) {
@@ -91,42 +99,22 @@ export default function AdminSettingsPage() {
 
     const handleSaveBranding = async () => {
         setSavingBranding(true);
-        
-        let response;
-        if (!branding.id) {
-            response = await supabase.schema('core')
-                .from('platform_branding_settings')
-                .insert([{
-                    document_footer_powered_by_text: branding.document_footer_powered_by_text,
-                    document_footer_presented_by_text: branding.document_footer_presented_by_text,
-                    document_footer_developed_by_text: branding.document_footer_developed_by_text,
-                    is_watermark_enabled: branding.is_watermark_enabled,
-                    watermark_text: branding.watermark_text,
-                    is_compliance_visible_to_tenants: branding.is_compliance_visible_to_tenants
-                }])
-                .select()
-                .single();
-        } else {
-            response = await supabase.schema('core')
-                .from('platform_branding_settings')
-                .update({
-                    document_footer_powered_by_text: branding.document_footer_powered_by_text,
-                    document_footer_presented_by_text: branding.document_footer_presented_by_text,
-                    document_footer_developed_by_text: branding.document_footer_developed_by_text,
-                    is_watermark_enabled: branding.is_watermark_enabled,
-                    watermark_text: branding.watermark_text,
-                    is_compliance_visible_to_tenants: branding.is_compliance_visible_to_tenants
-                })
-                .eq('id', branding.id)
-                .select()
-                .single();
-        }
-        
-        if (response.error) {
-            toast({ title: 'Update Failed', description: response.error.message, variant: 'destructive' });
-        } else {
-            if (response.data) setBranding(response.data);
-            toast({ title: 'Branding Updated', description: 'Platform PDF footprint has been updated globally.' });
+        try {
+            const res = await callApi('mandigrow.api.save_branding_settings', {
+                document_footer_powered_by_text:   branding.document_footer_powered_by_text,
+                document_footer_presented_by_text: branding.document_footer_presented_by_text,
+                document_footer_developed_by_text: branding.document_footer_developed_by_text,
+                is_watermark_enabled:              branding.is_watermark_enabled ? 1 : 0,
+                watermark_text:                    branding.watermark_text,
+                is_compliance_visible_to_tenants:  branding.is_compliance_visible_to_tenants ? 1 : 0,
+            });
+            if (res?.message?.success) {
+                toast({ title: '✅ Branding Updated', description: 'Invoice footers updated globally for all tenants.' });
+            } else {
+                toast({ title: 'Save Failed', description: res?.message?.error || 'Unknown error', variant: 'destructive' });
+            }
+        } catch (e: any) {
+            toast({ title: 'Save Failed', description: e.message, variant: 'destructive' });
         }
         setSavingBranding(false);
     };

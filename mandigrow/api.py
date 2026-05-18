@@ -106,10 +106,10 @@ def _lot_query_fields(base_fields: list[str], optional_fields: list[str] | None 
 
 
 def _get_lot_seed_qty(row: Any) -> float:
-    net_qty = flt(_lot_get(row, "net_qty") or 0)
-    if net_qty > 0:
-        return net_qty
-    return max(flt(_lot_get(row, "qty") or 0), 0)
+    # Stock seed is always the ORIGINAL physical qty received, NOT net_qty.
+    # net_qty is a billing deduction field (less_percent applied) — it tracks
+    # financial settlement discount, not the actual units sitting in stock.
+    return max(flt(_lot_get(row, "qty") or _lot_get(row, "initial_qty") or 0), 0)
 
 
 def _derive_lot_status(current_qty: float, initial_qty: float) -> str:
@@ -7345,6 +7345,25 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
         lot_balance = flt(float(arrival_summary["balance"]) * share, 2)
         lot_status  = arrival_summary["status"]  # arrival-level status applies to all its lots
 
+        # For DIRECT purchases: Mandi bears all transport/trip expenses.
+        # These are ADDED to the payable (Mandi pays farmer the goods value + reimburses itself).
+        # For COMMISSION purchases: expenses are deducted from what the farmer receives.
+        # This mirrors the invoice template logic.
+        arrival_type_str = (arrival.get("arrival_type") or "direct").lower()
+        trip_expenses = (
+            float(arrival.get("hire_charges") or 0)
+            + float(arrival.get("hamali_expenses") or 0)
+            + float(arrival.get("other_expenses") or 0)
+        )
+        if arrival_type_str == "direct":
+            lot_trip_share = trip_expenses  # single lot: full trip cost; multi-lot: prorated below
+            # Prorate by this lot's share of the arrival's gross value
+            if arrival_total_gross > 0:
+                lot_trip_share = flt(gross_value / arrival_total_gross * trip_expenses, 2)
+            lot_net_payable = flt(gross_value + lot_trip_share, 2)
+        else:
+            lot_net_payable = flt(gross_value, 2)
+
         bills.append({
             "id": lot.get("name"),
             "contact_id": contact_id,
@@ -7373,7 +7392,7 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
             "paid_amount": lot_paid,
             "payment_status": lot_status,
             "balance_due": lot_balance,
-            "net_payable": flt(gross_value, 2),
+            "net_payable": lot_net_payable,
             "arrival_total_payable": flt(arrival_total_gross, 2),
             "arrival_total_paid": flt(float(arrival_summary["paid"]), 2),
             "arrival_total_balance": flt(float(arrival_summary["balance"]), 2),
@@ -7803,7 +7822,10 @@ def commit_mandi_session(**kwargs) -> dict:
             lot.item_id = row.get("item_id")
             lot.qty = qty
             lot.initial_qty = qty
-            lot.current_qty = net_qty
+            # current_qty tracks PHYSICAL UNITS in stock — always use original qty.
+            # net_qty is a BILLING field (less_percent deduction) — not a stock field.
+            # less/cutting reduces what we PAY the farmer, not how many boxes we received.
+            lot.current_qty = qty
             if lot_prefix:
                 lot.lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(idx + 1).zfill(2)}"
             lot.unit = row.get("unit")
@@ -7813,7 +7835,7 @@ def commit_mandi_session(**kwargs) -> dict:
             lot.less_units = less_units
             lot.loading_cost = loading
             lot.farmer_charges = other
-            lot.net_qty = net_qty
+            lot.net_qty = net_qty   # billing/settlement field only
             lot.net_amount = net_amount
             lot.commission_amount = commission_amount
 
@@ -7884,6 +7906,19 @@ def commit_mandi_session(**kwargs) -> dict:
             # No Receipt JE since payment_mode = "credit" (Udhaar)
             sale.insert(ignore_permissions=True)
             sale.submit()  # ← THIS posts the GL entries and buyer ledger
+
+            # ── Mark all sold lots as Sold Out in stock ───────────────────────
+            # Purchase+Sale is an immediate flip: goods arrive and immediately
+            # leave. current_qty must be 0 so Stock Status shows 'Sold Out'.
+            for lot_name in lot_names:
+                try:
+                    frappe.db.set_value("Mandi Lot", lot_name, {
+                        "current_qty": 0,
+                        "status": "Sold Out",
+                    }, update_modified=False)
+                except Exception:
+                    pass
+            # ──────────────────────────────────────────────────────────────────
 
             sale_bill_id = sale.name
 
@@ -11049,17 +11084,69 @@ def get_platform_monitoring() -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def get_branding_settings() -> dict:
-    """Returns the brand settings for the current organization."""
+    """Returns platform branding settings (footer texts, watermark) from global site settings.
+    Falls back to org-level brand colours when global fields are missing."""
+    # ── Read global platform branding from SiteContactSettings (super-admin) ─
+    presented_by = frappe.db.get_single_value("Site Contact Settings", "document_footer_presented_by_text") or ""
+    powered_by   = frappe.db.get_single_value("Site Contact Settings", "document_footer_powered_by_text")   or ""
+    developed_by = frappe.db.get_single_value("Site Contact Settings", "document_footer_developed_by_text") or ""
+    watermark    = frappe.db.get_single_value("Site Contact Settings", "watermark_text")                    or ""
+    watermark_en = bool(frappe.db.get_single_value("Site Contact Settings", "is_watermark_enabled")         or False)
+
+    # ── Read org-level brand colours ─────────────────────────────────────────
     org_id = _get_user_org()
-    if not org_id:
-        return {"brand_color": "#10b981", "brand_color_secondary": "#064e3b", "logo_url": None}
-        
-    org = frappe.get_doc("Mandi Organization", org_id)
+    brand_color = "#10b981"
+    brand_color_secondary = "#064e3b"
+    logo_url = None
+    if org_id and frappe.db.exists("Mandi Organization", org_id):
+        org = frappe.get_doc("Mandi Organization", org_id)
+        brand_color           = getattr(org, "brand_color",           "#10b981") or "#10b981"
+        brand_color_secondary = getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b"
+        logo_url              = getattr(org, "logo_url", None)
+
     return {
-        "brand_color": getattr(org, "brand_color", "#10b981") or "#10b981",
-        "brand_color_secondary": getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b",
-        "logo_url": getattr(org, "logo_url", None)
+        "brand_color":                        brand_color,
+        "brand_color_secondary":              brand_color_secondary,
+        "logo_url":                           logo_url,
+        "document_footer_presented_by_text":  presented_by,
+        "document_footer_powered_by_text":    powered_by,
+        "document_footer_developed_by_text":  developed_by,
+        "watermark_text":                     watermark,
+        "is_watermark_enabled":               watermark_en,
     }
+
+
+@frappe.whitelist(allow_guest=False)
+def save_branding_settings(
+    document_footer_presented_by_text: str = "",
+    document_footer_powered_by_text: str = "",
+    document_footer_developed_by_text: str = "",
+    watermark_text: str = "",
+    is_watermark_enabled: bool = False,
+    is_compliance_visible_to_tenants: bool = True,
+) -> dict:
+    """Super-admin endpoint: persist platform branding into SiteContactSettings.
+    These values are then returned by get_branding_settings() to ALL tenants.
+    """
+    try:
+        # Gracefully handle fields that may not exist in the doctype yet
+        field_map = {
+            "document_footer_presented_by_text":  document_footer_presented_by_text,
+            "document_footer_powered_by_text":    document_footer_powered_by_text,
+            "document_footer_developed_by_text":  document_footer_developed_by_text,
+            "watermark_text":                     watermark_text,
+            "is_watermark_enabled":               1 if is_watermark_enabled else 0,
+        }
+        for fieldname, value in field_map.items():
+            try:
+                frappe.db.set_single_value("Site Contact Settings", fieldname, value)
+            except Exception:
+                pass  # Column may not exist yet — skip silently
+        frappe.db.commit()
+        return {"success": True}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "save_branding_settings Failed")
+        return {"success": False, "error": str(e)}
 
 # ── Subscription & Billing (Tenant-facing) ────────────────────────────────────
 

@@ -1,1 +1,0 @@
-(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,150678,i=>{"use strict";var t=i.i(247167),e=i.i(482568);function o(){return!!e.Capacitor.isNativePlatform()||"true"===t.default.env.NEXT_PUBLIC_CAPACITOR}i.s(["isMobileAppView",0,function(){return!!o()||window.innerWidth<768},"isNativePlatform",0,o])}]);

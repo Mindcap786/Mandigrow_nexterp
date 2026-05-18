@@ -1,3 +1,0 @@
-module.exports=[651533,a=>{"use strict";var b=a.i(187924);a.s(["default",0,function(){return(0,b.jsx)("div",{className:"flex flex-col items-center justify-center h-[80vh] text-center p-10",children:(0,b.jsxs)("div",{className:"bg-amber-50 border border-amber-200 p-8 rounded-3xl max-w-md",children:[(0,b.jsx)("h2",{className:"text-2xl font-black text-amber-900 mb-2",children:"Module Decommissioned"}),(0,b.jsx)("p",{className:"text-amber-800 text-sm",children:"This feature was part of the wholesale module which is no longer available. Please use the Arrivals and Purchase Bills modules instead."})]})})}])}];
-
-//# sourceMappingURL=app_%28main%29_purchase_invoices_page_tsx_0tczs62._.js.map

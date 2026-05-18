@@ -41,3 +41,4 @@ logs/
 config/
 *.sql
 *.tar.gz
+next_app/tmp/
