@@ -185,7 +185,14 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
 
             // Determine status from backend lot.payment_status (all lots in an arrival share the same status)
             const backendStatus = group.items?.[0]?.payment_status as string | undefined;
-            const balanceToPay  = totalLotBalance > 0 ? totalLotBalance : Math.max(0, totalAmount - totalLotPaid);
+            const isDirect = group.items?.[0]?.arrival_type === 'direct' || group.items?.[0]?.arrival?.arrival_type === 'direct';
+            
+            // For Direct purchases, if the backend has not been updated, it might return an incorrect totalLotBalance.
+            // We force it to use the frontend's calculated totalAmount minus totalPaid to ensure accuracy.
+            let balanceToPay = totalLotBalance > 0 ? totalLotBalance : Math.max(0, totalAmount - totalLotPaid);
+            if (isDirect) {
+                balanceToPay = Math.max(0, totalAmount - totalLotPaid);
+            }
 
             if (backendStatus === 'paid' || Math.abs(balanceToPay) < AMOUNT_EPSILON) {
                 group.paymentStatus = 'paid';
