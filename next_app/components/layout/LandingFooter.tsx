@@ -45,6 +45,14 @@ export function LandingFooter() {
                         <Link href="/mandi-software-andhra-pradesh" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Andhra Pradesh</Link>
                         <Link href="/mandi-software-telangana" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Telangana</Link>
                         <Link href="/mandi-software-maharashtra" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Maharashtra</Link>
+                        <Link href="/mandi-software-punjab" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Punjab</Link>
+                        <Link href="/mandi-software-karnataka" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Karnataka</Link>
+                        <Link href="/mandi-software-tamil-nadu" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Tamil Nadu</Link>
+                        <Link href="/mandi-software-rajasthan" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Rajasthan</Link>
+                        <Link href="/mandi-software-uttar-pradesh" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Uttar Pradesh</Link>
+                        <Link href="/mandi-software-bihar" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Bihar</Link>
+                        <Link href="/anaj-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Anaj Mandi</Link>
+                        <Link href="/apmc-billing-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">APMC Billing</Link>
                         <Link href="/privacy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.privacy_policy') || 'Privacy Policy'}</Link>
                         <Link href="/terms" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.terms_of_service') || 'Terms of Service'}</Link>
                         <Link href="/refund-policy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Refund Policy</Link>

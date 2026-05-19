@@ -11340,10 +11340,6 @@ def save_branding_settings(
         # Auto-create missing columns so save never silently fails
         for fieldname, value in field_map.items():
             try:
-                # Check if column exists; if not, create it
-                if not frappe.db.has_column("Site Contact Settings", fieldname):
-                    col_type = "INT DEFAULT 0" if fieldname.startswith("is_") else "VARCHAR(255)"
-                    frappe.db.sql(f"ALTER TABLE `tabSite Contact Settings` ADD COLUMN `{fieldname}` {col_type}")
                 frappe.db.set_single_value("Site Contact Settings", fieldname, value)
             except Exception as col_err:
                 frappe.log_error(str(col_err), f"save_branding_settings col {fieldname}")
