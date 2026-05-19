@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { usePlatformBranding } from '@/hooks/use-platform-branding';
 
 interface BrandingSettings {
@@ -13,8 +14,9 @@ interface BrandingSettings {
 
 export function PlatformPrintBranding() {
     const { branding: settings } = usePlatformBranding();
+    const pathname = usePathname();
 
-    if (!settings) return null;
+    if (!settings || pathname?.includes('/sales/pos')) return null;
 
     return (
         <div className="hidden print:block pointer-events-none z-[9999]" aria-hidden="true">
