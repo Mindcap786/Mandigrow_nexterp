@@ -36,31 +36,18 @@ export async function middleware(request: NextRequest) {
         path === '/privacy' ||
         path === '/terms' ||
         path === '/refund-policy' ||
-        path === '/mandi-billing' ||
-        path === '/commission-agent-software' ||
-        path === '/mandi-khata-software' ||
-        path === '/wholesale-trader-erp' ||
-        path === '/gst-mandi-compliance' ||
-        path === '/sabzi-mandi-software' ||
-        path === '/sabji-billing-software' ||
-        path === '/fruit-vegetable-billing' ||
         path === '/features' ||
         path === '/pricing' ||
         path === '/te' ||
         path === '/partners' ||
-        path === '/mandi-software-andhra-pradesh' ||
-        path === '/mandi-software-telangana' ||
-        path === '/mandi-software-maharashtra' ||
-        path === '/mandi-software-punjab' ||
-        path === '/mandi-software-karnataka' ||
-        path === '/mandi-software-tamil-nadu' ||
-        path === '/mandi-software-rajasthan' ||
-        path === '/mandi-software-uttar-pradesh' ||
-        path === '/mandi-software-bihar' ||
-        path === '/anaj-mandi-software' ||
-        path === '/apmc-billing-software' ||
         path === '/blog' ||
         path.startsWith('/blog/') ||
+        path.startsWith('/mandi-software-') ||
+        path.startsWith('/mandi-') ||
+        path.includes('-software') ||
+        path.includes('-erp') ||
+        path.includes('-billing') ||
+        path.includes('-management') ||
         path.startsWith('/locales') ||
         path.startsWith('/public') ||
         path.startsWith('/icons') ||

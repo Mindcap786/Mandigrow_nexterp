@@ -269,23 +269,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/terms' ||
                          pathname === '/refund-policy' ||
                          pathname === '/contact' ||
-                         pathname === '/mandi-billing' ||
-                         pathname === '/commission-agent-software' ||
-                         pathname === '/mandi-khata-software' ||
-                         pathname === '/wholesale-trader-erp' ||
-                         pathname === '/gst-mandi-compliance' ||
-                         pathname === '/sabzi-mandi-software' ||
-                         pathname === '/sabji-billing-software' ||
-                         pathname === '/fruit-vegetable-billing' ||
                          pathname === '/features' ||
                          pathname === '/pricing' ||
                          pathname === '/te' ||
                          pathname === '/partners' ||
-                         pathname === '/mandi-software-andhra-pradesh' ||
-                         pathname === '/mandi-software-telangana' ||
-                         pathname === '/mandi-software-maharashtra' ||
                          pathname === '/blog' ||
                          pathname?.startsWith('/blog/') ||
+                         pathname?.startsWith('/mandi-software-') ||
+                         pathname?.startsWith('/mandi-') ||
+                         pathname?.includes('-software') ||
+                         pathname?.includes('-erp') ||
+                         pathname?.includes('-billing') ||
+                         pathname?.includes('-management') ||
+                         pathname?.includes('gst-mandi-compliance') ||
                          pathname?.startsWith('/public') ||
                          pathname?.startsWith('/auth/callback') ||
                          pathname === '/signup' ||
