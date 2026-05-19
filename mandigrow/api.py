@@ -4212,7 +4212,7 @@ def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone
         "commodity": commodity,
         "source": source,
         "organization_id": org_id,
-        "status": "In"
+        "status": "pending"
     })
     doc.insert(ignore_permissions=True)
     return {"id": doc.name, "token_no": doc.token_no}
