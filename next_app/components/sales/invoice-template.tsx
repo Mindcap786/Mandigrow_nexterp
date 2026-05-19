@@ -223,10 +223,34 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                         </p>
                                     )}
                                 </td>
-                                <td className="py-0.5 text-center font-bold text-sm tracking-tighter">
+                                <td className="py-0.5 text-center font-bold text-sm tracking-tighter relative group/adj">
                                     {item.qty || 0} <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{item.unit || 'Unit'}</span>
+                                    {(() => {
+                                        const adj = sale.sale_adjustments?.find((a: any) => String(a.item_id) === String(item.id) || String(a.item_name) === String(item.name));
+                                        if (adj && adj.old_qty !== adj.new_qty) {
+                                            return (
+                                                <div className="text-[9px] text-orange-500 font-bold leading-tight mt-0.5">
+                                                    Adj: {adj.old_qty} → {adj.new_qty}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </td>
-                                <td className="py-0.5 text-right font-bold text-sm tracking-tighter">₹{Number(item.rate || 0).toLocaleString()}</td>
+                                <td className="py-0.5 text-right font-bold text-sm tracking-tighter relative group/adj">
+                                    ₹{Number(item.rate || 0).toLocaleString()}
+                                    {(() => {
+                                        const adj = sale.sale_adjustments?.find((a: any) => String(a.item_id) === String(item.id) || String(a.item_name) === String(item.name));
+                                        if (adj && adj.old_value !== adj.new_value) {
+                                            return (
+                                                <div className="text-[9px] text-orange-500 font-bold leading-tight mt-0.5">
+                                                    Adj: ₹{adj.old_value} → ₹{adj.new_value}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </td>
                                 <td className="py-0.5 text-right font-black text-sm tracking-tighter">₹{Math.round(Number(item.amount || 0)).toLocaleString()}</td>
                                 <td className="py-1 pl-4 no-print text-right opacity-50 hover:opacity-100 transition-opacity">
                                     <AdjustmentDialog saleItem={item} onRefresh={onRefresh!} />
