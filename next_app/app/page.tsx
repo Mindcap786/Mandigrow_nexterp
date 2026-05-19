@@ -31,24 +31,7 @@ export default function LandingPage() {
 
             <LandingHeader />
 
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context': 'https://schema.org',
-                        '@type': 'SoftwareApplication',
-                        name: 'MandiGrow',
-                        applicationCategory: 'BusinessApplication',
-                        operatingSystem: 'Any, Web, Android',
-                        offers: {
-                            '@type': 'Offer',
-                            price: '0',
-                            priceCurrency: 'INR',
-                        },
-                        description: 'India\'s leading APMC Mandi ERP software for commission agents and wholesale fruit & vegetable traders.',
-                    }),
-                }}
-            />
+
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
@@ -58,15 +41,53 @@ export default function LandingPage() {
                         mainEntity: [
                             {
                                 '@type': 'Question',
-                                name: 'What is mandi software?',
-                                acceptedAnswer: { '@type': 'Answer', text: 'Mandi software is an ERP designed specifically for Indian agricultural wholesale markets to automate lot billing, commission, hamali, and digital khata.' }
+                                name: 'What is the best mandi ERP software in India?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'MandiGrow is widely considered the best mandi ERP software in India because it is built specifically for fruits and vegetable merchants, commission agents and wholesale traders. Unlike generic tools, it handles lots, crates, weight, commission, market fees and khata natively in both Hindi and English.',
+                                },
                             },
                             {
                                 '@type': 'Question',
-                                name: 'Can I use MandiGrow on my mobile?',
-                                acceptedAnswer: { '@type': 'Answer', text: 'Yes, MandiGrow has a native Android app designed for fast gate entries during morning auctions.' }
-                            }
-                        ]
+                                name: 'Is MandiGrow better than Tally for fruits and vegetable traders?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Yes. Tally is a general accounting tool, while MandiGrow is a complete fruits and vegetable ERP. You get everything Tally offers — ledgers, GST, daybook — plus mandi-specific features like commission auto-calculation, lot tracking, wastage and farmer settlements.',
+                                },
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Can MandiGrow handle commission agent accounts?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Yes. MandiGrow is a full commission agent software for mandi businesses. It auto-calculates commission, market fees and hamali for every sale, posts entries to khatas instantly, and generates party-wise settlement reports in one click.',
+                                },
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Does MandiGrow support GST billing for vegetable wholesalers?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Yes. MandiGrow generates GST-compliant invoices, supports B2B and B2C billing, and is ready for e-invoicing. You can file GSTR-1 and GSTR-3B faster because all your sales and purchase data is already organized.',
+                                },
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Is MandiGrow available in Hindi and regional languages?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Yes. MandiGrow ships fully bilingual and supports Hindi, English, Tamil, Telugu, Kannada, Malayalam and Urdu. Bills, prints and reports are available in every supported language.',
+                                },
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Is there a free trial of MandiGrow?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Yes. MandiGrow offers a 14-day free trial with no credit card required. You can also book a free live demo in Hindi or English to see how it fits your mandi business.',
+                                },
+                            },
+                        ],
                     }),
                 }}
             />
