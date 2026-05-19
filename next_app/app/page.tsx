@@ -2,7 +2,7 @@
 
 import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, Zap, Globe, BarChart3, Package, Users, LayoutGrid, Calculator, Workflow, CheckCircle2, Lock, FileText, ClipboardCheck, Sparkles, Menu, X } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Zap, Globe, BarChart3, Package, Users, LayoutGrid, Calculator, Workflow, CheckCircle2, Lock, FileText, ClipboardCheck, Sparkles, Menu, X, Phone, GraduationCap, Headphones, Star } from 'lucide-react'
 import { HeroTitle } from '@/components/i18n/hero-title'
 import { useLanguage } from '@/components/i18n/language-provider'
 import { LanguageSwitcher } from '@/components/i18n/language-switcher'
@@ -118,8 +118,18 @@ export default function LandingPage() {
                         </div>
                         <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
                         <div className="flex items-center gap-1.5">
-                            <span className="text-emerald-700 text-lg leading-none">📱</span> 
-                            Works on Android & Web
+                            <GraduationCap className="w-4 h-4 text-emerald-700" />
+                            Free Training
+                        </div>
+                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
+                        <div className="flex items-center gap-1.5">
+                            <Headphones className="w-4 h-4 text-emerald-700" />
+                            Dedicated Support
+                        </div>
+                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-700 font-black">₹0</span> 
+                            Setup Cost
                         </div>
                     </div>
                 </div>
@@ -193,6 +203,114 @@ export default function LandingPage() {
                             <h3 className="text-2xl font-bold mb-3 text-gray-900">{t('landing.feature_compliance_title')}</h3>
                             <p className="text-gray-600 leading-relaxed font-medium">{t('landing.feature_compliance_desc')}</p>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── ZERO RISK ONBOARDING BANNER ─────────────────────────────────── */}
+            <section className="relative overflow-hidden bg-emerald-900 py-20 px-6">
+                {/* Background texture */}
+                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #86efac 0%, transparent 50%), radial-gradient(circle at 80% 20%, #6ee7b7 0%, transparent 40%)' }} />
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="text-center mb-14">
+                        <div className="inline-flex items-center gap-2 bg-emerald-800/60 text-emerald-300 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest mb-6 border border-emerald-700">
+                            <Zap className="w-3.5 h-3.5" /> Zero Risk to Get Started
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4">
+                            We Set You Up. <span className="text-emerald-400">You Just Run Your Mandi.</span>
+                        </h2>
+                        <p className="text-emerald-200 text-lg font-medium max-w-2xl mx-auto">
+                            No IT team needed. No setup fees. No long training sessions. 
+                            Our team comes to you — onboarding is on us.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
+                        {/* Card 1 */}
+                        <div className="bg-white/5 border border-emerald-700/50 rounded-3xl p-8 flex flex-col items-start gap-4 hover:bg-white/10 transition-all duration-300 group">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 group-hover:bg-emerald-500/30 transition-colors">
+                                <GraduationCap className="w-7 h-7 text-emerald-400" />
+                            </div>
+                            <div>
+                                <div className="inline-block bg-emerald-500 text-emerald-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3">100% Free</div>
+                                <h3 className="text-2xl font-black text-white mb-2">Free Training Included</h3>
+                                <p className="text-emerald-300 font-medium leading-relaxed">
+                                    Our trainers will visit your mandi (or call you) and teach your staff how to use every module — billing, khata, arrivals, and reports. Training is always free, for life.
+                                </p>
+                            </div>
+                            <ul className="space-y-2 mt-2">
+                                {['1-on-1 onboarding session', 'Team training included', 'Training in Hindi/Regional languages', 'Repeat sessions on request'].map(item => (
+                                    <li key={item} className="flex items-center gap-2 text-sm text-emerald-200 font-bold">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />{item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Card 2 */}
+                        <div className="bg-white/5 border border-emerald-700/50 rounded-3xl p-8 flex flex-col items-start gap-4 hover:bg-white/10 transition-all duration-300 group">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 group-hover:bg-emerald-500/30 transition-colors">
+                                <Package className="w-7 h-7 text-emerald-400" />
+                            </div>
+                            <div>
+                                <div className="inline-block bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3">₹0 Setup</div>
+                                <h3 className="text-2xl font-black text-white mb-2">No Setup Cost. Ever.</h3>
+                                <p className="text-emerald-300 font-medium leading-relaxed">
+                                    Account creation, data migration, master data setup — all done by our team at zero cost. Pay only your monthly/annual subscription. Nothing extra.
+                                </p>
+                            </div>
+                            <ul className="space-y-2 mt-2">
+                                {['Free account setup', 'Free data migration', 'Free master data entry', 'No hidden implementation fees'].map(item => (
+                                    <li key={item} className="flex items-center gap-2 text-sm text-emerald-200 font-bold">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />{item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Card 3 */}
+                        <div className="bg-white/5 border border-emerald-700/50 rounded-3xl p-8 flex flex-col items-start gap-4 hover:bg-white/10 transition-all duration-300 group">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 group-hover:bg-emerald-500/30 transition-colors">
+                                <Headphones className="w-7 h-7 text-emerald-400" />
+                            </div>
+                            <div>
+                                <div className="inline-block bg-blue-400 text-blue-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3">Always On</div>
+                                <h3 className="text-2xl font-black text-white mb-2">Dedicated Support Team</h3>
+                                <p className="text-emerald-300 font-medium leading-relaxed">
+                                    A dedicated support manager is assigned to your mandi from day one. Reach us via WhatsApp, phone, or in-app chat — we respond during mandi hours.
+                                </p>
+                            </div>
+                            <ul className="space-y-2 mt-2">
+                                {['Dedicated account manager', 'WhatsApp & phone support', 'Support in your language', 'Morning mandi hours available'].map(item => (
+                                    <li key={item} className="flex items-center gap-2 text-sm text-emerald-200 font-bold">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />{item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* Social Proof Row */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5 border border-emerald-700/40 rounded-2xl px-8 py-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                                {['A','B','C','D','E'].map((l, i) => (
+                                    <div key={i} className="w-9 h-9 rounded-full bg-emerald-600 border-2 border-emerald-900 flex items-center justify-center text-white text-xs font-black">{l}</div>
+                                ))}
+                            </div>
+                            <div>
+                                <p className="text-white font-black text-sm">200+ mandis already onboarded</p>
+                                <p className="text-emerald-400 text-xs font-bold">Average onboarding time: under 2 hours</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {[1,2,3,4,5].map(i => <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />)}
+                            <span className="text-white font-black ml-2">4.9/5</span>
+                            <span className="text-emerald-400 font-bold text-sm ml-1">from mandi operators</span>
+                        </div>
+                        <Link href="/login?mode=signup" className="flex-shrink-0 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black px-8 py-3.5 rounded-full transition-all hover:scale-105 shadow-lg shadow-emerald-900/50 flex items-center gap-2">
+                            Start Free — We'll Set You Up <ArrowRight className="w-4 h-4" />
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -341,6 +459,46 @@ export default function LandingPage() {
                              </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {/* ── FINAL CTA SECTION ───────────────────────────────────────────── */}
+            <section className="py-24 px-6 bg-[#dce7c8] relative z-10 border-t border-[#c8d6b0]">
+                <div className="max-w-4xl mx-auto text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-widest mb-8 border border-emerald-200">
+                        <Zap className="w-3.5 h-3.5" /> Ready in Under 2 Hours
+                    </div>
+                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-gray-900 mb-6">
+                        Start Today. <span className="text-emerald-700">We Handle the Rest.</span>
+                    </h2>
+                    <p className="text-xl text-gray-600 font-medium mb-4 max-w-2xl mx-auto">
+                        Join 200+ mandi operators across India who switched to digital in under a day.
+                    </p>
+
+                    {/* Reassurance chips */}
+                    <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+                        {[
+                            { icon: <GraduationCap className="w-4 h-4" />, label: 'Free Training' },
+                            { icon: <Package className="w-4 h-4" />, label: '₹0 Setup Cost' },
+                            { icon: <Headphones className="w-4 h-4" />, label: 'Dedicated Support' },
+                            { icon: <CheckCircle2 className="w-4 h-4" />, label: 'No Credit Card' },
+                            { icon: <ShieldCheck className="w-4 h-4" />, label: 'Cancel Anytime' },
+                        ].map(({ icon, label }) => (
+                            <div key={label} className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-emerald-200 text-sm font-bold text-emerald-800 shadow-sm">
+                                <span className="text-emerald-600">{icon}</span>{label}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-5 rounded-full font-black text-xl hover:bg-emerald-800 transition-all hover:scale-105 flex items-center gap-3 shadow-[0_0_60px_-10px_rgba(4,120,87,0.5)]">
+                            Start Free Trial <ArrowRight className="w-5 h-5" />
+                        </Link>
+                        <a href="tel:+918008000000" className="flex items-center gap-2 px-8 py-5 rounded-full border-2 border-emerald-400 text-emerald-800 font-black text-lg hover:bg-white/60 transition-all">
+                            <Phone className="w-5 h-5" /> Call Us to Onboard
+                        </a>
+                    </div>
+                    <p className="text-sm text-gray-500 font-medium mt-6">Our team will call you back within 30 minutes during business hours.</p>
                 </div>
             </section>
 
