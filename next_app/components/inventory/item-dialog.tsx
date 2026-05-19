@@ -423,12 +423,22 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                 >
                                                                     <Check
                                                                         className={cn(
-                                                                            "mr-2 h-4 w-4 text-blue-600",
+                                                                            "mr-2 h-4 w-4 text-blue-600 shrink-0",
                                                                             form.watch("name") === item.name ? "opacity-100" : "opacity-0"
                                                                         )}
                                                                     />
-                                                                    {item.name}
-                                                                    {item.local_name && <span className="ml-2 text-gray-700 text-xs">({item.local_name})</span>}
+                                                                    {(() => {
+                                                                        const visual = getIntelligentVisual(item.name, LucideIcons);
+                                                                        if (visual.type === 'img' && visual.src) {
+                                                                            return <img src={visual.src} alt={item.name} className="w-6 h-6 mr-3 object-contain shrink-0" />;
+                                                                        } else if (visual.type === 'icon' && visual.icon) {
+                                                                            const Icon = visual.icon;
+                                                                            return <Icon className="w-5 h-5 mr-3 text-slate-400 shrink-0" />;
+                                                                        }
+                                                                        return <Package className="w-5 h-5 mr-3 text-slate-400 shrink-0" />;
+                                                                    })()}
+                                                                    <span className="font-bold flex-1">{item.name}</span>
+                                                                    {item.local_name && <span className="ml-2 text-gray-500 text-xs font-medium">({item.local_name})</span>}
                                                                 </CommandItem>
                                                             ))}
                                                         </CommandGroup>

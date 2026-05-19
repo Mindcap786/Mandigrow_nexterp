@@ -173,7 +173,79 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
     },
     'sabzi': {
         aliases: ['leaf', 'palak', 'spinach', 'mentha', 'greens', 'vegatable', 'vegetables', 'mooli', 'gobhi', 'shalgam', 'matar', 'peas'],
-        asset: { type: 'img', src: '/assets/vegetables/greens.png' }
+        asset: { type: 'icon', iconName: 'Leaf' }
+    },
+    'ladyfinger': {
+        aliases: ['bhindi', 'okra', 'lady finger', 'vendakkai'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'taro_root': {
+        aliases: ['arbi', 'colocasia', 'arvi'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'gourd': {
+        aliases: ['parwal', 'pointed gourd', 'turai', 'ridge gourd', 'nenua', 'sponge gourd', 'gilki', 'tindora', 'ivy gourd', 'kundru', 'ash gourd', 'petha', 'bottle gourd', 'lauki', 'bitter gourd', 'karela', 'pumpkin', 'kaddu'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'beans': {
+        aliases: ['gawar phali', 'cluster beans', 'french beans', 'green beans', 'lobia', 'beans'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'drumstick': {
+        aliases: ['sahjan', 'moringa', 'murungakkai'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'sweet_potato': {
+        aliases: ['shakarkand', 'shakarkandi'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'garlic': {
+        aliases: ['lahsun', 'lasun'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'ginger': {
+        aliases: ['adrak', 'allam'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'radish': {
+        aliases: ['mooli', 'muli'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'fenugreek': {
+        aliases: ['methi'],
+        asset: { type: 'icon', iconName: 'Leaf' }
+    },
+    'coriander': {
+        aliases: ['dhaniya', 'kothmir', 'cilantro'],
+        asset: { type: 'icon', iconName: 'Leaf' }
+    },
+    'brinjal': {
+        aliases: ['baingan', 'eggplant', 'aubergine', 'vankaya'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'capsicum': {
+        aliases: ['shimla mirch', 'bell pepper'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'chili': {
+        aliases: ['mirch', 'mirchi', 'green chili', 'red chili'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'cabbage': {
+        aliases: ['patta gobhi', 'band gobhi'],
+        asset: { type: 'icon', iconName: 'Leaf' }
+    },
+    'cauliflower': {
+        aliases: ['phool gobhi', 'gobi'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'broccoli': {
+        aliases: ['hari gobhi'],
+        asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'mushroom': {
+        aliases: ['kumbh', 'khumbi'],
+        asset: { type: 'icon', iconName: 'Sprout' }
     }
 }
 

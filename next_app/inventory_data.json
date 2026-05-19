@@ -3,20 +3,17 @@
         {
             "name": "Mango",
             "local_name": "आम",
-            "category": "Major Fruits",
-            "image": "3d_mango_aesthetic"
+            "category": "Major Fruits"
         },
         {
             "name": "Banana",
             "local_name": "केला",
-            "category": "Major Fruits",
-            "image": "3d_banana_aesthetic"
+            "category": "Major Fruits"
         },
         {
             "name": "Apple",
             "local_name": "सेब",
-            "category": "Major Fruits",
-            "image": "3d_apple_aesthetic"
+            "category": "Major Fruits"
         },
         {
             "name": "Orange",
@@ -71,62 +68,52 @@
         {
             "name": "Jackfruit",
             "local_name": "कटहल",
-            "category": "Tropical",
-            "image": "/assets/3d_items/jackfruit.png"
+            "category": "Tropical"
         },
         {
             "name": "Lychee",
             "local_name": "लीची",
-            "category": "Tropical",
-            "image": "/assets/3d_items/lychee.png"
+            "category": "Tropical"
         },
         {
             "name": "Amla",
             "local_name": "आंवला",
-            "category": "Tropical",
-            "image": "/assets/3d_items/amla.png"
+            "category": "Tropical"
         },
         {
             "name": "Jamun",
             "local_name": "जामुन",
-            "category": "Tropical",
-            "image": "/assets/3d_items/jamun.png"
+            "category": "Tropical"
         },
         {
             "name": "Bael",
             "local_name": "बेल",
-            "category": "Tropical",
-            "image": "/assets/3d_items/bael.png"
+            "category": "Tropical"
         },
         {
             "name": "Wood Apple",
             "local_name": "कैथा",
-            "category": "Tropical",
-            "image": "/assets/3d_items/wood_apple.png"
+            "category": "Tropical"
         },
         {
             "name": "Star Fruit",
             "local_name": "कमरख",
-            "category": "Tropical",
-            "image": "/assets/3d_items/star_fruit.png"
+            "category": "Tropical"
         },
         {
             "name": "Dragon Fruit",
             "local_name": "ड्रैगन फ्रूट",
-            "category": "Exotic",
-            "image": "/assets/3d_items/dragon_fruit.png"
+            "category": "Exotic"
         },
         {
             "name": "Passion Fruit",
             "local_name": "पैशन फ्रूट",
-            "category": "Exotic",
-            "image": "/assets/3d_items/passion_fruit.png"
+            "category": "Exotic"
         },
         {
             "name": "Avocado",
             "local_name": "एवोकैडो",
-            "category": "Exotic",
-            "image": "/assets/3d_items/avocado.png"
+            "category": "Exotic"
         },
         {
             "name": "Sweet Lime",
@@ -172,26 +159,38 @@
             "name": "Coconut",
             "local_name": "नारियल",
             "category": "Dry Fruits"
+        },
+        {
+            "name": "Sweet Orange",
+            "local_name": "मोसम्बी",
+            "category": "Citrus"
+        },
+        {
+            "name": "Plum",
+            "local_name": "आलूबुखारा",
+            "category": "Exotic"
+        },
+        {
+            "name": "Peach",
+            "local_name": "आड़ू",
+            "category": "Exotic"
         }
     ],
     "vegetables": [
         {
             "name": "Potato",
             "local_name": "आलू",
-            "category": "Root",
-            "image": "3d_potato_aesthetic"
+            "category": "Root"
         },
         {
             "name": "Onion",
             "local_name": "प्याज",
-            "category": "Root",
-            "image": "3d_onion_aesthetic"
+            "category": "Root"
         },
         {
             "name": "Tomato",
             "local_name": "टमाटर",
-            "category": "Nightshade",
-            "image": "3d_tomato_aesthetic"
+            "category": "Nightshade"
         },
         {
             "name": "Sweet Potato",
@@ -297,6 +296,51 @@
             "name": "Mushroom",
             "local_name": "मशरूम",
             "category": "Exotic"
+        },
+        {
+            "name": "Ladyfinger",
+            "local_name": "भिंडी",
+            "category": "Nightshade"
+        },
+        {
+            "name": "Taro Root",
+            "local_name": "अरबी",
+            "category": "Root"
+        },
+        {
+            "name": "Pointed Gourd",
+            "local_name": "परवल",
+            "category": "Gourd"
+        },
+        {
+            "name": "Ridge Gourd",
+            "local_name": "तोरई",
+            "category": "Gourd"
+        },
+        {
+            "name": "Sponge Gourd",
+            "local_name": "नेनुआ",
+            "category": "Gourd"
+        },
+        {
+            "name": "Cluster Beans",
+            "local_name": "ग्वार फली",
+            "category": "Legumes"
+        },
+        {
+            "name": "Drumstick",
+            "local_name": "सहजन",
+            "category": "Exotic"
+        },
+        {
+            "name": "Ivy Gourd",
+            "local_name": "कुंदरू",
+            "category": "Gourd"
+        },
+        {
+            "name": "Ash Gourd",
+            "local_name": "पेठा",
+            "category": "Gourd"
         }
     ]
 }
