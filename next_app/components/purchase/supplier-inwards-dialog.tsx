@@ -470,14 +470,10 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                              )}
                                                              {group.items.map((lot: any) => {
                                                                  const qty = lot.initial_qty || 0;
-                                                                 const arrivalExpenses = (Number(lot.arrival?.hire_charges || 0) + Number(lot.arrival?.hamali_expenses || 0) + Number(lot.arrival?.other_expenses || 0));
-                                                                 // Distribute arrival expenses across lots (pro-rata by count for simplicity in this list view)
-                                                                 const expenseShare = group.items.length > 0 ? arrivalExpenses / group.items.length : 0;
-                                                                 const lotTotal = calculateLotGrossValue(lot) - expenseShare;
-
                                                                  const isSold = (lot.current_qty !== undefined && lot.current_qty <= 0);
                                                                  const isFullyPaid = group.paymentStatus === 'paid';
                                                                  const isLocked = isSold && isFullyPaid;
+                                                                 const displayAmount = qty * (lot.supplier_rate || 0);
                                                                  return (
                                                                      <div key={lot.id} className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-100 group/item hover:border-blue-200 transition-all shadow-sm">
                                                                          <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
@@ -506,10 +502,9 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                                              <div className="flex flex-col text-right pr-2">
                                                                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Amount</span>
                                                                                  <span className={cn(
-                                                                                     "text-xs font-[1000] tracking-tighter",
-                                                                                     lotTotal >= 0 ? "text-emerald-600" : "text-rose-600"
+                                                                                     "text-xs font-[1000] tracking-tighter text-slate-800",
                                                                                  )}>
-                                                                                     ₹{Math.round(lotTotal).toLocaleString()}
+                                                                                     ₹{Math.round(displayAmount).toLocaleString()}
                                                                                  </span>
                                                                              </div>
                                                                          </div>

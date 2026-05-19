@@ -14251,3 +14251,26 @@ def _parse_adjustments(remark):
                 continue
     return adjustments
 
+
+@frappe.whitelist(allow_guest=False)
+def repair_direct_arrivals():
+    from mandigrow.mandigrow.logic.automation import post_arrival_ledger
+    arrivals = frappe.get_all("Mandi Arrival", filters={"docstatus": 1, "arrival_type": "direct"}, fields=["name"])
+    count = 0
+    for arr in arrivals:
+        doc = frappe.get_doc("Mandi Arrival", arr.name)
+        doc._recompute_summary()
+        frappe.db.set_value("Mandi Arrival", doc.name, {
+            "total_realized": doc.total_realized,
+            "total_expenses": doc.total_expenses,
+            "mandi_total_earnings": doc.mandi_total_earnings,
+            "net_payable_farmer": doc.net_payable_farmer
+        }, update_modified=False)
+        gl_entries = frappe.get_all("GL Entry", filters={"against_voucher": doc.name, "against_voucher_type": "Mandi Arrival"}, fields=["name"])
+        if gl_entries:
+            for gle in gl_entries:
+                frappe.db.delete("GL Entry", gle.name)
+            post_arrival_ledger(doc)
+            count += 1
+    frappe.db.commit()
+    return {"status": "success", "reposted_count": count}
