@@ -31,9 +31,9 @@ export async function getPlatformBranding(): Promise<BrandingSettings> {
 
     try {
         const res = await callApi('mandigrow.api.get_branding_settings');
-        if (res?.message) {
+        if (res) {
             // Merge with defaults so missing keys don't break UI, but empty strings ("") are preserved
-            cachedSettings = { ...DEFAULT_BRANDING, ...res.message } as BrandingSettings;
+            cachedSettings = { ...DEFAULT_BRANDING, ...res } as BrandingSettings;
             lastFetchTime = now;
             return cachedSettings;
         }
