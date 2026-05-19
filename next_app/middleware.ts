@@ -51,6 +51,14 @@ export async function middleware(request: NextRequest) {
         path === '/mandi-software-andhra-pradesh' ||
         path === '/mandi-software-telangana' ||
         path === '/mandi-software-maharashtra' ||
+        path === '/mandi-software-punjab' ||
+        path === '/mandi-software-karnataka' ||
+        path === '/mandi-software-tamil-nadu' ||
+        path === '/mandi-software-rajasthan' ||
+        path === '/mandi-software-uttar-pradesh' ||
+        path === '/mandi-software-bihar' ||
+        path === '/anaj-mandi-software' ||
+        path === '/apmc-billing-software' ||
         path === '/blog' ||
         path.startsWith('/blog/') ||
         path.startsWith('/locales') ||

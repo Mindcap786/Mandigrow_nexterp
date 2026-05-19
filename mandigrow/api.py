@@ -543,8 +543,8 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         # ── Determine if this JE is a standalone payment/receipt/expense ──────
         # We detect this by checking the JE user_remark (set by create_voucher)
         # rather than relying purely on account type, which can be ambiguous.
-        _is_standalone_receipt = ("receipt from" in je_remark or "payment received from" in je_remark)
-        _is_standalone_payment = ("payment to" in je_remark or "cash paid to" in je_remark)
+        _is_standalone_receipt = ("receipt from" in je_remark or "payment received" in je_remark)
+        _is_standalone_payment = ("payment to" in je_remark or "cash paid to" in je_remark or "payment made" in je_remark or "advamce" in je_remark)
         _is_standalone_expense = ("expense" in je_remark or "mandi expense" in je_remark)
         
         is_clearing = bool(gl.get("cheque_no") and gl.get("clearance_date") and str(gl.get("clearance_date")) != str(gl.get("posting_date")))

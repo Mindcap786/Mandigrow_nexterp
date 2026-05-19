@@ -53,10 +53,12 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     // cash_receipt is a cash counter-leg (Dr Cash) for a receipt — money received
     // NOT the same as sale_payment (which is a partial payment on a sale)
     cash_receipt:     'receive_receipt',
-    // cash_payment is a cash counter-leg (Cr Cash) for a payment — money paid out
     cash_payment:     'paid_receipt',
+    bank_receipt:     'receive_receipt',
+    bank_payment:     'paid_receipt',
     payment:          'paid_receipt',
     receipt:          'receive_receipt',
+    journal:          'transaction',
     opening_balance:  'opening_balance',
     // ── Expense / Income from Mandi Expense dialog & backend ──────────────
     expense:          'expense_receipt',
@@ -903,7 +905,18 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             const rawLegs = entriesByGroup.get(fullGroupKey) || visibleLegs;
             const hasSaleLeg = rawLegs.some(l => inferVoucherFlow(l) === 'sale' || inferVoucherFlow(l) === 'sale_payment');
             const hasPurchaseLeg = rawLegs.some(l => inferVoucherFlow(l) === 'purchase');
-            const flowType = hasPurchaseLeg ? 'purchase' : (hasSaleLeg ? 'sale' : inferVoucherFlow(rawLegs[0]));
+            const hasExpense = rawLegs.some(l => inferVoucherFlow(l) === 'expense_receipt');
+            const hasReceive = rawLegs.some(l => inferVoucherFlow(l) === 'receive_receipt');
+            const hasPaid = rawLegs.some(l => inferVoucherFlow(l) === 'paid_receipt');
+            const hasReturn = rawLegs.some(l => inferVoucherFlow(l) === 'stock_return');
+
+            const flowType = hasPurchaseLeg ? 'purchase' : 
+                             hasSaleLeg ? 'sale' : 
+                             hasReturn ? 'stock_return' :
+                             hasExpense ? 'expense_receipt' : 
+                             hasReceive ? 'receive_receipt' : 
+                             hasPaid ? 'paid_receipt' : 
+                             inferVoucherFlow(rawLegs[0]);
             
             // ── CONTACT NAME RESOLUTION for summaryLegs ─────────────────────
             // rawLegs come from entriesByGroup (pre-enrichment), so they lack
