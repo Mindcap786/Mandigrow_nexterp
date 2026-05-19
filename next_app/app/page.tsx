@@ -141,13 +141,16 @@ export default function LandingPage() {
                             </div>
                         </div>
 
-                        {/* Mockup Body Placeholder */}
-                        <div className="flex-1 w-full flex items-center justify-center p-8">
-                            <div className="text-center">
-                                <Calculator className="w-12 h-12 text-emerald-300 mx-auto mb-3" />
-                                <div className="text-emerald-800/40 font-black text-xl mb-2">[Billing Screen Mockup]</div>
-                                <div className="text-emerald-600/40 font-medium text-sm">Replace div.hero-screenshot with real image</div>
-                            </div>
+                        {/* Mockup Body Image */}
+                        <div className="flex-1 w-full relative overflow-hidden bg-slate-900 border-t border-emerald-100">
+                            {/* The user will place the dashboard screenshot here */}
+                            <img 
+                                src="/dashboard-screenshot.png" 
+                                alt="MandiGrow Command Center Dashboard" 
+                                className="absolute inset-0 w-full h-full object-cover object-top origin-top"
+                            />
+                            {/* Subtle inner shadow for depth inside the browser window */}
+                            <div className="absolute inset-0 shadow-[inset_0_4px_20px_rgba(0,0,0,0.05)] pointer-events-none" />
                         </div>
                     </div>
                     {/* Decorative Blob Behind Image */}
