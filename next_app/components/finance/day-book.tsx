@@ -1099,16 +1099,26 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             // CRITICAL FIX: Check renderLegs (all raw GL legs), NOT summaryLegs.
             // summaryLegs for standalone receipt/payment only has the party leg.
             // renderLegs has both the party leg AND the cash/bank leg.
+            // NOTE: expense_receipt groups always have a cash/bank credit leg → never a write-off.
             const allGroupLegs = [...(group.renderLegs || []), ...(group.summaryLegs || [])];
             const isWriteOff = (groupFlow === 'payment' || groupFlow === 'receipt' ||
                                 groupFlow === 'paid_receipt' || groupFlow === 'receive_receipt') &&
+                groupFlow !== 'expense_receipt' &&
                 !allGroupLegs.some((l: any) => {
+                    // Check both capitalised (Frappe) and lowercase (legacy) account type values
                     const subType = String(l.account?.account_sub_type || l.account?.type || '').toLowerCase();
-                    const accType = String(l.account?.account_type || '').toLowerCase();
+                    const accType = String(l.account?.account_type || l.account?.type || '').toLowerCase();
                     const accName = String(l.account?.name || l.account || '').toLowerCase();
+                    const txType  = String(l.transaction_type || '').toLowerCase();
                     return subType === 'cash' || subType === 'bank' ||
                            accType === 'cash' || accType === 'bank' ||
-                           accName.includes('bank') || accName.includes('cash');
+                           accName.includes('bank') || accName.includes('cash') ||
+                           // Frappe GL entry carries account_type directly on the shaped entry
+                           txType === 'receive_receipt' || txType === 'payment' ||
+                           txType === 'cash_receipt' || txType === 'bank_receipt' ||
+                           txType === 'cash_payment' || txType === 'bank_payment' ||
+                           txType === 'paid_receipt';
+
                 });
 
             group.summaryLegs.forEach((leg: any) => {
@@ -1151,10 +1161,12 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     return;
                 }
 
-                // 3. FINANCIAL MOVEMENTS (Standalone or Later Clearing)
+            // 3. FINANCIAL MOVEMENTS (Standalone or Later Clearing)
                 // Hits Card 2 ONLY.
                 // Pure write-offs have no cash leg — skip inflow/outflow entirely.
-                if (isWriteOff) return;
+                // IMPORTANT: expense_receipt groups ALWAYS have a cash leg (Cr Cash/Bank)
+                // so they must NEVER be treated as write-offs.
+                if (isWriteOff && type !== 'expense_receipt') return;
 
                 if (type === 'receipt' || type === 'receive_receipt') {
                     if (isBank) digitalInflow += val; else totalInflow += val;

@@ -539,29 +539,19 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
                 contact_id = sale_to_buyer_map.get(reference_id)
 
         # Resolve transaction type (mapped for Day Book cards)
-        # 1. Goods Arrival / Sale (Initial transaction)
-        # 2. Expense
-        # 3. Receipt / Payment (Standalone or later clearing)
-        
-        # We only want to classify as "goods_arrival" or "sale" if this leg 
-        # is part of the actual arrival/sale voucher OR if it's the 
-        # "goods" leg (not the bank clearing leg of a later payment).
-        
-        # 3b. Determine if this is a Cash/Bank leg
-        is_liquid = (gl.get("account_type") in ["Cash", "Bank"]) or (gl.get("account") in liquid_accounts)
+        je_remark = (gl.get("remarks") or "").strip().lower()
+        # ── Determine if this JE is a standalone payment/receipt/expense ──────
+        # We detect this by checking the JE user_remark (set by create_voucher)
+        # rather than relying purely on account type, which can be ambiguous.
+        _is_standalone_receipt = ("receipt from" in je_remark or "payment received from" in je_remark)
+        _is_standalone_payment = ("payment to" in je_remark or "cash paid to" in je_remark)
+        _is_standalone_expense = ("expense" in je_remark or "mandi expense" in je_remark)
         
         is_clearing = bool(gl.get("cheque_no") and gl.get("clearance_date") and str(gl.get("clearance_date")) != str(gl.get("posting_date")))
         is_pending_cheque = bool(gl.get("cheque_no") and not gl.get("clearance_date"))
         
         # ── STOCK RETURN detection ────────────────────────────────────────────
-        # A Stock Return JE has user_remark starting with "Stock Return:".
-        # It has two legs:
-        #   Dr Creditors (Payable) — debit, party=Supplier → DEBIT in Daybook
-        #   Cr Stock In Hand       — credit, no party      → companion leg
-        # We force both legs to tx_type="stock_return" so the frontend routes
-        # the WHOLE group into the DEBIT column (value going out of Mandi).
-        je_remark = (gl.get("remarks") or "").strip()
-        if voucher_vtype == "Journal Entry" and je_remark.startswith("Stock Return:"):
+        if voucher_vtype == "Journal Entry" and je_remark.startswith("stock return:"):
             tx_type = "stock_return"
         elif (against_vtype == "Mandi Arrival" or voucher_vtype == "Mandi Arrival") and not is_clearing and not is_liquid and not is_income_expense:
             tx_type = "goods_arrival"
@@ -570,7 +560,6 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         elif is_income_expense or "expense" in (gl.get("account") or "").lower():
             tx_type = "expense" if root_type == "Expense" else "income"
         elif is_pending_cheque and voucher_vtype == "Journal Entry":
-            # Force uncleared cheques out of Liquid Assets until they clear!
             tx_type = "pending_cheque"
         elif is_liquid:
             # Explicit liquid leg routing to ensure correct grouping and inflow/outflow
@@ -578,17 +567,33 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
                 tx_type = "sale_payment" if is_debit else "paid_receipt"
             elif against_vtype == "Mandi Arrival" or voucher_vtype == "Mandi Arrival":
                 tx_type = "purchase_payment" if not is_debit else "receive_receipt"
+            elif _is_standalone_expense:
+                tx_type = "expense"
+            elif _is_standalone_receipt:
+                tx_type = "receive_receipt"
+            elif _is_standalone_payment:
+                tx_type = "paid_receipt"
             else:
                 tx_type = "receive_receipt" if is_debit else "payment"
         else:
-            # Standalone or Clearing
+            # Standalone or Clearing — non-liquid party/expense leg
             if voucher_vtype == "Journal Entry":
-                if is_debit:
+                if _is_standalone_expense:
+                    # Expense account debit leg of an expense JE
+                    tx_type = "expense"
+                elif _is_standalone_receipt:
+                    # Debtors credit leg of a receipt JE — money flowed in
+                    tx_type = "receive_receipt"
+                elif _is_standalone_payment:
+                    # Creditors debit leg of a payment JE — money flowed out
+                    tx_type = "paid_receipt"
+                elif is_debit:
                     tx_type = "receive_receipt" if gl.get("party_type") == "Customer" else "payment"
                 else:
                     tx_type = "receipt" if gl.get("party_type") == "Customer" else "paid_receipt"
             else:
                 tx_type = _map_voucher_type(gl.get("voucher_type", ""), is_debit)
+
         
         # Enrichment: Fetch real-time balance for Sale/Arrival rows
         balance_due = 0
@@ -656,8 +661,11 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             "account": {
                 "name": account_name_clean,
                 "type": "bank" if gl.get("cheque_no") else (gl.get("account_type") or ("asset" if account_name_raw in liquid_accounts else "liability")),
+                "account_type": gl.get("account_type") or "",  # Raw Frappe: Cash, Bank, Receivable, Payable…
+                "root_type": gl.get("root_type") or "",         # Asset, Liability, Income, Expense, Equity
                 "account_sub_type": "bank" if gl.get("cheque_no") else ("cash" if account_name_raw in cash_accounts else ("bank" if account_name_raw in bank_accounts else ""))
             },
+
             "voucher": {
                 "type": gl.get("voucher_type", ""),
                 "voucher_no": gl.get("voucher_no", ""),
