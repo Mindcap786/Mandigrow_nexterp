@@ -8198,7 +8198,17 @@ def _get_user_org() -> str:
     if not user or user == "Guest":
         return None
 
-    # Check custom field on User
+    # 1. Check for active impersonation (Platform Admins only)
+    try:
+        from mandigrow.mandigrow.logic.tenancy import is_super_admin
+        if is_super_admin():
+            impersonated_org = frappe.cache().get_value(f"impersonation_target_org:{user}")
+            if impersonated_org:
+                return impersonated_org
+    except Exception:
+        pass
+
+    # 2. Check custom field on User
     org_id = frappe.db.get_value("User", user, "mandi_organization")
     if org_id:
         return org_id
