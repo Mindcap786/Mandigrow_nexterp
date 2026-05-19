@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:GE-.YYYY.-.#####",
+ "autoname": "GE-.YYYY.-.#####",
  "creation": "2026-04-24 20:00:00.000000",
  "doctype": "DocType",
  "editable_grid": 1,
