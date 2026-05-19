@@ -208,9 +208,9 @@ export const LedgerPDFReport = ({
                 {/* ── Footer ── */}
                 <View style={s.footer} fixed>
                     <View>
-                        <Text style={s.footerTxt}>{branding?.document_footer_presented_by_text || "Presented by MandiGrow"}</Text>
+                        <Text style={s.footerTxt}>{branding?.document_footer_presented_by_text }</Text>
                         <Text style={[s.footerTxt, { fontWeight: "bold", color: "#666", marginTop: 2 }]}>
-                            {branding?.document_footer_powered_by_text || "Powered by MindT Corporation"}
+                            {branding?.document_footer_powered_by_text}
                         </Text>
                     </View>
                     <View style={{ alignItems: "center" }}>

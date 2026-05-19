@@ -145,8 +145,8 @@ export const WeightSlipTemplate = ({
                         {remarks && <Text style={{ fontSize: 8, color: '#555', marginTop: 4 }}>Remarks: {remarks}</Text>}
                         <Text style={{ fontSize: 7, color: '#999', marginTop: 8 }}>* This is a preliminary Katchi Parchi. Final settlement may vary.</Text>
                         <View style={{ marginTop: 10 }}>
-                            <Text style={{ fontSize: 6, fontWeight: 'bold', color: '#666' }}>{branding?.document_footer_presented_by_text || 'Presented by MandiGrow'}</Text>
-                            <Text style={{ fontSize: 5, color: '#999' }}>{branding?.document_footer_powered_by_text || 'Powered by MindT Corporation'}</Text>
+                            <Text style={{ fontSize: 6, fontWeight: 'bold', color: '#666' }}>{branding?.document_footer_presented_by_text }</Text>
+                            <Text style={{ fontSize: 5, color: '#999' }}>{branding?.document_footer_powered_by_text }</Text>
                         </View>
                     </View>
                     <View style={{ width: '45%' }}>

@@ -92,9 +92,9 @@ interface PDFFooterProps {
 export const PDFFooter: React.FC<PDFFooterProps> = ({ presentedBy, poweredBy, developedBy }) => {
     return (
         <View style={pdfStyles.footerContainer}>
-            <Text style={pdfStyles.footerText}>{presentedBy || 'Presented by MandiGrow'}</Text>
-            <Text style={pdfStyles.footerText}>{poweredBy || 'Powered by MindT Corporation'}</Text>
-            <Text style={pdfStyles.footerText}>{developedBy || 'Developed by MindT Solutions'}</Text>
+            <Text style={pdfStyles.footerText}>{presentedBy }</Text>
+            <Text style={pdfStyles.footerText}>{poweredBy }</Text>
+            <Text style={pdfStyles.footerText}>{developedBy }</Text>
         </View>
     );
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePlatformBranding } from '@/hooks/use-platform-branding';
 
 interface BrandingSettings {
     document_footer_powered_by_text: string;
@@ -11,18 +12,7 @@ interface BrandingSettings {
 }
 
 export function PlatformPrintBranding() {
-    const [settings, setSettings] = useState<BrandingSettings | null>(null);
-
-    useEffect(() => {
-        // Platform level branding for MandiGrow
-        setSettings({
-            document_footer_powered_by_text: "Powered by MandiPro",
-            document_footer_presented_by_text: "A Product of MINDT",
-            document_footer_developed_by_text: "MINDT Private Limited",
-            watermark_text: "MandiPro",
-            is_watermark_enabled: false
-        });
-    }, []);
+    const { branding: settings } = usePlatformBranding();
 
     if (!settings) return null;
 

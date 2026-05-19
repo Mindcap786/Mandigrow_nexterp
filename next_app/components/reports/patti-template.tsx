@@ -142,9 +142,9 @@ export const PattiTemplate = ({ data, branding }: { data: any, branding?: any })
             {/* Footer */}
             <View style={{ position: 'absolute', bottom: 30, left: 30, right: 30, borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <View style={{ flexDirection: 'column', gap: 1 }}>
-                    <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#666' }}>{branding?.document_footer_presented_by_text || 'Presented by MandiGrow'}</Text>
-                    <Text style={{ fontSize: 6, color: '#999' }}>{branding?.document_footer_powered_by_text || 'Powered by MindT Corporation'}</Text>
-                    <Text style={{ fontSize: 5, fontStyle: 'italic', color: '#AAA' }}>{branding?.document_footer_developed_by_text || 'Developed by MindT Solutions'}</Text>
+                    <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#666' }}>{branding?.document_footer_presented_by_text }</Text>
+                    <Text style={{ fontSize: 6, color: '#999' }}>{branding?.document_footer_powered_by_text }</Text>
+                    <Text style={{ fontSize: 5, fontStyle: 'italic', color: '#AAA' }}>{branding?.document_footer_developed_by_text }</Text>
                 </View>
                 <Text style={{ fontSize: 7, color: '#BBB' }}>Auth Signature & Stamp</Text>
             </View>

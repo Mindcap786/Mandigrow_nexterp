@@ -508,9 +508,9 @@ export const InvoiceTemplate = ({
 
                 <View style={{ position: 'absolute', bottom: 15, left: 15, right: 15, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <View style={{ flexDirection: 'column', gap: 1 }}>
-                        <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#333' }}>{branding?.document_footer_presented_by_text || 'Presented by MandiGrow'}</Text>
-                        <Text style={{ fontSize: 6, color: '#999' }}>{branding?.document_footer_powered_by_text || 'Powered by MindT Corporation'}</Text>
-                        <Text style={{ fontSize: 5, fontStyle: 'italic', color: '#aaa' }}>{branding?.document_footer_developed_by_text || 'Developed by MindT Solutions'}</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#333' }}>{branding?.document_footer_presented_by_text }</Text>
+                        <Text style={{ fontSize: 6, color: '#999' }}>{branding?.document_footer_powered_by_text }</Text>
+                        <Text style={{ fontSize: 5, fontStyle: 'italic', color: '#aaa' }}>{branding?.document_footer_developed_by_text }</Text>
                     </View>
                     <Text style={{ fontSize: 8, color: '#333', fontWeight: 'bold' }}>Auth Signature & Stamp</Text>
                 </View>

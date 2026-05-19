@@ -75,9 +75,9 @@ export function ReceiptTemplate({ data, branding }: ReceiptProps) {
             {/* Footer / Signature */}
             <div className="flex justify-between items-end mt-12 pt-8 border-t border-gray-200 relative z-10">
                 <div className="text-[10px] font-black uppercase text-slate-400 flex flex-col gap-1 tracking-widest">
-                    <span>{branding?.document_footer_presented_by_text || 'Presented by MandiGrow'}</span>
-                    <span className="text-slate-900 border-t border-slate-100 mt-1 pt-1">{branding?.document_footer_powered_by_text || 'Powered by MindT Corporation'}</span>
-                    <span className="text-[8px] font-bold text-slate-300 italic">{branding?.document_footer_developed_by_text || 'Developed by MindT Solutions'}</span>
+                    <span>{branding?.document_footer_presented_by_text }</span>
+                    <span className="text-slate-900 border-t border-slate-100 mt-1 pt-1">{branding?.document_footer_powered_by_text }</span>
+                    <span className="text-[8px] font-bold text-slate-300 italic">{branding?.document_footer_developed_by_text }</span>
                 </div>
                 <div className="text-center">
                     <div className="h-12 border-b border-gray-400 mb-2 w-32 mx-auto"></div>

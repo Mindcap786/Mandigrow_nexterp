@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import { getPlatformBranding, BrandingSettings } from '@/lib/services/branding-service';
 
 export function usePlatformBranding() {
-    const [branding, setBranding] = useState<BrandingSettings | null>(null);
+    const [branding, setBranding] = useState<BrandingSettings>({
+        id: 'default',
+        document_footer_powered_by_text: 'Powered by MindT Corporation',
+        document_footer_presented_by_text: 'Presented by MandiGrow',
+        document_footer_developed_by_text: 'Developed by MindT Solutions',
+        watermark_text: '',
+        is_watermark_enabled: false
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
