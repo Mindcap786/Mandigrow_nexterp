@@ -64,8 +64,8 @@ export function calculateLotSettlementAmount(lot: any) {
     if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
         return effectiveGoodsValue - commissionAmount - lotExpenses - advance;
     } else {
-        // Direct purchase
-        return effectiveGoodsValue - lotExpenses - advance;
+        // Direct purchase: Mandi reimburses supplier for these expenses
+        return effectiveGoodsValue + lotExpenses - advance;
     }
 }
 
@@ -75,7 +75,13 @@ export function calculateArrivalSettlementAmount(lots: any[], arrivalLike?: any)
         0
     );
 
-    return lotTotal - calculateArrivalLevelExpenses(arrivalLike);
+    const arrivalType = getArrivalType(arrivalLike || (lots && lots[0]));
+    if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
+        return lotTotal - calculateArrivalLevelExpenses(arrivalLike);
+    } else {
+        // Direct purchase
+        return lotTotal + calculateArrivalLevelExpenses(arrivalLike);
+    }
 }
 
 /**
@@ -119,8 +125,8 @@ export function calculateLotGrossValue(lot: any) {
     if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
         return effectiveGoodsValue - commissionAmount - lotExpenses;
     } else {
-        // Direct purchase
-        return effectiveGoodsValue - lotExpenses;
+        // Direct purchase: Mandi reimburses supplier for these expenses
+        return effectiveGoodsValue + lotExpenses;
     }
 }
 
@@ -133,7 +139,13 @@ export function calculateArrivalGrossValue(lots: any[], arrivalLike?: any) {
         0
     );
 
-    return lotTotal - calculateArrivalLevelExpenses(arrivalLike);
+    const arrivalType = getArrivalType(arrivalLike || (lots && lots[0]));
+    if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
+        return lotTotal - calculateArrivalLevelExpenses(arrivalLike);
+    } else {
+        // Direct purchase
+        return lotTotal + calculateArrivalLevelExpenses(arrivalLike);
+    }
 }
 
 /**
