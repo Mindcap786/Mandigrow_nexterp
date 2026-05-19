@@ -65,6 +65,7 @@ export default function TenantsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterPlan, setFilterPlan] = useState('all');
+    const [filterCity, setFilterCity] = useState('all');
     const [filterExpiryBefore, setFilterExpiryBefore] = useState(''); // YYYY-MM-DD
 
     const [isProvisioning, setIsProvisioning] = useState(false);
@@ -97,6 +98,36 @@ export default function TenantsPage() {
     const [isActioning, setIsActioning] = useState(false);
 
     useEffect(() => { fetchTenants(); }, []);
+
+    // Background poller for new tenant notifications
+    useEffect(() => {
+        const poller = setInterval(async () => {
+            try {
+                const data = await callApi('mandigrow.api.get_admin_tenants') as any[];
+                setTenants(prev => {
+                    if (prev.length === 0) return data; // Initial load protection
+                    
+                    const prevIds = new Set(prev.map(t => t.id));
+                    const newTenants = data.filter(t => !prevIds.has(t.id));
+                    
+                    if (newTenants.length > 0) {
+                        newTenants.forEach(t => {
+                            toast({ 
+                                title: '🎉 New Mandi Registered!', 
+                                description: `${t.name} has just joined the platform.`,
+                                duration: 15000,
+                            });
+                        });
+                        return data;
+                    }
+                    return prev;
+                });
+            } catch (e) {
+                // Silently ignore background polling errors
+            }
+        }, 15000); // Check every 15 seconds
+        return () => clearInterval(poller);
+    }, [toast]);
 
     const fetchTenants = async (sync = false) => {
         setLoading(true);
@@ -272,8 +303,9 @@ export default function TenantsPage() {
         }
 
         const matchPlan = filterPlan === 'all' || t.subscription_tier === filterPlan;
+        const matchCity = filterCity === 'all' || (t.city && t.city.toLowerCase() === filterCity.toLowerCase());
         const matchType = t.tenant_type === 'mandi' || (t.enabled_modules && t.enabled_modules.includes('mandi'));
-        return matchSearch && matchStatus && matchExpiry && matchPlan && matchType;
+        return matchSearch && matchStatus && matchExpiry && matchPlan && matchType && matchCity;
     });
 
     const stats = {
@@ -505,6 +537,17 @@ export default function TenantsPage() {
                         <SelectItem value="basic">Basic</SelectItem>
                         <SelectItem value="standard">Standard</SelectItem>
                         <SelectItem value="enterprise">Enterprise</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select value={filterCity} onValueChange={setFilterCity}>
+                    <SelectTrigger className="w-40 bg-white shadow-sm border-slate-200 text-slate-900">
+                        <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-50 border-slate-200 text-slate-900 max-h-60">
+                        <SelectItem value="all">All Locations</SelectItem>
+                        {Array.from(new Set(tenants.map(t => t.city).filter(Boolean))).sort().map(city => (
+                            <SelectItem key={city as string} value={city as string}>{city}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
                 {/* ── Expiring Before Date Picker ── */}

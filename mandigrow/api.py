@@ -10247,6 +10247,7 @@ def get_admin_tenants() -> list:
             "tenant_type": 'mandi',
             "enabled_modules": ['mandi'],
             "city": getattr(org, 'city', None) or '',
+            "phone": getattr(org, 'phone', None) or '',
             "owner": owner,
             "profiles": org_users
         })
