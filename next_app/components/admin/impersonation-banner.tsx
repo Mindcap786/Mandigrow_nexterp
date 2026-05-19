@@ -26,37 +26,20 @@ export function ImpersonationBanner() {
     }, [pathname]);
 
     const handleExit = async () => {
-        const restoreSession = localStorage.getItem('mandi_admin_restore_session');
         localStorage.removeItem('mandi_impersonation_mode');
-        localStorage.removeItem('mandi_admin_restore_session');
+        localStorage.removeItem('mandi_admin_restore_session'); // Legacy cleanup
         setIsImpersonating(false);
 
-        // Aggressive teardown of tenant session
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith('sb-') && key?.endsWith('-auth-token')) {
-                localStorage.removeItem(key);
-            }
-        }
+        // Clear local cache to force fresh data load
         localStorage.removeItem('mandi_profile_cache');
 
-        if (restoreSession) {
-            try {
-                const { access_token, refresh_token } = JSON.parse(restoreSession);
-                const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-                if (error) throw error;
-                
-                // Hard reload to completely reset React Auth Context & Domain Context
-                window.location.href = '/admin';
-            } catch (e) {
-                console.error("Failed to restore admin session:", e);
-                try { await signOut(); } catch (err) {}
-                window.location.href = '/login';
-            }
-        } else {
-            // No session to restore, fallback to logout
-            try { await signOut(); } catch (err) {}
-            window.location.href = '/login';
+        try {
+            await callApi('mandigrow.api.restore_admin_context', {});
+            // Hard reload to completely reset React Auth Context & Domain Context
+            window.location.href = '/admin';
+        } catch (e) {
+            console.error("Failed to restore admin session:", e);
+            window.location.href = '/admin'; // Fallback redirect
         }
     };
 
