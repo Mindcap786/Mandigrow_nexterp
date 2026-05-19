@@ -244,7 +244,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         LEFT JOIN `tabAccount` acc ON gl.account = acc.name
         WHERE gl.is_cancelled = 0
           AND gl.company = %s
-          AND gl.against_voucher_type NOT IN ('Mandi Sale Return', 'Mandi Purchase Return')
+          AND (gl.against_voucher_type IS NULL OR gl.against_voucher_type NOT IN ('Mandi Sale Return', 'Mandi Purchase Return'))
           AND (
               -- Non-cheque entries
               ((je.cheque_no IS NULL OR je.cheque_no = '') AND gl.posting_date = %s)
@@ -3508,6 +3508,7 @@ def get_payments_register(
     date_from: str = None,
     date_to: str = None,
     search: str = None,
+    org_id: str = None,
 ) -> dict:
     """Return a paginated payments/receipts register for the Finance page.
 
@@ -3516,10 +3517,20 @@ def get_payments_register(
     shape. Each line carries `{debit, credit, account_id, contact_id,
     account:{name}}` — the contact_id comes from the JE Account's party
     when the party_type is a Mandi Contact.
+
+    IMPORTANT: org_id MUST be passed by the frontend so that company
+    resolution matches get_daybook exactly.  Without it the fallback
+    (_get_user_company) can resolve to a DIFFERENT company and entries
+    visible on the Payments page will be invisible in the Daybook.
     """
     page = max(1, int(page or 1))
     page_size = max(1, min(100, int(page_size or 15)))
-    company = _get_user_company()
+    # Resolve company the same way get_daybook does: prefer org_id, then session.
+    company = None
+    if org_id:
+        company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
+    if not company:
+        company = _get_user_company()
 
     filters = [["docstatus", "=", 1], ["company", "=", company]]
     if date_from:

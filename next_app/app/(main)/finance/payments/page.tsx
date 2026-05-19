@@ -103,6 +103,7 @@ export default function PaymentsPage() {
 
         try {
             const result: any = await callApi('mandigrow.api.get_payments_register', {
+                org_id: profile?.organization_id,
                 page,
                 page_size: pageSize,
                 type_filter: typeFilter,
