@@ -129,9 +129,12 @@ def calculate_arrival_commission(doc, method):
         net_payable   = trip_supplier_val - mandi_earns
 
     else:
-        # Direct purchase: Mandi owes supplier full net amount
-        mandi_earns   = total_trip_expenses   # only expenses, no commission
-        net_payable   = trip_supplier_val - mandi_earns
+        # Direct purchase: Mandi owns the goods.
+        # The farmer/supplier is owed ONLY the goods value (qty × rate).
+        # Mandi's operational expenses (hire, hamali, etc.) are the Mandi's
+        # own cost of business — NOT an obligation to the farmer/supplier.
+        mandi_earns   = 0.0
+        net_payable   = trip_supplier_val
 
     # ── Step 5: Write computed totals back to the document ────────────────
     for field, value in [

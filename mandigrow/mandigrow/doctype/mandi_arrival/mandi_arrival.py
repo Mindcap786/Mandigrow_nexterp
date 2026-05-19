@@ -87,8 +87,8 @@ class MandiArrival(Document):
         
         arrival_type_str = (self.arrival_type or "direct").lower()
         if arrival_type_str == "direct":
-            mandi_total_earnings = 0.0 # Mandi does not earn commission/expenses on direct purchase
-            net_payable = round(total_realized + total_expenses, 2)
+            mandi_total_earnings = 0.0  # Mandi bears its own expenses; no commission deducted from farmer
+            net_payable = round(total_realized, 2)  # Farmer is owed only the goods value (qty × rate)
         else:
             mandi_total_earnings = round(total_commission + total_expenses, 2)
             net_payable = round(total_realized - mandi_total_earnings, 2)
