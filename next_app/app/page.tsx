@@ -12,6 +12,7 @@ import { callApi } from '@/lib/frappeClient'
 import { useEffect } from 'react'
 import { LandingFooter } from '@/components/layout/LandingFooter'
 import { LandingHeader } from '@/components/layout/LandingHeader'
+import { HeroSlider } from '@/components/landing/HeroSlider'
 export default function LandingPage() {
     const { t } = useLanguage();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -147,19 +148,14 @@ export default function LandingPage() {
                                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
                             </div>
                             <div className="mx-auto w-1/2 h-5 bg-white border border-gray-200 rounded text-[10px] text-gray-400 flex items-center justify-center font-mono">
-                                mandigrow.com/billing
+                                mandigrow.com/dashboard
                             </div>
                         </div>
 
-                        {/* Mockup Body Image */}
-                        <div className="flex-1 w-full relative overflow-hidden bg-slate-900 border-t border-emerald-100">
-                            {/* The user will place the dashboard screenshot here */}
-                            <img 
-                                src="/dashboard-screenshot.png" 
-                                alt="MandiGrow Command Center Dashboard" 
-                                className="absolute inset-0 w-full h-full object-cover object-top origin-top"
-                            />
-                            {/* Subtle inner shadow for depth inside the browser window */}
+                    {/* Mockup Body - Auto Slider */}
+                        <div className="flex-1 w-full relative overflow-hidden border-t border-emerald-100">
+                            <HeroSlider />
+                            {/* Subtle inner shadow for depth */}
                             <div className="absolute inset-0 shadow-[inset_0_4px_20px_rgba(0,0,0,0.05)] pointer-events-none" />
                         </div>
                     </div>
