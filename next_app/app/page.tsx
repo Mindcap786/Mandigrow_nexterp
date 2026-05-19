@@ -71,97 +71,91 @@ export default function LandingPage() {
                 }}
             />
 
-            {/* Hero Section */}
-            <main className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-                {/* Background Glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+            {/* Hero Section — Full-width premium layout */}
+            <main className="relative pt-28 pb-0 overflow-hidden">
+                {/* Multi-layer background glows */}
+                <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-emerald-400/10 rounded-full blur-[130px] pointer-events-none -translate-y-1/4 translate-x-1/4" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-600/8 rounded-full blur-[100px] pointer-events-none" />
 
-                {/* Left Content */}
-                <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
-                        <span className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                        </span>
-                        Enterprise-Grade Mandi Software
-                    </div>
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="flex flex-col lg:flex-row items-start gap-12 lg:gap-16">
 
-                    <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tighter">
-                        <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
-                        <span className="text-emerald-700 block mt-2">for Commission Agents & Traders.</span>
-                    </h1>
+                        {/* Left Content — slightly narrower to give more room to visuals */}
+                        <div className="lg:w-[44%] flex flex-col items-center lg:items-start text-center lg:text-left z-10 pt-8 lg:pt-12">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/60 text-[10px] sm:text-xs font-bold text-emerald-800 mb-7 backdrop-blur-sm shadow-sm">
+                                <span className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                                </span>
+                                Enterprise-Grade Mandi Software
+                            </div>
 
-                    <p className="text-lg md:text-xl text-gray-700 max-w-2xl mb-10 font-medium leading-relaxed">
-                        Auto commission, GST billing, mandi khata, and APMC compliance — 
-                        works on Android at the mandi gate and desktop in your office. 
-                        Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
-                    </p>
+                            <h1 className="text-5xl sm:text-6xl lg:text-6xl xl:text-7xl font-black mb-5 leading-[1.02] tracking-tighter">
+                                <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
+                                <span className="text-emerald-700 block mt-1">for Commission Agents & Traders.</span>
+                            </h1>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-8">
-                        <Link href="/login?mode=signup" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
-                            Start Free Trial <ArrowRight className="w-5 h-5" />
-                        </Link>
-                        <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
-                            Already have an account? Sign in.
-                        </Link>
-                    </div>
+                            <p className="text-base md:text-lg text-gray-700 mb-8 font-medium leading-relaxed">
+                                Auto commission, GST billing, mandi khata, and APMC compliance — 
+                                works on Android at the mandi gate and desktop in your office. 
+                                Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
+                            </p>
 
-                    {/* Trust Bar */}
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 text-sm font-bold text-gray-600">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-yellow-500 text-lg leading-none">★</span> 
-                            Trusted by 200+ mandis
+                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-7">
+                                <Link href="/login?mode=signup" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.5)]">
+                                    Start Free Trial <ArrowRight className="w-5 h-5" />
+                                </Link>
+                                <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
+                                    Sign in →
+                                </Link>
+                            </div>
+
+                            {/* Trust Bar */}
+                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-3 gap-y-2 text-xs font-bold text-gray-600">
+                                <div className="flex items-center gap-1.5"><span className="text-yellow-500">★</span> 200+ mandis</div>
+                                <div className="w-1 h-1 bg-emerald-300 rounded-full hidden sm:block"></div>
+                                <div className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> No credit card</div>
+                                <div className="w-1 h-1 bg-emerald-300 rounded-full hidden sm:block"></div>
+                                <div className="flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5 text-emerald-700" /> Free Training</div>
+                                <div className="w-1 h-1 bg-emerald-300 rounded-full hidden sm:block"></div>
+                                <div className="flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5 text-emerald-700" /> Dedicated Support</div>
+                                <div className="w-1 h-1 bg-emerald-300 rounded-full hidden sm:block"></div>
+                                <div className="flex items-center gap-1.5"><span className="text-emerald-700 font-black">₹0</span> Setup Cost</div>
+                            </div>
                         </div>
-                        <div className="hidden sm:block w-1 h-1 bg-emerald-300 rounded-full"></div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-emerald-500 text-lg leading-none">✓</span> 
-                            No credit card required
-                        </div>
-                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
-                        <div className="flex items-center gap-1.5">
-                            <GraduationCap className="w-4 h-4 text-emerald-700" />
-                            Free Training
-                        </div>
-                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
-                        <div className="flex items-center gap-1.5">
-                            <Headphones className="w-4 h-4 text-emerald-700" />
-                            Dedicated Support
-                        </div>
-                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-emerald-700 font-black">₹0</span> 
-                            Setup Cost
+
+                        {/* Right Content — LARGE premium slider, flat & edge-to-edge */}
+                        <div className="lg:w-[56%] w-full relative z-10 mt-8 lg:mt-0">
+                            {/* Outer glow ring */}
+                            <div className="absolute -inset-3 bg-gradient-to-br from-emerald-400/30 via-emerald-300/10 to-transparent rounded-[28px] blur-2xl -z-10" />
+                            {/* Browser chrome frame */}
+                            <div className="w-full bg-white rounded-[20px] border border-emerald-100 shadow-[0_40px_100px_-20px_rgba(4,120,87,0.35),0_0_0_1px_rgba(4,120,87,0.08)] overflow-hidden">
+                                {/* Browser top bar */}
+                                <div className="w-full h-10 bg-gray-50/90 border-b border-gray-200/60 flex items-center px-4 gap-3 flex-shrink-0">
+                                    <div className="flex gap-1.5 flex-shrink-0">
+                                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                    </div>
+                                    <div className="flex-1 h-5 bg-white border border-gray-200 rounded-md text-[10px] text-gray-400 flex items-center justify-center font-mono gap-1 max-w-[280px] mx-auto">
+                                        <span className="text-emerald-500">🔒</span> mandigrow.com/dashboard
+                                    </div>
+                                    <div className="flex gap-1.5 flex-shrink-0 opacity-40">
+                                        <div className="w-4 h-4 rounded bg-gray-200"></div>
+                                        <div className="w-4 h-4 rounded bg-gray-200"></div>
+                                    </div>
+                                </div>
+                                {/* Slider fills remaining height — tall aspect ratio */}
+                                <div className="w-full aspect-[16/10] relative overflow-hidden">
+                                    <HeroSlider />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Content - Screenshot */}
-                <div className="flex-1 w-full max-w-[520px] relative z-10 mt-12 lg:mt-0 perspective-1000">
-                    <div className="hero-screenshot w-full aspect-[4/3] bg-white rounded-2xl border border-emerald-200 shadow-[0_30px_60px_-15px_rgba(4,120,87,0.3)] flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-white overflow-hidden transition-all duration-700 hover:transform-none"
-                         style={{ transform: 'perspective(1000px) rotateY(-12deg) rotateX(4deg) translateZ(0)', transformStyle: 'preserve-3d' }}>
-                        
-                        {/* Mockup Header */}
-                        <div className="w-full h-12 bg-gray-50 border-b border-emerald-100 flex items-center px-4 gap-2">
-                            <div className="flex gap-1.5">
-                                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                            </div>
-                            <div className="mx-auto w-1/2 h-5 bg-white border border-gray-200 rounded text-[10px] text-gray-400 flex items-center justify-center font-mono">
-                                mandigrow.com/dashboard
-                            </div>
-                        </div>
-
-                    {/* Mockup Body - Auto Slider */}
-                        <div className="flex-1 w-full relative overflow-hidden border-t border-emerald-100">
-                            <HeroSlider />
-                            {/* Subtle inner shadow for depth */}
-                            <div className="absolute inset-0 shadow-[inset_0_4px_20px_rgba(0,0,0,0.05)] pointer-events-none" />
-                        </div>
-                    </div>
-                    {/* Decorative Blob Behind Image */}
-                    <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-400/20 to-transparent rounded-3xl blur-2xl -z-10 transform translate-x-4 translate-y-4"></div>
-                </div>
+                {/* Bottom fade-into-next-section */}
+                <div className="h-16 bg-gradient-to-b from-transparent to-[#e8f1d4] mt-12" />
             </main>
 
             {/* Features Grid */}
@@ -490,9 +484,9 @@ export default function LandingPage() {
                         <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-5 rounded-full font-black text-xl hover:bg-emerald-800 transition-all hover:scale-105 flex items-center gap-3 shadow-[0_0_60px_-10px_rgba(4,120,87,0.5)]">
                             Start Free Trial <ArrowRight className="w-5 h-5" />
                         </Link>
-                        <a href="tel:+918008000000" className="flex items-center gap-2 px-8 py-5 rounded-full border-2 border-emerald-400 text-emerald-800 font-black text-lg hover:bg-white/60 transition-all">
-                            <Phone className="w-5 h-5" /> Call Us to Onboard
-                        </a>
+                        <Link href="/contact" className="flex items-center gap-2 px-8 py-5 rounded-full border-2 border-emerald-400 text-emerald-800 font-black text-lg hover:bg-white/60 transition-all group">
+                            <Headphones className="w-5 h-5 group-hover:scale-110 transition-transform" /> Contact Us to Onboard
+                        </Link>
                     </div>
                     <p className="text-sm text-gray-500 font-medium mt-6">Our team will call you back within 30 minutes during business hours.</p>
                 </div>
