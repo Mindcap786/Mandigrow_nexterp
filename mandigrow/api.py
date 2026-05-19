@@ -1356,7 +1356,7 @@ def direct_smtp_test(to_email: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=True)
-def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter", otp: str = None, ref_code: str = None) -> dict:
+def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter", otp: str = None, ref_code: str = None, city: str = None) -> dict:
     if not otp:
         frappe.throw(_("OTP is required for registration."))
         
@@ -1397,6 +1397,11 @@ def signup_user(email: str, password: str, full_name: str, username: str, org_na
         "phone": phone,
         "partner": partner_id
     })
+    if city:
+        try:
+            org.city = city
+        except Exception:
+            pass
     org.insert(ignore_permissions=True)
     org_id = org.name
 
@@ -10231,6 +10236,7 @@ def get_admin_tenants() -> list:
             "created_at": org.creation,
             "tenant_type": 'mandi',
             "enabled_modules": ['mandi'],
+            "city": getattr(org, 'city', None) or '',
             "owner": owner,
             "profiles": org_users
         })
@@ -10916,7 +10922,7 @@ def restore_admin_context() -> dict:
     return {"success": True}
 
 @frappe.whitelist(allow_guest=False)
-def provision_tenant(orgName: str, email: str, adminName: str, password: str, username: str = None, phone: str = None, plan: str = "basic") -> dict:
+def provision_tenant(orgName: str, email: str, adminName: str, password: str, username: str = None, phone: str = None, city: str = None, plan: str = "basic") -> dict:
     """
     Direct administrative provisioning of a new Mandi tenant.
     """
@@ -10931,6 +10937,7 @@ def provision_tenant(orgName: str, email: str, adminName: str, password: str, us
         username=username or email.split('@')[0],
         org_name=orgName,
         phone=phone,
+        city=city,
         plan=plan
     )
 
@@ -10980,6 +10987,7 @@ def get_tenant_details(p_org_id: str) -> dict:
             "current_period_end": str(current_period_end)[:10] if current_period_end else None,
             "grace_period": 0 if getattr(org, "status", None) == 'trial' else (getattr(org, "grace_period_days", None) or frappe.db.get_single_value("Site Contact Settings", f"grace_period_{getattr(org, 'billing_cycle', 'monthly')}") or (14 if getattr(org, 'billing_cycle', 'monthly') == 'yearly' else 7)),
             "phone": getattr(org, "phone", ""),
+            "city": getattr(org, "city", "") or "",
             "billing_cycle": getattr(org, "billing_cycle", None) or "monthly",
             "rbac_matrix": {}
         },

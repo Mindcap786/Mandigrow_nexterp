@@ -76,6 +76,7 @@ export default function TenantsPage() {
         password: '',
         username: '',
         phone: '',
+        city: '',
         plan: 'basic'
     });
 
@@ -219,7 +220,7 @@ export default function TenantsPage() {
 
             toast({ title: 'Success', description: `Tenant ${newTenant.orgName} provisioned successfully.` });
             setProvisionOpen(false);
-            setNewTenant({ orgName: '', email: '', adminName: '', password: '', username: '', phone: '', plan: 'basic' });
+            setNewTenant({ orgName: '', email: '', adminName: '', password: '', username: '', phone: '', city: '', plan: 'basic' });
             fetchTenants();
         } catch (e: any) {
             toast({ 
@@ -388,6 +389,16 @@ export default function TenantsPage() {
                                                 className="pl-12 bg-slate-50 border-slate-200 font-mono font-bold"
                                             />
                                         </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="city" className="text-xs font-black uppercase tracking-widest text-indigo-500">City / Location</Label>
+                                        <Input
+                                            id="city"
+                                            placeholder="e.g. Hyderabad"
+                                            value={newTenant.city}
+                                            onChange={e => setNewTenant({ ...newTenant, city: e.target.value })}
+                                            className="bg-slate-50 border-slate-200"
+                                        />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="pass" className="text-xs font-black uppercase">Temporary Password</Label>
@@ -615,6 +626,11 @@ export default function TenantsPage() {
                                         </div>
                                         {tenant.owner?.phone && tenant.phone && tenant.owner.phone !== tenant.phone && (
                                             <p className="text-[8px] text-slate-400 font-bold ml-5 uppercase">Bus: {tenant.phone}</p>
+                                        )}
+                                        {tenant.city && (
+                                            <p className="text-[9px] text-slate-500 font-bold ml-5 flex items-center gap-0.5">
+                                                <span>📍</span> {tenant.city}
+                                            </p>
                                         )}
                                     </div>
 

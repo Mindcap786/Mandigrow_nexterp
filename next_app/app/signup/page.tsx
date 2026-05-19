@@ -10,7 +10,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Mail, Lock, User, Phone, AtSign, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Building2, Mail, Lock, User, Phone, AtSign, ArrowRight, Loader2, CheckCircle2, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SIGNUP_STORAGE_KEY = '__mandigrow_signup_payload';
@@ -25,6 +25,7 @@ export default function SignupPage() {
         email:    '',
         username: '',
         phone:    '',
+        city:     '',
         password: '',
         refCode:  '',
     });
@@ -53,6 +54,7 @@ export default function SignupPage() {
     function validateLocal(): string | null {
         if (!form.orgName.trim())                  return 'Organisation name is required.';
         if (!form.fullName.trim())                 return 'Your full name is required.';
+        if (!form.city.trim())                     return 'City / Location is required.';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
                                                    return 'Enter a valid email address.';
         if (form.username.length < 6)              return 'Username must be at least 6 characters.';
@@ -185,6 +187,14 @@ export default function SignupPage() {
                                 placeholder="e.g. Tariq Malik"
                                 value={form.fullName}
                                 onChange={update('fullName')}
+                            />
+
+                            <Field
+                                label="City / Location"
+                                icon={<MapPin className="w-4 h-4" />}
+                                placeholder="e.g. Hyderabad, Mumbai"
+                                value={form.city}
+                                onChange={update('city')}
                             />
 
                             <Field

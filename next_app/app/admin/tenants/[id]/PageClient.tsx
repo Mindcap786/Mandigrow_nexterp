@@ -1248,6 +1248,11 @@ export default function TenantDetailPage() {
                                     {owner?.email}
                                     {(owner?.phone || org.phone) && <span className="text-indigo-500 font-black tracking-tighter ml-1 underline decoration-indigo-200/50 underline-offset-4">☏ {owner?.phone || org.phone}</span>}
                                 </p>
+                                {org.city && (
+                                    <p className="text-[11px] text-slate-500 font-bold mt-1 flex items-center gap-1">
+                                        <span>📍</span> {org.city}
+                                    </p>
+                                )}
                                 {owner?.role === 'user' && <Badge className="mt-1 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-[9px]">FALLBACK OP</Badge>}
                             </div>
                         </div>
