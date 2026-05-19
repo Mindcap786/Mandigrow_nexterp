@@ -11303,6 +11303,9 @@ def get_branding_settings() -> dict:
         brand_color_secondary = getattr(org, "brand_color_secondary", "#064e3b") or "#064e3b"
         logo_url              = getattr(org, "logo_url", None)
 
+    compliance_visible = frappe.db.get_single_value("Site Contact Settings", "is_compliance_visible_to_tenants")
+    compliance_visible = bool(compliance_visible) if compliance_visible is not None else True
+
     return {
         "brand_color":                        brand_color,
         "brand_color_secondary":              brand_color_secondary,
@@ -11312,6 +11315,7 @@ def get_branding_settings() -> dict:
         "document_footer_developed_by_text":  developed_by,
         "watermark_text":                     watermark,
         "is_watermark_enabled":               watermark_en,
+        "is_compliance_visible_to_tenants":   compliance_visible,
     }
 
 

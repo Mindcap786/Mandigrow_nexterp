@@ -61,8 +61,8 @@ export default function AdminSettingsPage() {
             });
 
             const brandingApiRes = await callApi('mandigrow.api.get_branding_settings');
-            if (brandingApiRes?.message) {
-                const b = brandingApiRes.message;
+            if (brandingApiRes) {
+                const b = brandingApiRes;
                 setBranding({
                     document_footer_powered_by_text:   b.document_footer_powered_by_text   || '',
                     document_footer_presented_by_text: b.document_footer_presented_by_text || '',
@@ -108,10 +108,10 @@ export default function AdminSettingsPage() {
                 watermark_text:                    branding.watermark_text,
                 is_compliance_visible_to_tenants:  branding.is_compliance_visible_to_tenants ? 1 : 0,
             });
-            if (res?.message?.success) {
+            if (res?.success) {
                 toast({ title: '✅ Branding Updated', description: 'Invoice footers updated globally for all tenants.' });
             } else {
-                toast({ title: 'Save Failed', description: res?.message?.error || 'Unknown error', variant: 'destructive' });
+                toast({ title: 'Save Failed', description: res?.error || 'Unknown error', variant: 'destructive' });
             }
         } catch (e: any) {
             toast({ title: 'Save Failed', description: e.message, variant: 'destructive' });
