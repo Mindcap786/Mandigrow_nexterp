@@ -9,7 +9,7 @@ import {
 } from "recharts"
 
 interface SalesChartProps {
-    data: { date: string; total: number }[]
+    data: { date: string; value: number }[]
 }
 
 export function SalesChart({ data }: SalesChartProps) {
@@ -64,7 +64,7 @@ export function SalesChart({ data }: SalesChartProps) {
                     />
                     <Area
                         type="monotone"
-                        dataKey="total"
+                        dataKey="value"
                         stroke="#0C831F"
                         strokeWidth={4}
                         fillOpacity={1}
