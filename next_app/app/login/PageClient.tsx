@@ -32,6 +32,7 @@ export default function LoginClient() {
     const [fullName, setFullName] = useState('')
     const [username, setUsername] = useState('')
     const [orgName, setOrgName] = useState('')
+    const [city, setCity] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [phone, setPhone] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -317,6 +318,7 @@ export default function LoginClient() {
         if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) throw new Error('Username can only contain letters, numbers, and underscores.');
         if (!identifier.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) throw new Error('Please enter a valid email address.');
         if (!orgName.trim()) throw new Error('Business name is required.');
+        if (!city.trim()) throw new Error('City / Location is required.');
         if (!phone.trim()) throw new Error('Mobile number is required.');
         if (!/^[6-9]\d{9}$/.test(phone.replace(/\s|-/g, ''))) throw new Error('Please enter a valid 10-digit Indian mobile number.');
         if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
@@ -382,6 +384,7 @@ export default function LoginClient() {
                     full_name: fullName.trim(),
                     username: username.trim().toLowerCase(),
                     org_name: orgName.trim(),
+                    city: city.trim(),
                     phone: phone.replace(/\s|-/g, ''),
                     otp: otpValue
                 });
@@ -524,6 +527,17 @@ export default function LoginClient() {
                                                 <div className="relative">
                                                     <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400/80" />
                                                     <input type="text" required value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Sharma Mandi" className="auth-input pl-12" />
+                                                </div>
+                                            </div>
+
+                                            {/* City / Location */}
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                                                    City / Location <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400/80 text-sm">📍</span>
+                                                    <input type="text" required value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Hyderabad, Mumbai" className="auth-input pl-12" />
                                                 </div>
                                             </div>
 
