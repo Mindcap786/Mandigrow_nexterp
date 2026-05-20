@@ -1,31 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { Calculator, Send, Download, ArrowRight, TrendingUp } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Calculator, Send, Download } from 'lucide-react';
+import { LeadCaptureModal } from '@/components/landing/LeadCaptureModal';
 
 export function InteractivePattiGenerator() {
-    const router = useRouter();
     const [crop, setCrop] = useState('Onions');
-    const [weight, setWeight] = useState(50); // quintals
-    const [rate, setRate] = useState(1500); // per quintal
-    const [commission, setCommission] = useState(6); // %
-    const [mandiTax, setMandiTax] = useState(1); // %
+    const [weight, setWeight] = useState(50);
+    const [rate, setRate] = useState(1500);
+    const [commission, setCommission] = useState(6);
+    const [mandiTax, setMandiTax] = useState(1);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalTrigger, setModalTrigger] = useState<'whatsapp' | 'print'>('whatsapp');
     
     // Calculations
     const grossAmount = weight * rate;
     const commissionAmt = (grossAmount * commission) / 100;
     const taxAmt = (grossAmount * mandiTax) / 100;
-    const hamali = weight * 10; // flat 10 Rs per quintal
-    
-    // Farmer's net payable = Gross - Commission - Tax - Hamali
+    const hamali = weight * 10;
     const netPayable = grossAmount - commissionAmt - taxAmt - hamali;
 
-    const handleAction = () => {
-        router.push('/subscribe?ref=patti_generator');
+    const handleAction = (type: 'whatsapp' | 'print') => {
+        setModalTrigger(type);
+        setModalOpen(true);
     };
 
-    return (
+    return (<>
         <section className="py-24 bg-white relative overflow-hidden">
             {/* Background elements */}
             <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[800px] h-[800px] bg-emerald-50/50 rounded-full blur-3xl pointer-events-none" />
@@ -167,10 +167,10 @@ export function InteractivePattiGenerator() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={handleAction} className="flex items-center justify-center gap-2 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-500/30">
+                                <button onClick={() => handleAction('whatsapp')} className="flex items-center justify-center gap-2 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-500/30">
                                     <Send className="w-4 h-4" /> WhatsApp
                                 </button>
-                                <button onClick={handleAction} className="flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-gray-900/20">
+                                <button onClick={() => handleAction('print')} className="flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-gray-900/20">
                                     <Download className="w-4 h-4" /> Print Patti
                                 </button>
                             </div>
@@ -181,5 +181,11 @@ export function InteractivePattiGenerator() {
                 </div>
             </div>
         </section>
-    );
+
+        <LeadCaptureModal
+            isOpen={modalOpen}
+            onClose={() => setModalOpen(false)}
+            trigger={modalTrigger}
+        />
+    </>);
 }
