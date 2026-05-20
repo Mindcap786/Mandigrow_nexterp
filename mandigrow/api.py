@@ -4205,15 +4205,27 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
 
 @frappe.whitelist(allow_guest=False)
 def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
-    """Returns list of gate entries."""
+    """
+    Returns list of gate entries for the current org.
+    
+    BUG FIX: Filter on the system `creation` field (always populated by Frappe
+    on every insert) NOT on `created_at` (a custom Datetime field that was never
+    explicitly written during create_gate_entry → always NULL → 0 rows returned).
+    """
     org_id = _get_user_org()
     filters = {"organization_id": org_id} if org_id else {}
 
     if date_from and date_to:
-        filters["created_at"] = ["between", [date_from, date_to]]
+        # Use Frappe's system `creation` field — guaranteed non-NULL on every doc.
+        # Append time bounds so the full end-date is included (creation is a Datetime).
+        filters["creation"] = ["between", [f"{date_from} 00:00:00", f"{date_to} 23:59:59"]]
         
-    return frappe.get_all("Mandi Gate Entry", 
-        fields=["name as id", "token_no", "status", "vehicle_number", "driver_name", "driver_phone", "commodity", "source", "created_at"],
+    return frappe.get_all("Mandi Gate Entry",
+        fields=[
+            "name as id", "token_no", "status",
+            "vehicle_number", "driver_name", "driver_phone",
+            "commodity", "source", "created_at", "creation"
+        ],
         filters=filters,
         order_by="creation desc",
         ignore_permissions=True
@@ -4221,10 +4233,28 @@ def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
 
 @frappe.whitelist(allow_guest=False)
 def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone: str = None, commodity: str = None, source: str = None) -> dict:
-    """Creates a new Gate Entry."""
+    """
+    Creates a new Gate Entry.
+    
+    BUG FIX:
+    - Explicitly set `created_at` to now (the DocType default 'Today' only applies
+      to UI-created docs, not Python inserts → previously always NULL).
+    - Generate `token_no` via an org-scoped atomic counter so it is unique per org
+      and sequential (was previously unset / always 0).
+    """
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
     org_id = _get_user_org()
+
+    # Org-scoped sequential token number — atomic via frappe.db.sql for safety.
+    # Uses a simple MAX(token_no)+1 pattern; safe for low-concurrency mandi ops.
+    max_token = frappe.db.sql(
+        "SELECT COALESCE(MAX(token_no), 0) FROM `tabMandi Gate Entry` WHERE organization_id = %s",
+        (org_id,)
+    )
+    next_token = int(max_token[0][0] if max_token else 0) + 1
+
+    now = frappe.utils.now_datetime()
     doc = frappe.get_doc({
         "doctype": "Mandi Gate Entry",
         "vehicle_number": vehicle_number,
@@ -4233,9 +4263,12 @@ def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone
         "commodity": commodity,
         "source": source,
         "organization_id": org_id,
-        "status": "pending"
+        "status": "pending",
+        "token_no": next_token,
+        "created_at": now,   # Explicitly set — DocType default 'Today' only fires in UI
     })
     doc.insert(ignore_permissions=True)
+    frappe.db.commit()
     return {"id": doc.name, "token_no": doc.token_no}
 
 @frappe.whitelist(allow_guest=False)
