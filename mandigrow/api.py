@@ -234,7 +234,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
             gl.name, gl.posting_date, gl.account, gl.party_type, gl.party,
             gl.debit, gl.credit, gl.voucher_type, gl.voucher_no,
             gl.against_voucher, gl.against_voucher_type,
-            gl.cost_center, gl.creation,
+            gl.cost_center, gl.creation, gl.is_opening,
             COALESCE(je.user_remark, gl.remarks) as remarks,
             acc.account_type, acc.root_type, acc.account_name as acc_account_name,
             je.cheque_no, je.clearance_date
@@ -551,7 +551,9 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         is_pending_cheque = bool(gl.get("cheque_no") and not gl.get("clearance_date"))
         
         # ── STOCK RETURN detection ────────────────────────────────────────────
-        if voucher_vtype == "Journal Entry" and je_remark.startswith("stock return:"):
+        if gl.get("is_opening") == "Yes":
+            tx_type = "opening_balance"
+        elif voucher_vtype == "Journal Entry" and je_remark.startswith("stock return:"):
             tx_type = "stock_return"
         elif (against_vtype == "Mandi Arrival" or voucher_vtype == "Mandi Arrival") and not is_clearing and not is_liquid and not is_income_expense:
             tx_type = "goods_arrival"
