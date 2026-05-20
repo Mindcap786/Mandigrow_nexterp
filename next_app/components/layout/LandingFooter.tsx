@@ -74,6 +74,15 @@ export function LandingFooter() {
                         <Link href="/vyapar-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Vyapar Alternative</Link>
                         <Link href="/marg-erp-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Marg ERP Alternative</Link>
                         <Link href="/zoho-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Zoho Alternative</Link>
+
+                        {/* Phase 4: By Commodity */}
+                        <Link href="/apple-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Apple Mandi</Link>
+                        <Link href="/mango-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Mango Mandi</Link>
+                        <Link href="/onion-potato-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Onion &amp; Potato</Link>
+                        <Link href="/chilli-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Mirchi Mandi</Link>
+                        <Link href="/tomato-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Tomato Mandi</Link>
+                        <Link href="/anaj-mandi-erp-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Anaj/Grain Mandi</Link>
+                        <Link href="/poultry-wholesale-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Poultry Wholesale</Link>
                         <Link href="/privacy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.privacy_policy') || 'Privacy Policy'}</Link>
                         <Link href="/terms" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.terms_of_service') || 'Terms of Service'}</Link>
                         <Link href="/refund-policy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Refund Policy</Link>

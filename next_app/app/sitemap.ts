@@ -72,6 +72,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/marg-erp-vs-mandigrow`,          lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
         { url: `${BASE_URL}/zoho-vs-mandigrow`,              lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
 
+        // ── Phase 4: Commodity-Specific Pages ────────────────────────────────────
+        { url: `${BASE_URL}/apple-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/mango-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/onion-potato-mandi-software`,    lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/chilli-mandi-software`,          lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/tomato-mandi-software`,          lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/anaj-mandi-erp-software`,        lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/poultry-wholesale-software`,     lastModified: now, changeFrequency: 'monthly', priority: 0.88 },
+
         // ── Support & marketing pages ─────────────────────────────────────────────
         { url: `${BASE_URL}/faq`,                            lastModified: now, changeFrequency: 'monthly', priority: 0.70 },
         { url: `${BASE_URL}/blog`,                           lastModified: now, changeFrequency: 'weekly',  priority: 0.80 },
