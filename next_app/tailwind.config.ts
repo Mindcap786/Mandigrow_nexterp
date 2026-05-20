@@ -89,6 +89,7 @@ const config: Config = {
         },
     },
     plugins: [
+        require("@tailwindcss/typography"),
         require("tailwindcss-animate"),
         // tailwind-scrollbar-hide — provides .scrollbar-none utility
         // npm install tailwind-scrollbar-hide --save-dev

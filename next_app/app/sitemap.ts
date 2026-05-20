@@ -1,13 +1,13 @@
 import type { MetadataRoute } from 'next';
-import { POSTS } from './blog/posts';
+import { BLOG_POSTS } from '@/lib/blog';
 
 const BASE_URL = 'https://www.mandigrow.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const now = new Date();
-    const blogEntries: MetadataRoute.Sitemap = POSTS.map((p) => ({
+    const blogEntries: MetadataRoute.Sitemap = BLOG_POSTS.map((p) => ({
         url: `${BASE_URL}/blog/${p.slug}`,
-        lastModified: new Date(p.publishedAt),
+        lastModified: new Date(p.date),
         changeFrequency: 'monthly',
         priority: 0.7,
     }));

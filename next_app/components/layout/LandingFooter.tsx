@@ -10,6 +10,7 @@ const FOOTER_COLUMNS = [
         links: [
             { label: 'Features',           href: '/features' },
             { label: 'Pricing',            href: '/pricing' },
+            { label: 'Blog',               href: '/blog' },
             { label: 'Mandi Billing',      href: '/mandi-billing' },
             { label: 'Mandi ERP',          href: '/mandi-erp-software' },
             { label: 'Commission Agent',   href: '/commission-agent-software' },

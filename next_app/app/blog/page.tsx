@@ -1,103 +1,75 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/layout/LandingFooter';
-import { LandingHeader } from '@/components/layout/LandingHeader';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { BLOG_POSTS } from '@/lib/blog';
+import { ArrowRight, BookOpen, Clock } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'MandiGrow Blog | Insights for Indian Mandi Businesses',
-    description:
-        'Expert guides, comparisons, and tips for commission agents, sabzi mandi traders, and agricultural wholesale markets in India.',
+    title: 'MandiGrow Blog | Insights for Commission Agents & APMC Traders',
+    description: 'Expert advice, APMC tax updates, compliance guides, and technology insights for Mandi traders and Arhtiyas across India.',
     alternates: { canonical: 'https://www.mandigrow.com/blog' },
 };
 
-import { POSTS as OLD_POSTS } from './posts';
-
-const NEW_POSTS = [
-    {
-        title: 'Tally vs. MandiGrow: Why General Accounting Software Fails Fruit & Vegetable Traders',
-        slug: 'tally-vs-mandigrow-mandi-software',
-        excerpt: 'Discover why standard ERP and accounting tools like Tally aren\'t built for the fast-paced, lot-based reality of the sabzi mandi. Learn how native commission agent software saves you hours every night.',
-        date: 'May 17, 2026',
-        category: 'Software Comparison',
-    },
-    {
-        title: 'How to Calculate Commission, Hamali, and Mandi Tax (Cess) Automatically',
-        slug: 'how-to-calculate-commission-hamali-mandi-tax',
-        excerpt: 'Stop calculating commission and deductions manually. Learn how to automate your market fees, hamali, and palledari deductions directly from the mandi gate pass.',
-        date: 'May 18, 2026',
-        category: 'Mandi Operations',
-    },
-    {
-        title: 'The Complete Guide to APMC Mandi GST Compliance in 2026',
-        slug: 'apmc-mandi-gst-compliance-2026',
-        excerpt: 'Everything commission agents and wholesale vegetable traders need to know about GST, e-invoicing, and staying compliant within the APMC structure.',
-        date: 'May 19, 2026',
-        category: 'Tax & Compliance',
-    },
-    {
-        title: 'Paper Khata vs Digital Mandi Khata: Transitioning Your Commission Business',
-        slug: 'paper-khata-vs-digital-mandi-khata',
-        excerpt: 'The risks of paper bahis and the benefits of a live, digital mandi khata. See how to settle farmer accounts instantly without reconciliation headaches.',
-        date: 'May 20, 2026',
-        category: 'Business Growth',
-    },
-];
-
-const ALL_POSTS = [
-    ...NEW_POSTS,
-    ...OLD_POSTS.map(p => ({
-        title: p.title,
-        slug: p.slug,
-        excerpt: p.description,
-        date: new Date(p.publishedAt).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        }),
-        category: 'Mandi Guide'
-    }))
-];
-
-export default function BlogIndexPage() {
+export default function BlogListingPage() {
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900 pt-20">
-            <LandingHeader />
+        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Blog',
+                name: 'MandiGrow Blog',
+                description: 'Expert advice, APMC tax updates, compliance guides, and technology insights for Mandi traders.',
+                url: 'https://www.mandigrow.com/blog',
+            }) }} />
 
-            <section className="max-w-6xl mx-auto px-6 pt-24 pb-16">
-                <p className="text-emerald-700 font-black uppercase tracking-widest text-xs mb-4">
-                    Resources & Guides
-                </p>
-                <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    The MandiGrow Blog
+            <nav className="w-full border-b border-emerald-100 bg-white/90 backdrop-blur-md sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <Link href="/" className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded bg-emerald-700 flex items-center justify-center text-white font-black text-xl">M</div>
+                        <span className="text-xl font-bold tracking-tighter">MandiGrow</span>
+                    </Link>
+                    <Link href="/subscribe" className="bg-emerald-700 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-emerald-800 transition-all">Start Free Trial →</Link>
+                </div>
+            </nav>
+
+            <section className="max-w-5xl mx-auto px-6 pt-16 pb-12 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider mb-6">
+                    <BookOpen className="w-3.5 h-3.5" /> Mandi Knowledge Center
+                </div>
+                <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gray-900 mb-6 leading-[1.05]">
+                    Latest <span className="text-emerald-700">Insights</span> & <br />Updates
                 </h1>
-                <p className="text-xl text-gray-700 max-w-3xl mb-12">
-                    Everything you need to scale your commission agency, understand GST compliance in APMC markets, and modernize your mandi wholesale business.
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium leading-relaxed mb-12">
+                    Expert advice on APMC regulations, mandi accounting, farmer ledgers, and technology for modern Commission Agents.
                 </p>
+            </section>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                    {ALL_POSTS.map((post) => (
-                        <Link
-                            key={post.slug}
+            <section className="max-w-5xl mx-auto px-6 pb-20">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {BLOG_POSTS.map(post => (
+                        <Link 
+                            key={post.slug} 
                             href={`/blog/${post.slug}`}
-                            className="block p-8 bg-white border border-emerald-100 rounded-[2rem] hover:border-emerald-400 hover:shadow-xl transition-all group"
+                            className="bg-white border border-emerald-100 rounded-3xl p-6 hover:shadow-lg hover:border-emerald-300 transition-all group flex flex-col h-full"
                         >
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                            <div className="flex items-center justify-between mb-4">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
                                     {post.category}
                                 </span>
-                                <span className="text-gray-400 text-sm font-medium">
-                                    {post.date}
-                                </span>
+                                <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400">
+                                    <Clock className="w-3 h-3" /> {post.readTime}
+                                </div>
                             </div>
-                            <h2 className="text-2xl font-black tracking-tighter mb-4 group-hover:text-emerald-700 transition-colors">
+                            <h2 className="text-xl font-black text-gray-900 mb-3 group-hover:text-emerald-700 transition-colors leading-snug">
                                 {post.title}
                             </h2>
-                            <p className="text-gray-600 mb-6 line-clamp-3">
+                            <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow">
                                 {post.excerpt}
                             </p>
-                            <div className="flex items-center text-emerald-700 font-bold group-hover:gap-2 transition-all">
-                                Read Article <ArrowRight className="w-4 h-4 ml-1" />
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                                <span className="text-xs font-bold text-gray-500">{post.date}</span>
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
+                                    <ArrowRight className="w-4 h-4 text-emerald-600 group-hover:text-white" />
+                                </div>
                             </div>
                         </Link>
                     ))}

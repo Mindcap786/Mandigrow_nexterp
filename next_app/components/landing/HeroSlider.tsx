@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 const SLIDES = [
@@ -78,12 +79,15 @@ export function HeroSlider() {
             {/* Slide image with crossfade */}
             <div className="relative flex-1 overflow-hidden">
                 {SLIDES.map((s, i) => (
-                    <img
+                    <Image
                         key={s.src}
                         src={s.src}
                         alt={s.alt}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 80vw"
+                        priority={i === 0}
                         className={cn(
-                            "absolute inset-0 w-full h-full object-cover object-top transition-all duration-500",
+                            "object-cover object-top transition-all duration-500",
                             i === current
                                 ? transitioning ? 'opacity-0 scale-[1.02]' : 'opacity-100 scale-100'
                                 : 'opacity-0 scale-[1.02]'
