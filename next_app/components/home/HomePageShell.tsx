@@ -9,6 +9,7 @@ import { LanguageSwitcher } from '@/components/i18n/language-switcher'
 import { useState, useEffect } from 'react'
 import { LayoutGrid } from 'lucide-react'
 import { LandingFooter } from '@/components/layout/LandingFooter'
+import { HeroSlider } from '@/components/home/HeroSlider'
 
 export function HomePageShell() {
     const { t } = useLanguage();
@@ -57,40 +58,141 @@ export function HomePageShell() {
             </div>
 
             {/* Hero Section */}
-            <main className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+            <main className="relative pt-40 pb-10 px-6 max-w-7xl mx-auto">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" aria-hidden="true" />
+                
+                <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center relative z-10">
+                    {/* Left Column */}
+                    <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
+                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            Enterprise-Grade Mandi Software
+                        </div>
 
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
-                    <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                    </span>
-                    {t('auth.enterprise_live')}
-                </div>
+                        <HeroTitle
+                            text={t('auth.hero_title')}
+                            className="text-5xl sm:text-6xl md:text-7xl mb-6 leading-[1.1] max-w-3xl"
+                        />
 
-                <HeroTitle
-                    text={t('auth.hero_title')}
-                    className="text-6xl md:text-8xl mb-8 leading-[1] max-w-5xl"
-                />
+                        <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-2xl mb-10 font-medium leading-relaxed">
+                            {t('auth.hero_description')}
+                        </p>
 
-                <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mb-12 font-medium leading-relaxed">
-                    {t('auth.hero_description')}
-                </p>
+                        <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto mb-8">
+                            <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-800 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-900 transition-all hover:-translate-y-1 flex items-center justify-center gap-2 shadow-[0_10px_40px_-10px_rgba(4,120,87,0.5)]">
+                                Start Free Trial <ArrowRight className="w-5 h-5 rtl:rotate-180" />
+                            </Link>
+                            <Link href="/contact" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-900 border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 bg-white">
+                                <FileText className="w-5 h-5" />
+                                Book a Free Demo
+                            </Link>
+                        </div>
+                        
+                        {/* Trust Badges */}
+                        <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-6 text-[11px] sm:text-sm font-bold text-gray-600 mb-10">
+                            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-amber-500" /> Trusted by 200+ mandis</span>
+                            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> No credit card required</span>
+                            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Free training & support</span>
+                            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> ₹0 Setup Cost</span>
+                        </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 w-full sm:w-auto">
-                    <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
-                        {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5 rtl:rotate-180" />
-                    </Link>
-                    {playstoreLink && (
-                        <a href={playstoreLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-2">
-                           📱 {t('landing.android_app', { defaultValue: 'Android App' })}
-                        </a>
-                    )}
-                    <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
-                        {t('auth.have_account')}
-                    </Link>
+                        {/* Mandi Logos */}
+                        <div className="w-full text-center lg:text-left">
+                            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Trusted by mandi businesses across India</p>
+                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 opacity-60 grayscale hover:grayscale-0 transition-all">
+                                <span className="flex items-center gap-2 font-black text-gray-800"><Package className="w-5 h-5" /> Azadpur Mandi</span>
+                                <span className="flex items-center gap-2 font-black text-gray-800"><Package className="w-5 h-5" /> Nashik Mandi</span>
+                                <span className="flex items-center gap-2 font-black text-gray-800"><Package className="w-5 h-5" /> Kolar Mandi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column - Slider */}
+                    <div className="w-full">
+                        <HeroSlider />
+                    </div>
                 </div>
             </main>
+
+            {/* Feature Strip */}
+            <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 mb-24 z-20">
+                <div className="bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] rounded-[32px] p-8 md:p-10 relative overflow-hidden">
+                    <h3 className="text-center text-xl sm:text-2xl font-black text-gray-900 mb-10">Everything your mandi business needs</h3>
+                    
+                    <div className="flex flex-wrap justify-center items-center gap-y-10 gap-x-6 lg:gap-x-12">
+                        {/* Auto Commission */}
+                        <div className="flex items-center gap-4 max-w-[200px]">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                                <Calculator className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-sm">Auto Commission</h4>
+                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Accurate & transparent</p>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-12 bg-gray-200 hidden md:block"></div>
+
+                        {/* Mandi Khata */}
+                        <div className="flex items-center gap-4 max-w-[200px]">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                                <FileText className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-sm">Mandi Khata</h4>
+                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Real-time ledger</p>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-12 bg-gray-200 hidden lg:block"></div>
+
+                        {/* GST Billing */}
+                        <div className="flex items-center gap-4 max-w-[200px]">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                                <ClipboardCheck className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-sm">GST Billing</h4>
+                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">HSN-ready invoices</p>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-12 bg-gray-200 hidden md:block"></div>
+
+                        {/* APMC Compliance */}
+                        <div className="flex items-center gap-4 max-w-[200px]">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                                <ShieldCheck className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-sm">APMC Compliance</h4>
+                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Stay audit-ready</p>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-12 bg-gray-200 hidden lg:block"></div>
+
+                        {/* Reports */}
+                        <div className="flex items-center gap-4 max-w-[200px]">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                                <BarChart3 className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-sm">Reports & Insights</h4>
+                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Powerful analytics</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Floating Fruits */}
+                <div className="absolute -left-12 -bottom-20 w-56 h-56 z-30 pointer-events-none hidden xl:block">
+                    <img src="/1.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
+                </div>
+                <div className="absolute -right-8 -bottom-16 w-48 h-48 z-30 pointer-events-none hidden xl:block">
+                    <img src="/2.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
+                </div>
+            </div>
 
             {/* Features Grid */}
             <section id="features" className="py-24 px-6 bg-[#e8f1d4] relative z-10 border-t border-[#c8d6b0]">
