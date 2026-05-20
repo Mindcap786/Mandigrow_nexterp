@@ -51,14 +51,14 @@ export function TopNav() {
             <div className="flex items-center gap-1.5 min-w-max">
                 {/* Impersonation Banner */}
                 {isImpersonating && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 mr-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 me-2">
                         <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                         <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">
                             Admin View: {profile?.organization?.name || 'Tenant'}
                         </span>
                         <button
                             onClick={handleExitImpersonation}
-                            className="ml-1 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-800 text-[10px] font-black transition-colors"
+                            className="ms-1 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-800 text-[10px] font-black transition-colors"
                         >
                             <LogOut className="w-3 h-3" />
                             Exit

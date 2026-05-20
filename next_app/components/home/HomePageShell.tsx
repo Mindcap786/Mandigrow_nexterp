@@ -40,7 +40,7 @@ export function HomePageShell() {
                             <a href="#features" className="hover:text-emerald-800 transition-colors">{t('landing.nav_features')}</a>
                             <a href="#solutions" className="hover:text-emerald-800 transition-colors">{t('landing.nav_solutions')}</a>
                             <Link href="/subscribe" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.subscription_billing')}</Link>
-                            <Link href="/partners" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">Partners</Link>
+                            <Link href="/partners" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.partners', { defaultValue: 'Partners' })}</Link>
                             <a href="#compliance" className="hover:text-emerald-800 transition-colors">{t('nav.compliance')}</a>
                         </div>
                         <div className="flex items-center gap-4">
@@ -79,11 +79,11 @@ export function HomePageShell() {
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 w-full sm:w-auto">
                     <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
-                        {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5" />
+                        {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5 rtl:rotate-180" />
                     </Link>
                     {playstoreLink && (
                         <a href={playstoreLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-2">
-                           📱 Android App
+                           📱 {t('landing.android_app', { defaultValue: 'Android App' })}
                         </a>
                     )}
                     <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
