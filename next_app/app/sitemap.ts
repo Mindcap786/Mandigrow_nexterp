@@ -81,6 +81,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/anaj-mandi-erp-software`,        lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
         { url: `${BASE_URL}/poultry-wholesale-software`,     lastModified: now, changeFrequency: 'monthly', priority: 0.88 },
 
+        // ── Phase 5: Hindi-Language SEO Pages ────────────────────────────────────
+        { url: `${BASE_URL}/mandi-software-hindi`,           lastModified: now, changeFrequency: 'monthly', priority: 0.93 },
+        { url: `${BASE_URL}/arhtiya-software`,               lastModified: now, changeFrequency: 'monthly', priority: 0.93 },
+        { url: `${BASE_URL}/mandi-billing-software-hindi`,   lastModified: now, changeFrequency: 'monthly', priority: 0.93 },
+
         // ── Support & marketing pages ─────────────────────────────────────────────
         { url: `${BASE_URL}/faq`,                            lastModified: now, changeFrequency: 'monthly', priority: 0.70 },
         { url: `${BASE_URL}/blog`,                           lastModified: now, changeFrequency: 'weekly',  priority: 0.80 },
