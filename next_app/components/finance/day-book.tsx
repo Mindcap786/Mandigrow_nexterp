@@ -1183,6 +1183,8 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                 // IMPORTANT: expense_receipt groups ALWAYS have a cash leg (Cr Cash/Bank)
                 // so they must NEVER be treated as write-offs.
                 if (isWriteOff && type !== 'expense_receipt') return;
+                
+                if (groupFlow === 'opening_balance' || type === 'opening_balance') return;
 
                 if (type === 'receipt' || type === 'receive_receipt') {
                     if (isBank) digitalInflow += val; else totalInflow += val;
