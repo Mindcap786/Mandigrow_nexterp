@@ -1,18 +1,32 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import { translations } from '@/components/i18n/translations';
 
-// Map the legacy translations.ts deeply nested objects directly into the 'common' namespace
+// Directly import the perfectly maintained JSON translation files to bundle them synchronously
+import enCommon from '../../public/locales/en/common.json';
+import hiCommon from '../../public/locales/hi/common.json';
+import teCommon from '../../public/locales/te/common.json';
+import taCommon from '../../public/locales/ta/common.json';
+import knCommon from '../../public/locales/kn/common.json';
+import mlCommon from '../../public/locales/ml/common.json';
+import urCommon from '../../public/locales/ur/common.json';
+
+import enGlossary from '../../public/locales/en/glossary.json';
+import hiGlossary from '../../public/locales/hi/glossary.json';
+import teGlossary from '../../public/locales/te/glossary.json';
+import taGlossary from '../../public/locales/ta/glossary.json';
+import knGlossary from '../../public/locales/kn/glossary.json';
+import mlGlossary from '../../public/locales/ml/glossary.json';
+import urGlossary from '../../public/locales/ur/glossary.json';
+
 const resources = {
-  en: { common: translations.en },
-  hi: { common: translations.hi },
-  te: { common: translations.te },
-  ta: { common: translations.ta },
-  kn: { common: translations.kn },
-  // ML and UR will gracefully fallback to English if not present in translations.ts yet
-  ml: { common: (translations as any).ml || translations.en },
-  ur: { common: (translations as any).ur || translations.en },
+  en: { common: enCommon, glossary: enGlossary },
+  hi: { common: hiCommon, glossary: hiGlossary },
+  te: { common: teCommon, glossary: teGlossary },
+  ta: { common: taCommon, glossary: taGlossary },
+  kn: { common: knCommon, glossary: knGlossary },
+  ml: { common: mlCommon, glossary: mlGlossary },
+  ur: { common: urCommon, glossary: urGlossary },
 };
 
 i18n
@@ -22,7 +36,7 @@ i18n
     resources,
     fallbackLng: 'en',
     supportedLngs: ['en', 'hi', 'te', 'ta', 'kn', 'ml', 'ur'],
-    ns: ['common'], // Everything from translations.ts is dumped into 'common'
+    ns: ['common', 'glossary'],
     defaultNS: 'common',
     
     detection: {
