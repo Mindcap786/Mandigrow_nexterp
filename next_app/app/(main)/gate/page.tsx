@@ -111,7 +111,11 @@ export default function GatePage() {
                 date_to: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null
             });
             
-            if (res.message) {
+            // BUG FIX: `if (res.message)` is FALSY when message is an empty array [].
+            // This meant entries were never cleared on empty results (stale state),
+            // and on success the entries were never set if the API returned [].
+            // Always update state when we get a valid array back.
+            if (Array.isArray(res.message)) {
                 setEntries(res.message)
                 setTotalCount(res.message.length)
                 cacheSet(cacheKey, orgId, { entries: res.message, totalCount: res.message.length })
@@ -355,7 +359,7 @@ export default function GatePage() {
                                                             {entry.status === 'stock_loaded' ? 'STOCK LOADED' : t(`gate.status_${entry.status}`) || entry.status}
                                                         </span>
                                                         <span className="text-[10px] text-slate-500 font-black">
-                                                            {format(new Date(entry.created_at), 'hh:mm a')}
+                                                            {format(new Date(entry.created_at || entry.creation), 'hh:mm a')}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -368,7 +372,7 @@ export default function GatePage() {
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">{t('gate.commodity')}</p>
-                                                        <p className="font-black text-slate-800">{entry.commodity_text || 'N/A'}</p>
+                                                        <p className="font-black text-slate-800">{entry.commodity || 'N/A'}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">{t('gate.driver')}</p>
