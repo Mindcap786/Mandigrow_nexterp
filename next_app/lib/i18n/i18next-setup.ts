@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { translations } from '@/components/i18n/translations';
 
 // Directly import the perfectly maintained JSON translation files to bundle them synchronously
 import enCommon from '../../public/locales/en/common.json';
@@ -19,14 +20,40 @@ import knGlossary from '../../public/locales/kn/glossary.json';
 import mlGlossary from '../../public/locales/ml/glossary.json';
 import urGlossary from '../../public/locales/ur/glossary.json';
 
+// Utility to deeply merge objects (used to merge the 3 tiers of translations)
+function deepMerge(target: any, ...sources: any[]): any {
+  if (!sources.length) return target;
+  const source = sources.shift();
+
+  if (target === undefined) target = {};
+  
+  if (isObject(target) && isObject(source)) {
+    for (const key in source) {
+      if (isObject(source[key])) {
+        if (!target[key]) Object.assign(target, { [key]: {} });
+        deepMerge(target[key], source[key]);
+      } else {
+        Object.assign(target, { [key]: source[key] });
+      }
+    }
+  }
+
+  return deepMerge(target, ...sources);
+}
+
+function isObject(item: any) {
+  return (item && typeof item === 'object' && !Array.isArray(item));
+}
+
+// Map the legacy fallback logic: translations.en -> translations[lang] -> JSON[lang]
 const resources = {
-  en: { common: enCommon, glossary: enGlossary },
-  hi: { common: hiCommon, glossary: hiGlossary },
-  te: { common: teCommon, glossary: teGlossary },
-  ta: { common: taCommon, glossary: taGlossary },
-  kn: { common: knCommon, glossary: knGlossary },
-  ml: { common: mlCommon, glossary: mlGlossary },
-  ur: { common: urCommon, glossary: urGlossary },
+  en: { common: deepMerge({}, translations.en, enCommon), glossary: enGlossary },
+  hi: { common: deepMerge({}, translations.en, translations.hi, hiCommon), glossary: hiGlossary },
+  te: { common: deepMerge({}, translations.en, translations.te, teCommon), glossary: teGlossary },
+  ta: { common: deepMerge({}, translations.en, translations.ta, taCommon), glossary: taGlossary },
+  kn: { common: deepMerge({}, translations.en, translations.kn, knCommon), glossary: knGlossary },
+  ml: { common: deepMerge({}, translations.en, (translations as any).ml || {}, mlCommon), glossary: mlGlossary },
+  ur: { common: deepMerge({}, translations.en, (translations as any).ur || {}, urCommon), glossary: urGlossary },
 };
 
 i18n
