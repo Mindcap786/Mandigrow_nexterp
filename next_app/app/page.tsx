@@ -13,6 +13,8 @@ import { useEffect } from 'react'
 import { LandingFooter } from '@/components/layout/LandingFooter'
 import { LandingHeader } from '@/components/layout/LandingHeader'
 import { HeroSlider } from '@/components/landing/HeroSlider'
+import { InteractivePattiGenerator } from '@/components/landing/InteractivePattiGenerator'
+
 export default function LandingPage() {
     const { t } = useLanguage();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -175,6 +177,9 @@ export default function LandingPage() {
                 {/* Bottom fade-into-next-section */}
                 <div className="h-16 bg-gradient-to-b from-transparent to-[#e8f1d4] mt-12" />
             </main>
+
+            {/* Interactive Lead Magnet */}
+            <InteractivePattiGenerator />
 
             {/* Features Grid */}
             <section id="features" className="py-24 px-6 bg-[#e8f1d4] relative z-10 border-t border-[#c8d6b0]">
