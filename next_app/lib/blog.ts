@@ -1,4 +1,5 @@
 import { POSTS as OLD_POSTS } from '@/app/blog/posts';
+import { PHASE9_POSTS } from './blog-data-phase9';
 
 export interface BlogPost {
     slug: string;
@@ -92,6 +93,7 @@ export const NEW_POSTS: BlogPost[] = [
 ];
 
 export const BLOG_POSTS: BlogPost[] = [
+    ...PHASE9_POSTS,
     ...NEW_POSTS,
     ...legacyPosts
 ];
