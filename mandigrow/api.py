@@ -6809,7 +6809,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
     parent_ids = list(set([l.get("parent") for l in lots_raw if l.get("parent")]))
     arrival_map = {}
     if parent_ids:
-        arrivals = frappe.get_all("Mandi Arrival", filters={"name": ["in", parent_ids]}, fields=["name", "party_id"], ignore_permissions=True)
+        arrivals = frappe.get_all("Mandi Arrival", filters={"name": ["in", parent_ids]}, fields=["name", "party_id", "arrival_type"], ignore_permissions=True)
         for arr in arrivals:
             if arr.get("party_id"):
                 contact_name = frappe.db.get_value("Mandi Contact", arr.get("party_id"), "full_name")
