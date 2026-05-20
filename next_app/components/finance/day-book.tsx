@@ -1030,14 +1030,16 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     // Adding an extra check to be 100% sure.
                     const finalSanitizedVal = isConsolidated ? Math.min(singleVal, maxDebit, maxCredit) : singleVal;
 
+                    const isOpeningBalance = flowType === 'opening_balance';
+
                     legs.push({
                         ...mainLeg,
                         contact: { name: groupContactName || mainLeg.contact?.name },
                         // Stock Return: ALWAYS debit (Mandi reducing payable = value going out)
                         // We use Math.max(debit,credit) so even the credit leg of the JE
                         // (Cr Stock In Hand) renders correctly as a DEBIT in the Daybook.
-                        displayDebit: (isPayment || isExpense || isReturn) ? finalSanitizedVal : 0,
-                        displayCredit: isReceipt ? finalSanitizedVal : 0,
+                        displayDebit: isOpeningBalance ? Number(mainLeg.debit || 0) : ((isPayment || isExpense || isReturn) ? finalSanitizedVal : 0),
+                        displayCredit: isOpeningBalance ? Number(mainLeg.credit || 0) : (isReceipt ? finalSanitizedVal : 0),
                         displayLabel: label,
                         displayDescription: v.narration || mainLeg.description,
                         displayType: flowType
