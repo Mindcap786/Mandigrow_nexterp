@@ -58,6 +58,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/mandi-software-delhi`,           lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
         { url: `${BASE_URL}/mandi-software-pune`,            lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
 
+        // ── Major Local Mandis (High Volume) ──────────────────────────────────────
+        { url: `${BASE_URL}/azadpur-mandi-software`,         lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+        { url: `${BASE_URL}/vashi-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+        { url: `${BASE_URL}/ghazipur-mandi-software`,        lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+        { url: `${BASE_URL}/yeshwanthpur-mandi-software`,    lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+        { url: `${BASE_URL}/bowenpally-mandi-software`,      lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+        { url: `${BASE_URL}/okhla-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+
+
         // ── Support & marketing pages ─────────────────────────────────────────────
         { url: `${BASE_URL}/faq`,                            lastModified: now, changeFrequency: 'monthly', priority: 0.70 },
         { url: `${BASE_URL}/blog`,                           lastModified: now, changeFrequency: 'weekly',  priority: 0.80 },

@@ -352,6 +352,95 @@ export const POSTS: BlogPost[] = [
 <p>Equip your new mandi business for success. Try MandiGrow at <a href="https://www.mandigrow.com">MandiGrow.com</a>.</p>
         `
     },
+    {
+        slug: 'manage-mandi-commission-arhtiya-ledger-digitally',
+        title: 'How to Manage Mandi Commission Accounts (Arhtiya Ledger) Digitally',
+        description: 'A step-by-step guide on digitizing the traditional Arhtiya Bahi Khata. Learn how commission agents manage farmer accounts and buyer ledgers efficiently.',
+        keywords: [
+            'arhtiya ledger',
+            'mandi commission accounts',
+            'digital bahi khata',
+            'commission agent accounting',
+            'mandi ledger software'
+        ],
+        publishedAt: '2026-05-20',
+        author: 'MandiGrow Team',
+        readMinutes: 6,
+        body: `
+<p>The traditional Arhtiya (commission agent) relies heavily on trust, relationships, and the <em>Bahi Khata</em> (cloth-bound red ledger book). However, as trade volumes grow, managing hundreds of farmer accounts and buyer outstandings manually becomes a bottleneck.</p>
+<h2>The Problem with Paper Ledgers</h2>
+<p>In a busy market like Azadpur or Vashi, an agent might process 500 transactions before 9 AM. Doing this on paper leads to:</p>
+<ul>
+    <li>Calculation errors in commission, hamali, and market fees.</li>
+    <li>Delayed settlements for farmers, causing friction.</li>
+    <li>Lost track of crate/bag inventory given to buyers.</li>
+    <li>Difficulty in recovering outstanding payments due to lack of instant reminders.</li>
+</ul>
+<h2>The Digital Arhtiya Ledger</h2>
+<p>A digital Mandi ERP like MandiGrow transforms the physical ledger into a live, cloud-based system.</p>
+<p><strong>1. Instant Patti Generation:</strong> When a lot is auctioned, the system automatically deducts your commission and APMC taxes, instantly generating a settlement slip (Patti) for the farmer in their local language.</p>
+<p><strong>2. Live Buyer Outstanding:</strong> You no longer have to tally accounts at the end of the day. You can instantly see who owes you money and send them a WhatsApp reminder with a single tap.</p>
+<p><strong>3. Transparent Advances:</strong> Many Arhtiyas lend working capital to farmers. Digital ledgers keep a crystal-clear record of these advances, automatically deducting them from the crop sale proceeds during harvest season.</p>
+<p>Ready to upgrade your Bahi Khata? <a href="https://www.mandigrow.com">Try MandiGrow today.</a></p>
+        `
+    },
+    {
+        slug: 'top-5-challenges-fruit-vegetable-wholesale-billing',
+        title: 'Top 5 Challenges of Fruit and Vegetable Wholesale Billing (And How to Fix Them)',
+        description: 'Discover the biggest hurdles in APMC fruit and vegetable billing and how modern mandi software solves them for commission agents.',
+        keywords: [
+            'fruit wholesale billing',
+            'vegetable wholesale billing',
+            'APMC billing challenges',
+            'mandi accounting problems',
+            'commission agent billing'
+        ],
+        publishedAt: '2026-05-20',
+        author: 'MandiGrow Team',
+        readMinutes: 7,
+        body: `
+<p>Billing in an APMC fruit and vegetable market is not like billing in a retail store. The speed is relentless, the units change constantly, and the deductions are complex. Here are the top 5 challenges wholesale traders face, and how to solve them.</p>
+<h2>1. Multi-Unit Chaos</h2>
+<p>You might buy apples in 20kg boxes but sell them per kg. Standard accounting software fails here. <strong>Solution:</strong> Use software that supports multi-unit conversion and lot-tracking natively, allowing you to inward in boxes and outward in kgs seamlessly.</p>
+<h2>2. Complex Deductions (Hamali, Palledari, Levy)</h2>
+<p>Every bill involves calculating commission percentage, fixed labor charges per bag (hamali), and government market fees. <strong>Solution:</strong> Set these rules once per commodity in your Mandi ERP. The software should auto-calculate them on every bill.</p>
+<h2>3. Crate Management</h2>
+<p>Giving away plastic crates without tracking them is a massive drain on profitability. <strong>Solution:</strong> Maintain a parallel 'Crate Ledger' alongside the financial ledger. Track exactly how many crates each buyer has.</p>
+<h2>4. Language Barriers</h2>
+<p>The accountant might read English, but the farmer and the loader rely on Hindi, Marathi, or Telugu. <strong>Solution:</strong> Use software that allows data entry in English but prints receipts and Pattis in regional languages.</p>
+<h2>5. Morning Rush Bottlenecks</h2>
+<p>When the auction finishes, 50 buyers want their bills immediately. Mouse-driven software is too slow. <strong>Solution:</strong> Use a keyboard-first billing interface designed specifically for fast data entry.</p>
+<p>MandiGrow solves all 5 of these challenges out of the box. <a href="https://www.mandigrow.com/features">See how it works.</a></p>
+        `
+    },
+    {
+        slug: 'apmc-market-fees-levy-guide-2026',
+        title: 'APMC Market Fees & Levy: A Complete Guide for Traders in 2026',
+        description: 'Everything commission agents and mandi traders need to know about APMC market fees, rural development cess, and levy compliance in 2026.',
+        keywords: [
+            'APMC market fees',
+            'mandi levy',
+            'rural development cess',
+            'APMC tax calculation',
+            'mandi compliance 2026'
+        ],
+        publishedAt: '2026-05-20',
+        author: 'MandiGrow Team',
+        readMinutes: 5,
+        body: `
+<p>Operating inside an Agricultural Produce Market Committee (APMC) yard requires strict compliance with state marketing board regulations. The most critical of these is the accurate calculation and payment of market fees (Mandi Levy).</p>
+<h2>What is the Mandi Levy?</h2>
+<p>The mandi levy is a fee charged by the APMC on the sale of notified agricultural produce within the market yard. The rate varies significantly by state and commodity. For example, the fee on onions in Maharashtra might differ entirely from the fee on apples in Delhi (Azadpur).</p>
+<h2>Common Additional Cesses</h2>
+<p>Besides the base market fee, many states impose additional taxes such as a Rural Development Fund (RDF) cess or a Farmer Welfare cess. These are usually calculated as a percentage of the total transaction value.</p>
+<h2>The Compliance Burden</h2>
+<p>For a commission agent, calculating these fees manually on thousands of daily transactions is tedious and error-prone. Underpaying leads to severe penalties and license suspension, while overpaying eats directly into your margins.</p>
+<h2>Automating APMC Compliance</h2>
+<p>Modern traders have entirely automated this process. By configuring their Mandi ERP with the exact APMC rates for their specific yard, every single bill generated automatically calculates the exact fee owed.</p>
+<p>At the end of the day, week, or month, the software generates a one-click APMC Levy Report that matches the exact format required by the local market committee.</p>
+<p>Stop calculating levies manually. Automate your APMC compliance with <a href="https://www.mandigrow.com">MandiGrow</a>.</p>
+        `
+    }
 ];
 
 export const getPost = (slug: string) => POSTS.find((p) => p.slug === slug);
