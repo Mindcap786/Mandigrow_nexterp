@@ -92,144 +92,89 @@ export default function LandingPage() {
                 }}
             />
 
-            {/* Hero Section */}
-            <main className="relative pt-40 pb-10 px-6 max-w-7xl mx-auto">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" aria-hidden="true" />
-                
-                <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center relative z-10">
-                    {/* Left Column */}
-                    <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
-                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            {/* Hero Section — Full-width premium layout */}
+            <main className="relative pt-28 pb-0 overflow-hidden">
+                {/* Multi-layer background glows */}
+                <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-emerald-400/10 rounded-full blur-[130px] pointer-events-none -translate-y-1/4 translate-x-1/4" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-600/8 rounded-full blur-[100px] pointer-events-none" />
+
+                <div className="max-w-[1400px] mx-auto px-6 relative z-10 flex flex-col items-center pt-10">
+                    
+                    {/* Centered Hero Text */}
+                    <div className="w-full max-w-4xl mx-auto flex flex-col items-center text-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/60 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
+                            <span className="flex h-2 w-2 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                            </span>
                             Enterprise-Grade Mandi Software
                         </div>
 
-                        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter max-w-3xl">
-                            <span className="text-gray-900 block">India's Best Mandi</span>
-                            <span className="text-gray-900 block">ERP Software</span>
-                            <span className="text-emerald-700 block mt-1">for Commission</span>
-                            <span className="text-emerald-700 block">Agents.</span>
+                        <h1 className="text-5xl sm:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter">
+                            <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
+                            <span className="text-emerald-700 block mt-1">for Commission Agents.</span>
                         </h1>
 
-                        <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-2xl mb-10 font-medium leading-relaxed">
-                            Auto commission, GST billing, mandi khata, and APMC compliance — works on Android at the mandi gate and desktop in your office. Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
+                        <p className="text-lg md:text-xl text-gray-700 mb-10 font-medium leading-relaxed max-w-3xl mx-auto">
+                            Auto commission, GST billing, mandi khata, and APMC compliance — 
+                            works on Android at the mandi gate and desktop in your office. 
+                            Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto mb-8">
-                            <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-800 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-900 transition-all hover:-translate-y-1 flex items-center justify-center gap-2 shadow-[0_10px_40px_-10px_rgba(4,120,87,0.5)]">
-                                Start Free Trial <ArrowRight className="w-5 h-5 rtl:rotate-180" />
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-10">
+                            <Link href="/login?mode=signup" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.5)]">
+                                Start Free Trial <ArrowRight className="w-5 h-5" />
                             </Link>
-                            <Link href="/contact" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-900 border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 bg-white">
-                                <FileText className="w-5 h-5" />
-                                Book a Free Demo
+                            <Link href="/contact" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center gap-2">
+                                <Headphones className="w-5 h-5" /> Contact Us to Onboard
                             </Link>
                         </div>
+
+                        {/* Trust Bar */}
+                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-bold text-gray-600 mb-16">
+                            <div className="flex items-center gap-1.5"><span className="text-yellow-500">★</span> 200+ mandis</div>
+                            <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full hidden sm:block"></div>
+                            <div className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> No credit card</div>
+                            <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full hidden sm:block"></div>
+                            <div className="flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-emerald-700" /> Free Training</div>
+                            <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full hidden sm:block"></div>
+                            <div className="flex items-center gap-1.5"><span className="text-emerald-700 font-black">₹0</span> Setup Cost</div>
+                        </div>
+                    </div>
+
+                    {/* Massive Edge-to-Edge Mockup */}
+                    <div className="w-full relative px-2 sm:px-8 mt-4">
+                        {/* Outer glow ring */}
+                        <div className="absolute -inset-4 bg-gradient-to-t from-emerald-400/40 via-emerald-300/10 to-transparent rounded-[40px] blur-3xl -z-10" />
                         
-                        {/* Trust Badges */}
-                        <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-6 text-[11px] sm:text-sm font-bold text-gray-600 mb-10">
-                            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-amber-500" /> Trusted by 200+ mandis</span>
-                            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> No credit card required</span>
-                            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Free training & support</span>
-                            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> ₹0 Setup Cost</span>
-                        </div>
-
-                        {/* Mandi Logos */}
-                        <div className="w-full text-center lg:text-left">
-                            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Trusted by mandi businesses across India</p>
-                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 opacity-60 grayscale hover:grayscale-0 transition-all">
-                                <span className="flex items-center gap-2 font-black text-gray-800"><Package className="w-5 h-5" /> Azadpur Mandi</span>
-                                <span className="flex items-center gap-2 font-black text-gray-800"><Package className="w-5 h-5" /> Nashik Mandi</span>
-                                <span className="flex items-center gap-2 font-black text-gray-800"><Package className="w-5 h-5" /> Kolar Mandi</span>
+                        <div className="w-full bg-white rounded-t-[24px] rounded-b-[12px] sm:rounded-[32px] border border-emerald-100 shadow-[0_50px_120px_-20px_rgba(4,120,87,0.4),0_0_0_1px_rgba(4,120,87,0.05)] overflow-hidden transform-gpu hover:scale-[1.01] transition-transform duration-700">
+                            {/* Browser top bar */}
+                            <div className="w-full h-12 bg-gray-50/90 border-b border-gray-200/60 flex items-center px-5 gap-4 backdrop-blur-md">
+                                <div className="flex gap-2 flex-shrink-0">
+                                    <div className="w-3.5 h-3.5 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
+                                    <div className="w-3.5 h-3.5 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
+                                    <div className="w-3.5 h-3.5 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
+                                </div>
+                                <div className="flex-1 max-w-xl mx-auto h-7 bg-white border border-gray-200 rounded-lg text-xs text-gray-500 flex items-center justify-center font-mono gap-1.5 shadow-inner">
+                                    <Lock className="w-3.5 h-3.5 text-emerald-600" /> mandigrow.com/dashboard
+                                </div>
+                                <div className="flex gap-2 flex-shrink-0 opacity-40">
+                                    <div className="w-5 h-5 rounded-md bg-gray-200"></div>
+                                    <div className="w-5 h-5 rounded-md bg-gray-200"></div>
+                                </div>
+                            </div>
+                            
+                            {/* Content Window - Enormous display */}
+                            <div className="w-full aspect-[16/9] lg:aspect-[21/9] relative bg-white">
+                                <HeroSlider />
                             </div>
                         </div>
                     </div>
-
-                    {/* Right Column - Slider */}
-                    <div className="w-full aspect-square lg:aspect-[4/3] rounded-[32px] overflow-hidden shadow-[0_20px_50px_-12px_rgba(4,120,87,0.15)] relative">
-                        <HeroSlider />
-                    </div>
                 </div>
+
+                {/* Bottom fade-into-next-section */}
+                <div className="h-16 bg-gradient-to-b from-transparent to-[#e8f1d4] mt-12" />
             </main>
-
-            {/* Feature Strip */}
-            <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 mb-24 z-20">
-                <div className="bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] rounded-[32px] p-8 md:p-10 relative overflow-hidden">
-                    <h3 className="text-center text-xl sm:text-2xl font-black text-gray-900 mb-10">Everything your mandi business needs</h3>
-                    
-                    <div className="flex flex-wrap justify-center items-center gap-y-10 gap-x-6 lg:gap-x-12">
-                        {/* Auto Commission */}
-                        <div className="flex items-center gap-4 max-w-[200px]">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
-                                <Calculator className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900 text-sm">Auto Commission</h4>
-                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Accurate & transparent</p>
-                            </div>
-                        </div>
-
-                        <div className="w-px h-12 bg-gray-200 hidden md:block"></div>
-
-                        {/* Mandi Khata */}
-                        <div className="flex items-center gap-4 max-w-[200px]">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
-                                <FileText className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900 text-sm">Mandi Khata</h4>
-                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Real-time ledger</p>
-                            </div>
-                        </div>
-
-                        <div className="w-px h-12 bg-gray-200 hidden lg:block"></div>
-
-                        {/* GST Billing */}
-                        <div className="flex items-center gap-4 max-w-[200px]">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
-                                <ClipboardCheck className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900 text-sm">GST Billing</h4>
-                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">HSN-ready invoices</p>
-                            </div>
-                        </div>
-
-                        <div className="w-px h-12 bg-gray-200 hidden md:block"></div>
-
-                        {/* APMC Compliance */}
-                        <div className="flex items-center gap-4 max-w-[200px]">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
-                                <ShieldCheck className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900 text-sm">APMC Compliance</h4>
-                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Stay audit-ready</p>
-                            </div>
-                        </div>
-
-                        <div className="w-px h-12 bg-gray-200 hidden lg:block"></div>
-
-                        {/* Reports */}
-                        <div className="flex items-center gap-4 max-w-[200px]">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
-                                <BarChart3 className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900 text-sm">Reports & Insights</h4>
-                                <p className="text-xs text-gray-600 font-medium leading-tight mt-1">Powerful analytics</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Floating Fruits */}
-                <div className="absolute -left-12 -bottom-20 w-56 h-56 z-30 pointer-events-none hidden xl:block">
-                    <img src="/assets/fruits/pomegranate.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
-                </div>
-                <div className="absolute -right-8 -bottom-16 w-48 h-48 z-30 pointer-events-none hidden xl:block">
-                    <img src="/assets/fruits/mango.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
-                </div>
-            </div>
 
             {/* Features Grid */}
             <section id="features" className="py-24 px-6 bg-[#e8f1d4] relative z-10 border-t border-[#c8d6b0]">
