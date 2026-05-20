@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,6 +45,12 @@ export function BottomSheet({
     className,
     snap = "auto",
 }: BottomSheetProps) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     // Prevent body scroll when sheet is open
     useEffect(() => {
         if (open) {
@@ -54,7 +61,9 @@ export function BottomSheet({
         return () => { document.body.style.overflow = ""; };
     }, [open]);
 
-    return (
+    if (!mounted) return null;
+
+    const content = (
         <AnimatePresence>
             {open && (
                 <>
@@ -77,8 +86,10 @@ export function BottomSheet({
                         exit={{ y: "100%" }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className={cn(
-                            "fixed bottom-0 left-0 right-0 z-[210]",
-                            "bg-white rounded-t-3xl",
+                            "fixed z-[210]",
+                            // Mobile layout: full bottom. Desktop layout: sliding panel on right.
+                            "bottom-0 left-0 right-0 md:left-auto md:right-4 md:bottom-4 md:w-full md:max-w-sm",
+                            "bg-white rounded-t-3xl md:rounded-2xl md:border md:border-slate-200",
                             "shadow-[0_-8px_32px_rgba(0,0,0,0.18)]",
                             snap === "full" ? "max-h-[92dvh]" : "max-h-[92dvh]",
                             "flex flex-col",
@@ -131,6 +142,8 @@ export function BottomSheet({
             )}
         </AnimatePresence>
     );
+
+    return createPortal(content, document.body);
 }
 
 // ── BottomSheetDestructive — for delete confirmations ──────────────────────
