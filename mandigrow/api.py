@@ -2262,13 +2262,13 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
                    -- match exactly between Finance Overview and Ledger Statement.
                    -- For cheque entries: effective date = clearance_date
                    -- For non-cheque entries: effective date = posting_date
-                   AND COALESCE(je.clearance_date, gl.posting_date) <= CURDATE()
+                   AND COALESCE(je.clearance_date, gl.posting_date) <= %(today)s
                 ), 0
             ) as net_balance
         FROM `tabMandi Contact` c
         WHERE c.full_name != 'Walk-in Buyer'
     """
-    params = {"company": company}
+    params = {"company": company, "today": frappe.utils.today()}
 
 
     if org_id:
