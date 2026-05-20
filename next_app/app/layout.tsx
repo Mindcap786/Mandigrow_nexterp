@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import './mobile-native.css'
 import { AuthProvider } from '@/components/auth/auth-provider'
@@ -212,6 +213,20 @@ export default function RootLayout({
                         </LanguageProvider>
                     </NativeAuthGuard>
                 </CapacitorProvider>
+
+                {/* Google Analytics */}
+                <Script
+                    src="https://www.googletagmanager.com/gtag/js?id=G-6P8FT725J6"
+                    strategy="afterInteractive"
+                />
+                <Script id="google-analytics" strategy="afterInteractive">
+                    {`
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+                        gtag('config', 'G-6P8FT725J6');
+                    `}
+                </Script>
             </body>
         </html>
     )
