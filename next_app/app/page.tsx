@@ -104,13 +104,15 @@ export default function LandingPage() {
                             Enterprise-Grade Mandi Software
                         </div>
 
-                        <HeroTitle
-                            text={t('auth.hero_title')}
-                            className="text-5xl sm:text-6xl md:text-7xl mb-6 leading-[1.1] max-w-3xl"
-                        />
+                        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter max-w-3xl">
+                            <span className="text-gray-900 block">India's Best Mandi</span>
+                            <span className="text-gray-900 block">ERP Software</span>
+                            <span className="text-emerald-700 block mt-1">for Commission</span>
+                            <span className="text-emerald-700 block">Agents.</span>
+                        </h1>
 
                         <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-2xl mb-10 font-medium leading-relaxed">
-                            {t('auth.hero_description')}
+                            Auto commission, GST billing, mandi khata, and APMC compliance — works on Android at the mandi gate and desktop in your office. Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto mb-8">
@@ -143,7 +145,7 @@ export default function LandingPage() {
                     </div>
 
                     {/* Right Column - Slider */}
-                    <div className="w-full">
+                    <div className="w-full aspect-square lg:aspect-[4/3] rounded-[32px] overflow-hidden shadow-[0_20px_50px_-12px_rgba(4,120,87,0.15)] relative">
                         <HeroSlider />
                     </div>
                 </div>
@@ -222,10 +224,10 @@ export default function LandingPage() {
 
                 {/* Floating Fruits */}
                 <div className="absolute -left-12 -bottom-20 w-56 h-56 z-30 pointer-events-none hidden xl:block">
-                    <img src="/1.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
+                    <img src="/assets/fruits/pomegranate.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
                 </div>
                 <div className="absolute -right-8 -bottom-16 w-48 h-48 z-30 pointer-events-none hidden xl:block">
-                    <img src="/2.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
+                    <img src="/assets/fruits/mango.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
                 </div>
             </div>
 
