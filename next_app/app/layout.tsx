@@ -232,11 +232,62 @@ export default function RootLayout({
                                                 "url": "https://www.mandigrow.com",
                                                 "logo": "https://www.mandigrow.com/icons/icon.svg",
                                                 "description": "India's leading APMC Mandi ERP software for commission agents, fruit & vegetable traders.",
+                                                "email": "support@mandigrow.com",
+                                                "contactPoint": {
+                                                    "@type": "ContactPoint",
+                                                    "contactType": "customer support",
+                                                    "availableLanguage": ["English", "Hindi"],
+                                                    "areaServed": "IN"
+                                                },
                                                 "sameAs": [
                                                     "https://twitter.com/mandigrow",
                                                     "https://www.facebook.com/mandigrow",
                                                     "https://www.linkedin.com/company/mandigrow"
                                                 ]
+                                            },
+                                            {
+                                                "@type": "LocalBusiness",
+                                                "name": "MandiGrow — Mandi ERP Software",
+                                                "image": "https://www.mandigrow.com/icons/icon.svg",
+                                                "url": "https://www.mandigrow.com",
+                                                "telephone": "+91-9999999999",
+                                                "priceRange": "₹₹",
+                                                "address": {
+                                                    "@type": "PostalAddress",
+                                                    "addressLocality": "New Delhi",
+                                                    "addressRegion": "Delhi",
+                                                    "postalCode": "110001",
+                                                    "addressCountry": "IN"
+                                                },
+                                                "geo": {
+                                                    "@type": "GeoCoordinates",
+                                                    "latitude": 28.6139,
+                                                    "longitude": 77.2090
+                                                },
+                                                "openingHoursSpecification": {
+                                                    "@type": "OpeningHoursSpecification",
+                                                    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+                                                    "opens": "09:00",
+                                                    "closes": "20:00"
+                                                },
+                                                "aggregateRating": {
+                                                    "@type": "AggregateRating",
+                                                    "ratingValue": "4.9",
+                                                    "reviewCount": "184"
+                                                }
+                                            },
+                                            {
+                                                "@type": "WebSite",
+                                                "name": "MandiGrow",
+                                                "url": "https://www.mandigrow.com",
+                                                "potentialAction": {
+                                                    "@type": "SearchAction",
+                                                    "target": {
+                                                        "@type": "EntryPoint",
+                                                        "urlTemplate": "https://www.mandigrow.com/blog?q={search_term_string}"
+                                                    },
+                                                    "query-input": "required name=search_term_string"
+                                                }
                                             }
                                         ]
                                     })}} />

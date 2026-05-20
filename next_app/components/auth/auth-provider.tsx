@@ -274,6 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/te' ||
                          pathname === '/partners' ||
                          pathname === '/blog' ||
+                         pathname === '/arhtiya-software' ||
                          pathname?.startsWith('/blog/') ||
                          pathname?.startsWith('/mandi-software-') ||
                          pathname?.startsWith('/mandi-') ||
@@ -281,6 +282,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname?.includes('-erp') ||
                          pathname?.includes('-billing') ||
                          pathname?.includes('-management') ||
+                         pathname?.includes('-vs-mandigrow') ||
+                         pathname?.includes('-hindi') ||
                          pathname?.includes('gst-mandi-compliance') ||
                          pathname?.startsWith('/public') ||
                          pathname?.startsWith('/auth/callback') ||

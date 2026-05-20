@@ -39,6 +39,7 @@ const PUBLIC_PATHS = [
     '/te',
     '/blog',
     '/signup',
+    '/arhtiya-software',
 ]
 
 function isPublicPath(pathname: string): boolean {
@@ -55,6 +56,7 @@ function isPublicPath(pathname: string): boolean {
         pathname?.includes('-billing') ||
         pathname?.includes('-management') ||
         pathname?.includes('-vs-mandigrow') ||
+        pathname?.includes('-hindi') ||
         pathname?.includes('gst-mandi-compliance') ||
         pathname?.startsWith('/public') ||
         pathname?.startsWith('/signup/')
