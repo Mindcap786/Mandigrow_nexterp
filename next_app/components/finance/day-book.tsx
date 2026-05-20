@@ -57,6 +57,10 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     cash_payment:     'paid_receipt',
     payment:          'paid_receipt',
     receipt:          'receive_receipt',
+    paid_receipt:     'paid_receipt',
+    receive_receipt:  'receive_receipt',
+    expense:          'expense_receipt',
+    expense_receipt:  'expense_receipt',
     opening_balance:  'opening_balance',
     // ── Expense / Income from Mandi Expense dialog & backend ──────────────
     expense:          'expense_receipt',

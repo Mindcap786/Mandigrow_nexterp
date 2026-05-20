@@ -3534,7 +3534,7 @@ def get_payments_register(
     if not company:
         company = _get_user_company()
 
-    filters = [["docstatus", "=", 1], ["company", "=", company]]
+    filters = [["docstatus", "=", 1], ["company", "=", company], ["voucher_type", "!=", "Opening Entry"]]
     if date_from:
         filters.append(["posting_date", ">=", date_from])
     if date_to:
@@ -3660,7 +3660,7 @@ def get_payments_register(
                     return "receipt"
                 if float(ln.get("credit") or 0) > 0:
                     return "payment"
-        return "payment"
+        return "journal"
 
     records = []
     for je in jes:

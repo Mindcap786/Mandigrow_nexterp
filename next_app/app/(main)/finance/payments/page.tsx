@@ -159,6 +159,7 @@ export default function PaymentsPage() {
                 );
                 if (v.type === 'receipt') displayType = "Receive Money";
                 else if (v.type === 'payment') displayType = isExpense ? "Mandi Expense" : "Make Payment";
+                else if (v.type === 'journal') displayType = isExpense ? "Mandi Expense" : "General Entry";
 
                 const wellFormed = isVoucherWellFormed(lines || []);
                 const imbalance = wellFormed ? 0 : Math.abs(getVoucherImbalance(lines || []));
@@ -377,9 +378,9 @@ export default function PaymentsPage() {
                                 <div className="flex items-center gap-3 md:gap-6 min-w-0">
                                     <div className={cn("w-10 h-10 md:w-14 md:h-14 shrink-0 rounded-xl flex items-center justify-center font-black transition-all group-hover:scale-105",
                                         t.type === 'receipt' ? "bg-green-100 text-green-700" :
-                                            t.type === 'payment' ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
+                                            t.type === 'payment' ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
                                     )}>
-                                        {t.type === 'receipt' ? <ArrowDownLeft className="h-5 w-5 md:h-6 md:w-6" /> : t.type === 'payment' ? <ArrowUpRight className="h-5 w-5 md:h-6 md:w-6" /> : <Wallet className="h-5 w-5 md:h-6 md:w-6" />}
+                                        {t.type === 'receipt' ? <ArrowDownLeft className="h-5 w-5 md:h-6 md:w-6" /> : t.type === 'payment' ? <ArrowUpRight className="h-5 w-5 md:h-6 md:w-6" /> : <FileText className="h-5 w-5 md:h-6 md:w-6" />}
                                     </div>
                                     <div className="min-w-0 pr-2">
                                         <div className="flex flex-wrap items-center gap-1.5 md:gap-3 mb-1">
@@ -403,12 +404,12 @@ export default function PaymentsPage() {
                                 </div>
                                 <div className="text-right shrink-0">
                                     <div className={cn("text-sm md:text-xl font-black font-mono tracking-tight",
-                                        t.type === 'receipt' ? "text-green-600" : "text-red-600"
+                                        t.type === 'receipt' ? "text-green-600" : (t.type === 'payment' ? "text-red-600" : "text-slate-600")
                                     )}>
-                                        {t.type === 'receipt' ? 'Cr' : 'Dr'} ₹{t.amount?.toLocaleString()}
+                                        {t.type === 'receipt' ? 'Cr' : (t.type === 'payment' ? 'Dr' : '')} ₹{t.amount?.toLocaleString()}
                                     </div>
                                     <div className="text-[8px] md:text-[10px] text-black font-black uppercase tracking-widest mt-0.5 md:mt-1">
-                                        {t.type === 'receipt' ? 'Credit' : 'Debit'}
+                                        {t.type === 'receipt' ? 'Credit' : (t.type === 'payment' ? 'Debit' : 'Value')}
                                     </div>
                                 </div>
                             </div>
