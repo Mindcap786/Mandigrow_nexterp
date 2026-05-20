@@ -60,6 +60,20 @@ export function LandingFooter() {
                         <Link href="/mandi-software-bihar" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Bihar</Link>
                         <Link href="/anaj-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Anaj Mandi</Link>
                         <Link href="/apmc-billing-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">APMC Billing</Link>
+                        
+                        {/* Phase 2: Local Mandis */}
+                        <Link href="/azadpur-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Azadpur</Link>
+                        <Link href="/vashi-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Vashi</Link>
+                        <Link href="/ghazipur-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Ghazipur</Link>
+                        <Link href="/yeshwanthpur-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Yeshwanthpur</Link>
+                        <Link href="/bowenpally-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Bowenpally</Link>
+                        <Link href="/okhla-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Okhla</Link>
+
+                        {/* Phase 3: Competitors */}
+                        <Link href="/tally-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Tally Alternative</Link>
+                        <Link href="/vyapar-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Vyapar Alternative</Link>
+                        <Link href="/marg-erp-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Marg ERP Alternative</Link>
+                        <Link href="/zoho-vs-mandigrow" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all text-emerald-900">Zoho Alternative</Link>
                         <Link href="/privacy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.privacy_policy') || 'Privacy Policy'}</Link>
                         <Link href="/terms" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">{t('landing.terms_of_service') || 'Terms of Service'}</Link>
                         <Link href="/refund-policy" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Refund Policy</Link>
