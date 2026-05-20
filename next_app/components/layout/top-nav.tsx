@@ -47,8 +47,10 @@ export function TopNav() {
     }
 
     return (
-        <div className="sticky top-0 z-30 w-full bg-white/90 backdrop-blur-xl border-b border-slate-100 px-4 py-2 print:hidden overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-1.5 min-w-max">
+        <div className="sticky top-0 z-30 w-full bg-white/90 backdrop-blur-xl border-b border-slate-100 px-4 py-2 print:hidden">
+            <div className="flex items-center justify-between gap-2">
+                {/* ── Left: Quick Nav Links ─────────────────────────────────── */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
                 {/* Impersonation Banner */}
                 {isImpersonating && (
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 me-2">
@@ -104,8 +106,13 @@ export function TopNav() {
                         </Link>
                     )
                 })}
+                </div>
 
+                {/* ── Right: Alert Bell (always visible on desktop) ─────────── */}
+                <div className="flex-shrink-0 flex items-center">
+                    <AlertBell />
                 </div>
             </div>
+        </div>
     )
 }
