@@ -29,12 +29,38 @@ const PUBLIC_PATHS = [
     '/auth/callback',
     '/partners',
     '/partner-portal',
+    '/faq',
+    '/privacy',
+    '/terms',
+    '/refund-policy',
+    '/contact',
+    '/features',
+    '/pricing',
+    '/te',
+    '/blog',
+    '/signup',
 ]
 
 function isPublicPath(pathname: string): boolean {
-    return PUBLIC_PATHS.some(path =>
-        pathname === path || pathname.startsWith(path + '/')
-    )
+    if (PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'))) {
+        return true;
+    }
+    // Also check for dynamic SEO page patterns
+    if (
+        pathname?.startsWith('/blog/') ||
+        pathname?.startsWith('/mandi-software-') ||
+        pathname?.startsWith('/mandi-') ||
+        pathname?.includes('-software') ||
+        pathname?.includes('-erp') ||
+        pathname?.includes('-billing') ||
+        pathname?.includes('-management') ||
+        pathname?.includes('gst-mandi-compliance') ||
+        pathname?.startsWith('/public') ||
+        pathname?.startsWith('/signup/')
+    ) {
+        return true;
+    }
+    return false;
 }
 
 interface NativeAuthGuardProps {

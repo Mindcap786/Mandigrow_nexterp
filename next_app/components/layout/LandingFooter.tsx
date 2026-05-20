@@ -34,8 +34,15 @@ export function LandingFooter() {
                         <Link href="/features" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Features</Link>
                         <Link href="/pricing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Pricing</Link>
                         <Link href="/mandi-billing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi Billing</Link>
+                        <Link href="/mandi-billing-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Billing Software</Link>
+                        <Link href="/mandi-erp-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi ERP</Link>
+                        <Link href="/agriculture-billing-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Agri Billing</Link>
                         <Link href="/commission-agent-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Commission Agent</Link>
+                        <Link href="/digital-mandi-khata-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Digital Khata</Link>
                         <Link href="/mandi-khata-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Mandi Khata</Link>
+                        <Link href="/fruit-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Fruit Mandi</Link>
+                        <Link href="/sabji-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Sabji Mandi</Link>
+                        <Link href="/vegetable-mandi-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Vegetable Mandi</Link>
                         <Link href="/sabji-billing-software" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Sabji Billing</Link>
                         <Link href="/fruit-vegetable-billing" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">Fruit & Veg Billing</Link>
                         <Link href="/gst-mandi-compliance" className="hover:text-emerald-950 hover:underline decoration-emerald-500/30 underline-offset-4 transition-all">GST Compliance</Link>

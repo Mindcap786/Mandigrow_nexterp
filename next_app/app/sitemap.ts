@@ -17,6 +17,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/`,                               lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
 
         // ── Money pages — commodity/category ──────────────────────────────────────
+        { url: `${BASE_URL}/fruit-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
+        { url: `${BASE_URL}/sabji-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
+        { url: `${BASE_URL}/vegetable-mandi-software`,       lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
+        { url: `${BASE_URL}/mandi-billing-software`,         lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
+        { url: `${BASE_URL}/agriculture-billing-software`,   lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
+        { url: `${BASE_URL}/mandi-erp-software`,             lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
+        { url: `${BASE_URL}/digital-mandi-khata-software`,   lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
         { url: `${BASE_URL}/mandi-billing`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
         { url: `${BASE_URL}/commission-agent-software`,      lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
         { url: `${BASE_URL}/apmc-billing-software`,          lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
