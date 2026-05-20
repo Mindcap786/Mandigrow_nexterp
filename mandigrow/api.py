@@ -4159,47 +4159,75 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
     doc.insert(ignore_permissions=True)
     
     if opening_balance > 0:
-        # Create an opening balance Journal Entry
+        """
+        Opening Balance Journal Entry — accounting rules per user requirement:
+
+        'To Pay'    (balance_type='payable'):
+            Mandi purchased goods but hasn't paid yet → Supplier owes us nothing, WE owe THEM.
+            Entry: Dr Opening Equity  /  Cr Payable (Supplier)
+            Meaning: liability created, mandi received goods on credit.
+
+        'To Receive' (balance_type='receivable'):
+            Mandi sold goods but hasn't collected yet → Buyer owes mandi money.
+            Entry: Dr Receivable (Customer)  /  Cr Opening Equity
+            Meaning: asset created, mandi has outstanding money to collect.
+
+        Both legs use is_opening='Yes' so:
+          - Day Book tx_type is correctly set to 'opening_balance'
+          - Liquid Assets SQL (which filters on Cash/Bank accounts) never picks these up
+          - Opening balance is shown in Day Book transactions, NOT in inflow/outflow
+        """
         company = _get_user_company()
-        account = frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
-        if not account:
-            account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
-            
-        # Standard ERPNext logic: Resolving the linked party and account
+        # Prefer 'Temporary Opening' account; fall back to any Equity account.
+        account = (
+            frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
+            or frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+        )
+
         from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
-        
-        party_type = "Customer" if contact_type == 'buyer' else "Supplier"
+
+        party_type   = "Customer" if contact_type == 'buyer' else "Supplier"
+        balance_label = "To Receive" if balance_type == 'receivable' else "To Pay"
+
         if party_type == "Customer":
-            party = ensure_customer_for_contact(doc.name, company)
+            party         = ensure_customer_for_contact(doc.name, company)
             party_account = frappe.db.get_value("Account", {"account_type": "Receivable", "company": company}, "name")
         else:
-            party = ensure_supplier_for_contact(doc.name, company)
-            party_account = frappe.db.get_value("Account", {"account_type": "Payable", "company": company}, "name")
-        
+            party         = ensure_supplier_for_contact(doc.name, company)
+            party_account = frappe.db.get_value("Account", {"account_type": "Payable",    "company": company}, "name")
+
         if party and party_account and account:
             je = frappe.get_doc({
-                "doctype": "Journal Entry",
-                "voucher_type": "Journal Entry",
+                "doctype":      "Journal Entry",
+                # 'Opening Entry' voucher_type ensures Frappe marks GL legs with is_opening='Yes'
+                # → Day Book detects tx_type='opening_balance' via the is_opening=="Yes" guard
+                # → Liquid Assets SQL (Cash/Bank filter) never sees these Receivable/Payable legs
+                "voucher_type": "Opening Entry",
                 "posting_date": frappe.utils.today(),
-                "company": company,
+                "company":      company,
+                # user_remark acts as a Day Book text-hint fallback
+                "user_remark":  f"Opening Balance ({balance_label}) — {doc.full_name}",
                 "accounts": [
                     {
-                        "account": party_account,
-                        "party_type": party_type,
-                        "party": party,
-                        "debit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
-                        "credit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
+                        # Receivable leg: Debit when 'To Receive' (asset), Credit when 'To Pay' (liability)
+                        "account":                   party_account,
+                        "party_type":                party_type,
+                        "party":                     party,
+                        "debit_in_account_currency":  opening_balance if balance_type == 'receivable' else 0,
+                        "credit_in_account_currency": opening_balance if balance_type == 'payable'    else 0,
                     },
                     {
-                        "account": account,
-                        "debit_in_account_currency": opening_balance if balance_type == 'payable' else 0,
+                        # Equity contra leg: always the opposite side
+                        "account":                   account,
+                        "debit_in_account_currency":  opening_balance if balance_type == 'payable'    else 0,
                         "credit_in_account_currency": opening_balance if balance_type == 'receivable' else 0,
-                    }
-                ]
+                    },
+                ],
             })
             je.flags.ignore_permissions = True
             je.insert()
             je.submit()
+            frappe.db.commit()
 
     return {"name": doc.name, "full_name": doc.full_name}
 

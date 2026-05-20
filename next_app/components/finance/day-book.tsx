@@ -53,15 +53,10 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     // cash_receipt is a cash counter-leg (Dr Cash) for a receipt — money received
     // NOT the same as sale_payment (which is a partial payment on a sale)
     cash_receipt:     'receive_receipt',
+    // cash_payment is a cash counter-leg (Cr Cash) for a payment — money paid out
     cash_payment:     'paid_receipt',
-    bank_receipt:     'receive_receipt',
-    bank_payment:     'paid_receipt',
     payment:          'paid_receipt',
     receipt:          'receive_receipt',
-    paid_receipt:     'paid_receipt',
-    receive_receipt:  'receive_receipt',
-    pending_cheque:   'pending_cheque',
-    journal:          'transaction',
     opening_balance:  'opening_balance',
     // ── Expense / Income from Mandi Expense dialog & backend ──────────────
     expense:          'expense_receipt',
@@ -908,18 +903,7 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             const rawLegs = entriesByGroup.get(fullGroupKey) || visibleLegs;
             const hasSaleLeg = rawLegs.some(l => inferVoucherFlow(l) === 'sale' || inferVoucherFlow(l) === 'sale_payment');
             const hasPurchaseLeg = rawLegs.some(l => inferVoucherFlow(l) === 'purchase');
-            const hasExpense = rawLegs.some(l => inferVoucherFlow(l) === 'expense_receipt');
-            const hasReceive = rawLegs.some(l => inferVoucherFlow(l) === 'receive_receipt');
-            const hasPaid = rawLegs.some(l => inferVoucherFlow(l) === 'paid_receipt');
-            const hasReturn = rawLegs.some(l => inferVoucherFlow(l) === 'stock_return');
-
-            const flowType = hasPurchaseLeg ? 'purchase' : 
-                             hasSaleLeg ? 'sale' : 
-                             hasReturn ? 'stock_return' :
-                             hasExpense ? 'expense_receipt' : 
-                             hasReceive ? 'receive_receipt' : 
-                             hasPaid ? 'paid_receipt' : 
-                             inferVoucherFlow(rawLegs[0]);
+            const flowType = hasPurchaseLeg ? 'purchase' : (hasSaleLeg ? 'sale' : inferVoucherFlow(rawLegs[0]));
             
             // ── CONTACT NAME RESOLUTION for summaryLegs ─────────────────────
             // rawLegs come from entriesByGroup (pre-enrichment), so they lack
@@ -1014,6 +998,7 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     const isPayment = flowType === 'paid_receipt' || flowType === 'payment';
                     const isExpense = flowType === 'expense_receipt';
                     const isReturn = flowType === 'stock_return';
+                    const isOpeningBal = flowType === 'opening_balance';
 
                     const v = mainLeg.voucher || {};
                     let label = 'Other';
@@ -1021,6 +1006,7 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     else if (isPayment) label = 'Payment';
                     else if (isExpense) label = 'Expense';
                     else if (isReturn) label = 'Return';
+                    else if (isOpeningBal) label = 'Opening Balance';
 
                     // FINAL OVERRIDE: If the description mentions "Consolidated", 
                     // never let the UI double the amount.
@@ -1030,16 +1016,28 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     // Adding an extra check to be 100% sure.
                     const finalSanitizedVal = isConsolidated ? Math.min(singleVal, maxDebit, maxCredit) : singleVal;
 
-                    const isOpeningBalance = flowType === 'opening_balance';
+                    // ── OPENING BALANCE: Debit/Credit column by accounting logic ──
+                    // 'To Receive' (receivable): Dr Receivable / Cr Equity
+                    //   → Mandi sold goods, buyer owes us → DEBIT column (asset created)
+                    // 'To Pay' (payable): Dr Equity / Cr Payable
+                    //   → Mandi purchased goods, we owe supplier → CREDIT column (liability created)
+                    // We detect which side this is by looking at whether maxDebit > maxCredit
+                    // on the Receivable/Payable leg (which is the party leg, i.e., has contact_id).
+                    const partyLeg = rawLegs.find(l => !!l.contact_id) || mainLeg;
+                    const partyLegDebit  = Number(partyLeg?.debit  || 0);
+                    const partyLegCredit = Number(partyLeg?.credit || 0);
+                    const obDisplayDebit  = isOpeningBal ? (partyLegDebit  > 0 ? partyLegDebit  : 0) : 0;
+                    const obDisplayCredit = isOpeningBal ? (partyLegCredit > 0 ? partyLegCredit : 0) : 0;
 
                     legs.push({
                         ...mainLeg,
                         contact: { name: groupContactName || mainLeg.contact?.name },
-                        // Stock Return: ALWAYS debit (Mandi reducing payable = value going out)
+                        // Opening Balance uses party-leg debit/credit directly.
+                        // Stock Return: ALWAYS debit (Mandi reducing payable = value going out).
                         // We use Math.max(debit,credit) so even the credit leg of the JE
                         // (Cr Stock In Hand) renders correctly as a DEBIT in the Daybook.
-                        displayDebit: isOpeningBalance ? Number(mainLeg.debit || 0) : ((isPayment || isExpense || isReturn) ? finalSanitizedVal : 0),
-                        displayCredit: isOpeningBalance ? Number(mainLeg.credit || 0) : (isReceipt ? finalSanitizedVal : 0),
+                        displayDebit:  isOpeningBal ? obDisplayDebit  : ((isPayment || isExpense || isReturn) ? finalSanitizedVal : 0),
+                        displayCredit: isOpeningBal ? obDisplayCredit : (isReceipt ? finalSanitizedVal : 0),
                         displayLabel: label,
                         displayDescription: v.narration || mainLeg.description,
                         displayType: flowType
@@ -1112,48 +1110,33 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
 
             const groupFlow = (group as any).flowType;
 
+            // ── OPENING BALANCE: skip entirely from all summary cards ──────────
+            // Opening balances are not cash inflows or outflows — they are
+            // accounting adjustments to record pre-existing receivables/payables.
+            // They must appear in Day Book transactions list but NOT in any
+            // Liquid Assets / Purchase / Sales / Expense KPI totals.
+            if (groupFlow === 'opening_balance' ||
+                group.summaryLegs.some((l: any) => l.displayType === 'opening_balance')) {
+                return;
+            }
+
             // Detect pure write-off group: payment/receipt with NO liquid (cash/bank) leg.
             // No real cash moved — must NOT count as inflow/outflow in Liquid Assets card.
-            // CRITICAL FIX: Check renderLegs (all raw GL legs), NOT summaryLegs.
-            // summaryLegs for standalone receipt/payment only has the party leg.
-            // renderLegs has both the party leg AND the cash/bank leg.
-            // NOTE: expense_receipt groups always have a cash/bank credit leg → never a write-off.
-            const allGroupLegs = [...(group.renderLegs || []), ...(group.summaryLegs || [])];
             const isWriteOff = (groupFlow === 'payment' || groupFlow === 'receipt' ||
                                 groupFlow === 'paid_receipt' || groupFlow === 'receive_receipt') &&
-                groupFlow !== 'expense_receipt' &&
-                !allGroupLegs.some((l: any) => {
-                    // Check both capitalised (Frappe) and lowercase (legacy) account type values
-                    const subType = String(l.account?.account_sub_type || l.account?.type || '').toLowerCase();
-                    const accType = String(l.account?.account_type || l.account?.type || '').toLowerCase();
-                    const accName = String(l.account?.name || l.account || '').toLowerCase();
-                    const txType  = String(l.transaction_type || '').toLowerCase();
+                !group.summaryLegs.some((l: any) => {
+                    const subType = String(l.account?.account_sub_type || '').toLowerCase();
+                    const accName = String(l.account?.name || '').toLowerCase();
                     return subType === 'cash' || subType === 'bank' ||
-                           accType === 'cash' || accType === 'bank' ||
-                           accName.includes('bank') || accName.includes('cash') ||
-                           // Frappe GL entry carries account_type directly on the shaped entry
-                           txType === 'receive_receipt' || txType === 'payment' ||
-                           txType === 'cash_receipt' || txType === 'bank_receipt' ||
-                           txType === 'cash_payment' || txType === 'bank_payment' ||
-                           txType === 'paid_receipt';
-
+                           accName.includes('bank') || accName.includes('cash');
                 });
 
             group.summaryLegs.forEach((leg: any) => {
                 const type = leg.displayType as string;
                 const val = Math.max(leg.displayDebit || 0, leg.displayCredit || 0);
-                
-                // CRITICAL FIX: The leg in summaryLegs is often the party/expense leg.
-                // To accurately know if this was a bank/digital payment, we must check 
-                // all raw legs (renderLegs) for any bank/upi involvement.
-                const allGroupLegs = [...(group.renderLegs || []), ...(group.summaryLegs || [])];
-                const isBank = allGroupLegs.some((l: any) => {
-                    const subType = String(l.account?.account_sub_type || l.account?.type || '').toLowerCase();
-                    const accType = String(l.account?.account_type || '').toLowerCase();
-                    const accName = String(l.account?.name || l.account || '').toLowerCase();
-                    const desc = String(l.displayDescription || l.description || '').toLowerCase();
-                    return subType === 'bank' || accType === 'bank' || accName.includes('bank') || desc.includes('upi');
-                });
+                const isBank = String(leg.account?.account_sub_type || '').toLowerCase() === 'bank'
+                    || String(leg.account?.name || '').toLowerCase().includes('bank')
+                    || String(leg.displayDescription || '').toLowerCase().includes('upi');
 
                 // 1. PURCHASE GROUP (Initial Transaction)
                 // Hits Card 1 ONLY.
@@ -1179,14 +1162,10 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     return;
                 }
 
-            // 3. FINANCIAL MOVEMENTS (Standalone or Later Clearing)
+                // 3. FINANCIAL MOVEMENTS (Standalone or Later Clearing)
                 // Hits Card 2 ONLY.
                 // Pure write-offs have no cash leg — skip inflow/outflow entirely.
-                // IMPORTANT: expense_receipt groups ALWAYS have a cash leg (Cr Cash/Bank)
-                // so they must NEVER be treated as write-offs.
-                if (isWriteOff && type !== 'expense_receipt') return;
-                
-                if (groupFlow === 'opening_balance' || type === 'opening_balance') return;
+                if (isWriteOff) return;
 
                 if (type === 'receipt' || type === 'receive_receipt') {
                     if (isBank) digitalInflow += val; else totalInflow += val;
