@@ -86,6 +86,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/arhtiya-software`,               lastModified: now, changeFrequency: 'monthly', priority: 0.93 },
         { url: `${BASE_URL}/mandi-billing-software-hindi`,   lastModified: now, changeFrequency: 'monthly', priority: 0.93 },
 
+        // ── Phase 7: Feature Deep-Dives & Regional Languages ─────────────────────
+        { url: `${BASE_URL}/j-form-billing-software`,        lastModified: now, changeFrequency: 'monthly', priority: 0.94 },
+        { url: `${BASE_URL}/apmc-gate-pass-software`,        lastModified: now, changeFrequency: 'monthly', priority: 0.92 },
+        { url: `${BASE_URL}/mandi-accounting-software`,      lastModified: now, changeFrequency: 'monthly', priority: 0.94 },
+        { url: `${BASE_URL}/mandi-software-marathi`,         lastModified: now, changeFrequency: 'monthly', priority: 0.93 },
+
         // ── Support & marketing pages ─────────────────────────────────────────────
         { url: `${BASE_URL}/faq`,                            lastModified: now, changeFrequency: 'monthly', priority: 0.70 },
         { url: `${BASE_URL}/blog`,                           lastModified: now, changeFrequency: 'weekly',  priority: 0.80 },

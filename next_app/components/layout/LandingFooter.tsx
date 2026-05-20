@@ -14,9 +14,10 @@ const FOOTER_COLUMNS = [
             { label: 'Mandi ERP',          href: '/mandi-erp-software' },
             { label: 'Commission Agent',   href: '/commission-agent-software' },
             { label: 'Digital Khata',      href: '/digital-mandi-khata-software' },
+            { label: 'Mandi Accounting',   href: '/mandi-accounting-software' },
+            { label: 'J-Form Billing',     href: '/j-form-billing-software' },
+            { label: 'APMC Gate Pass',     href: '/apmc-gate-pass-software' },
             { label: 'GST Compliance',     href: '/gst-mandi-compliance' },
-            { label: 'APMC Billing',       href: '/apmc-billing-software' },
-            { label: 'Farmer Payments',    href: '/farmer-payment-management' },
         ],
     },
     {
@@ -44,7 +45,8 @@ const FOOTER_COLUMNS = [
             { label: 'Tamil Nadu',       href: '/mandi-software-tamil-nadu' },
             { label: 'Rajasthan',        href: '/mandi-software-rajasthan' },
             { label: 'Uttar Pradesh',    href: '/mandi-software-uttar-pradesh' },
-            { label: 'Bihar',            href: '/mandi-software-bihar' },
+            { label: 'In Hindi',         href: '/mandi-software-hindi' },
+            { label: 'In Marathi',       href: '/mandi-software-marathi' },
         ],
     },
     {
