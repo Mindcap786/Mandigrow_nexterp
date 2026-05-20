@@ -25,6 +25,9 @@ i18n
 
     interpolation: {
       escapeValue: false, // React already escapes values
+    },
+    react: {
+      useSuspense: false, // Prevents SSR/SSG hangs during Next.js static generation
     }
   });
 
