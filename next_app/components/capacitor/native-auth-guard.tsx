@@ -54,6 +54,7 @@ function isPublicPath(pathname: string): boolean {
         pathname?.includes('-erp') ||
         pathname?.includes('-billing') ||
         pathname?.includes('-management') ||
+        pathname?.includes('-vs-mandigrow') ||
         pathname?.includes('gst-mandi-compliance') ||
         pathname?.startsWith('/public') ||
         pathname?.startsWith('/signup/')

@@ -66,6 +66,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/bowenpally-mandi-software`,      lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
         { url: `${BASE_URL}/okhla-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
 
+        // ── Competitor Versus Pages ───────────────────────────────────────────────
+        { url: `${BASE_URL}/tally-vs-mandigrow`,             lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
+        { url: `${BASE_URL}/vyapar-vs-mandigrow`,            lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
+        { url: `${BASE_URL}/marg-erp-vs-mandigrow`,          lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
+        { url: `${BASE_URL}/zoho-vs-mandigrow`,              lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
 
         // ── Support & marketing pages ─────────────────────────────────────────────
         { url: `${BASE_URL}/faq`,                            lastModified: now, changeFrequency: 'monthly', priority: 0.70 },

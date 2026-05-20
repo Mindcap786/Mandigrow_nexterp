@@ -48,6 +48,7 @@ export async function middleware(request: NextRequest) {
         path.includes('-erp') ||
         path.includes('-billing') ||
         path.includes('-management') ||
+        path.includes('-vs-mandigrow') ||
         path.includes('gst-mandi-compliance') ||
         path.startsWith('/locales') ||
         path.startsWith('/public') ||

@@ -206,6 +206,41 @@ export default function RootLayout({
                                 <AuthProvider>
                                     <ImpersonationBanner />
                                     <PaymentReminderBanner />
+
+                                    <Script id="json-ld-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                                        "@context": "https://schema.org",
+                                        "@graph": [
+                                            {
+                                                "@type": "SoftwareApplication",
+                                                "name": "MandiGrow",
+                                                "operatingSystem": "Web, iOS, Android",
+                                                "applicationCategory": "BusinessApplication",
+                                                "aggregateRating": {
+                                                    "@type": "AggregateRating",
+                                                    "ratingValue": "4.9",
+                                                    "ratingCount": "184"
+                                                },
+                                                "offers": {
+                                                    "@type": "Offer",
+                                                    "price": "500",
+                                                    "priceCurrency": "INR"
+                                                }
+                                            },
+                                            {
+                                                "@type": "Organization",
+                                                "name": "MandiGrow",
+                                                "url": "https://www.mandigrow.com",
+                                                "logo": "https://www.mandigrow.com/icons/icon.svg",
+                                                "description": "India's leading APMC Mandi ERP software for commission agents, fruit & vegetable traders.",
+                                                "sameAs": [
+                                                    "https://twitter.com/mandigrow",
+                                                    "https://www.facebook.com/mandigrow",
+                                                    "https://www.linkedin.com/company/mandigrow"
+                                                ]
+                                            }
+                                        ]
+                                    })}} />
+
                                     {children}
                                     <Toaster />
                                     <OfflineSyncManager />
