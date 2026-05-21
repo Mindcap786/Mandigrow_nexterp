@@ -95,7 +95,7 @@ export default function PurchaseBillInvoice({
         const rate = toNumber(l.supplier_rate);
         const gGoodsVal = gQty * rate;
         const lLessAmount = lLessQty * rate;
-        const nGoodsVal = gGoodsVal - lLessAmount;
+        const nGoodsVal = Math.max(0, gGoodsVal - lLessAmount - toNumber(l.farmer_charges || 0));
         
         totalGrossQty += gQty;
         totalGrossGoodsValue += gGoodsVal;
@@ -119,10 +119,10 @@ export default function PurchaseBillInvoice({
 
     // Add trip-level expenses from the arrival document (only added once)
     const tripExpenses = toNumber(arrival?.hire_charges) + toNumber(arrival?.hamali_expenses) + toNumber(arrival?.other_expenses);
-    const combinedExpenses = totalLotExpenses + totalArrivalExpenseShare + tripExpenses;
+    const combinedExpenses = totalLotExpenses + tripExpenses;
 
     const isSettled = lotsToProcess.some(l => !!l.settlement_at);
-    const totalNetGoodsValue = totalGrossGoodsValue - totalLessAmount;
+    const totalNetGoodsValue = Math.max(0, totalGrossGoodsValue - totalLessAmount - totalArrivalExpenseShare);
 
     // Use backend-provided flag: 'is_cheque_cleared' is false when user chose 'Clear Later'
     // This is set by the API based on whether the payment JE is submitted or just a draft.
@@ -141,7 +141,7 @@ export default function PurchaseBillInvoice({
     // DIRECT purchase: farmer reimburses transport/packing expenses → ADD them to payable.
     // COMMISSION:      expenses are deducted from farmer's proceeds  → SUBTRACT via combinedExpenses.
     const finalPayable = arrivalType === 'direct' 
-        ? Math.max(0, totalNetGoodsValue + totalLotExpenses - totalArrivalExpenseShare + tripExpenses - combinedPaid - totalOtherCharges)
+        ? Math.max(0, totalNetGoodsValue + totalLotExpenses + tripExpenses - combinedPaid - totalOtherCharges)
         : Math.max(0, totalNetGoodsValue - totalCommission - combinedExpenses - combinedPaid - totalOtherCharges)
 
     // Organization address
@@ -409,6 +409,14 @@ export default function PurchaseBillInvoice({
                             </div>
                         )}
 
+                        {/* Other Cut (Farmer Charges) */}
+                        {totalArrivalExpenseShare > 0.01 && (
+                            <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
+                                <span className="font-bold text-orange-600 uppercase">Other Cut</span>
+                                <span className="font-bold text-orange-600">− ₹{Math.round(totalArrivalExpenseShare).toLocaleString()}</span>
+                            </div>
+                        )}
+
                         {/* Net Goods Value */}
                         <div className="flex justify-between items-center text-xs border-t border-black pt-1.5 mb-2">
                             <span className="font-black text-slate-800 uppercase tracking-tight">Net Goods Value</span>
@@ -452,12 +460,6 @@ export default function PurchaseBillInvoice({
                                         <div className="flex justify-between items-center text-[9px] text-gray-500">
                                             <span className="uppercase tracking-widest text-gray-400">↳ Packing & Loading</span>
                                             <span>₹{Math.round(totalLotExpenses).toLocaleString()}</span>
-                                        </div>
-                                    )}
-                                    {totalArrivalExpenseShare > 0.01 && (
-                                        <div className="flex justify-between items-center text-[9px] text-gray-500">
-                                            <span className="uppercase tracking-widest text-gray-400">↳ Other Cut</span>
-                                            <span>₹{Math.round(totalArrivalExpenseShare).toLocaleString()}</span>
                                         </div>
                                     )}
                                     {tripExpenses > 0.01 && (

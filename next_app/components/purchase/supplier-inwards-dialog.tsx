@@ -131,7 +131,9 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                 lessQty = qty * (lessPercent / 100);
             }
             const adjustedQty = Math.max(qty - lessQty, 0);
-            const lotAdjustedValue = adjustedQty * rate;
+            const baseValue = adjustedQty * rate;
+            const otherCut = Number(lot.farmer_charges || 0);
+            const lotAdjustedValue = Math.max(0, baseValue - otherCut);
             grouped[key].totalAdjustedValue += lotAdjustedValue;
             
             const itemTotal = calculateLotGrossValue(lot);
