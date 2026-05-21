@@ -9281,7 +9281,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                             break
                     item_lot_code = candidate
             item_id = item.get("item_id") or _get_default_item()
-            item_master = frappe.db.get_value("Item", item_id, ["shelf_life_in_days", "critical_age_days"], as_dict=True) or {}
+            item_master = frappe.db.get_value("Item", item_id, ["shelf_life_in_days"], as_dict=True) or {}
             
             lot_data = {
                 "doctype": "Mandi Lot",
@@ -9300,7 +9300,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 "farmer_charges": float(item.get("farmer_charges") or 0),
                 "lot_code": item_lot_code,
                 "shelf_life_days": int(item_master.get("shelf_life_in_days") or 0),
-                "critical_age_days": int(item_master.get("critical_age_days") or 0),
+                "critical_age_days": 0,
                 "status": "Available"
             }
             doc.append("items", lot_data)
