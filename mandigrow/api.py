@@ -2021,6 +2021,8 @@ def get_commodities() -> list:
         item_fields.append("custom_attributes")
     if frappe.db.has_column("Item", "local_name"):
         item_fields.append("local_name")
+    if frappe.db.has_column("Item", "critical_age_days"):
+        item_fields.append("critical_age_days")
 
     items = frappe.get_all(
         "Item",
@@ -8750,6 +8752,19 @@ def create_commodity(**kwargs) -> dict:
             except Exception:
                 pass
                 
+        # Ensure critical_age_days field exists
+        if not frappe.db.exists("Custom Field", "Item-critical_age_days"):
+            try:
+                from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+                create_custom_field("Item", {
+                    "fieldname": "critical_age_days",
+                    "label": "Critical Age (Days)",
+                    "fieldtype": "Int",
+                    "insert_after": "shelf_life_in_days"
+                })
+            except Exception:
+                pass
+                
         custom_attrs = kwargs.get("custom_attributes") or {}
         if isinstance(custom_attrs, str):
             custom_attrs = frappe.parse_json(custom_attrs)
@@ -8845,7 +8860,8 @@ def create_commodity(**kwargs) -> dict:
             "internal_id": internal_id or item_code,
             "custom_attributes": frappe.as_json(custom_attrs),
             "stock_uom": kwargs.get("default_unit") or "Nos",
-            "shelf_life_in_days": kwargs.get("shelf_life_days") or 0,
+            "shelf_life_in_days": kwargs.get("shelf_life_days") or 7,
+            "critical_age_days": kwargs.get("critical_age_days") or 14,
             "standard_rate": kwargs.get("sale_price") or 0,
             "is_stock_item": 1,
             "disabled": 0
@@ -9281,7 +9297,10 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                             break
                     item_lot_code = candidate
             item_id = item.get("item_id") or _get_default_item()
-            item_master = frappe.db.get_value("Item", item_id, ["shelf_life_in_days"], as_dict=True) or {}
+            item_fields = ["shelf_life_in_days"]
+            if frappe.db.has_column("Item", "critical_age_days"):
+                item_fields.append("critical_age_days")
+            item_master = frappe.db.get_value("Item", item_id, item_fields, as_dict=True) or {}
             
             lot_data = {
                 "doctype": "Mandi Lot",
@@ -9299,7 +9318,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 "loading_cost": float(item.get("loading_cost") or 0),
                 "farmer_charges": float(item.get("farmer_charges") or 0),
                 "shelf_life_days": int(item_master.get("shelf_life_in_days") or 7),
-                "critical_age_days": 14,
+                "critical_age_days": int(item_master.get("critical_age_days") or 14),
                 "status": "Available"
             }
             doc.append("items", lot_data)
