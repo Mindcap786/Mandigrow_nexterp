@@ -286,7 +286,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                     className="h-8 bg-slate-900 text-white hover:bg-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest px-4 flex items-center gap-2"
                                 >
                                     <Edit2 className="w-3 h-3" />
-                                    Edit Bill
+                                    View
                                 </Button>
                             </>
                         ) : (
