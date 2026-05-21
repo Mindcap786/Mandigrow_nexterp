@@ -6121,8 +6121,8 @@ def get_lots_for_item(item_id: str = None) -> list:
             "age_days":         age_days,
             "created_at":       created_at or arrival_date,
             "mfg_date":         arrival_date,
-            "shelf_life_days":  7,
-            "critical_age_days": 14,
+            "shelf_life_days":  lot.get("shelf_life_days"),
+            "critical_age_days": lot.get("critical_age_days"),
         })
 
     return result
