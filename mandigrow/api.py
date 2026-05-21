@@ -3040,6 +3040,8 @@ def update_lot(lot_id: str, data: str) -> dict:
                 if 'packing_cost' in data: item.packing_cost = data['packing_cost']
                 if 'loading_cost' in data: item.loading_cost = data['loading_cost']
                 if 'farmer_charges' in data: item.farmer_charges = data['farmer_charges']
+                if 'shelf_life_days' in data: item.shelf_life_days = data['shelf_life_days']
+                if 'critical_age_days' in data: item.critical_age_days = data['critical_age_days']
                 _normalize_lot_stock(item)
                 break
                 
@@ -6022,7 +6024,8 @@ def get_lots_for_item(item_id: str = None) -> list:
             ["name", "item_id", "lot_code", "unit", "sale_price",
              "supplier_rate", "storage_location", "commission_percent",
              "less_percent", "packing_cost", "loading_cost",
-             "farmer_charges", "net_amount", "creation", "parent"],
+             "farmer_charges", "net_amount", "creation", "parent",
+             "shelf_life_days", "critical_age_days"],
             ["qty", "current_qty", "initial_qty", "net_qty", "status"],
         ),
         order_by="creation desc",
