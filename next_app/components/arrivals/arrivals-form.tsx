@@ -115,6 +115,18 @@ const formSchema = z.object({
     auto_print_qr: z.boolean().default(false), // User requested optional popups
 
     items: z.array(itemSchema).min(1, "At least one item is required"),
+}).superRefine((data, ctx) => {
+    if (data.arrival_type === 'commission' || data.arrival_type === 'commission_supplier') {
+        data.items.forEach((item, index) => {
+            if (!item.commission_percent || item.commission_percent <= 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Comm % is mandatory for Commission Arrivals",
+                    path: ['items', index, 'commission_percent'],
+                });
+            }
+        });
+    }
 });
 
 type FormValues = z.infer<typeof formSchema>;
