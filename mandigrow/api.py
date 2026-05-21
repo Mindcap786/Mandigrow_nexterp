@@ -9298,8 +9298,8 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 "packing_cost": float(item.get("packing_cost") or 0),
                 "loading_cost": float(item.get("loading_cost") or 0),
                 "farmer_charges": float(item.get("farmer_charges") or 0),
-                "shelf_life_days": int(item_master.get("shelf_life_in_days") or 14),
-                "critical_age_days": 7,
+                "shelf_life_days": int(item_master.get("shelf_life_in_days") or 7),
+                "critical_age_days": 14,
                 "status": "Available"
             }
             doc.append("items", lot_data)
