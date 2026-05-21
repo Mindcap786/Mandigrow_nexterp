@@ -115,9 +115,25 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                     other_expenses: lot.arrival?.other_expenses || 0,
                     totalLotPaid: 0, 
                     totalLotBalance: 0, 
+                    totalAdjustedValue: 0,
                     created_at: lot.arrival?.creation || lot.creation || lot.arrival?.created_at || lot.created_at,
                 };
             }
+            
+            const qty = Number(lot.initial_qty || lot.qty || 0);
+            const rate = Number(lot.supplier_rate || 0);
+            const lessPercent = Number(lot.less_percent || 0);
+            const lessUnits = Number(lot.less_units || 0);
+            let lessQty = 0;
+            if (lessUnits > 0) {
+                lessQty = lessUnits;
+            } else if (lessPercent > 0) {
+                lessQty = qty * (lessPercent / 100);
+            }
+            const adjustedQty = Math.max(qty - lessQty, 0);
+            const lotAdjustedValue = adjustedQty * rate;
+            grouped[key].totalAdjustedValue += lotAdjustedValue;
+            
             const itemTotal = calculateLotGrossValue(lot);
 
             const isLotSold = (lot.current_qty !== undefined && lot.current_qty <= 0);
@@ -384,7 +400,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                             )}
                                                             {group.paymentStatus === 'pending' && (
                                                                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
-                                                                    Total Bill: ₹{Math.round(group.totalGrossAmount || 0).toLocaleString()}
+                                                                    Total Bill: ₹{Math.round(group.totalAdjustedValue || 0).toLocaleString()}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -409,7 +425,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                     {group.paymentStatus !== 'paid' && (
                                                         <div className="text-right px-3 py-1.5 rounded-xl bg-amber-50/50 border border-amber-100 flex flex-col items-end">
                                                             <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 opacity-60">Bill Total</span>
-                                                            <span className="text-xs font-black text-amber-600">₹{Math.round(Math.max(group.totalGrossAmount || 0, 0)).toLocaleString()}</span>
+                                                            <span className="text-xs font-black text-amber-600">₹{Math.round(Math.max(group.totalAdjustedValue || 0, 0)).toLocaleString()}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex flex-col items-end gap-1">
@@ -480,7 +496,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                                  const isSold = (lot.current_qty !== undefined && lot.current_qty <= 0);
                                                                  const isFullyPaid = group.paymentStatus === 'paid';
                                                                  const isLocked = isSold && isFullyPaid;
-                                                                 const displayAmount = calculateLotGrossValue(lot);
+                                                                 const displayAmount = (lot.initial_qty || lot.qty || 0) * (lot.supplier_rate || 0);
                                                                  return (
                                                                      <div key={lot.id} className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-100 group/item hover:border-blue-200 transition-all shadow-sm">
                                                                          <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
