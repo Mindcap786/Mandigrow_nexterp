@@ -12734,8 +12734,14 @@ def _check_commission_arrival_readiness(arrival_name: str) -> None:
             )
             frappe.db.commit()
             frappe.logger().info(
-                f"[commission_readiness] {arrival_name} is now READY for settlement."
+                f"[commission_readiness] {arrival_name} is now READY. Auto-triggering settlement."
             )
+            try:
+                finalize_commission_settlement(arrival_name)
+                frappe.logger().info(f"[commission_readiness] {arrival_name} auto-settled successfully.")
+            except Exception as e:
+                frappe.log_error(str(e), f"Auto-settle failed for {arrival_name}")
+
     except Exception:
         frappe.log_error(frappe.get_traceback(), "_check_commission_arrival_readiness Failed")
 

@@ -38,7 +38,8 @@
   "total_commission",
   "total_expenses",
   "mandi_total_earnings",
-  "net_payable_farmer"
+  "net_payable_farmer",
+  "commission_settlement_status"
  ],
  "fields": [
   {
@@ -224,6 +225,13 @@
    "fieldtype": "Currency",
    "label": "Net Payable to Farmer/Supplier",
    "read_only": 1
+  },
+  {
+   "fieldname": "commission_settlement_status",
+   "fieldtype": "Select",
+   "label": "Settlement Status",
+   "options": "Pending\nReady\nSettled",
+   "default": "Pending"
   }
  ],
  "grid_page_length": 50,
