@@ -379,9 +379,9 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                                     group.paymentStatus === 'paid' ? "text-emerald-600" : "text-rose-600"
                                                                 )}>
                                                                     {group.paymentStatus === 'paid' ? (
-                                                                        `₹${Math.round(group.totalGrossAmount || 0).toLocaleString()}`
+                                                                        `₹${Math.round(Math.max(group.totalAdjustedValue || 0, 0)).toLocaleString()}`
                                                                     ) : (
-                                                                        `₹${Math.round(group.pendingAmount).toLocaleString()}`
+                                                                        `₹${Math.round(Math.max(group.pendingAmount, 0)).toLocaleString()}`
                                                                     )}
                                                                 </span>
                                                                 <Badge variant="outline" className={cn(
@@ -395,7 +395,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                             </div>
                                                             {group.paymentStatus === 'partial' && (
                                                                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
-                                                                    Paid: ₹{Math.round(group.totalPaidCombined || 0).toLocaleString()} / Total: ₹{Math.round(group.totalGrossAmount || 0).toLocaleString()}
+                                                                    Paid: ₹{Math.round(group.totalPaidCombined || 0).toLocaleString()} / Total: ₹{Math.round(Math.max(group.totalAdjustedValue || 0, 0)).toLocaleString()}
                                                                 </div>
                                                             )}
                                                             {group.paymentStatus === 'pending' && (
