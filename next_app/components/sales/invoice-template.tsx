@@ -37,6 +37,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
     // then book_no, then fall back to first item's lot code
     const saleLotNo = sale.lot_no || sale.lotno || sale.book_no || sale.bookno || 
         (items.length > 0 ? (items[0].lot?.lot_code || items[0].lot_code || items[0].lot_no) : '') || '';
+    const saleVehicleNo = sale.vehiclenumber || sale.vehicle_number || 
+        (items.length > 0 ? (items[0].lot?.vehicle_number || items[0].lot?.arrival?.vehicle_number || items[0].vehicle_number) : '') || '';
 
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
@@ -163,6 +165,12 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         <div className="flex justify-end gap-2 items-center">
                             <span className="text-gray-400 font-bold uppercase">Lot No:</span>
                             <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest">{saleLotNo}</span>
+                        </div>
+                    )}
+                    {saleVehicleNo && (
+                        <div className="flex justify-end gap-2 items-center mt-1">
+                            <span className="text-gray-400 font-bold uppercase">Vehicle No:</span>
+                            <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest uppercase">{saleVehicleNo}</span>
                         </div>
                     )}
                     <div className="flex justify-end gap-2 mt-1">
