@@ -424,12 +424,10 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                 </div>
 
                                                 <div className="flex items-center gap-3">
-                                                    {group.paymentStatus !== 'paid' && (
-                                                        <div className="text-right px-3 py-1.5 rounded-xl bg-amber-50/50 border border-amber-100 flex flex-col items-end">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 opacity-60">Bill Total</span>
-                                                            <span className="text-xs font-black text-amber-600">₹{Math.round(Math.max(group.totalAmount || 0, 0)).toLocaleString()}</span>
-                                                        </div>
-                                                    )}
+                                                    <div className="text-right px-3 py-1.5 rounded-xl bg-amber-50/50 border border-amber-100 flex flex-col items-end">
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 opacity-60">Bill Total</span>
+                                                        <span className="text-xs font-black text-amber-600">₹{Math.round(Math.max(group.totalAmount || 0, 0)).toLocaleString()}</span>
+                                                    </div>
                                                     <div className="flex flex-col items-end gap-1">
                                                         <Badge variant="outline" className={cn(
                                                             "text-[9px] font-black px-2 py-0.5 uppercase tracking-[0.1em]",
