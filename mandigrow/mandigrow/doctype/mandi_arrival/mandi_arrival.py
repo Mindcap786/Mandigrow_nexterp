@@ -56,6 +56,8 @@ class MandiArrival(Document):
         total_realized = 0.0
         total_commission = 0.0
         sum_lot_costs = 0.0  # packing + loading + farmer charges per lot
+        sum_other_cuts = 0.0
+        sum_reimbursable_costs = 0.0
 
         for lot in self.get("items") or []:
             qty = flt(lot.qty or 0)
@@ -75,11 +77,9 @@ class MandiArrival(Document):
             )
 
             # Lot-level deductions (packing, loading, farmer_charges)
-            lot_deductions = (
-                flt(lot.packing_cost or 0)
-                + flt(lot.loading_cost or 0)
-                + flt(lot.farmer_charges or 0)
-            )
+            farmer_cut = flt(lot.farmer_charges or 0)
+            reimbursable = flt(lot.packing_cost or 0) + flt(lot.loading_cost or 0)
+            lot_deductions = reimbursable + farmer_cut
 
             lot.net_qty = net_qty
             lot.net_amount = net_amount
@@ -88,6 +88,8 @@ class MandiArrival(Document):
             total_realized += net_amount
             total_commission += commission_amount
             sum_lot_costs += lot_deductions
+            sum_other_cuts += farmer_cut
+            sum_reimbursable_costs += reimbursable
 
         arrival_costs = (
             flt(self.hire_charges or 0)
@@ -95,11 +97,13 @@ class MandiArrival(Document):
             + flt(self.other_expenses or 0)
         )
         total_expenses = round(sum_lot_costs + arrival_costs, 2)
+        total_reimbursable_expenses = round(sum_reimbursable_costs + arrival_costs, 2)
         
         arrival_type_str = (self.arrival_type or "direct").lower()
         if arrival_type_str == "direct":
-            mandi_total_earnings = 0.0  # No commission; supplier paid operating costs on behalf of Mandi
-            net_payable = round(total_realized + total_expenses, 2)  # Full bill = goods + expenses
+            mandi_total_earnings = round(sum_other_cuts, 2)  # Mandi keeps the Other Cut
+            # For direct, reimbursable expenses are added to the cost, but Other Cut (discount) is subtracted
+            net_payable = round(total_realized + total_reimbursable_expenses - sum_other_cuts, 2)
         else:
             mandi_total_earnings = round(total_commission + total_expenses, 2)
             net_payable = round(total_realized - mandi_total_earnings, 2)
