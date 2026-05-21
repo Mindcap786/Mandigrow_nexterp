@@ -81,7 +81,7 @@ class MandiArrival(Document):
             net_amount = round(net_qty * rate, 2)         # Adjusted: after less_units
 
             farmer_cut = flt(lot.farmer_charges or 0)
-            commission_base = max(0, net_amount - farmer_cut)
+            commission_base = max(0, net_amount)
             commission_amount = round(
                 commission_base * flt(lot.commission_percent or 0) / 100.0, 2
             )

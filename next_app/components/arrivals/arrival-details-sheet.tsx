@@ -254,7 +254,7 @@ export function ArrivalDetailsSheet({ arrivalId, isOpen, onClose, onUpdate }: Ar
                                                     <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{lot.lot_code}</div>
                                                 </div>
                                             </div>
-                                            {editingLotId !== lot.id && (
+                                            {editingLotId !== lot.id && lot.current_qty >= lot.initial_qty && (
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"

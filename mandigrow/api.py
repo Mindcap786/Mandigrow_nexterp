@@ -3015,7 +3015,7 @@ def get_arrival_detail(arrival_id: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=False)
-def update_lot(lot_id: str, data: str) -> dict:
+def update_lot(lot_id: str, data=None) -> dict:
     """
     Updates a specific lot (Mandi Lot) and resaves its parent to trigger ledger calculations.
     """
@@ -3039,6 +3039,7 @@ def update_lot(lot_id: str, data: str) -> dict:
             if item.name == lot_id:
                 if 'supplier_rate' in data: item.supplier_rate = data['supplier_rate']
                 if 'initial_qty' in data: item.qty = data['initial_qty']
+                if 'sale_price' in data: item.sale_price = data['sale_price']
                 if 'commission_percent' in data: item.commission_percent = data['commission_percent']
                 if 'less_percent' in data: item.less_percent = data['less_percent']
                 if 'packing_cost' in data: item.packing_cost = data['packing_cost']
@@ -3054,6 +3055,13 @@ def update_lot(lot_id: str, data: str) -> dict:
         for item in doc.items or []:
             _normalize_lot_stock(item, persist=True)
         frappe.db.commit()
+        
+        # Repost financials so ledger automatically matches the new rates
+        try:
+            repair_arrival_financials(parent_name)
+        except Exception as e_rep:
+            frappe.log_error(f"Ledger auto-sync failed for {parent_name}: {str(e_rep)}")
+            
         return {"success": True}
     except Exception as e:
         frappe.log_error(f"Error in update_lot: {str(e)}")
