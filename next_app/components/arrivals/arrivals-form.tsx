@@ -745,8 +745,9 @@ export default function ArrivalsEntryForm() {
                      const itemData = availableItems?.find(i => i.id === item.item_id);
                      const itemName = itemData ? formatCommodityName(itemData.name, itemData.custom_attributes) : 'Unknown Item';
                      const partyName = contacts?.find(c => c.id === values.contact_id)?.name || 'Unknown Party';
+                     const shortCode = result.short_codes ? result.short_codes[idx] : code;
                      return {
-                        qrNumber: `MANDI_LOT:{"orgId":"${profile.organization_id}","lotCode":"${code}","type":"${values.arrival_type}"}`,
+                        qrNumber: shortCode,
                         item_id: item.item_id,
                         arrivalType: values.arrival_type,
                         unitWeight: item.unit_weight,

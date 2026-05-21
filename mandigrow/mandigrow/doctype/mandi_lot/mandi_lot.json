@@ -125,6 +125,13 @@
    "label": "Lot Code"
   },
   {
+   "fieldname": "short_code",
+   "fieldtype": "Data",
+   "label": "Short Code",
+   "unique": 1,
+   "read_only": 1
+  },
+  {
    "fieldname": "storage_location",
    "fieldtype": "Data",
    "label": "Storage Location"

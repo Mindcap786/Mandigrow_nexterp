@@ -53,6 +53,7 @@ class MandiArrival(Document):
         self._recompute_summary()
 
     def _recompute_summary(self):
+        import frappe, random
         total_realized = 0.0
         total_commission = 0.0
         sum_lot_costs = 0.0  # packing + loading + farmer charges per lot
@@ -60,6 +61,13 @@ class MandiArrival(Document):
         sum_reimbursable_costs = 0.0
 
         for lot in self.get("items") or []:
+            if not lot.short_code:
+                while True:
+                    code = str(random.randint(100000, 999999))
+                    if not frappe.db.exists("Mandi Lot", {"short_code": code}):
+                        lot.short_code = code
+                        break
+                        
             qty = flt(lot.qty or 0)
             less_units = flt(lot.less_units or 0)
             if not less_units and lot.less_percent:

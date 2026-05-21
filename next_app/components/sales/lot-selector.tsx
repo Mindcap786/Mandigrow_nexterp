@@ -148,6 +148,7 @@ export function LotSelector({ onSelect, selectedLotId, commodityId }: LotSelecto
                         const s = searchTerm.toLowerCase();
                         return (
                             (lot.lot_code || "").toLowerCase().includes(s) ||
+                            (lot.short_code || "").toLowerCase().includes(s) ||
                             (lot.contacts?.name || "").toLowerCase().includes(s) ||
                             (lot.commodities?.name || "").toLowerCase().includes(s)
                         );
@@ -159,6 +160,7 @@ export function LotSelector({ onSelect, selectedLotId, commodityId }: LotSelecto
                             const s = searchTerm.toLowerCase();
                             return (
                                 (lot.lot_code || "").toLowerCase().includes(s) ||
+                                (lot.short_code || "").toLowerCase().includes(s) ||
                                 (lot.contacts?.name || "").toLowerCase().includes(s) ||
                                 (lot.commodities?.name || "").toLowerCase().includes(s)
                             );

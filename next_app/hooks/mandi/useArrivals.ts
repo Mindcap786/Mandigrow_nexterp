@@ -67,7 +67,8 @@ export function useArrivals() {
 
       return {
           name: result.id,
-          lot_codes: result.lot_codes
+          lot_codes: result.lot_codes,
+          short_codes: result.short_codes
       }
     } catch (err: any) {
       if (process.env.NODE_ENV !== "production") {

@@ -1897,7 +1897,7 @@ def get_available_stock(commodity_id: str = None, org_id: str = None) -> list:
     # Raw SQL JOIN — Frappe's get_all does not reliably support
     # cross-doctype filters on child tables, and we already use this
     # pattern elsewhere (see arrival_lots SQL in get_daybook).
-    base_cols     = ["name", "lot_code", "qty", "unit", "creation", "item_id", "net_qty"]
+    base_cols     = ["name", "lot_code", "short_code", "qty", "unit", "creation", "item_id", "net_qty"]
     optional_cols = [c for c in ("current_qty", "initial_qty", "status", "grade") if _lot_has_column(c)]
     select_clause = ", ".join(f"ml.`{c}`" for c in base_cols + optional_cols)
 
@@ -1923,6 +1923,7 @@ def get_available_stock(commodity_id: str = None, org_id: str = None) -> list:
             "id":          r.get("name"),
             "name":        r.get("name"),
             "lot_code":    r.get("lot_code"),
+            "short_code":  r.get("short_code"),
             "qty":         r.get("qty"),
             "unit":        r.get("unit"),
             "created_at":  r.get("creation"),
@@ -1942,6 +1943,7 @@ def get_available_stock(commodity_id: str = None, org_id: str = None) -> list:
         available_lots.append({
             "id": lot.get("id"),
             "lot_code": lot.get("lot_code"),
+            "short_code": lot.get("short_code"),
             "current_qty": current_qty,
             "unit": lot.get("unit") or "Kg",
             "grade": lot.get("grade"),
@@ -6804,7 +6806,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
     lots_raw = frappe.get_all("Mandi Lot",
         filters=lot_filters,
         fields=_lot_query_fields(
-            ["name as id", "name", "lot_code", "qty", "unit", "supplier_rate", "sale_price", "item_id", "barcode", "storage_location", "net_qty", "parent"],
+            ["name as id", "name", "lot_code", "short_code", "qty", "unit", "supplier_rate", "sale_price", "item_id", "barcode", "storage_location", "net_qty", "parent"],
             ["current_qty", "initial_qty", "status"],
         ),
         limit_page_length=500,
@@ -9348,6 +9350,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             "success": True, 
             "id": doc.name,
             "lot_codes": [i.lot_code for i in doc.items],
+            "short_codes": [i.short_code for i in doc.items],
             "message": "Arrival confirmed and ledger posted."
         }
     except Exception as e:
