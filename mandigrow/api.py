@@ -12904,7 +12904,10 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
             # Less value is deducted from the realized amount proportionally
             less_ratio    = less_qty / initial_qty if initial_qty > 0 else 0.0
             less_value    = amount_sold * less_ratio
-            net_realized  = max(amount_sold - less_value, 0.0)
+            farmer_chg    = float(lot.farmer_charges or 0)
+            
+            # USER REQUEST: Other Cut is a discount like Less%
+            net_realized  = max(amount_sold - less_value - farmer_chg, 0.0)
 
             # Commission on net realized amount (sale price IS the base)
             comm_pct      = float(lot.commission_percent or 0)
@@ -12913,8 +12916,7 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
             # Lot-level charges (paid by Mandi on behalf of farmer)
             packing       = float(lot.packing_cost or 0)
             loading       = float(lot.loading_cost or 0)
-            farmer_chg    = float(lot.farmer_charges or 0)
-            lot_charges   = packing + loading + farmer_chg
+            lot_charges   = packing + loading
 
             grand_total_realized   += net_realized
             grand_total_commission += lot_commission

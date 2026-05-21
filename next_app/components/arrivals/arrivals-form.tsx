@@ -270,13 +270,13 @@ export default function ArrivalsEntryForm() {
         // Adjusted Quantity (after Less %)
         const adjustedQty = qty - (qty * lessPercent / 100);
 
-        // Adjusted Value (after Less % applied)
-        // USER REQUEST: Other Cut is a discount to Mandi, should come under adjusted value.
+        // Adjusted Value (after Less % and Other Cut applied)
+        // USER REQUEST: Other Cut is a discount like Less.
         const baseAdjustedValue = adjustedQty * rate;
-        const adjustedValue = baseAdjustedValue - otherCut;
+        const adjustedValue = Math.max(0, baseAdjustedValue - otherCut);
 
-        // Commission Amount (calculated on base adjusted value, NOT after the other cut)
-        const commissionAmount = arrivalType === 'direct' ? 0 : (baseAdjustedValue * commissionPercent / 100);
+        // Commission Amount (calculated on final adjusted value)
+        const commissionAmount = arrivalType === 'direct' ? 0 : (adjustedValue * commissionPercent / 100);
 
         // Transport Expenses (arrival-level, need proportional split)
         const allItems = form.watch('items') || [];
@@ -287,15 +287,15 @@ export default function ArrivalsEntryForm() {
             const iOtherCut = Number(itm.farmer_charges) || 0;
             const iAdjustedQty = iQty - (iQty * iLess / 100);
             const iBaseAdjusted = iAdjustedQty * iRate;
-            const iAdjusted = iBaseAdjusted - iOtherCut;
-            return sum + (iAdjusted > 0 ? iAdjusted : 0);
+            const iAdjusted = Math.max(0, iBaseAdjusted - iOtherCut);
+            return sum + iAdjusted;
         }, 0);
 
         const totalTransportExpenses = Number(totalTripDeductions) || 0;
 
         const itemTransportShare = totalArrivalValue > 0
             ? (adjustedValue / totalArrivalValue) * totalTransportExpenses
-            : 0;
+            : (1 / Math.max(1, allItems.length)) * totalTransportExpenses;
 
         // Total Expenses (item-level + transport share)
         const totalExpenses = packing + loading + itemTransportShare;

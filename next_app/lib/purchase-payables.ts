@@ -52,14 +52,15 @@ export function calculateLotSettlementAmount(lot: any) {
     }
 
     const adjustedQty = Math.max(qty - lessQty, 0);
-    const effectiveGoodsValue = adjustedQty * rate;
+    const baseEffectiveValue = adjustedQty * rate;
+    const effectiveGoodsValue = Math.max(0, baseEffectiveValue - otherCut);
     
     let commissionAmount = 0;
     if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
         commissionAmount = (effectiveGoodsValue * toNumber(lot?.commission_percent)) / 100;
     }
 
-    const lotExpenses = packingCost + loadingCost + transportShare + otherCut;
+    const lotExpenses = packingCost + loadingCost + transportShare;
 
     if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
         return effectiveGoodsValue - commissionAmount - lotExpenses - advance;
@@ -113,14 +114,15 @@ export function calculateLotGrossValue(lot: any) {
     }
 
     const adjustedQty = Math.max(qty - lessQty, 0);
-    const effectiveGoodsValue = adjustedQty * rate;
+    const baseEffectiveValue = adjustedQty * rate;
+    const effectiveGoodsValue = Math.max(0, baseEffectiveValue - otherCut);
     
     let commissionAmount = 0;
     if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
         commissionAmount = (effectiveGoodsValue * toNumber(lot?.commission_percent)) / 100;
     }
 
-    const lotExpenses = packingCost + loadingCost + transportShare + otherCut;
+    const lotExpenses = packingCost + loadingCost + transportShare;
 
     if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
         return effectiveGoodsValue - commissionAmount - lotExpenses;
