@@ -381,7 +381,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                                     group.paymentStatus === 'paid' ? "text-emerald-600" : "text-rose-600"
                                                                 )}>
                                                                     {group.paymentStatus === 'paid' ? (
-                                                                        `₹${Math.round(Math.max(group.totalAdjustedValue || 0, 0)).toLocaleString()}`
+                                                                        `₹${Math.round(Math.max(group.totalAmount || 0, 0)).toLocaleString()}`
                                                                     ) : (
                                                                         `₹${Math.round(Math.max(group.pendingAmount, 0)).toLocaleString()}`
                                                                     )}
@@ -397,12 +397,12 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                             </div>
                                                             {group.paymentStatus === 'partial' && (
                                                                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
-                                                                    Paid: ₹{Math.round(group.totalPaidCombined || 0).toLocaleString()} / Total: ₹{Math.round(Math.max(group.totalAdjustedValue || 0, 0)).toLocaleString()}
+                                                                    Paid: ₹{Math.round(group.totalPaidCombined || 0).toLocaleString()} / Total: ₹{Math.round(Math.max(group.totalAmount || 0, 0)).toLocaleString()}
                                                                 </div>
                                                             )}
                                                             {group.paymentStatus === 'pending' && (
                                                                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
-                                                                    Total Bill: ₹{Math.round(group.totalAdjustedValue || 0).toLocaleString()}
+                                                                    Total Bill: ₹{Math.round(group.totalAmount || 0).toLocaleString()}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -427,7 +427,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                     {group.paymentStatus !== 'paid' && (
                                                         <div className="text-right px-3 py-1.5 rounded-xl bg-amber-50/50 border border-amber-100 flex flex-col items-end">
                                                             <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 opacity-60">Bill Total</span>
-                                                            <span className="text-xs font-black text-amber-600">₹{Math.round(Math.max(group.totalAdjustedValue || 0, 0)).toLocaleString()}</span>
+                                                            <span className="text-xs font-black text-amber-600">₹{Math.round(Math.max(group.totalAmount || 0, 0)).toLocaleString()}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex flex-col items-end gap-1">
