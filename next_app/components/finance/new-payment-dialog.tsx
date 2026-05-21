@@ -486,7 +486,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                     setOpenParty(op)
                                                     if (op && contacts.length === 0) fetchContacts()
                                                 }}
-                                                modal={false}
+                                                modal={true}
                                             >
                                                 <PopoverTrigger asChild>
                                                     <FormControl>

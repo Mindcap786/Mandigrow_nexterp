@@ -242,7 +242,7 @@ export function PaymentDialog({ type, onSuccess, children }: PaymentDialogProps)
                                                 setOpenParty(op)
                                                 if (op && contacts.length === 0) fetchContacts()
                                             }}
-                                            modal={false}
+                                            modal={true}
                                         >
                                             <PopoverTrigger asChild>
                                                 <FormControl>
