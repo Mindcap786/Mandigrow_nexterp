@@ -23,8 +23,19 @@ class MandiArrival(Document):
         self.name = make_autoname(f"ARR-{prefix}-.YYYY.-.#####")
 
     def validate(self):
+        self._validate_commission()
         self._recompute_summary()
         self._ensure_bill_no()
+
+    def _validate_commission(self):
+        if self.arrival_type in ("commission", "commission_supplier"):
+            for lot in self.get("items") or []:
+                if flt(lot.commission_percent) <= 0:
+                    frappe.throw(
+                        f"Commission % is mandatory for Commission purchases. "
+                        f"Please enter a commission percentage greater than zero for '{lot.item_id}'."
+                    )
+
 
     def _ensure_bill_no(self):
         """Auto-increment contact_bill_no per party if not set."""

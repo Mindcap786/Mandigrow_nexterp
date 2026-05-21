@@ -9242,6 +9242,15 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                         f"Rate (Purchase Price) is mandatory for Direct Purchase. "
                         f"Please enter a rate greater than zero for '{commodity}'."
                     )
+        elif arrival_type_input in ("commission", "commission_supplier"):
+            for idx_check, item_check in enumerate(items):
+                comm_pct = float(item_check.get("commission_percent") or 0)
+                if comm_pct <= 0:
+                    commodity = item_check.get("item_id") or f"Item {idx_check + 1}"
+                    frappe.throw(
+                        f"Commission % is mandatory for Commission purchases. "
+                        f"Please enter a commission percentage greater than zero for '{commodity}'."
+                    )
         # ────────────────────────────────────────────────────────────────────
 
         for idx, item in enumerate(items):
