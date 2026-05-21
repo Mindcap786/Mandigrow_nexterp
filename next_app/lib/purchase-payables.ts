@@ -3,7 +3,7 @@ const toNumber = (value: number | string | null | undefined) => Number(value) ||
 export function getArrivalType(lot: any) {
     if (!lot) return "direct";
     // Check lot.arrival first, then lot.arrival_type, then fallback
-    const type = lot?.arrival?.arrival_type || lot?.arrival_type;
+    const type = lot?.arrival?.arrival_type || lot?.arrival_type || lot?.type;
     if (type === 'commission' || type === 'farmer') return 'commission';
     if (type === 'commission_supplier' || type === 'supplier') return 'commission_supplier';
     return type || "direct";

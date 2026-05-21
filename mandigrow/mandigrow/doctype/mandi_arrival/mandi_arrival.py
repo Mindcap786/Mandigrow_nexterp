@@ -72,12 +72,13 @@ class MandiArrival(Document):
             gross_amount = round(qty * rate, 2)           # Gross: full qty × rate
             net_amount = round(net_qty * rate, 2)         # Adjusted: after less_units
 
+            farmer_cut = flt(lot.farmer_charges or 0)
+            commission_base = max(0, net_amount - farmer_cut)
             commission_amount = round(
-                net_amount * flt(lot.commission_percent or 0) / 100.0, 2
+                commission_base * flt(lot.commission_percent or 0) / 100.0, 2
             )
 
-            # Lot-level deductions (packing, loading, farmer_charges)
-            farmer_cut = flt(lot.farmer_charges or 0)
+            # Lot-level deductions (packing, loading)
             reimbursable = flt(lot.packing_cost or 0) + flt(lot.loading_cost or 0)
             lot_deductions = reimbursable + farmer_cut
 
