@@ -255,6 +255,18 @@ export function QuickPurchaseForm() {
 
     }, [form.watch('supplier_id'), rows, masterContacts, form, arrivalType])
 
+    // Apply default commission when changing to commission type
+    useEffect(() => {
+        if (arrivalType === 'commission' || arrivalType === 'commission_supplier') {
+            const currentRows = form.getValues('rows') || [];
+            currentRows.forEach((row, i) => {
+                if (!row.commission || Number(row.commission) === 0) {
+                    form.setValue(`rows.${i}.commission`, masterDefaultComm);
+                }
+            });
+        }
+    }, [arrivalType, masterDefaultComm, form]);
+
     const calculateRowFinancials = (row: any, type: string) => {
         if (!row) return {
             grossValue: 0,
@@ -702,7 +714,7 @@ export function QuickPurchaseForm() {
                                 qty: '',
                                 rate: '',
                                 weight_loss: '',
-                                commission: '',
+                                commission: arrivalType === 'direct' ? '' : masterDefaultComm,
                                 commission_type: arrivalType === 'commission_supplier' ? 'supplier' : 'farmer',
                                 packing_cost: '',
                                 loading_cost: '',
