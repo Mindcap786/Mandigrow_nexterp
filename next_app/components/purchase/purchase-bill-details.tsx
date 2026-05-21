@@ -74,6 +74,8 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
     const [data, setData] = useState<any>(null);
     const [ledgerStatement, setLedgerStatement] = useState<any>(null);
     const [ledgerLoading, setLedgerLoading] = useState(false);
+    const [ledgerFilter, setLedgerFilter] = useState("1M");
+    const [ledgerPage, setLedgerPage] = useState(0);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -151,7 +153,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
 
             // 4. Fetch Ledger
             if (arrival.party_id) {
-                fetchLedger(arrival.party_id);
+                fetchLedger(arrival.party_id, ledgerFilter);
             }
         } catch (err: any) {
             toast({ title: "Error fetching data", description: err.message, variant: "destructive" });
@@ -159,6 +161,12 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (data?.arrival?.party_id) {
+            fetchLedger(data.arrival.party_id, ledgerFilter);
+        }
+    }, [ledgerFilter]);
 
     const handleRepair = async () => {
         if (!data?.arrival_id) return;
@@ -215,17 +223,25 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
         }
     };
 
-    const fetchLedger = async (contactId: string) => {
+    const fetchLedger = async (contactId: string, filterStr = "1M") => {
         if (!contactId || !profile?.organization_id) return;
         setLedgerLoading(true);
         try {
+            const end = new Date();
+            const start = new Date();
+            if (filterStr === "1M") start.setMonth(start.getMonth() - 1);
+            else if (filterStr === "3M") start.setMonth(start.getMonth() - 3);
+            else if (filterStr === "6M") start.setMonth(start.getMonth() - 6);
+            else if (filterStr === "1Y") start.setFullYear(start.getFullYear() - 1);
+
             const res = await callApi('mandigrow.api.get_ledger_statement', {
                 contact_id: contactId,
-                from_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
-                to_date: format(new Date(), 'yyyy-MM-dd')
+                from_date: format(start, 'yyyy-MM-dd'),
+                to_date: format(end, 'yyyy-MM-dd')
             });
             if (res.error) throw new Error(res.error);
             setLedgerStatement(res);
+            setLedgerPage(0);
         } catch (err) {
             console.error("Ledger fetch error:", err);
         } finally {
@@ -529,8 +545,21 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                         <FileText className="w-4 h-4 text-blue-600" />
                                         Statement of Account
                                     </h3>
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase">
-                                        Recent Transactions
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase">
+                                            Recent Transactions
+                                        </div>
+                                        <Select value={ledgerFilter} onValueChange={setLedgerFilter}>
+                                            <SelectTrigger className="h-8 text-[10px] font-bold rounded-lg border-slate-200">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="1M">Last 1 Month</SelectItem>
+                                                <SelectItem value="3M">Last 3 Months</SelectItem>
+                                                <SelectItem value="6M">Last 6 Months</SelectItem>
+                                                <SelectItem value="1Y">Last 1 Year</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
 
@@ -546,7 +575,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                             <div className="col-span-1"></div>
                                         </div>
                                         <div className="divide-y divide-slate-100">
-                                            {ledgerStatement.transactions.map((tx: any, idx: number) => (
+                                            {ledgerStatement.transactions.slice(ledgerPage * 10, (ledgerPage + 1) * 10).map((tx: any, idx: number) => (
                                                 <div key={idx} className={cn(
                                                     "grid grid-cols-12 gap-2 p-3 items-center hover:bg-slate-50/50 transition-colors",
                                                     tx.reference_id === data?.arrival_id || tx.reference_id === lotId ? "bg-blue-50/30" : ""
@@ -572,6 +601,33 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                                 </div>
                                             ))}
                                         </div>
+                                        {ledgerStatement.transactions.length > 10 && (
+                                            <div className="p-3 bg-white border-t border-slate-100 flex items-center justify-between">
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">
+                                                    Page {ledgerPage + 1} of {Math.ceil(ledgerStatement.transactions.length / 10)}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={ledgerPage === 0}
+                                                        onClick={() => setLedgerPage(p => p - 1)}
+                                                        className="h-7 text-[10px] font-bold uppercase rounded-lg"
+                                                    >
+                                                        Prev
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={(ledgerPage + 1) * 10 >= ledgerStatement.transactions.length}
+                                                        onClick={() => setLedgerPage(p => p + 1)}
+                                                        className="h-7 text-[10px] font-bold uppercase rounded-lg"
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex justify-between items-center">
                                             <span className="text-[10px] font-black uppercase text-slate-500">Closing Balance</span>
                                             <span className={cn(
