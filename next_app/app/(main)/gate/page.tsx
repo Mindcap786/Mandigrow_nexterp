@@ -194,12 +194,12 @@ export default function GatePage() {
                     </head>
                     <body>
                         <h1>Gate Entry Token #${entry.token_no}</h1>
-                        <div class="info"><span class="label">Vehicle:</span> ${entry.vehicle_no}</div>
+                        <div class="info"><span class="label">Vehicle:</span> ${entry.vehicle_number || entry.vehicle_no || 'N/A'}</div>
                         <div class="info"><span class="label">Driver:</span> ${entry.driver_name || 'Anonymous'}</div>
                         <div class="info"><span class="label">Commodity:</span> ${entry.commodity || 'N/A'}</div>
                         <div class="info"><span class="label">Source:</span> ${entry.source || 'Local'}</div>
-                        <div class="info"><span class="label">Status:</span> ${entry.status}</div>
-                        <div class="info"><span class="label">Time:</span> ${format(new Date(entry.created_at), 'dd MMM yyyy hh:mm a')}</div>
+                        <div class="info"><span class="label">Status:</span> ${entry.status || 'pending'}</div>
+                        <div class="info"><span class="label">Time:</span> ${format(new Date(entry.created_at || new Date()), 'dd MMM yyyy hh:mm a')}</div>
                     </body>
                 </html>
             `)
@@ -230,7 +230,12 @@ export default function GatePage() {
                         <Truck className="w-5 h-5 text-[#43A047]" /> {t('gate.subtitle')}
                     </p>
                 </div>
-                <GateEntryForm onSuccess={fetchEntries} />
+                <GateEntryForm onSuccess={(entry) => {
+                    fetchEntries()
+                    if (entry) {
+                        setTimeout(() => handlePrint(entry), 300)
+                    }
+                }} />
             </div>
 
             {/* Filters */}

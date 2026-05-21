@@ -11,7 +11,7 @@ import { callApi } from "@/lib/frappeClient"
 
 import { useFieldGovernance } from "@/hooks/useFieldGovernance"
 
-export function GateEntryForm({ onSuccess }: { onSuccess: () => void }) {
+export function GateEntryForm({ onSuccess }: { onSuccess: (entry?: any) => void }) {
     const { profile } = useAuth()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -44,7 +44,7 @@ export function GateEntryForm({ onSuccess }: { onSuccess: () => void }) {
             setDriverPhone("")
             setCommodity("")
             setSource("")
-            onSuccess()
+            onSuccess(res)
         } catch (error: any) {
             alert(error.message)
         } finally {

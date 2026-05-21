@@ -4311,7 +4311,16 @@ def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone
     })
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
-    return {"id": doc.name, "token_no": doc.token_no}
+    return {
+        "id": doc.name, 
+        "token_no": doc.token_no,
+        "vehicle_number": doc.vehicle_number,
+        "driver_name": doc.driver_name,
+        "commodity": doc.commodity,
+        "source": doc.source,
+        "status": doc.status,
+        "created_at": doc.created_at
+    }
 
 @frappe.whitelist(allow_guest=False)
 def delete_gate_entry(id: str) -> dict:
