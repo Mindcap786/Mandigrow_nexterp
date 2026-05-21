@@ -480,7 +480,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                                                  const isSold = (lot.current_qty !== undefined && lot.current_qty <= 0);
                                                                  const isFullyPaid = group.paymentStatus === 'paid';
                                                                  const isLocked = isSold && isFullyPaid;
-                                                                 const displayAmount = qty * (lot.supplier_rate || 0);
+                                                                 const displayAmount = calculateLotGrossValue(lot);
                                                                  return (
                                                                      <div key={lot.id} className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-100 group/item hover:border-blue-200 transition-all shadow-sm">
                                                                          <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
