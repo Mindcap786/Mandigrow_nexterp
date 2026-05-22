@@ -187,7 +187,7 @@ export default function FollowUpsPage() {
                                                 )}
                                             >
                                                 <MessageCircle className="w-4 h-4" />
-                                                WhatsApp
+                                                {party.contact_phone ? "WhatsApp" : "No Phone"}
                                             </button>
                                         </td>
                                     </tr>
