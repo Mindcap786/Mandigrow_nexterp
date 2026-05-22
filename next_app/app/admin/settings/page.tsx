@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Settings, Shield, Server, Globe, Bell, Database, RefreshCw, Clock,
-    Loader2, CheckCircle2, Save, AlertTriangle, Printer, Calendar, CreditCard, Users
+    Loader2, CheckCircle2, Save, AlertTriangle, Printer, Calendar, CreditCard, Users, Box
 } from 'lucide-react';
 import { callApi } from '@/lib/frappeClient'
 import { Button } from '@/components/ui/button';
@@ -40,16 +40,22 @@ export default function AdminSettingsPage() {
     const [reminderDaysMonthly, setReminderDaysMonthly] = useState(3);
     const [reminderDaysYearly, setReminderDaysYearly] = useState(7);
 
+    // ── Crate Tracking Settings ──────────────────────────────────────────────────
+    const [crateTracking, setCrateTracking] = useState(false);
+    const [crateAgeing, setCrateAgeing] = useState(7);
+    const [savingCrates, setSavingCrates] = useState(false);
+
     useEffect(() => { fetchInfo(); }, []);
 
     const fetchInfo = async () => {
         setLoading(true);
         try {
-            const [orgsRes, subsRes, flagsRes, settingsRes] = await Promise.allSettled([
+            const [orgsRes, subsRes, flagsRes, settingsRes, crateRes] = await Promise.allSettled([
                 supabase.schema('core').from('organizations').select('id', { count: 'exact', head: true }),
                 supabase.schema('core').from('subscriptions').select('status').eq('status', 'active'),
                 supabase.schema('core').from('feature_flags').select('key, is_enabled').is('organization_id', null),
                 callApi('mandigrow.api.get_global_settings', { keys: ['global_trial_days', 'grace_period_days_monthly', 'grace_period_days_yearly', 'payment_reminder_days_monthly', 'payment_reminder_days_yearly'] }),
+                callApi('mandigrow.api.get_global_crate_settings'),
             ]);
 
             setPlatformInfo({
@@ -93,6 +99,11 @@ export default function AdminSettingsPage() {
                 setReminderDaysMonthly(get('payment_reminder_days_monthly', 3));
                 setReminderDaysYearly(get('payment_reminder_days_yearly', 7));
             }
+
+            if (crateRes.status === 'fulfilled' && crateRes.value) {
+                setCrateTracking(crateRes.value.enable_crate_tracking);
+                setCrateAgeing(crateRes.value.crate_ageing_days);
+            }
         } catch {}
         setLoading(false);
     };
@@ -135,6 +146,20 @@ export default function AdminSettingsPage() {
             toast({ title: 'Save Failed', description: e.message, variant: 'destructive' });
         }
         setSaving(false);
+    };
+
+    const handleSaveCrateSettings = async () => {
+        setSavingCrates(true);
+        try {
+            await callApi('mandigrow.api.save_global_crate_settings', {
+                enable_crate_tracking: crateTracking ? 1 : 0,
+                crate_ageing_days: crateAgeing
+            });
+            toast({ title: '✅ Crate Tracking Saved', description: 'Global crate settings updated successfully.' });
+        } catch (e: any) {
+            toast({ title: 'Save Failed', description: e.message, variant: 'destructive' });
+        }
+        setSavingCrates(false);
     };
 
     const INFO_CARDS = [
@@ -464,6 +489,62 @@ export default function AdminSettingsPage() {
                                 checked={branding.is_compliance_visible_to_tenants}
                                 onCheckedChange={c => setBranding({ ...branding, is_compliance_visible_to_tenants: c })}
                             />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Global Crate Tracking */}
+            <Card className="bg-white shadow-sm border-slate-200">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-slate-900 flex items-center gap-2 text-base">
+                                <Box className="w-4 h-4 text-purple-400" /> Global Crate Tracking
+                            </CardTitle>
+                            <CardDescription className="text-slate-500 mt-1">
+                                Control whether the hybrid crate tracking module is enabled for all tenants by default. Tenants can still override this individually in their organization settings.
+                            </CardDescription>
+                        </div>
+                        <Button
+                            className="bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border border-purple-500/30 font-black"
+                            onClick={handleSaveCrateSettings}
+                            disabled={savingCrates}
+                        >
+                            {savingCrates ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                            Save Crate Settings
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-900 mb-1">Enable Hybrid Crate Tracking</h4>
+                            <p className="text-xs text-slate-500">When enabled globally, crate ledger entries will automatically be posted when gate entries or purchases are made.</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <Switch
+                                checked={crateTracking}
+                                onCheckedChange={setCrateTracking}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-900 mb-1">Crate Ageing Alert (Days)</h4>
+                            <p className="text-xs text-slate-500">The number of days a party can hold empty crates before a red alert flag is shown on their ledger.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                value={crateAgeing}
+                                onChange={e => setCrateAgeing(Math.max(1, parseInt(e.target.value) || 1))}
+                                min={1}
+                                max={365}
+                                className="bg-white shadow-sm border-slate-200 text-slate-900 w-24 text-center font-bold"
+                            />
+                            <span className="text-sm font-medium text-slate-500">days</span>
                         </div>
                     </div>
                 </CardContent>

@@ -11387,6 +11387,28 @@ def get_app_setting(key):
 
 
 @frappe.whitelist(allow_guest=False)
+def get_global_crate_settings() -> dict:
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw("Access Denied")
+    settings = frappe.get_single("Mandi Settings")
+    return {
+        "enable_crate_tracking": bool(settings.get("enable_crate_tracking")),
+        "crate_ageing_days": int(settings.get("crate_ageing_days") or 7)
+    }
+
+@frappe.whitelist(allow_guest=False)
+def save_global_crate_settings(enable_crate_tracking: int, crate_ageing_days: int) -> dict:
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw("Access Denied")
+    settings = frappe.get_single("Mandi Settings")
+    settings.enable_crate_tracking = enable_crate_tracking
+    settings.crate_ageing_days = crate_ageing_days
+    settings.save(ignore_permissions=True)
+    return {"status": "success"}
+
+@frappe.whitelist(allow_guest=False)
 def admin_assign_tenant_owner(p_org_id: str, p_user_id: str) -> dict:
     """
     Elevates a user to 'admin' role_type for a specific organization.
