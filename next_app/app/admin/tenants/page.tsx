@@ -12,7 +12,7 @@ import {
     Loader2, MoreHorizontal, Power, PowerOff, Trash2, Building2, Plus,
     Eye, Search, Filter, ShieldCheck, RefreshCw, ArrowUpRight,
     AlertTriangle, CheckCircle2, TrendingDown, ChevronRight, Users, Zap,
-    Key, Phone, Handshake
+    Key, Phone, Link as LinkIcon
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -693,7 +693,7 @@ export default function TenantsPage() {
                                                 </div>
                                                 {tenant.onboarding_partner && (
                                                     <div className="flex items-center gap-1 mt-1">
-                                                        <Handshake className="w-3 h-3 text-indigo-500" />
+                                                        <LinkIcon className="w-3 h-3 text-indigo-500" />
                                                         <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
                                                             {tenant.onboarding_partner}
                                                         </span>
@@ -786,7 +786,7 @@ export default function TenantsPage() {
                                                         handleAssignPartner(tenant);
                                                     }}
                                                 >
-                                                    <Handshake className="w-3.5 h-3.5" /> Assign Partner
+                                                    <LinkIcon className="w-3.5 h-3.5" /> Assign Partner
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 {tenant.owner?.id ? (
@@ -981,7 +981,7 @@ export default function TenantsPage() {
                             disabled={!selectedPartnerId || isAssigning}
                             onClick={submitAssignPartner}
                         >
-                            {isAssigning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Handshake className="w-4 h-4 mr-2" />}
+                            {isAssigning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <LinkIcon className="w-4 h-4 mr-2" />}
                             Assign & Notify Partner
                         </Button>
                     </DialogFooter>

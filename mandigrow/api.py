@@ -9289,6 +9289,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                     )
         # ────────────────────────────────────────────────────────────────────
 
+        local_lot_codes = set()
         for idx, item in enumerate(items):
             unit = item.get("unit") or "Kg"
             # Explicitly ensure the UOM exists before assigning to a Link field
@@ -9302,9 +9303,9 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             # Auto-generate lot_code from lot_prefix when user hasn't provided a per-item code.
             # Single item → use prefix as-is (e.g. "LOT-250505").
             # Multiple items → append zero-padded index (e.g. "LOT-250505-01").
-            item_lot_code = (item.get("lot_code") or "").strip()
+            item_lot_code = str(item.get("lot_code") or "").strip()
             if not item_lot_code:
-                lot_prefix = (payload.get("lot_prefix") or "").strip()
+                lot_prefix = str(payload.get("lot_prefix") or "").strip()
                 if lot_prefix:
                     n_items = len(items)
                     item_lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(idx + 1).zfill(2)}"
@@ -9316,6 +9317,16 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                         if not frappe.db.exists("Mandi Lot", {"lot_code": candidate}):
                             break
                     item_lot_code = candidate
+
+            # Smart Suffix Logic
+            # Check against DB and local transaction list to ensure uniqueness
+            original_code = item_lot_code
+            suffix = 1
+            while frappe.db.exists("Mandi Lot", {"lot_code": item_lot_code}) or item_lot_code in local_lot_codes:
+                item_lot_code = f"{original_code}-{str(suffix).zfill(2)}"
+                suffix += 1
+                
+            local_lot_codes.add(item_lot_code)
             item_id = item.get("item_id") or _get_default_item()
             item_fields = ["shelf_life_in_days"]
             if frappe.db.has_column("Item", "critical_age_days"):
@@ -9325,6 +9336,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item_id,
+                "lot_code": item_lot_code,
                 "qty": float(item.get("qty", 0)),
                 "initial_qty": float(item.get("qty", 0)),
                 "current_qty": float(item.get("qty", 0)),
@@ -9350,15 +9362,6 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         if raw_advance_status is not None and str(raw_advance_status).strip() != "":
             doc.flags.advance_cheque_status = str(raw_advance_status).lower() in ["true", "1", "yes"]
         doc.insert()
-        
-        # Auto-generate lot_code if missing
-        needs_update = False
-        for idx, item in enumerate(doc.items):
-            if not item.lot_code:
-                item.lot_code = f"LOT-{doc.name.split('-')[-1]}-{str(idx + 1).zfill(2)}"
-                item.db_update()
-                needs_update = True
-                
         doc.submit()
         for item in doc.items or []:
             _normalize_lot_stock(item, persist=True)
