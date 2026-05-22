@@ -1033,6 +1033,11 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     const obDisplayDebit  = isOpeningBal ? (partyLegDebit  > 0 ? partyLegDebit  : 0) : 0;
                     const obDisplayCredit = isOpeningBal ? (partyLegCredit > 0 ? partyLegCredit : 0) : 0;
 
+                    const expenseLeg = isExpense ? (rawLegs.find((l: any) => String(l.account?.account_type).toLowerCase() === 'expense' || String(l.account?.root_type).toLowerCase() === 'expense') || rawLegs.find((l: any) => !['cash', 'bank'].includes(String(l.account?.account_sub_type).toLowerCase()))) : null;
+                    const expenseName = expenseLeg?.account?.name;
+                    const defaultDesc = v.narration || mainLeg.description;
+                    const finalDesc = isExpense && expenseName ? `${expenseName}${defaultDesc ? ` (${defaultDesc})` : ''}` : defaultDesc;
+
                     legs.push({
                         ...mainLeg,
                         contact: { name: groupContactName || mainLeg.contact?.name },
@@ -1043,7 +1048,7 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                         displayDebit:  isOpeningBal ? obDisplayDebit  : ((isPayment || isExpense || isReturn) ? finalSanitizedVal : 0),
                         displayCredit: isOpeningBal ? obDisplayCredit : (isReceipt ? finalSanitizedVal : 0),
                         displayLabel: label,
-                        displayDescription: v.narration || mainLeg.description,
+                        displayDescription: finalDesc,
                         displayType: flowType
                     });
                 }
