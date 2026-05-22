@@ -111,14 +111,17 @@ export default function GatePage() {
                 date_to: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null
             });
             
-            // BUG FIX: `if (res.message)` is FALSY when message is an empty array [].
-            // This meant entries were never cleared on empty results (stale state),
-            // and on success the entries were never set if the API returned [].
-            // Always update state when we get a valid array back.
-            if (Array.isArray(res.message)) {
-                setEntries(res.message)
-                setTotalCount(res.message.length)
-                cacheSet(cacheKey, orgId, { entries: res.message, totalCount: res.message.length })
+            // BUG FIX: `callApi` automatically unwraps the `message` payload.
+            // For Frappe get_all endpoints, `res` is the array itself.
+            const data = Array.isArray(res) ? res : Array.isArray(res?.message) ? res.message : null;
+            
+            if (data !== null) {
+                setEntries(data)
+                setTotalCount(data.length)
+                cacheSet(cacheKey, orgId, { entries: data, totalCount: data.length })
+            } else {
+                setEntries([])
+                setTotalCount(0)
             }
         } catch (err) {
             console.error("Gate fetch error:", err)
@@ -230,9 +233,16 @@ export default function GatePage() {
                         <Truck className="w-5 h-5 text-[#43A047]" /> {t('gate.subtitle')}
                     </p>
                 </div>
-                <GateEntryForm onSuccess={(entry) => {
-                    fetchEntries()
+                <GateEntryForm onSuccess={async (entry) => {
                     if (entry) {
+                        // Optimistically insert to UI immediately so user sees it
+                        // before the print dialog covers the screen.
+                        setEntries(prev => [entry, ...prev]);
+                        setTotalCount(prev => prev + 1);
+                    }
+                    await fetchEntries()
+                    if (entry) {
+                        // Small delay ensures the DOM has painted the new row
                         setTimeout(() => handlePrint(entry), 300)
                     }
                 }} />
