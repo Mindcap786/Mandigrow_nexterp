@@ -91,7 +91,7 @@ function TicketQueue() {
     const fetchTickets = async () => {
         setLoading(true);
         try {
-            const res = await callApi('mandigrow.mandigrow.api.get_all_support_tickets');
+            const res = await callApi('mandigrow.api.get_all_support_tickets');
             if (res?.message?.tickets) {
                 setTickets(res.message.tickets);
             }
@@ -106,7 +106,7 @@ function TicketQueue() {
         if (!selectedTicket) return;
         setSaving(true);
         try {
-            await callApi('mandigrow.mandigrow.api.update_support_ticket', {
+            await callApi('mandigrow.api.update_support_ticket', {
                 ticket_id: selectedTicket.id,
                 status: ticketStatus,
                 admin_notes: adminNotes

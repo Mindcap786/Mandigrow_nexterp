@@ -49,7 +49,7 @@ export function SupportHelpdeskWidget() {
     const fetchTickets = async () => {
         setFetchingTickets(true);
         try {
-            const res = await callApi('mandigrow.mandigrow.api.get_support_tickets');
+            const res = await callApi('mandigrow.api.get_support_tickets');
             if (res?.message?.tickets) {
                 setTickets(res.message.tickets);
             }
@@ -68,7 +68,7 @@ export function SupportHelpdeskWidget() {
 
         setLoading(true);
         try {
-            await callApi('mandigrow.mandigrow.api.create_support_ticket', {
+            await callApi('mandigrow.api.create_support_ticket', {
                 subject: subject || 'Support Request',
                 message: message,
                 ticket_type: type
