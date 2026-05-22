@@ -19,6 +19,9 @@ const FOOTER_COLUMNS = [
             { label: 'J-Form Billing',     href: '/j-form-billing-software' },
             { label: 'APMC Gate Pass',     href: '/apmc-gate-pass-software' },
             { label: 'GST Compliance',     href: '/gst-mandi-compliance' },
+            { label: 'Mandi Billing Software', href: '/mandi-billing-software' },
+            { label: 'Mandi Khata App',    href: '/mandi-khata-software' },
+            { label: 'Farmer Payments',    href: '/farmer-payment-management' },
         ],
     },
     {
