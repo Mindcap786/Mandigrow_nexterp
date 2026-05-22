@@ -5,8 +5,8 @@ import { LandingHeader } from '@/components/layout/LandingHeader';
 import { CheckCircle2, ArrowRight, Package, BarChart3, FileText, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Fruit Mandi Software India | Apple, Mango & Citrus ERP — MandiGrow',
-    description: 'India\'s #1 fruit mandi software. Track box weights, auto-calculate commission, manage wastage, and handle digital khata for fruit commission agents and traders.',
+    title: 'Fruit Mandi Software India | Best APMC ERP for Azadpur, Vashi & Bowenpally',
+    description: 'India\'s #1 fruit mandi software. Track box weights, auto-calculate commission, manage wastage, and handle digital khata for fruit commission agents across APMC markets like Azadpur, Vashi, and Bowenpally.',
     keywords: [
         'fruit mandi software',
         'fruit mandi billing software',
@@ -16,12 +16,18 @@ export const metadata: Metadata = {
         'APMC fruit software',
         'mandi erp for fruits',
         'fruit wholesale billing',
-        'sabji mandi software',
+        'Azadpur mandi fruit software',
+        'Vashi APMC billing software',
+        'Bowenpally fruit market ERP',
+        'Ghazipur mandi khata',
+        'Okhla fruit mandi billing',
+        'Maharashtra APMC software',
+        'Delhi fruit market software',
     ],
     alternates: { canonical: 'https://www.mandigrow.com/fruit-mandi-software' },
     openGraph: {
-        title: 'Fruit Mandi Software India | Fruit Trader ERP — MandiGrow',
-        description: 'Manage box-wise inventory, farmer pattis, APMC cess, and buyer outstanding with India\'s fastest fruit mandi software.',
+        title: 'Fruit Mandi Software India | Top APMC ERP — MandiGrow',
+        description: 'Manage box-wise inventory, farmer pattis, APMC cess, and buyer outstanding with India\'s fastest fruit mandi software for Azadpur, Vashi, and local markets.',
         url: 'https://www.mandigrow.com/fruit-mandi-software',
         type: 'website',
     },
@@ -86,10 +92,10 @@ export default function FruitMandiSoftwarePage() {
                     </div>
                     <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gray-900 mb-6 leading-tight">
                         India's #1 Fruit Mandi Software<br />
-                        <span className="text-emerald-700">for Commission Agents</span>
+                        <span className="text-emerald-700">for APMC Commission Agents</span>
                     </h1>
                     <p className="text-xl text-gray-700 font-medium max-w-3xl mx-auto mb-10 leading-relaxed">
-                        Stop losing money on weight calculation errors and empty crates. Automate your fruit wholesale business with India's most powerful mandi ERP. Handle Apple, Mango, Banana, and Citrus workflows with ease.
+                        Stop losing money on weight calculation errors and empty crates. Automate your fruit wholesale business with India's most powerful mandi ERP. Trusted by top traders in <strong>Azadpur Mandi, Vashi APMC, Bowenpally, Ghazipur, and Okhla</strong>. Handle Apple, Mango, Banana, and Citrus workflows with ease.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg">
@@ -112,7 +118,8 @@ export default function FruitMandiSoftwarePage() {
             {/* Features */}
             <section className="py-20 px-6 bg-white">
                 <div className="max-w-5xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-12 text-center">Built for the Fruit Wholesale Market</h2>
+                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-4 text-center">Built for Local Fruit Markets & APMCs</h2>
+                    <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto font-medium">From Delhi's Azadpur to Mumbai's Vashi and Hyderabad's Bowenpally, MandiGrow handles regional APMC cess rules, local languages, and complex box-weight math effortlessly.</p>
                     <div className="grid md:grid-cols-2 gap-6">
                         {FEATURES.map(f => (
                             <div key={f.title} className="bg-[#f7fbf3] border border-emerald-100 rounded-2xl p-6 flex gap-4">

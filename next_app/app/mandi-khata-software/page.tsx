@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Mandi Khata Software India — Digital Ledger for Mandi Traders & Commission Agents | MandiGrow',
+    title: 'Mandi Khata Software India | Digital Ledger for APMC Traders & Commission Agents',
     description:
-        'MandiGrow is India\'s best mandi khata software. Replace paper bahis with a real-time digital ledger for every party. Track udhar, advances and settlements instantly. Free trial — no card.',
+        'MandiGrow is India\'s best mandi khata software. Replace paper bahis with a real-time digital ledger. Track udhar, advances and settlements across local APMC markets like Azadpur, Vashi, Bowenpally, and Ghazipur.',
     keywords: [
         'mandi khata software',
         'digital mandi khata',
@@ -14,12 +14,18 @@ export const metadata: Metadata = {
         'mandi udhar software',
         'commission agent khata app',
         'fruit vegetable trader ledger',
+        'APMC digital khata',
+        'Azadpur mandi ledger app',
+        'Vashi APMC khata software',
+        'Bowenpally mandi bahi',
+        'Ghazipur sabji mandi khata',
+        'Okhla fruit trader khata',
     ],
     alternates: { canonical: 'https://www.mandigrow.com/mandi-khata-software' },
     openGraph: {
-        title: 'Mandi Khata Software India — Digital Ledger for Mandi Traders | MandiGrow',
+        title: 'Mandi Khata Software India — Digital Ledger for Local APMC Traders',
         description:
-            'Replace paper bahis with a real-time digital mandi khata. Track udhar, advances and party balances instantly — for fruits & vegetable merchants and commission agents across India.',
+            'Replace paper bahis with a real-time digital mandi khata. Track udhar, advances and party balances instantly — trusted by commission agents in Delhi, Maharashtra, Telangana, and AP.',
         url: 'https://www.mandigrow.com/mandi-khata-software',
         type: 'website',
     },
@@ -86,16 +92,17 @@ export default function MandiKhataPage() {
 
             <section className="max-w-5xl mx-auto px-6 pt-24 pb-16">
                 <p className="text-emerald-700 font-black uppercase tracking-widest text-xs mb-4">
-                    Mandi Khata Software · India
+                    Digital Mandi Khata Software · India
                 </p>
                 <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-                    Mandi Khata Software — Digital Ledger for Indian Traders
+                    Mandi Khata Software — <br />
+                    <span className="text-emerald-700">Digital Ledger for APMC Traders</span>
                 </h1>
                 <p className="text-xl text-gray-700 max-w-3xl mb-8">
                     Replace paper bahis with a real-time digital mandi khata. Every party
                     balance live. Every entry linked to the underlying sale, purchase or
-                    payment. Built for fruits and vegetable merchants and commission agents
-                    across India.
+                    payment. Built for fruits and vegetable commission agents in major 
+                    APMCs like <strong>Azadpur Mandi, Vashi APMC, Bowenpally, and Ghazipur</strong>.
                 </p>
                 <div className="flex gap-4 flex-wrap">
                     <Link
