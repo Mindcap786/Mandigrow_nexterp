@@ -8411,6 +8411,15 @@ def _get_org_info(org_id: str) -> dict:
         address_val = org.get("address_line1") or org.get("address") or ""
         city_val = org.get("address_line2") or org.get("city") or ""
 
+        # Fetch global settings fallback
+        try:
+            global_settings = frappe.get_single("Mandi Settings")
+            global_crate_tracking = bool(global_settings.get("enable_crate_tracking"))
+            global_crate_ageing = int(global_settings.get("crate_ageing_days") or 7)
+        except Exception:
+            global_crate_tracking = False
+            global_crate_ageing = 7
+
         # Parse payment settings JSON
         import json
         payment_settings = {}
@@ -8463,8 +8472,8 @@ def _get_org_info(org_id: str) -> dict:
             "sgst_percent": flt(org.get("sgst_percent") or 0),
             "igst_percent": flt(org.get("igst_percent") or 0),
             "erp_company": org.get("erp_company") or "",
-            "enable_crate_tracking": bool(org.get("enable_crate_tracking")),
-            "crate_ageing_days": int(org.get("crate_ageing_days") or 7),
+            "enable_crate_tracking": bool(org.get("enable_crate_tracking")) or global_crate_tracking,
+            "crate_ageing_days": int(org.get("crate_ageing_days") or global_crate_ageing or 7),
             "settings": {
                 "payment": payment_settings
             }
