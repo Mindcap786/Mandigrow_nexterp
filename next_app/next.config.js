@@ -111,7 +111,7 @@ const nextConfig = {
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.paytmpayments.com",
                             "font-src 'self' https://fonts.gstatic.com data: https://*.paytmpayments.com",
                             "img-src 'self' data: blob: https:",
-                            "connect-src 'self' http://mandigrow.localhost:8000 ws://mandigrow.localhost:8000 http://127.0.0.1:8000 ws://127.0.0.1:8000 http://localhost:8000 ws://localhost:8000 https://*.frappe.cloud https://mandigrow.com https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://api.stripe.com https://typhoon.smepay.in https://www.google-analytics.com https://*.paytmpayments.com https://securegw.paytm.in",
+                            "connect-src 'self' http://mandigrow.localhost:8000 ws://mandigrow.localhost:8000 http://127.0.0.1:8000 ws://127.0.0.1:8000 http://localhost:8000 ws://localhost:8000 https://*.frappe.cloud https://mandigrow.com https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://api.stripe.com https://typhoon.smepay.in https://www.google-analytics.com https://analytics.google.com https://www.google.com https://*.paytmpayments.com https://securegw.paytm.in",
                             "frame-src 'self' https://checkout.razorpay.com https://js.stripe.com https://typhoon.smepay.in https://*.paytmpayments.com",
                             "object-src 'none'",
                             "base-uri 'self'",

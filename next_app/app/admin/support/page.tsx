@@ -76,16 +76,7 @@ function TicketQueue() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const init = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-                setSessionToken(session.access_token);
-                fetchTickets();
-            } else {
-                setLoading(false);
-            }
-        };
-        init();
+        fetchTickets();
     }, []);
 
     const fetchTickets = async () => {
