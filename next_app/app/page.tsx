@@ -515,6 +515,67 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* SEO Local Mandi & Commodity Links Hub */}
+            <section className="py-16 px-6 bg-[#0a2313] text-emerald-50 border-t border-[#123920]">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-10">
+                        <h2 className="text-2xl font-black mb-2">India's Top Mandi Software by Location & Commodity</h2>
+                        <p className="text-emerald-400 text-sm font-medium">Find specialized billing, ERP, and khata solutions tailored for your local APMC market.</p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-6 gap-x-4 text-xs font-medium text-emerald-200">
+                        {/* Column 1: Top Commodities */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">By Commodity</h3>
+                            <Link href="/fruit-mandi-software" className="hover:text-white transition">Fruit Mandi Software</Link>
+                            <Link href="/sabji-mandi-software" className="hover:text-white transition">Sabji Mandi Software</Link>
+                            <Link href="/anaj-mandi-erp-software" className="hover:text-white transition">Anaj Mandi ERP Software</Link>
+                            <Link href="/apple-mandi-software" className="hover:text-white transition">Apple Trader Software</Link>
+                            <Link href="/mango-mandi-software" className="hover:text-white transition">Mango Commission Agent Software</Link>
+                            <Link href="/onion-potato-mandi-software" className="hover:text-white transition">Onion & Potato Billing Software</Link>
+                            <Link href="/tomato-mandi-software" className="hover:text-white transition">Tomato APMC Software</Link>
+                        </div>
+                        {/* Column 2: Local Mandis */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Top Mandis</h3>
+                            <Link href="/azadpur-mandi-software" className="hover:text-white transition">Azadpur Mandi Software (Delhi)</Link>
+                            <Link href="/vashi-mandi-software" className="hover:text-white transition">Vashi APMC Software (Mumbai)</Link>
+                            <Link href="/bowenpally-mandi-software" className="hover:text-white transition">Bowenpally Mandi Software (HYD)</Link>
+                            <Link href="/ghazipur-mandi-software" className="hover:text-white transition">Ghazipur Sabzi Mandi Software</Link>
+                            <Link href="/okhla-mandi-software" className="hover:text-white transition">Okhla Mandi ERP</Link>
+                            <Link href="/yeshwanthpur-mandi-software" className="hover:text-white transition">Yeshwanthpur APMC Software</Link>
+                        </div>
+                        {/* Column 3: By State */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">By State</h3>
+                            <Link href="/mandi-software-maharashtra" className="hover:text-white transition">APMC Software Maharashtra</Link>
+                            <Link href="/mandi-software-telangana" className="hover:text-white transition">Mandi Software Telangana</Link>
+                            <Link href="/mandi-software-andhra-pradesh" className="hover:text-white transition">Mandi Software Andhra Pradesh</Link>
+                            <Link href="/mandi-software-karnataka" className="hover:text-white transition">Mandi ERP Karnataka</Link>
+                            <Link href="/mandi-software-punjab" className="hover:text-white transition">Arhtiya Software Punjab</Link>
+                            <Link href="/mandi-software-uttar-pradesh" className="hover:text-white transition">Sabji Mandi Software UP</Link>
+                        </div>
+                        {/* Column 4: Core Solutions */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Core Solutions</h3>
+                            <Link href="/mandi-khata-software" className="hover:text-white transition">Digital Mandi Khata App</Link>
+                            <Link href="/mandi-billing-software" className="hover:text-white transition">Mandi Billing Software</Link>
+                            <Link href="/commission-agent-software" className="hover:text-white transition">Commission Agent Software</Link>
+                            <Link href="/farmer-payment-management" className="hover:text-white transition">Farmer Payment Management</Link>
+                            <Link href="/gst-mandi-compliance" className="hover:text-white transition">GST Mandi Compliance</Link>
+                            <Link href="/apmc-gate-pass-software" className="hover:text-white transition">APMC Gate Pass Software</Link>
+                        </div>
+                        {/* Column 5: Comparisons */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Comparisons</h3>
+                            <Link href="/tally-vs-mandigrow" className="hover:text-white transition">Tally vs MandiGrow</Link>
+                            <Link href="/vyapar-vs-mandigrow" className="hover:text-white transition">Vyapar vs MandiGrow</Link>
+                            <Link href="/marg-erp-vs-mandigrow" className="hover:text-white transition">Marg ERP vs MandiGrow</Link>
+                            <Link href="/zoho-vs-mandigrow" className="hover:text-white transition">Zoho Books vs MandiGrow</Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Footer */}
             <LandingFooter />
         </div>
