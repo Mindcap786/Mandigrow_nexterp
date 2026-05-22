@@ -273,7 +273,7 @@ export function ArrivalDetailsSheet({ arrivalId, isOpen, onClose, onUpdate }: Ar
                                                 <div className="text-[9px] uppercase font-black text-neon-blue tracking-widest">Editing Basic Lot Details</div>
 
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    {inputField("Quantity", "initial_qty")}
+                                                    {inputField("Quantity", "initial_qty", "number", true)}
                                                     {inputField("Unit", "unit", "text")}
                                                     {inputField("Supplier Rate (₹)", "supplier_rate", "number", true)}
                                                     {inputField("Sale Price (₹)", "sale_price")}
