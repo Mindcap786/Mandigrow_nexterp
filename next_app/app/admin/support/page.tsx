@@ -92,8 +92,8 @@ function TicketQueue() {
         setLoading(true);
         try {
             const res = await callApi('mandigrow.api.get_all_support_tickets');
-            if (res?.message?.tickets) {
-                setTickets(res.message.tickets);
+            if (res?.tickets) {
+                setTickets(res.tickets);
             }
         } catch (e: any) {
             toast({ title: 'Access Denied', description: e.message, variant: 'destructive' });

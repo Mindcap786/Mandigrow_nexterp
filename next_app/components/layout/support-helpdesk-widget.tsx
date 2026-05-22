@@ -50,8 +50,8 @@ export function SupportHelpdeskWidget() {
         setFetchingTickets(true);
         try {
             const res = await callApi('mandigrow.api.get_support_tickets');
-            if (res?.message?.tickets) {
-                setTickets(res.message.tickets);
+            if (res?.tickets) {
+                setTickets(res.tickets);
             }
         } catch (error) {
             console.error('Error fetching tickets:', error);
