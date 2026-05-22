@@ -14153,6 +14153,115 @@ mandigrow.com
         frappe.log_error(frappe.get_traceback(), "approve_partner Failed")
         return {"success": False, "error": str(e)}
 
+@frappe.whitelist()
+def link_partner_to_tenant(tenant_id, partner_id):
+    """
+    Admin action: Manually link an approved partner to a Mandi Organization.
+    Sets the partner on the organization and sends a Trust/Guarantee Report email to the partner.
+    """
+    if "System Manager" not in frappe.get_roles() and "Super Admin" not in frappe.get_roles():
+        return {"success": False, "error": "Not authorized."}
+        
+    try:
+        # Validate Tenant
+        if not frappe.db.exists("Mandi Organization", tenant_id):
+            return {"success": False, "error": "Tenant not found."}
+            
+        org = frappe.get_doc("Mandi Organization", tenant_id)
+        
+        # Validate Partner
+        if not frappe.db.exists("Mandi Partner Profile", partner_id):
+            return {"success": False, "error": "Partner not found."}
+            
+        partner = frappe.get_doc("Mandi Partner Profile", partner_id)
+        
+        if partner.status != "Approved":
+            return {"success": False, "error": "Partner must be approved first."}
+            
+        if not partner.email:
+            return {"success": False, "error": "Partner does not have an email address."}
+            
+        # 1. Update Organization
+        org.partner = partner.name
+        org.onboarding_partner = partner.name
+        org.save(ignore_permissions=True)
+        frappe.db.commit()
+        
+        # 2. Get Commission Setting
+        commission_percent = frappe.db.get_single_value("Mandi Partner Settings", "commission_percentage") or 15.0
+        
+        # 3. Generate and Send Trust Report Email
+        subject = f"Official Confirmation: Assignment of {org.organization_name or tenant_id} to your Partner Account"
+        
+        message = f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #0f172a; padding: 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Assignment & Payout Guarantee</h1>
+            </div>
+            <div style="padding: 30px; background-color: #ffffff;">
+                <p style="font-size: 16px; color: #334155; line-height: 1.5;">Dear <strong>{partner.partner_name}</strong>,</p>
+                <p style="font-size: 16px; color: #334155; line-height: 1.5;">This is an official confirmation from MandiGrow that a new Mandi has been successfully linked to your partner account.</p>
+                
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 24px 0;">
+                    <h3 style="margin-top: 0; color: #0f172a; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Assignment Details</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Mandi ID:</td>
+                            <td style="padding: 8px 0; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">{tenant_id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Mandi Name:</td>
+                            <td style="padding: 8px 0; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">{org.organization_name or 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Commission Rate:</td>
+                            <td style="padding: 8px 0; color: #10b981; font-weight: bold; font-size: 14px; text-align: right;">{commission_percent}%</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Status:</td>
+                            <td style="padding: 8px 0; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">Linked & Active</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <h3 style="color: #0f172a; font-size: 18px; margin-bottom: 12px;">Payout Transparency Guarantee</h3>
+                <p style="font-size: 14px; color: #475569; line-height: 1.6;">As part of our exclusive Partner Program, you are guaranteed a <strong>{commission_percent}% commission</strong> on all subscription renewals paid by this Mandi, for the lifetime of their active account.</p>
+                <p style="font-size: 14px; color: #475569; line-height: 1.6;">Payouts are calculated automatically by our system upon successful receipt of funds from the tenant and will be dispatched according to your standard payout cycle.</p>
+                
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+                
+                <p style="font-size: 14px; color: #64748b;">If you have any questions regarding your payouts or need assistance, our finance team is available directly at <a href="mailto:finance@mandigrow.com" style="color: #3b82f6; text-decoration: none;">finance@mandigrow.com</a>.</p>
+                <p style="font-size: 14px; color: #64748b; margin-bottom: 0;">Thank you for your trust and partnership,<br/><strong>MandiGrow Executive Team</strong></p>
+            </div>
+            <div style="background-color: #f1f5f9; padding: 15px; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #94a3b8;">This is an automated system receipt. Please do not reply directly to this email.</p>
+            </div>
+        </div>
+        """
+        
+        try:
+            frappe.sendmail(
+                recipients=[partner.email],
+                subject=subject,
+                message=message,
+                now=True
+            )
+            email_sent = True
+        except Exception as e:
+            frappe.logger().error(f"Failed to send link trust email to {partner.email}: {str(e)}")
+            email_sent = False
+            
+        return {
+            "success": True, 
+            "message": "Partner linked successfully",
+            "email_sent": email_sent
+        }
+        
+    except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "link_partner_to_tenant Failed")
+        return {"success": False, "error": str(e)}
+
 
 @frappe.whitelist(allow_guest=False)
 def reject_partner(partner_id, reason=""):

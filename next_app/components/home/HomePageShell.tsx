@@ -41,7 +41,7 @@ export function HomePageShell() {
                             <a href="#features" className="hover:text-emerald-800 transition-colors">{t('landing.nav_features')}</a>
                             <a href="#solutions" className="hover:text-emerald-800 transition-colors">{t('landing.nav_solutions')}</a>
                             <Link href="/subscribe" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.subscription_billing')}</Link>
-                            <Link href="/partners" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.partners', { defaultValue: 'Partners' })}</Link>
+                            <Link href="/pricing" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.pricing', { defaultValue: 'Pricing' })}</Link>
                             <a href="#compliance" className="hover:text-emerald-800 transition-colors">{t('nav.compliance')}</a>
                         </div>
                         <div className="flex items-center gap-4">

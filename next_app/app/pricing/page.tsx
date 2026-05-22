@@ -97,7 +97,7 @@ export default function PricingPage() {
                         <Link href="/features" className="hover:text-emerald-800 transition-colors">Features</Link>
                         <Link href="/pricing" className="text-emerald-800 font-black">Pricing</Link>
                         <Link href="/blog" className="hover:text-emerald-800 transition-colors">Blog</Link>
-                        <Link href="/partners" className="hover:text-emerald-800 transition-colors">Partners</Link>
+
                     </div>
                     <div className="flex items-center gap-4">
                         <Link href="/login" className="text-sm font-bold text-gray-700 hover:text-emerald-800">Sign In</Link>

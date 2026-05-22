@@ -27,7 +27,7 @@ export function LandingHeader() {
                         <Link href="/features" className="hover:text-emerald-800 transition-colors">{t('landing.nav_features')}</Link>
                         <Link href="/#solutions" className="hover:text-emerald-800 transition-colors">{t('landing.nav_solutions')}</Link>
                         <Link href="/subscribe" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.subscription_billing')}</Link>
-                        <Link href="/partners" className="hover:text-emerald-800 transition-colors">Partner Program</Link>
+
                         <Link href="/#compliance" className="hover:text-emerald-800 transition-colors">{t('nav.compliance')}</Link>
                     </div>
                     <div className="flex items-center gap-4">

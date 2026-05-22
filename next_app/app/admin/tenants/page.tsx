@@ -12,7 +12,7 @@ import {
     Loader2, MoreHorizontal, Power, PowerOff, Trash2, Building2, Plus,
     Eye, Search, Filter, ShieldCheck, RefreshCw, ArrowUpRight,
     AlertTriangle, CheckCircle2, TrendingDown, ChevronRight, Users, Zap,
-    Key, Phone
+    Key, Phone, Handshake
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -97,6 +97,13 @@ export default function TenantsPage() {
     } | null>(null);
     const [isActioning, setIsActioning] = useState(false);
 
+    // Assign Partner States
+    const [assignPartnerModal, setAssignPartnerModal] = useState<any>(null);
+    const [partnersList, setPartnersList] = useState<any[]>([]);
+    const [selectedPartnerId, setSelectedPartnerId] = useState('');
+    const [isAssigning, setIsAssigning] = useState(false);
+    const [isFetchingPartners, setIsFetchingPartners] = useState(false);
+
     useEffect(() => { fetchTenants(); }, []);
 
     // Background poller for new tenant notifications
@@ -141,6 +148,44 @@ export default function TenantsPage() {
             toast({ title: 'Fetch Failed', description: e.message, variant: 'destructive' });
         }
         setLoading(false);
+    };
+
+    const handleAssignPartner = async (tenant: any) => {
+        setAssignPartnerModal(tenant);
+        if (partnersList.length === 0) {
+            setIsFetchingPartners(true);
+            try {
+                const res: any = await callApi('mandigrow.api.get_partner_applications', { status: 'Approved' });
+                if (res?.success) setPartnersList(res.data || []);
+            } catch (e: any) {
+                toast({ title: 'Fetch Partners Failed', description: e.message, variant: 'destructive' });
+            } finally {
+                setIsFetchingPartners(false);
+            }
+        }
+    };
+
+    const submitAssignPartner = async () => {
+        if (!assignPartnerModal || !selectedPartnerId) return;
+        setIsAssigning(true);
+        try {
+            const res: any = await callApi('mandigrow.api.link_partner_to_tenant', {
+                tenant_id: assignPartnerModal.id,
+                partner_id: selectedPartnerId
+            });
+            if (res?.success) {
+                toast({ title: 'Partner Assigned!', description: 'Trust report emailed successfully.' });
+                setAssignPartnerModal(null);
+                setSelectedPartnerId('');
+                fetchTenants();
+            } else {
+                toast({ title: 'Assign Failed', description: res?.error, variant: 'destructive' });
+            }
+        } catch (e: any) {
+            toast({ title: 'Assign Failed', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsAssigning(false);
+        }
     };
 
     const toggleStatus = async (orgId: string, currentStatus: boolean) => {
@@ -646,6 +691,14 @@ export default function TenantsPage() {
                                                         </>
                                                     )}
                                                 </div>
+                                                {tenant.onboarding_partner && (
+                                                    <div className="flex items-center gap-1 mt-1">
+                                                        <Handshake className="w-3 h-3 text-indigo-500" />
+                                                        <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                            {tenant.onboarding_partner}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -725,6 +778,17 @@ export default function TenantsPage() {
                                                         <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Run Diagnostics
                                                     </Link>
                                                 </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="cursor-pointer flex gap-2 text-indigo-600 focus:text-indigo-700"
+                                                    onSelect={(e) => {
+                                                        e.preventDefault();
+                                                        handleAssignPartner(tenant);
+                                                    }}
+                                                >
+                                                    <Handshake className="w-3.5 h-3.5" /> Assign Partner
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
                                                 {tenant.owner?.id ? (
                                                     <DropdownMenuItem 
                                                         className="cursor-pointer flex gap-2 text-purple-400 focus:text-purple-300" 
@@ -871,6 +935,54 @@ export default function TenantsPage() {
                             onClick={executeDelete}
                         >
                             {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Assign Partner Modal */}
+            <Dialog open={!!assignPartnerModal} onOpenChange={() => setAssignPartnerModal(null)}>
+                <DialogContent className="bg-white border-slate-200 text-slate-900">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black">Assign Partner to Tenant</DialogTitle>
+                        <DialogDescription>
+                            Link a partner to <span className="font-bold text-slate-900">{assignPartnerModal?.name}</span>. This will guarantee their commission on renewals and send them a Trust Report email.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <Label>Select Approved Partner</Label>
+                        {isFetchingPartners ? (
+                            <div className="flex items-center gap-2 text-slate-500 text-sm">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Loading partners...
+                            </div>
+                        ) : (
+                            <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Choose a partner..." />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-60 bg-white">
+                                    {partnersList.length === 0 ? (
+                                        <div className="p-2 text-sm text-slate-500">No approved partners found.</div>
+                                    ) : (
+                                        partnersList.map(p => (
+                                            <SelectItem key={p.name} value={p.name}>
+                                                {p.partner_name} ({p.city || 'No City'}) - {p.name}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setAssignPartnerModal(null)}>Cancel</Button>
+                        <Button 
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                            disabled={!selectedPartnerId || isAssigning}
+                            onClick={submitAssignPartner}
+                        >
+                            {isAssigning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Handshake className="w-4 h-4 mr-2" />}
+                            Assign & Notify Partner
                         </Button>
                     </DialogFooter>
                 </DialogContent>
