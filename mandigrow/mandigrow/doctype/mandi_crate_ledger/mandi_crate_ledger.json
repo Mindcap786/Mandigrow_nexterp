@@ -1,0 +1,134 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "CRLED-.YYYY.-.#####",
+ "creation": "2026-05-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "posting_date",
+  "organization_id",
+  "party_id",
+  "party_name",
+  "crate_type",
+  "qty_out",
+  "qty_in",
+  "running_balance",
+  "deposit_amount",
+  "deposit_converted",
+  "source_doctype",
+  "source_docname",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "organization_id",
+   "fieldtype": "Data",
+   "label": "Organization ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "party_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Party ID"
+  },
+  {
+   "fieldname": "party_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Party Name"
+  },
+  {
+   "fieldname": "crate_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Crate Type",
+   "options": "Mandi Crate Type",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "qty_out",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty Out (Issued)"
+  },
+  {
+   "default": "0",
+   "fieldname": "qty_in",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty In (Returned)"
+  },
+  {
+   "default": "0",
+   "fieldname": "running_balance",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Balance Owed"
+  },
+  {
+   "default": "0",
+   "fieldname": "deposit_amount",
+   "fieldtype": "Currency",
+   "label": "Deposit Charged (₹)"
+  },
+  {
+   "default": "0",
+   "fieldname": "deposit_converted",
+   "fieldtype": "Check",
+   "label": "Deposit Converted to Financial Debit"
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Data",
+   "label": "Source DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_docname",
+   "fieldtype": "Data",
+   "label": "Source Document",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-05-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Crate Ledger",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 0,
+   "write": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

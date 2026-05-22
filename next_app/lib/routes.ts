@@ -35,6 +35,7 @@ export const ROUTES = {
   MANDI_COMMISSION:   '/mandi-commission',
   PURCHASE_BILLS:     '/purchase/bills',
   PURCHASE_INVOICES:  '/purchase/invoices',
+  CRATE_TRACKER:      '/purchase/crates',
 
   // ── Sales ────────────────────────────────────────────────
   SALES:              '/sales',

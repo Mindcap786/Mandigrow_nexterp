@@ -14,6 +14,7 @@
   "city",
   "address",
   "credit_days",
+  "crate_deposit_mode",
   "organization_id",
   "sb_erpnext",
   "supplier",
@@ -64,6 +65,14 @@
    "fieldname": "credit_days",
    "fieldtype": "Int",
    "label": "Credit Days"
+  },
+  {
+   "default": "A",
+   "fieldname": "crate_deposit_mode",
+   "fieldtype": "Select",
+   "label": "Crate Deposit Mode",
+   "options": "A\nB\nC",
+   "description": "A=No Deposit (Trust), B=Mandatory Deposit on every sale, C=Hybrid (above threshold). Overrides Crate Type default."
   },
   {
    "fieldname": "organization_id",

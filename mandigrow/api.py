@@ -14703,3 +14703,279 @@ def assign_tenant_partner(org_id: str, partner_id: str) -> dict:
     frappe.db.commit()
 
     return {"success": True}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CRATE MANAGEMENT APIs
+# Added: 2026-05-22 | Author: MandiGrow Engineering
+# Design: Additive-only. Completely isolated from all existing Sale/Purchase/GL flows.
+#         Feature-flagged: enable_crate_tracking in Mandi Settings (default OFF).
+#         tabMandi Crate Ledger is a standalone table — NEVER touches tabGL Entry.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _is_crate_tracking_enabled(org_id: str) -> bool:
+    """Check if crate tracking is enabled for this org. Safe: returns False on any error."""
+    try:
+        return bool(frappe.db.get_value("Mandi Settings", org_id, "enable_crate_tracking"))
+    except Exception:
+        return False
+
+
+def _post_crate_ledger_entry(
+    org_id: str,
+    party_id: str,
+    party_name: str,
+    crate_type: str,
+    qty_out: int = 0,
+    qty_in: int = 0,
+    deposit_amount: float = 0.0,
+    source_doctype: str = "",
+    source_docname: str = "",
+    notes: str = "",
+    posting_date: str = None,
+) -> str:
+    """
+    Internal helper: creates one Mandi Crate Ledger entry.
+    running_balance = previous_balance + qty_out - qty_in.
+    Only called by the 4 public crate API functions.
+    """
+    if not posting_date:
+        posting_date = frappe.utils.today()
+
+    prev = frappe.db.sql("""
+        SELECT COALESCE(running_balance, 0)
+        FROM `tabMandi Crate Ledger`
+        WHERE organization_id = %s AND party_id = %s AND crate_type = %s
+        ORDER BY creation DESC
+        LIMIT 1
+    """, (org_id, party_id, crate_type))
+    prev_balance = int(prev[0][0]) if prev else 0
+    running_balance = prev_balance + qty_out - qty_in
+
+    doc = frappe.get_doc({
+        "doctype": "Mandi Crate Ledger",
+        "posting_date": posting_date,
+        "organization_id": org_id,
+        "party_id": party_id,
+        "party_name": party_name,
+        "crate_type": crate_type,
+        "qty_out": qty_out,
+        "qty_in": qty_in,
+        "running_balance": running_balance,
+        "deposit_amount": deposit_amount,
+        "deposit_converted": 0,
+        "source_doctype": source_doctype,
+        "source_docname": source_docname,
+        "notes": notes,
+    })
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+    return doc.name
+
+
+@frappe.whitelist(allow_guest=False)
+def get_crate_summary(org_id: str = None) -> dict:
+    """
+    Returns the crate dashboard summary.
+    Safe: reads only tabMandi Crate Ledger. Financial tables are never touched.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+    if not org_id:
+        return {"godown": [], "outstanding": [], "alerts": []}
+
+    ageing_days = int(frappe.db.get_value("Mandi Settings", org_id, "crate_ageing_days") or 7)
+    cutoff_date = frappe.utils.add_days(frappe.utils.today(), -ageing_days)
+
+    outstanding_raw = frappe.db.sql("""
+        SELECT cl.party_id, cl.party_name, cl.crate_type, cl.running_balance, cl.posting_date
+        FROM `tabMandi Crate Ledger` cl
+        INNER JOIN (
+            SELECT party_id, crate_type, MAX(creation) as max_creation
+            FROM `tabMandi Crate Ledger`
+            WHERE organization_id = %s AND running_balance > 0
+            GROUP BY party_id, crate_type
+        ) latest ON cl.party_id = latest.party_id
+                 AND cl.crate_type = latest.crate_type
+                 AND cl.creation = latest.max_creation
+        WHERE cl.organization_id = %s
+        ORDER BY cl.running_balance DESC
+        LIMIT 100
+    """, (org_id, org_id), as_dict=True)
+
+    godown_raw = frappe.db.sql("""
+        SELECT crate_type,
+               SUM(qty_out) as total_out,
+               SUM(qty_in) as total_in,
+               SUM(qty_out) - SUM(qty_in) as net_held_by_parties
+        FROM `tabMandi Crate Ledger`
+        WHERE organization_id = %s
+        GROUP BY crate_type
+    """, (org_id,), as_dict=True)
+
+    alerts = [r for r in outstanding_raw if r.get("posting_date") and str(r["posting_date"]) <= cutoff_date]
+
+    return {
+        "godown": godown_raw,
+        "outstanding": outstanding_raw,
+        "alerts": alerts,
+        "ageing_days": ageing_days,
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def create_crate_transaction(
+    org_id: str,
+    transaction_type: str,
+    crate_type: str,
+    quantity: int,
+    party_id: str = "",
+    party_name: str = "",
+    notes: str = "",
+    deposit_charged: float = 0.0,
+    transaction_date: str = None,
+) -> dict:
+    """
+    Creates a standalone Mandi Crate Transaction (manual entry).
+    Used for: farmer returns empties, buyer returns, damage write-off, stock addition.
+    Does NOT affect any financial ledger.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+    if not org_id:
+        frappe.throw("Organization not found")
+
+    if not _is_crate_tracking_enabled(org_id):
+        frappe.throw("Crate tracking is not enabled. Enable it in Settings > Crate Tracking.")
+
+    quantity = int(quantity)
+    if quantity <= 0:
+        frappe.throw("Quantity must be greater than zero.")
+
+    if transaction_type not in ("issue", "return", "damage", "stock_addition"):
+        frappe.throw(f"Invalid transaction type: {transaction_type}")
+
+    txn = frappe.get_doc({
+        "doctype": "Mandi Crate Transaction",
+        "transaction_date": transaction_date or frappe.utils.today(),
+        "transaction_type": transaction_type,
+        "organization_id": org_id,
+        "party_id": party_id,
+        "party_name": party_name,
+        "crate_type": crate_type,
+        "quantity": quantity,
+        "deposit_charged": deposit_charged,
+        "notes": notes,
+        "source_doctype": "Manual",
+        "source_docname": "",
+    })
+    txn.insert(ignore_permissions=True)
+
+    if party_id and transaction_type in ("issue", "return"):
+        qty_out = quantity if transaction_type == "issue" else 0
+        qty_in  = quantity if transaction_type == "return" else 0
+        _post_crate_ledger_entry(
+            org_id=org_id,
+            party_id=party_id,
+            party_name=party_name,
+            crate_type=crate_type,
+            qty_out=qty_out,
+            qty_in=qty_in,
+            deposit_amount=deposit_charged,
+            source_doctype="Mandi Crate Transaction",
+            source_docname=txn.name,
+            notes=notes,
+            posting_date=transaction_date or frappe.utils.today(),
+        )
+
+    frappe.db.commit()
+    return {"success": True, "transaction_id": txn.name}
+
+
+@frappe.whitelist(allow_guest=False)
+def get_party_crate_ledger(org_id: str, party_id: str) -> dict:
+    """
+    Returns the full crate ledger for a specific party.
+    Safe: reads only tabMandi Crate Ledger — no financial table touched.
+    """
+    if not org_id or not party_id:
+        return {"ledger": [], "summary": {}}
+
+    ledger = frappe.db.sql("""
+        SELECT name, posting_date, crate_type, qty_out, qty_in,
+               running_balance, deposit_amount, deposit_converted,
+               source_doctype, source_docname, notes, creation
+        FROM `tabMandi Crate Ledger`
+        WHERE organization_id = %s AND party_id = %s
+        ORDER BY creation DESC
+        LIMIT 500
+    """, (org_id, party_id), as_dict=True)
+
+    summary_raw = frappe.db.sql("""
+        SELECT cl.crate_type, cl.running_balance
+        FROM `tabMandi Crate Ledger` cl
+        INNER JOIN (
+            SELECT crate_type, MAX(creation) as max_creation
+            FROM `tabMandi Crate Ledger`
+            WHERE organization_id = %s AND party_id = %s
+            GROUP BY crate_type
+        ) latest ON cl.crate_type = latest.crate_type
+                 AND cl.creation = latest.max_creation
+        WHERE cl.organization_id = %s AND cl.party_id = %s
+    """, (org_id, party_id, org_id, party_id), as_dict=True)
+
+    return {
+        "ledger": ledger,
+        "summary": {r["crate_type"]: r["running_balance"] for r in summary_raw},
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: str) -> dict:
+    """
+    Returns the financial debit amount for unreturned crates. Human-triggered only.
+    Marks the ledger entry as deposit_converted = 1.
+    Phase 2 will auto-post a Journal Entry to GL.
+    """
+    if not org_id or not party_id or not crate_type:
+        frappe.throw("org_id, party_id, and crate_type are required.")
+
+    if not _is_crate_tracking_enabled(org_id):
+        frappe.throw("Crate tracking is not enabled.")
+
+    latest = frappe.db.sql("""
+        SELECT cl.running_balance, cl.name
+        FROM `tabMandi Crate Ledger` cl
+        INNER JOIN (
+            SELECT MAX(creation) as max_creation
+            FROM `tabMandi Crate Ledger`
+            WHERE organization_id = %s AND party_id = %s AND crate_type = %s
+        ) sub ON cl.creation = sub.max_creation
+        WHERE cl.organization_id = %s AND cl.party_id = %s AND cl.crate_type = %s
+        LIMIT 1
+    """, (org_id, party_id, crate_type, org_id, party_id, crate_type), as_dict=True)
+
+    if not latest:
+        frappe.throw("No crate ledger found for this party and crate type.")
+
+    balance = int(latest[0]["running_balance"])
+    if balance <= 0:
+        frappe.throw(f"No outstanding crates. Current balance: {balance}")
+
+    deposit_per_crate = float(frappe.db.get_value("Mandi Crate Type", crate_type, "deposit_amount") or 0)
+    if deposit_per_crate <= 0:
+        frappe.throw("Set a deposit amount in the Crate Type master before charging.")
+
+    total_charge = balance * deposit_per_crate
+    frappe.db.set_value("Mandi Crate Ledger", latest[0]["name"], "deposit_converted", 1)
+    frappe.db.commit()
+
+    return {
+        "success": True,
+        "party_id": party_id,
+        "crate_type": crate_type,
+        "balance_crates": balance,
+        "deposit_per_crate": deposit_per_crate,
+        "total_charge": total_charge,
+        "message": f"INR {total_charge:,.2f} should be charged for {balance} unreturned {crate_type} crates.",
+    }

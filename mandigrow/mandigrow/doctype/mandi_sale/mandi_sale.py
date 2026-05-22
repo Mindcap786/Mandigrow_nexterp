@@ -91,3 +91,56 @@ class MandiSale(Document):
                 self.status = "Partial"
             else:
                 self.status = "Pending"
+
+    def after_save(self):
+        """
+        Crate tracking hook — runs AFTER the sale is fully saved and committed.
+        SAFETY GUARANTEES:
+          1. Wrapped in try/except — any bug NEVER blocks or rolls back a sale.
+          2. Feature flag checked first — if OFF, returns immediately. Zero cost.
+          3. Only writes to tabMandi Crate Ledger — never touches tabGL Entry.
+          4. This method did not exist before — adding it cannot break existing behaviour.
+        """
+        try:
+            org_id = getattr(self, "organization_id", None)
+            if not org_id:
+                return
+
+            crate_enabled = frappe.db.get_value("Mandi Settings", org_id, "enable_crate_tracking")
+            if not crate_enabled:
+                return
+
+            buyer_id = getattr(self, "buyerid", None) or getattr(self, "buyer_id", None)
+            buyer_name = getattr(self, "buyername", None) or getattr(self, "buyer_name", None) or ""
+
+            if not buyer_id:
+                return
+
+            crate_items = getattr(self, "crate_items", [])
+            if not crate_items:
+                return
+
+            from mandigrow.api import _post_crate_ledger_entry
+            for item in crate_items:
+                crate_type = getattr(item, "crate_type", None)
+                quantity = int(getattr(item, "quantity", 0) or 0)
+                if not crate_type or quantity <= 0:
+                    continue
+                deposit_amount = float(getattr(item, "deposit_amount", 0) or 0)
+                _post_crate_ledger_entry(
+                    org_id=org_id,
+                    party_id=buyer_id,
+                    party_name=buyer_name,
+                    crate_type=crate_type,
+                    qty_out=quantity,
+                    qty_in=0,
+                    deposit_amount=deposit_amount,
+                    source_doctype="Mandi Sale",
+                    source_docname=self.name,
+                    notes=f"Auto-issued on sale {self.name}",
+                )
+        except Exception as e:
+            frappe.log_error(
+                message=f"Crate ledger post failed for sale {self.name}: {str(e)}",
+                title="Crate Tracking Warning"
+            )

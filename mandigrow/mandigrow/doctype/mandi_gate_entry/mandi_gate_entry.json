@@ -15,7 +15,9 @@
   "commodity",
   "source",
   "organization_id",
-  "created_at"
+  "created_at",
+  "crates_issued",
+  "crates_returned"
  ],
  "fields": [
   {
@@ -71,6 +73,20 @@
    "fieldname": "created_at",
    "fieldtype": "Datetime",
    "label": "Created At"
+  },
+  {
+   "default": "0",
+   "fieldname": "crates_issued",
+   "fieldtype": "Int",
+   "label": "Crates Issued to Farmer",
+   "description": "Empty crates given to farmer at gate. Tracked only if Crate Tracking is enabled in Settings."
+  },
+  {
+   "default": "0",
+   "fieldname": "crates_returned",
+   "fieldtype": "Int",
+   "label": "Crates Returned by Farmer",
+   "description": "Empties returned by farmer at gate."
   }
  ],
  "index_web_pages_for_search": 1,
