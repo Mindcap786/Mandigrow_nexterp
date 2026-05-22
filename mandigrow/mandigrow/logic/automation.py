@@ -341,7 +341,8 @@ def post_arrival_ledger(doc, method=None):
     # during repair scripts, re-saves, or bench execute double-runs).
     existing_gl = frappe.db.count("GL Entry", {
         "against_voucher_type": "Mandi Arrival",
-        "against_voucher": doc.name
+        "against_voucher": doc.name,
+        "is_cancelled": 0
     })
     if existing_gl > 0:
         frappe.logger().info(f"[post_arrival_ledger] Skipping {doc.name} — {existing_gl} GL entries already exist.")
@@ -599,7 +600,8 @@ def post_sale_ledger(doc, method=None):
     # If GL entries already exist for this sale, do NOT post again.
     existing_gl = frappe.db.count("GL Entry", {
         "against_voucher_type": "Mandi Sale",
-        "against_voucher": doc.name
+        "against_voucher": doc.name,
+        "is_cancelled": 0
     })
     if existing_gl > 0:
         frappe.logger().info(f"[post_sale_ledger] Skipping {doc.name} — {existing_gl} GL entries already exist.")
