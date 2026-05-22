@@ -409,14 +409,6 @@ export default function PurchaseBillInvoice({
                             </div>
                         )}
 
-                        {/* Other Cut (Farmer Charges) */}
-                        {totalArrivalExpenseShare > 0.01 && (
-                            <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
-                                <span className="font-bold text-orange-600 uppercase">Other Cut</span>
-                                <span className="font-bold text-orange-600">− ₹{Math.round(totalArrivalExpenseShare).toLocaleString()}</span>
-                            </div>
-                        )}
-
                         {/* Net Goods Value */}
                         <div className="flex justify-between items-center text-xs border-t border-black pt-1.5 mb-2">
                             <span className="font-black text-slate-800 uppercase tracking-tight">Net Goods Value</span>
@@ -432,14 +424,6 @@ export default function PurchaseBillInvoice({
                                 <span className="font-bold text-purple-600">
                                     − ₹{Math.round(totalCommission).toLocaleString()}
                                 </span>
-                            </div>
-                        )}
-
-                        {/* Other Charges */}
-                        {totalOtherCharges > 0 && (
-                            <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400 font-bold uppercase tracking-widest">Other Charges</span>
-                                <span className="font-bold text-red-500">− ₹{Math.round(totalOtherCharges).toLocaleString()}</span>
                             </div>
                         )}
 

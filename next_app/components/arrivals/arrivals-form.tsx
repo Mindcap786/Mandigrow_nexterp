@@ -1483,24 +1483,11 @@ export default function ArrivalsEntryForm() {
                                                                     </FormItem>
                                                                 )}
                                                             />
-                                                            {isVisible('farmer_charges') && (
-                                                                <FormField
-                                                                    control={form.control}
-                                                                    name={`items.${index}.farmer_charges`}
-                                                                    render={({ field }) => (
-                                                                        <FormItem className="space-y-0.5">
-                                                                            <FormLabel className="text-[8px] font-bold uppercase text-red-700">{getLabel('farmer_charges', 'Other Cut')}</FormLabel>
-                                                                            <FormControl>
-                                                                                <Input type="number" {...field} required={isMandatory('farmer_charges')} className="h-8 bg-red-50 border border-red-200 text-red-600 font-bold text-center rounded-md text-xs shadow-sm" />
-                                                                            </FormControl>
-                                                                        </FormItem>
-                                                                    )}
-                                                                />
-                                                            )}
+
                                                             <div className="col-span-3 text-[7px] font-bold text-slate-500 uppercase tracking-tighter mt-1 opacity-70 group-hover/discount:opacity-100 transition-opacity">
                                                                 {arrivalType === 'commission'
-                                                                    ? "Less% and Other Cut are discounts deducted from farmer payment."
-                                                                    : "Less% and Other Cut are discounts deducted from supplier payment."}
+                                                                    ? "Less% is deducted from farmer payment."
+                                                                    : "Less% is deducted from supplier payment."}
                                                             </div>
                                                         </div>
                                                     )}
@@ -1583,8 +1570,7 @@ export default function ArrivalsEntryForm() {
 
                                                             <div>
                                                                 <div className="text-[9px] font-bold text-red-600 uppercase tracking-widest mb-1">Expenses & Cuts</div>
-                                                                <div className="text-sm font-bold text-red-600 tabular-nums">₹{(financials.totalExpenses + (Number(form.watch(`items.${index}.farmer_charges`)) || 0)).toFixed(0)}</div>
-                                                                <div className="text-[8px] text-red-400 mt-0.5 font-medium">Incl. Other Cut</div>
+                                                                <div className="text-sm font-bold text-red-600 tabular-nums">₹{financials.totalExpenses.toFixed(0)}</div>
                                                             </div>
 
                                                             <div className="md:col-span-1 border-r border-slate-300/50">

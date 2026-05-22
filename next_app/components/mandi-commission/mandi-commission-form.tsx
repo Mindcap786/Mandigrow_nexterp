@@ -442,12 +442,9 @@ export function MandiCommissionForm() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                             <div>
-                                <Input ref={loadingRef} type="number" min={0} step="any" value={currentRow.loadingCharges || ""} onChange={(e) => handleCurrentRowChange("loadingCharges", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, otherChargesRef)} className={inputCls} placeholder="Loading Charges" />
-                            </div>
-                            <div>
-                                <Input ref={otherChargesRef} type="number" min={0} step="any" value={currentRow.otherCharges || ""} onChange={(e) => handleCurrentRowChange("otherCharges", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, commPctRef)} className={inputCls} placeholder="Other Charges" />
+                                <Input ref={loadingRef} type="number" min={0} step="any" value={currentRow.loadingCharges || ""} onChange={(e) => handleCurrentRowChange("loadingCharges", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, commPctRef)} className={inputCls} placeholder="Loading Charges" />
                             </div>
                         </div>
                         

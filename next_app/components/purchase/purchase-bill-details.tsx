@@ -481,7 +481,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                                            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                                                 <div>
                                                     <Label className="text-[8px] font-black uppercase text-slate-400">Unit</Label>
                                                     <Input {...form.register(`items.${index}.unit`)} className="h-8 rounded-lg font-bold bg-white text-xs" />
@@ -502,10 +502,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                                     <Label className="text-[8px] font-black uppercase text-slate-400">Loading</Label>
                                                     <Input type="number" {...form.register(`items.${index}.loading_cost`)} className="h-8 rounded-lg font-bold bg-white text-xs" />
                                                 </div>
-                                                <div>
-                                                    <Label className="text-[8px] font-black uppercase text-slate-400">Other Cut</Label>
-                                                    <Input type="number" {...form.register(`items.${index}.farmer_charges`)} className="h-8 rounded-lg font-bold bg-white text-xs" />
-                                                </div>
+
                                             </div>
                                         </div>
                                     ))}
