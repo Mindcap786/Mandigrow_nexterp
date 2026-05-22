@@ -14590,7 +14590,7 @@ def create_support_ticket(subject, message, ticket_type="support"):
     user = frappe.session.user
     
     # Get organization_id for current user
-    org_id = frappe.db.get_value("Mandi User Profile", {"email": user}, "organization_id")
+    org_id = frappe.db.get_value("User", user, "mandi_organization")
     if not org_id:
         # Fallback if no org
         org_id = frappe.db.get_value("Mandi Organization", {"name": "Default Organization"}, "name")
