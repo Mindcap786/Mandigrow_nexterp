@@ -11161,6 +11161,8 @@ def get_tenant_details(p_org_id: str) -> dict:
             "phone": getattr(org, "phone", ""),
             "city": getattr(org, "city", "") or "",
             "billing_cycle": getattr(org, "billing_cycle", None) or "monthly",
+            "onboarding_partner": getattr(org, "onboarding_partner", None),
+            "partner_name": frappe.db.get_value("Mandi Partner Profile", getattr(org, "onboarding_partner", None), "partner_name") if getattr(org, "onboarding_partner", None) else None,
             "rbac_matrix": {}
         },
         "owner": owner,
@@ -14678,4 +14680,24 @@ def update_support_ticket(ticket_id, status, admin_notes=""):
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     
+    return {"success": True}
+
+@frappe.whitelist(allow_guest=False)
+def assign_tenant_partner(org_id: str, partner_id: str) -> dict:
+    """Assigns or updates the onboarding partner for a tenant."""
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        frappe.throw(_("Access Denied: Only Super Admin can perform this action."))
+
+    if not frappe.db.exists("Mandi Organization", org_id):
+        frappe.throw(_("Organization not found"))
+        
+    if partner_id and not frappe.db.exists("Mandi Partner Profile", partner_id):
+        frappe.throw(_("Partner not found"))
+
+    doc = frappe.get_doc("Mandi Organization", org_id)
+    doc.onboarding_partner = partner_id
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
     return {"success": True}

@@ -425,6 +425,33 @@ export default function TenantDetailPage() {
         });
     };
 
+    const [isAssignPartnerOpen, setIsAssignPartnerOpen] = useState(false);
+    const [partnersList, setPartnersList] = useState<any[]>([]);
+
+    const handleOpenAssignPartner = async () => {
+        try {
+            const res: any = await callApi('mandigrow.api.get_partner_applications');
+            setPartnersList(res?.filter((p: any) => p.status === 'Approved') || []);
+            setIsAssignPartnerOpen(true);
+        } catch (e: any) {
+            toast({ title: 'Failed to load partners', description: e.message, variant: 'destructive' });
+        }
+    };
+
+    const handleAssignPartner = async (partnerId: string) => {
+        try {
+            await callApi('mandigrow.api.assign_tenant_partner', {
+                org_id: id,
+                partner_id: partnerId
+            });
+            toast({ title: 'Partner Assigned', description: 'The partner has been linked to this tenant.' });
+            setIsAssignPartnerOpen(false);
+            fetchDetails();
+        } catch (e: any) {
+            toast({ title: 'Failed to assign partner', description: e.message, variant: 'destructive' });
+        }
+    };
+
     if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
     if (!data) return <div className="p-8 text-slate-900">Tenant not found.</div>;
 
@@ -1257,6 +1284,56 @@ export default function TenantDetailPage() {
                             </div>
                         </div>
                         <div className="text-xs text-slate-500 space-y-2">
+                            <div className="pt-2 border-t border-slate-200 mb-2">
+                                <div className="flex justify-between items-center mb-1">
+                                    <p>Onboarding Partner:</p>
+                                    <Dialog open={isAssignPartnerOpen} onOpenChange={setIsAssignPartnerOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={handleOpenAssignPartner}>
+                                                {org.onboarding_partner ? 'Change Partner' : 'Assign Partner'}
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="bg-white border-slate-200">
+                                            <DialogHeader>
+                                                <DialogTitle>Assign Partner</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                                                {partnersList.length === 0 ? (
+                                                    <p className="text-sm text-slate-500 text-center">No approved partners found.</p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {partnersList.map(p => (
+                                                            <div key={p.name} className="flex justify-between items-center p-3 border rounded-lg hover:border-indigo-300">
+                                                                <div>
+                                                                    <p className="font-bold text-slate-900">{p.partner_name}</p>
+                                                                    <p className="text-xs text-slate-500">{p.name} · {p.city}</p>
+                                                                </div>
+                                                                <Button size="sm" onClick={() => handleAssignPartner(p.name)} disabled={org.onboarding_partner === p.name}>
+                                                                    {org.onboarding_partner === p.name ? 'Assigned' : 'Assign'}
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {org.onboarding_partner && (
+                                                    <Button variant="destructive" className="w-full mt-4" onClick={() => handleAssignPartner("")}>
+                                                        Remove Partner
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                                {org.onboarding_partner ? (
+                                    <div className="flex items-center gap-2">
+                                        <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200">{org.partner_name || org.onboarding_partner}</Badge>
+                                        <code className="text-[10px] text-slate-400 font-mono">{org.onboarding_partner}</code>
+                                    </div>
+                                ) : (
+                                    <p className="text-[10px] italic text-slate-400">Direct Signup (No Partner)</p>
+                                )}
+                            </div>
+
                             <div className="pt-2 border-t border-slate-200">
                                 <p className="mb-1">Organization UUID:</p>
                                 <div className="flex items-center gap-2">
