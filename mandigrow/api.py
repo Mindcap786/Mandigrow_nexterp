@@ -14464,3 +14464,100 @@ def get_active_feature_flags():
         return {}
     flags = frappe.get_all("Mandi Feature Flag", fields=["flag_key", "is_enabled"])
     return {f.flag_key: bool(f.is_enabled) for f in flags}
+
+# ─── SUPPORT HUB ──────────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def create_support_ticket(subject, message, ticket_type="support"):
+    user = frappe.session.user
+    
+    # Get organization_id for current user
+    org_id = frappe.db.get_value("Mandi User Profile", {"email": user}, "organization_id")
+    if not org_id:
+        # Fallback if no org
+        org_id = frappe.db.get_value("Mandi Organization", {"name": "Default Organization"}, "name")
+        
+    doc = frappe.get_doc({
+        "doctype": "Mandi Support Ticket",
+        "subject": subject,
+        "message": message,
+        "ticket_type": ticket_type,
+        "status": "open",
+        "user_id": user,
+        "organization_id": org_id
+    })
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    # Send alerts to all Super Admins and Support Admins
+    admin_roles = ["System Manager", "Super Admin", "Support Admin"]
+    admin_users = []
+    for role in admin_roles:
+        users_with_role = frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, fields=["parent"])
+        admin_users.extend([u.parent for u in users_with_role])
+        
+    admin_users = list(set(admin_users)) # deduplicate
+    
+    # Send email to each admin
+    for admin_email in admin_users:
+        if admin_email != "Administrator": # Skip the default Administrator
+            try:
+                frappe.sendmail(
+                    recipients=[admin_email],
+                    subject=f"New Support Ticket: {subject}",
+                    message=f"<p>A new {ticket_type} ticket was created by {user}.</p><p><b>Message:</b></p><blockquote>{message}</blockquote><p>Check the admin dashboard to respond.</p>"
+                )
+            except Exception as e:
+                frappe.log_error(f"Failed to send support email to {admin_email}: {str(e)}", "Support Hub Email Error")
+                
+    return {"success": True, "ticket_id": doc.name}
+
+@frappe.whitelist(allow_guest=False)
+def get_support_tickets():
+    user = frappe.session.user
+    tickets = frappe.get_all("Mandi Support Ticket", 
+        filters={"user_id": user},
+        fields=["name as id", "subject", "message", "ticket_type", "status", "admin_notes", "creation as created_at"],
+        order_by="creation desc"
+    )
+    return {"tickets": tickets}
+
+@frappe.whitelist(allow_guest=False)
+def get_all_support_tickets():
+    # Admin only
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    # Check if super admin or has support admin role
+    roles = frappe.get_roles(frappe.session.user)
+    if not is_super_admin() and "Support Admin" not in roles and "System Manager" not in roles:
+        frappe.throw(_("Access Denied"))
+        
+    tickets = frappe.get_all("Mandi Support Ticket",
+        fields=["name as id", "subject", "message", "ticket_type", "status", "admin_notes", "creation as created_at", "organization_id", "user_id"],
+        order_by="creation desc"
+    )
+    
+    # Map org names
+    for t in tickets:
+        org_name = frappe.db.get_value("Mandi Organization", t.organization_id, "organization_name")
+        tenant_id = frappe.db.get_value("Mandi Organization", t.organization_id, "tenant_id")
+        t.org = {"name": org_name or t.organization_id, "tenant_id": tenant_id or t.organization_id}
+        
+    return {"tickets": tickets}
+
+@frappe.whitelist(allow_guest=False)
+def update_support_ticket(ticket_id, status, admin_notes=""):
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    roles = frappe.get_roles(frappe.session.user)
+    if not is_super_admin() and "Support Admin" not in roles and "System Manager" not in roles:
+        frappe.throw(_("Access Denied"))
+        
+    if not frappe.db.exists("Mandi Support Ticket", ticket_id):
+        frappe.throw(_("Ticket not found"))
+        
+    doc = frappe.get_doc("Mandi Support Ticket", ticket_id)
+    doc.status = status
+    doc.admin_notes = admin_notes
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    return {"success": True}

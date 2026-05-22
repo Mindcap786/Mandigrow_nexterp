@@ -80,7 +80,7 @@ function TicketQueue() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.access_token) {
                 setSessionToken(session.access_token);
-                fetchTickets(session.access_token);
+                fetchTickets();
             } else {
                 setLoading(false);
             }
@@ -88,15 +88,13 @@ function TicketQueue() {
         init();
     }, []);
 
-    const fetchTickets = async (token: string) => {
+    const fetchTickets = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/admin/support', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to fetch tickets');
-            setTickets(data.tickets || []);
+            const res = await callApi('mandigrow.mandigrow.api.get_all_support_tickets');
+            if (res?.message?.tickets) {
+                setTickets(res.message.tickets);
+            }
         } catch (e: any) {
             toast({ title: 'Access Denied', description: e.message, variant: 'destructive' });
         } finally {
@@ -105,27 +103,18 @@ function TicketQueue() {
     };
 
     const handleUpdateTicket = async () => {
-        if (!selectedTicket || !sessionToken) return;
+        if (!selectedTicket) return;
         setSaving(true);
         try {
-            const res = await fetch('/api/admin/support', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
-                },
-                body: JSON.stringify({
-                    ticket_id: selectedTicket.id,
-                    status: ticketStatus,
-                    admin_notes: adminNotes
-                })
+            await callApi('mandigrow.mandigrow.api.update_support_ticket', {
+                ticket_id: selectedTicket.id,
+                status: ticketStatus,
+                admin_notes: adminNotes
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to update ticket');
             
             toast({ title: 'Ticket Updated', description: `Status changed to ${ticketStatus}` });
             setSelectedTicket(null);
-            fetchTickets(sessionToken);
+            fetchTickets();
         } catch (e: any) {
             toast({ title: 'Update Failed', description: e.message, variant: 'destructive' });
         } finally {

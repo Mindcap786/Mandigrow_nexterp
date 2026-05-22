@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 import { useAuth } from '@/components/auth/auth-provider';
+import { callApi } from '@/lib/frappeClient';
 import { motion } from 'framer-motion';
 import { MessageSquarePlus, X, Send, CheckCircle2, Loader2, Sparkles, HelpCircle, CreditCard, Clock, History, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,8 +49,10 @@ export function SupportHelpdeskWidget() {
     const fetchTickets = async () => {
         setFetchingTickets(true);
         try {
-            // Stubbed for Frappe migration
-            setTickets([]);
+            const res = await callApi('mandigrow.mandigrow.api.get_support_tickets');
+            if (res?.message?.tickets) {
+                setTickets(res.message.tickets);
+            }
         } catch (error) {
             console.error('Error fetching tickets:', error);
         } finally {
@@ -65,8 +68,11 @@ export function SupportHelpdeskWidget() {
 
         setLoading(true);
         try {
-            // Stubbed for Frappe migration
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await callApi('mandigrow.mandigrow.api.create_support_ticket', {
+                subject: subject || 'Support Request',
+                message: message,
+                ticket_type: type
+            });
             
             setSuccess(true);
             setTimeout(() => {
