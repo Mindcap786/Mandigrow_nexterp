@@ -431,7 +431,7 @@ export default function TenantDetailPage() {
     const handleOpenAssignPartner = async () => {
         try {
             const res: any = await callApi('mandigrow.api.get_partner_applications');
-            setPartnersList(res?.filter((p: any) => p.status === 'Approved') || []);
+            setPartnersList(res?.data?.filter((p: any) => p.status === 'Approved') || []);
             setIsAssignPartnerOpen(true);
         } catch (e: any) {
             toast({ title: 'Failed to load partners', description: e.message, variant: 'destructive' });
