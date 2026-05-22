@@ -171,14 +171,15 @@ export function ArrivalDetailsSheet({ arrivalId, isOpen, onClose, onUpdate }: Ar
         </div>
     );
 
-    const inputField = (label: string, key: keyof typeof EMPTY_EDIT, type = "number") => (
+    const inputField = (label: string, key: keyof typeof EMPTY_EDIT, type = "number", disabled = false) => (
         <div className="space-y-1">
             <Label className="text-[9px] uppercase font-bold text-gray-500">{label}</Label>
             <Input
                 type={type}
                 value={editForm[key]}
                 onChange={(e) => setEditForm(prev => ({ ...prev, [key]: e.target.value }))}
-                className="h-8 bg-white/5 border-white/10 text-xs font-bold text-white"
+                disabled={disabled}
+                className={cn("h-8 bg-white/5 border-white/10 text-xs font-bold text-white", disabled && "opacity-50 cursor-not-allowed")}
             />
         </div>
     );
@@ -274,7 +275,7 @@ export function ArrivalDetailsSheet({ arrivalId, isOpen, onClose, onUpdate }: Ar
                                                 <div className="grid grid-cols-2 gap-4">
                                                     {inputField("Quantity", "initial_qty")}
                                                     {inputField("Unit", "unit", "text")}
-                                                    {inputField("Supplier Rate (₹)", "supplier_rate")}
+                                                    {inputField("Supplier Rate (₹)", "supplier_rate", "number", true)}
                                                     {inputField("Sale Price (₹)", "sale_price")}
                                                 </div>
 
