@@ -2251,6 +2251,7 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
             c.full_name as contact_name, 
             c.contact_type,
             c.city as contact_city,
+            c.phone as contact_phone,
             COALESCE(
                 (SELECT SUM(gl.debit - gl.credit)
                  FROM `tabGL Entry` gl

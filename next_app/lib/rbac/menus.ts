@@ -61,6 +61,7 @@ export const NAV_ITEMS: MenuItem[] = [
         items: [
             { tKey: 'nav.finance_overview', href: ROUTES.FINANCE, icon: PieChart },
             { tKey: 'nav.day_book', href: ROUTES.REPORT_DAYBOOK, icon: BookOpen },
+            { tKey: 'nav.follow_ups', href: ROUTES.FOLLOW_UPS, icon: MessageCircle },
             { tKey: 'nav.cheque_mgmt', href: ROUTES.FINANCE_RECONCILIATION, icon: CreditCard },
             { tKey: 'nav.gst_compliance', href: ROUTES.REPORT_GST, icon: ShieldCheck },
             { tKey: 'nav.balance_sheet', href: ROUTES.REPORT_BALANCE_SHEET, icon: Scale },

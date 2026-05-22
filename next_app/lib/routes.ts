@@ -75,6 +75,7 @@ export const ROUTES = {
   FINANCE_FARMER_SETTLEMENTS: '/finance/farmer-settlements',
   FINANCE_DAILY_RATE: '/finance/daily-rate-fixer',
   FINANCE_REMINDERS:  '/finance/reminders',
+  FOLLOW_UPS:         '/follow-ups',
 
   // ── Reports ──────────────────────────────────────────────
   REPORT_DAYBOOK:     '/reports/daybook',
