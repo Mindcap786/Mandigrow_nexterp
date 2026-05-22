@@ -27,8 +27,11 @@ export default function FollowUpsPage() {
                 limit_start: page * 50,
                 limit_page_length: 50
             })
-            // res could be unwrapped array or { message: [...] }
-            const data = Array.isArray(res) ? res : Array.isArray(res?.message) ? res.message : []
+            let data = [];
+            if (Array.isArray(res)) data = res;
+            else if (res?.data && Array.isArray(res.data)) data = res.data;
+            else if (res?.message?.data && Array.isArray(res.message.data)) data = res.message.data;
+            else if (Array.isArray(res?.message)) data = res.message;
             setParties(data)
         } catch (err) {
             console.error("Failed to fetch party balances:", err)
