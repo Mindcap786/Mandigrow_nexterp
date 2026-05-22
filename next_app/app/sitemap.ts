@@ -15,6 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     return [
         // ── Core ─────────────────────────────────────────────────────────────────
         { url: `${BASE_URL}/`,                               lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
+        { url: `${BASE_URL}/user-guide`,                     lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
+
 
         // ── Money pages — commodity/category ──────────────────────────────────────
         { url: `${BASE_URL}/fruit-mandi-software`,           lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
