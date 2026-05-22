@@ -5,16 +5,20 @@ import { LandingHeader } from '@/components/layout/LandingHeader';
 import { CheckCircle2, ArrowRight, Package, BarChart3, FileText, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Anaj Mandi Software India | Grain & Pulse Trader ERP — MandiGrow',
-    description: 'MandiGrow is India\'s #1 anaj mandi software for wheat, rice, dal and pulse traders. Auto commission, GST billing, farmer payments, mandi khata and APMC compliance. Free trial.',
+    title: 'Anaj Mandi Software India | Top ERP for Grain & Pulse Traders',
+    description: 'MandiGrow is India\'s #1 anaj mandi software. Handle quintal billing, GST, and farmer khata. Trusted by APMC grain traders in Kurnool, Guntur, Vijayawada, and Punjab.',
     keywords: [
         'anaj mandi software',
+        'mandi erp software india',
         'grain mandi software India',
         'wheat mandi software',
         'rice mandi software',
         'dal trader software India',
         'pulse trading software',
-        'anaj mandi ERP',
+        'Kurnool anaj mandi software',
+        'Guntur grain APMC ERP',
+        'Vijayawada mandi software',
+        'Punjab arhtiya software',
         'grain commission agent software',
         'anaj mandi khata software',
         'APMC grain software India',
@@ -23,8 +27,8 @@ export const metadata: Metadata = {
     ],
     alternates: { canonical: 'https://www.mandigrow.com/anaj-mandi-software' },
     openGraph: {
-        title: 'Anaj Mandi Software India | Grain & Pulse ERP — MandiGrow',
-        description: 'Complete ERP for anaj mandi operators — commission, GST billing, farmer payments, khata and stock management for wheat, rice, dal and pulses.',
+        title: 'Anaj Mandi Software India | Grain & Pulse APMC ERP',
+        description: 'Complete ERP for anaj mandi operators in AP, Telangana, and North India — commission, GST billing, farmer payments, and stock management.',
         url: 'https://www.mandigrow.com/anaj-mandi-software',
         type: 'website',
     },
@@ -100,7 +104,7 @@ export default function AnajMandiSoftwarePage() {
                         <span className="text-emerald-700">for Grain & Pulse Traders</span>
                     </h1>
                     <p className="text-xl text-gray-700 font-medium max-w-3xl mx-auto mb-10 leading-relaxed">
-                        Purpose-built ERP for anaj mandi operators — auto commission, quintal billing, farmer payments, GST, and full mandi khata. Works for wheat, rice, dal, maize, soybean, and all pulses. Available in Hindi and 6 regional languages.
+                        Purpose-built <strong>mandi ERP software india</strong> for anaj mandi operators — auto commission, quintal billing, farmer payments, GST, and full mandi khata. Widely used in <strong>Kurnool, Guntur, Vijayawada, and Punjab</strong> for wheat, rice, dal, and pulses.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg">

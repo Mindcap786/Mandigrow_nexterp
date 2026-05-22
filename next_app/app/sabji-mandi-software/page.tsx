@@ -5,22 +5,27 @@ import { LandingHeader } from '@/components/layout/LandingHeader';
 import { CheckCircle2, ArrowRight, Package, BarChart3, FileText, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Sabji Mandi Software India | Vegetable Commission Agent ERP',
-    description: 'India\'s fastest sabji mandi software. Automate daily auction billing, hamali, farmer khata, and APMC commission for vegetable wholesale traders.',
+    title: 'Sabji Mandi Software India | Vegetable Mandi Billing Software',
+    description: 'India\'s fastest vegetable mandi billing software. Automate daily auction billing, hamali, farmer khata, and APMC commission. Trusted by traders in Azadpur, Nashik, and Bangalore.',
     keywords: [
         'sabji mandi software',
+        'vegetable mandi billing software',
         'sabzi mandi software',
         'vegetable mandi software',
         'sabji mandi billing software',
         'commission agent software',
+        'Delhi Azadpur sabji software',
+        'Nashik vegetable mandi ERP',
+        'Bangalore vegetable market software',
+        'Hyderabad sabji mandi billing',
         'APMC sabji software',
         'vegetable wholesale software',
         'mandi erp software',
     ],
     alternates: { canonical: 'https://www.mandigrow.com/sabji-mandi-software' },
     openGraph: {
-        title: 'Sabji Mandi Software India | Vegetable ERP — MandiGrow',
-        description: 'Automate daily auction billing, hamali, farmer khata, and APMC commission for vegetable wholesale traders.',
+        title: 'Sabji Mandi Software India | Vegetable Mandi Billing ERP',
+        description: 'Automate daily auction billing, hamali, farmer khata, and APMC commission for vegetable wholesale traders across India\'s largest mandis.',
         url: 'https://www.mandigrow.com/sabji-mandi-software',
         type: 'website',
     },
@@ -84,10 +89,10 @@ export default function SabjiMandiSoftwarePage() {
                     </div>
                     <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gray-900 mb-6 leading-tight">
                         India's Fastest Sabji Mandi Software<br />
-                        <span className="text-emerald-700">for Commission Agents</span>
+                        <span className="text-emerald-700">for Vegetable Traders</span>
                     </h1>
                     <p className="text-xl text-gray-700 font-medium max-w-3xl mx-auto mb-10 leading-relaxed">
-                        Replace your paper bahis with a digital Khata. Automate farmer pattis, buyer billing, crate tracking, and commission calculation. The ultimate ERP for Indian Sabzi Mandis.
+                        The ultimate <strong>vegetable mandi billing software</strong> to replace your paper bahis. Automate farmer pattis, buyer billing, and crate tracking. Trusted by traders in <strong>Delhi Azadpur, Nashik, Bangalore APMC, and Hyderabad</strong>.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg">

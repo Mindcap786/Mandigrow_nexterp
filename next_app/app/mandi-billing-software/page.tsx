@@ -5,21 +5,23 @@ import { LandingHeader } from '@/components/layout/LandingHeader';
 import { CheckCircle2, ArrowRight, Package, BarChart3, FileText, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Mandi Billing Software | GST & Non-GST APMC Billing',
-    description: 'Fastest mandi billing software in India. Auto-calculate commission, market fees, and hamali. Generate farmer pattis and buyer invoices in seconds.',
+    title: 'Mandi Billing Software India | GST APMC ERP & Khata',
+    description: 'Fastest mandi billing software in India. Auto-calculate commission, market fees, and hamali. Generate farmer pattis and GST buyer invoices in seconds.',
     keywords: [
         'mandi billing software',
+        'gst billing software for mandi',
+        'mandi erp software india',
         'mandi billing software India',
         'mandi accounting software',
         'APMC billing software',
-        'gst billing software for mandi',
-        'commission agent billing software',
+        'commission agent software',
         'arhtiya billing software',
+        'agriculture billing software',
         'mandi erp',
     ],
     alternates: { canonical: 'https://www.mandigrow.com/mandi-billing-software' },
     openGraph: {
-        title: 'Mandi Billing Software | GST APMC Billing — MandiGrow',
+        title: 'GST Mandi Billing Software | Commission Agent ERP',
         description: 'Auto-calculate commission, market fees, and hamali. Generate farmer pattis and buyer invoices in seconds.',
         url: 'https://www.mandigrow.com/mandi-billing-software',
         type: 'website',
@@ -84,10 +86,10 @@ export default function MandiBillingSoftwarePage() {
                     </div>
                     <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gray-900 mb-6 leading-tight">
                         The Fastest Mandi Billing Software<br />
-                        <span className="text-emerald-700">in India</span>
+                        <span className="text-emerald-700">for Commission Agents</span>
                     </h1>
                     <p className="text-xl text-gray-700 font-medium max-w-3xl mx-auto mb-10 leading-relaxed">
-                        Say goodbye to calculation errors and missing bills. Generate buyer invoices, farmer pattis, and GST reports instantly. The most trusted billing software for Indian commission agents.
+                        Say goodbye to calculation errors and missing bills. The most trusted <strong>gst billing software for mandi</strong> operators. Generate buyer invoices, farmer pattis, and GST reports instantly. The ultimate <strong>agriculture billing software</strong> for Indian APMCs.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg">
