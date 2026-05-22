@@ -14638,7 +14638,8 @@ def get_support_tickets():
     tickets = frappe.get_all("Mandi Support Ticket", 
         filters={"user_id": user},
         fields=["name as id", "subject", "message", "ticket_type", "status", "admin_notes", "creation as created_at"],
-        order_by="creation desc"
+        order_by="creation desc",
+        ignore_permissions=True
     )
     return {"tickets": tickets}
 
@@ -14653,7 +14654,8 @@ def get_all_support_tickets():
         
     tickets = frappe.get_all("Mandi Support Ticket",
         fields=["name as id", "subject", "message", "ticket_type", "status", "admin_notes", "creation as created_at", "organization_id", "user_id"],
-        order_by="creation desc"
+        order_by="creation desc",
+        ignore_permissions=True
     )
     
     # Map org names
