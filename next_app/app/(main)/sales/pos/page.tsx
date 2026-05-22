@@ -709,7 +709,7 @@ export default function POSPage() {
     }, [grandTotal, paymentMode])
 
     return (
-        <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row bg-slate-50 relative">
+        <div className="h-[calc(100vh-64px)] print:h-auto print:min-h-0 print:block print:bg-white print:static flex flex-col md:flex-row bg-slate-50 relative">
 
             {/* ── SCAN DETAIL DIALOG ── */}
             <Dialog open={!!scanResult} onOpenChange={(open) => { if (!open) setScanResult(null); }}>
@@ -1582,11 +1582,12 @@ export default function POSPage() {
 
             {/* Print POS Receipt Component - Hidden normally, visible on print */}
             {showSuccess && (
-                <div className="hidden print:block absolute top-0 left-0 bg-white text-black p-4 font-mono text-[12px] leading-tight print:p-0 print:m-0 w-full" style={{ maxWidth: '80mm' }}>
+                <div className="hidden print:block bg-white text-black p-4 font-mono text-[12px] leading-tight print:p-0 print:m-0 w-full mx-auto" style={{ maxWidth: '80mm' }}>
                     <style type="text/css" media="print">
                         {`
                             @page { size: 80mm auto; margin: 0; }
-                            body { margin: 0; padding: 4mm; width: 80mm !important; }
+                            body, html { margin: 0 !important; padding: 0 !important; background-color: white !important; }
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         `}
                     </style>
                     <div className="text-center mb-4">
