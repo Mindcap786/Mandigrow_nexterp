@@ -24,46 +24,7 @@ const FOOTER_COLUMNS = [
             { label: 'Farmer Payments',    href: '/farmer-payment-management' },
         ],
     },
-    {
-        heading: 'By Commodity',
-        links: [
-            { label: 'Fruit Mandi',           href: '/fruit-mandi-software' },
-            { label: 'Sabji / Vegetable',     href: '/sabji-mandi-software' },
-            { label: 'Apple Mandi',           href: '/apple-mandi-software' },
-            { label: 'Mango Mandi',           href: '/mango-mandi-software' },
-            { label: 'Onion & Potato',        href: '/onion-potato-mandi-software' },
-            { label: 'Mirchi Mandi',          href: '/chilli-mandi-software' },
-            { label: 'Tomato Mandi',          href: '/tomato-mandi-software' },
-            { label: 'Anaj / Grain',          href: '/anaj-mandi-erp-software' },
-            { label: 'Poultry Wholesale',     href: '/poultry-wholesale-software' },
-        ],
-    },
-    {
-        heading: 'By State',
-        links: [
-            { label: 'Andhra Pradesh',   href: '/mandi-software-andhra-pradesh' },
-            { label: 'Telangana',        href: '/mandi-software-telangana' },
-            { label: 'Maharashtra',      href: '/mandi-software-maharashtra' },
-            { label: 'Punjab',           href: '/mandi-software-punjab' },
-            { label: 'Karnataka',        href: '/mandi-software-karnataka' },
-            { label: 'Tamil Nadu',       href: '/mandi-software-tamil-nadu' },
-            { label: 'Rajasthan',        href: '/mandi-software-rajasthan' },
-            { label: 'Uttar Pradesh',    href: '/mandi-software-uttar-pradesh' },
-            { label: 'In Hindi',         href: '/mandi-software-hindi' },
-            { label: 'In Marathi',       href: '/mandi-software-marathi' },
-        ],
-    },
-    {
-        heading: 'By City',
-        links: [
-            { label: 'Azadpur Mandi',       href: '/azadpur-mandi-software' },
-            { label: 'Vashi Mandi',         href: '/vashi-mandi-software' },
-            { label: 'Ghazipur Mandi',      href: '/ghazipur-mandi-software' },
-            { label: 'Yeshwanthpur',        href: '/yeshwanthpur-mandi-software' },
-            { label: 'Bowenpally',          href: '/bowenpally-mandi-software' },
-            { label: 'Okhla Mandi',         href: '/okhla-mandi-software' },
-        ],
-    },
+
     {
         heading: 'Compare',
         links: [
@@ -99,8 +60,7 @@ export function LandingFooter() {
             {/* Main footer grid */}
             <div className="max-w-7xl mx-auto px-6 pt-16 pb-10 relative z-10">
 
-                {/* Brand + columns row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-x-6 gap-y-10">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-x-6 gap-y-10">
 
                     {/* Brand column — spans 1 col on lg */}
                     <div className="col-span-2 md:col-span-4 lg:col-span-1 flex flex-col gap-5">
