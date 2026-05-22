@@ -2866,13 +2866,19 @@ def repair_arrival_financials(arrival_id):
         frappe.db.set_value("Mandi Arrival", doc.name, field, doc.get(field))
         
     # Cancel old JEs linked to this arrival
-    old_jes = frappe.get_all("Journal Entry", filters={"user_remark": ["like", f"%{arrival_id}%"]}, fields=["name", "docstatus"])
-    for oje in old_jes:
-        if oje.docstatus == 1:
-            try:
-                frappe.get_doc("Journal Entry", oje.name).cancel()
-            except Exception:
-                pass
+    old_je_names = frappe.db.sql_list("""
+        SELECT DISTINCT voucher_no 
+        FROM `tabGL Entry` 
+        WHERE against_voucher = %s AND voucher_type IN ('Journal Entry', 'Cash Entry', 'Bank Entry') AND is_cancelled = 0
+    """, arrival_id)
+    
+    for je_name in old_je_names:
+        try:
+            je_doc = frappe.get_doc("Journal Entry", je_name)
+            if je_doc.docstatus == 1:
+                je_doc.cancel()
+        except Exception:
+            pass
             
     # Post new ledger entries
     from mandigrow.mandigrow.logic.automation import post_arrival_ledger
