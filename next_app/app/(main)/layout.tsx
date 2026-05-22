@@ -18,6 +18,7 @@ import { PullToRefresh } from '@/components/capacitor/pull-to-refresh'
 import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { MaintenanceModeInterceptor } from '@/components/layout/maintenance-mode-interceptor'
 
 export default function MainLayout({
     children,
@@ -49,7 +50,8 @@ export default function MainLayout({
     // ── NATIVE & MOBILE WEB LAYOUT ─────────────────────────────────────────────
     if (isMobile) {
         return (
-            <StockAlertsProvider>
+            <MaintenanceModeInterceptor>
+                <StockAlertsProvider>
                 <div
                     className={cn(
                         "flex flex-col bg-[#EFEFEF] select-none touch-manipulation min-h-screen",
@@ -95,13 +97,15 @@ export default function MainLayout({
                     <SnackbarProvider />
                 </div>
             </StockAlertsProvider>
+            </MaintenanceModeInterceptor>
         );
     }
 
     // ── WEB / DESKTOP LAYOUT (UNCHANGED) ──────────────────────────────────────
     return (
-        <StockAlertsProvider>
-            <div className="min-h-screen bg-slate-50 print:block">
+        <MaintenanceModeInterceptor>
+            <StockAlertsProvider>
+                <div className="min-h-screen bg-slate-50 print:block">
 
                 {/* ── FIXED Left Sidebar — never scrolls ─────────────────────── */}
                 <aside
@@ -159,5 +163,6 @@ export default function MainLayout({
                 <PlatformPrintBranding />
             </div>
         </StockAlertsProvider>
+        </MaintenanceModeInterceptor>
     );
 }

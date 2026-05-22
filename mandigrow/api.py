@@ -10461,6 +10461,20 @@ def revoke_coupon(coupon_id):
 
 # ─── FEATURE FLAGS ────────────────────────────────────────────────────────────
 
+def check_feature_flag(flag_key):
+    """
+    Utility for backend logic to block execution if a feature is disabled globally.
+    Example:
+        from mandigrow.mandigrow.api import check_feature_flag
+        check_feature_flag('finance_module')
+    """
+    if not frappe.db.table_exists("Mandi Feature Flag"):
+        return True # Default to allow if system uninitialized
+    is_enabled = frappe.db.get_value("Mandi Feature Flag", {"flag_key": flag_key}, "is_enabled")
+    if is_enabled == 0:
+        frappe.throw(_("This feature ({0}) is currently disabled by system administrators.").format(flag_key))
+    return True
+
 _DEFAULT_FLAGS = [
     {"flag_key": "mobile_app_enabled",    "label": "Mobile App",            "description": "Enables iOS/Android app",                               "is_enabled": 1, "category": "platform"},
     {"flag_key": "finance_module",        "label": "Finance Module",         "description": "Finance & Payments module",                             "is_enabled": 1, "category": "modules"},
@@ -14439,3 +14453,14 @@ def repair_direct_arrivals():
             count += 1
     frappe.db.commit()
     return {"status": "success", "reposted_count": count}
+
+@frappe.whitelist(allow_guest=True)
+def get_active_feature_flags():
+    """
+    Returns a dictionary of all active feature flags for the frontend to consume globally.
+    Example: {"maintenance_mode": True, "finance_module": False}
+    """
+    if not frappe.db.table_exists("Mandi Feature Flag"):
+        return {}
+    flags = frappe.get_all("Mandi Feature Flag", fields=["flag_key", "is_enabled"])
+    return {f.flag_key: bool(f.is_enabled) for f in flags}

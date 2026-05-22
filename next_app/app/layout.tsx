@@ -15,6 +15,7 @@ import { KeyboardHelpOverlay } from '@/components/layout/keyboard-help-overlay'
 // ── Capacitor Native Shell ────────────────────────────────────────────────────
 import { CapacitorProvider } from '@/components/capacitor/capacitor-provider'
 import { NativeAuthGuard } from '@/components/capacitor/native-auth-guard'
+import { FeatureFlagsProvider } from '@/components/providers/FeatureFlagsProvider'
 // ─────────────────────────────────────────────────────────────────────────────
 
 const inter = Inter({ subsets: ['latin'] })
@@ -199,109 +200,111 @@ export default function RootLayout({
             <body className={`${inter.className} min-h-screen bg-gray-50 antialiased`}>
                 {/* CapacitorProvider: adds native class, deep links, back button, keyboard */}
                 {/* NativeAuthGuard: client-side session check (web = transparent pass-through) */}
-                <CapacitorProvider>
-                    <NativeAuthGuard>
-                        <LanguageProvider>
-                            <ShortcutProvider>
-                                <AuthProvider>
-                                    <ImpersonationBanner />
-                                    <PaymentReminderBanner />
+                <FeatureFlagsProvider>
+                    <CapacitorProvider>
+                        <NativeAuthGuard>
+                            <LanguageProvider>
+                                <ShortcutProvider>
+                                    <AuthProvider>
+                                        <ImpersonationBanner />
+                                        <PaymentReminderBanner />
 
-                                    <Script id="json-ld-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-                                        "@context": "https://schema.org",
-                                        "@graph": [
-                                            {
-                                                "@type": "SoftwareApplication",
-                                                "name": "MandiGrow",
-                                                "operatingSystem": "Web, iOS, Android",
-                                                "applicationCategory": "BusinessApplication",
-                                                "aggregateRating": {
-                                                    "@type": "AggregateRating",
-                                                    "ratingValue": "4.9",
-                                                    "ratingCount": "184"
-                                                },
-                                                "offers": {
-                                                    "@type": "Offer",
-                                                    "price": "500",
-                                                    "priceCurrency": "INR"
-                                                }
-                                            },
-                                            {
-                                                "@type": "Organization",
-                                                "name": "MandiGrow",
-                                                "url": "https://www.mandigrow.com",
-                                                "logo": "https://www.mandigrow.com/icons/icon.svg",
-                                                "description": "India's leading APMC Mandi ERP software for commission agents, fruit & vegetable traders.",
-                                                "email": "support@mandigrow.com",
-                                                "contactPoint": {
-                                                    "@type": "ContactPoint",
-                                                    "contactType": "customer support",
-                                                    "availableLanguage": ["English", "Hindi"],
-                                                    "areaServed": "IN"
-                                                },
-                                                "sameAs": [
-                                                    "https://twitter.com/mandigrow",
-                                                    "https://www.facebook.com/mandigrow",
-                                                    "https://www.linkedin.com/company/mandigrow"
-                                                ]
-                                            },
-                                            {
-                                                "@type": "LocalBusiness",
-                                                "name": "MandiGrow — Mandi ERP Software",
-                                                "image": "https://www.mandigrow.com/icons/icon.svg",
-                                                "url": "https://www.mandigrow.com",
-                                                "telephone": "+91-9999999999",
-                                                "priceRange": "₹₹",
-                                                "address": {
-                                                    "@type": "PostalAddress",
-                                                    "addressLocality": "New Delhi",
-                                                    "addressRegion": "Delhi",
-                                                    "postalCode": "110001",
-                                                    "addressCountry": "IN"
-                                                },
-                                                "geo": {
-                                                    "@type": "GeoCoordinates",
-                                                    "latitude": 28.6139,
-                                                    "longitude": 77.2090
-                                                },
-                                                "openingHoursSpecification": {
-                                                    "@type": "OpeningHoursSpecification",
-                                                    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-                                                    "opens": "09:00",
-                                                    "closes": "20:00"
-                                                },
-                                                "aggregateRating": {
-                                                    "@type": "AggregateRating",
-                                                    "ratingValue": "4.9",
-                                                    "reviewCount": "184"
-                                                }
-                                            },
-                                            {
-                                                "@type": "WebSite",
-                                                "name": "MandiGrow",
-                                                "url": "https://www.mandigrow.com",
-                                                "potentialAction": {
-                                                    "@type": "SearchAction",
-                                                    "target": {
-                                                        "@type": "EntryPoint",
-                                                        "urlTemplate": "https://www.mandigrow.com/blog?q={search_term_string}"
+                                        <Script id="json-ld-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                                            "@context": "https://schema.org",
+                                            "@graph": [
+                                                {
+                                                    "@type": "SoftwareApplication",
+                                                    "name": "MandiGrow",
+                                                    "operatingSystem": "Web, iOS, Android",
+                                                    "applicationCategory": "BusinessApplication",
+                                                    "aggregateRating": {
+                                                        "@type": "AggregateRating",
+                                                        "ratingValue": "4.9",
+                                                        "ratingCount": "184"
                                                     },
-                                                    "query-input": "required name=search_term_string"
+                                                    "offers": {
+                                                        "@type": "Offer",
+                                                        "price": "500",
+                                                        "priceCurrency": "INR"
+                                                    }
+                                                },
+                                                {
+                                                    "@type": "Organization",
+                                                    "name": "MandiGrow",
+                                                    "url": "https://www.mandigrow.com",
+                                                    "logo": "https://www.mandigrow.com/icons/icon.svg",
+                                                    "description": "India's leading APMC Mandi ERP software for commission agents, fruit & vegetable traders.",
+                                                    "email": "support@mandigrow.com",
+                                                    "contactPoint": {
+                                                        "@type": "ContactPoint",
+                                                        "contactType": "customer support",
+                                                        "availableLanguage": ["English", "Hindi"],
+                                                        "areaServed": "IN"
+                                                    },
+                                                    "sameAs": [
+                                                        "https://twitter.com/mandigrow",
+                                                        "https://www.facebook.com/mandigrow",
+                                                        "https://www.linkedin.com/company/mandigrow"
+                                                    ]
+                                                },
+                                                {
+                                                    "@type": "LocalBusiness",
+                                                    "name": "MandiGrow — Mandi ERP Software",
+                                                    "image": "https://www.mandigrow.com/icons/icon.svg",
+                                                    "url": "https://www.mandigrow.com",
+                                                    "telephone": "+91-9999999999",
+                                                    "priceRange": "₹₹",
+                                                    "address": {
+                                                        "@type": "PostalAddress",
+                                                        "addressLocality": "New Delhi",
+                                                        "addressRegion": "Delhi",
+                                                        "postalCode": "110001",
+                                                        "addressCountry": "IN"
+                                                    },
+                                                    "geo": {
+                                                        "@type": "GeoCoordinates",
+                                                        "latitude": 28.6139,
+                                                        "longitude": 77.2090
+                                                    },
+                                                    "openingHoursSpecification": {
+                                                        "@type": "OpeningHoursSpecification",
+                                                        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+                                                        "opens": "09:00",
+                                                        "closes": "20:00"
+                                                    },
+                                                    "aggregateRating": {
+                                                        "@type": "AggregateRating",
+                                                        "ratingValue": "4.9",
+                                                        "reviewCount": "184"
+                                                    }
+                                                },
+                                                {
+                                                    "@type": "WebSite",
+                                                    "name": "MandiGrow",
+                                                    "url": "https://www.mandigrow.com",
+                                                    "potentialAction": {
+                                                        "@type": "SearchAction",
+                                                        "target": {
+                                                            "@type": "EntryPoint",
+                                                            "urlTemplate": "https://www.mandigrow.com/blog?q={search_term_string}"
+                                                        },
+                                                        "query-input": "required name=search_term_string"
+                                                    }
                                                 }
-                                            }
-                                        ]
-                                    })}} />
+                                            ]
+                                        })}} />
 
-                                    {children}
-                                    <Toaster />
-                                    <OfflineSyncManager />
-                                    <SubscriptionEnforcer />
-                                    <KeyboardHelpOverlay />
-                                </AuthProvider>
-                            </ShortcutProvider>
-                        </LanguageProvider>
-                    </NativeAuthGuard>
-                </CapacitorProvider>
+                                        {children}
+                                        <Toaster />
+                                        <OfflineSyncManager />
+                                        <SubscriptionEnforcer />
+                                        <KeyboardHelpOverlay />
+                                    </AuthProvider>
+                                </ShortcutProvider>
+                            </LanguageProvider>
+                        </NativeAuthGuard>
+                    </CapacitorProvider>
+                </FeatureFlagsProvider>
 
                 {/* Google Analytics */}
                 <Script
