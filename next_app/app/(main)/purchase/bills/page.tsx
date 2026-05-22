@@ -186,27 +186,29 @@ export default function PurchaseBillsPage() {
                 </div>
 
                 {/* Filter Bar */}
-                <div className="sticky top-4 z-30 bg-white/90 backdrop-blur-xl border border-slate-200 p-2 rounded-2xl shadow-xl flex flex-col md:flex-row gap-2 items-center">
-                    <div className="relative flex-1 w-full">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-2xl border border-slate-200/80 p-2 md:p-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col xl:flex-row gap-3 items-center transition-all">
+                    {/* Search Bar - Flex 1 */}
+                    <div className="relative w-full xl:flex-1 group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-300" />
                         <Input
                             placeholder="Search Supplier, Ref #, or Location..."
-                            className="pl-12 bg-white border-slate-200 text-black h-12 rounded-xl focus:ring-0 focus:border-blue-500 text-lg font-black transition-all shadow-sm placeholder:text-slate-400"
+                            className="pl-12 bg-slate-50/50 hover:bg-white border-slate-200 text-black h-12 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm md:text-base font-bold transition-all shadow-inner focus:shadow-md placeholder:text-slate-400 w-full"
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex flex-wrap md:flex-nowrap gap-2 items-center w-full">
+                    {/* Filters - Natural width */}
+                    <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center w-full xl:w-auto flex-shrink-0">
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "h-12 flex-1 md:w-[240px] md:flex-none justify-start text-left font-black bg-white border-slate-200 text-black hover:bg-slate-50 hover:border-slate-300 px-4 rounded-xl shadow-sm",
+                                        "h-12 flex-1 lg:w-[240px] lg:flex-none justify-start text-left font-black bg-white border-slate-200 text-black hover:bg-slate-50 hover:border-slate-300 px-4 rounded-xl shadow-sm transition-all",
                                         !dateRange && "text-slate-400"
                                     )}
                                 >
-                                    <CalendarIcon className="mr-3 h-5 w-5 shrink-0 text-slate-400" />
+                                    <CalendarIcon className="mr-3 h-5 w-5 shrink-0 text-blue-500" />
                                     {activePreset ? (
                                         <span className="text-sm font-black tracking-widest uppercase text-black truncate">{activePreset}</span>
                                     ) : dateRange?.from ? (
@@ -277,27 +279,27 @@ export default function PurchaseBillsPage() {
                             <Button
                                 variant="ghost"
                                 onClick={() => setDateRange(undefined)}
-                                className="h-12 w-12 shrink-0 rounded-xl border border-slate-200 text-slate-400 hover:text-black hover:bg-slate-100"
+                                className="h-12 w-12 shrink-0 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </Button>
                         )}
 
-                        <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
+                        <div className="h-8 w-px bg-slate-200 mx-1 hidden lg:block" />
 
-                        <div className="flex flex-1 md:flex-none gap-1 overflow-x-auto hide-scrollbar snap-x w-full">
+                        <div className="flex flex-1 lg:flex-none gap-1 overflow-x-auto hide-scrollbar snap-x w-full">
                             {(['all', 'pending', 'partial', 'paid'] as const).map(f => (
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     className={cn(
-                                        'h-12 flex-1 md:flex-none snap-center px-4 md:px-6 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] border transition-all',
+                                        'h-12 flex-1 lg:flex-none snap-center px-4 md:px-5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] border transition-all duration-300',
                                         filter === f 
-                                            ? f === 'partial' ? 'bg-amber-500 text-white border-amber-500 shadow-lg'
-                                              : f === 'paid'    ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg'
-                                              : f === 'pending' ? 'bg-rose-600 text-white border-rose-600 shadow-lg'
-                                              : 'bg-black text-white border-black shadow-lg'
-                                            : 'bg-white border-slate-200 text-slate-500 hover:text-black hover:border-slate-300'
+                                            ? f === 'partial' ? 'bg-amber-500 text-white border-amber-500 shadow-[0_4px_14px_rgba(245,158,11,0.3)]'
+                                              : f === 'paid'    ? 'bg-emerald-600 text-white border-emerald-600 shadow-[0_4px_14px_rgba(5,150,105,0.3)]'
+                                              : f === 'pending' ? 'bg-rose-600 text-white border-rose-600 shadow-[0_4px_14px_rgba(225,29,72,0.3)]'
+                                              : 'bg-slate-900 text-white border-slate-900 shadow-[0_4px_14px_rgba(15,23,42,0.3)]'
+                                            : 'bg-white border-slate-200 text-slate-500 hover:text-black hover:border-slate-300 hover:bg-slate-50'
                                     )}
                                 >
                                     {f}
