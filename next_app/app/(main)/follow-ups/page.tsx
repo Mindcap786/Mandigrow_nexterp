@@ -6,7 +6,8 @@ import { Search, Loader2, MessageCircle, AlertCircle, Phone, IndianRupee } from 
 import { Input } from "@/components/ui/input"
 import { callApi } from "@/lib/frappeClient"
 import { cn } from "@/lib/utils"
-import { formatNumber } from "@/lib/utils"
+
+const formatNumber = (num: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(num);
 
 export default function FollowUpsPage() {
     const { profile } = useAuth()
