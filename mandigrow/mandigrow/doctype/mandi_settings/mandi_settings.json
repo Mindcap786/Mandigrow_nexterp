@@ -15,10 +15,7 @@
   "gst_type",
   "cgst_percent",
   "sgst_percent",
-  "igst_percent",
-  "sb_crate",
-  "enable_crate_tracking",
-  "crate_ageing_days"
+  "igst_percent"
  ],
  "fields": [
   {
@@ -74,25 +71,6 @@
    "fieldname": "igst_percent",
    "fieldtype": "Percent",
    "label": "IGST %"
-  },
-  {
-   "fieldname": "sb_crate",
-   "fieldtype": "Section Break",
-   "label": "Crate / Dabba Tracking"
-  },
-  {
-   "default": "0",
-   "fieldname": "enable_crate_tracking",
-   "fieldtype": "Check",
-   "label": "Enable Crate Tracking",
-   "description": "When enabled, crate movements are auto-recorded on Sale and Gate Entry. OFF by default — zero impact on existing flows."
-  },
-  {
-   "default": "7",
-   "fieldname": "crate_ageing_days",
-   "fieldtype": "Int",
-   "label": "Crate Ageing Alert (Days)",
-   "description": "Show red alert badge if a party holds crates beyond this many days."
   }
  ],
  "grid_page_length": 50,

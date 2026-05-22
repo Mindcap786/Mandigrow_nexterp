@@ -8463,6 +8463,8 @@ def _get_org_info(org_id: str) -> dict:
             "sgst_percent": flt(org.get("sgst_percent") or 0),
             "igst_percent": flt(org.get("igst_percent") or 0),
             "erp_company": org.get("erp_company") or "",
+            "enable_crate_tracking": bool(org.get("enable_crate_tracking")),
+            "crate_ageing_days": int(org.get("crate_ageing_days") or 7),
             "settings": {
                 "payment": payment_settings
             }
@@ -14661,8 +14663,7 @@ def get_all_support_tickets():
     # Map org names
     for t in tickets:
         org_name = frappe.db.get_value("Mandi Organization", t.organization_id, "organization_name")
-        tenant_id = frappe.db.get_value("Mandi Organization", t.organization_id, "tenant_id")
-        t.org = {"name": org_name or t.organization_id, "tenant_id": tenant_id or t.organization_id}
+        t.org = {"name": org_name or t.organization_id, "tenant_id": t.organization_id}
         
     return {"tickets": tickets}
 
@@ -14714,9 +14715,10 @@ def assign_tenant_partner(org_id: str, partner_id: str) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _is_crate_tracking_enabled(org_id: str) -> bool:
-    """Check if crate tracking is enabled for this org. Safe: returns False on any error."""
+    """Check if crate tracking is enabled for this org."""
     try:
-        return bool(frappe.db.get_value("Mandi Settings", org_id, "enable_crate_tracking"))
+        org_info = _get_org_info(org_id)
+        return bool(org_info.get("enable_crate_tracking"))
     except Exception:
         return False
 
@@ -14784,7 +14786,8 @@ def get_crate_summary(org_id: str = None) -> dict:
     if not org_id:
         return {"godown": [], "outstanding": [], "alerts": []}
 
-    ageing_days = int(frappe.db.get_value("Mandi Settings", org_id, "crate_ageing_days") or 7)
+    org_info = _get_org_info(org_id)
+    ageing_days = int(org_info.get("crate_ageing_days") or 7)
     cutoff_date = frappe.utils.add_days(frappe.utils.today(), -ageing_days)
 
     outstanding_raw = frappe.db.sql("""
