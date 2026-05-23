@@ -1981,19 +1981,43 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> list:
         else:
             filters.append(["contact_type", "=", contact_type])
 
-    contacts = frappe.get_all(
-        "Mandi Contact",
-        filters=filters,
-        fields=["name as id", "full_name as name", "contact_type", "phone", "city"],
-        limit=500,
-        order_by="full_name asc",
-        ignore_permissions=True
-    )
+    # Use raw SQL to avoid frappe.get_all alias conflict:
+    # frappe.get_all always auto-injects `name` (PK), so 'full_name as name'
+    # creates a duplicate column that breaks as_dict parsing → empty results.
+    where_parts = []
+    params = []
+    for f in filters:
+        if f[1] == "=":
+            where_parts.append(f"`{f[0]}` = %s")
+            params.append(f[2])
+        elif f[1] == "in":
+            phs = ",".join(["%s"] * len(f[2]))
+            where_parts.append(f"`{f[0]}` IN ({phs})")
+            params.extend(f[2])
+        elif f[1] == "!=":
+            where_parts.append(f"`{f[0]}` != %s")
+            params.append(f[2])
+    where_sql = " AND ".join(where_parts) if where_parts else "1=1"
+
+    contacts_raw = frappe.db.sql(f"""
+        SELECT name AS id, full_name AS display_name, contact_type, phone, city
+        FROM `tabMandi Contact`
+        WHERE {where_sql}
+        ORDER BY full_name ASC
+        LIMIT 500
+    """, params, as_dict=True)
+
+    contacts = [{
+        "id": c.get("id") or "",
+        "name": c.get("display_name") or c.get("id") or "Unknown",
+        "contact_type": c.get("contact_type") or "",
+        "phone": c.get("phone") or "",
+        "city": c.get("city") or "",
+    } for c in contacts_raw]
+
     # Return BOTH `records` and `contacts` keys + `total_count` so every
     # caller (dialogs, page clients, hooks) can use whichever shape it
-    # already expects without breaking. This is what was making the
-    # Payments page's allContacts always come back empty (it extracted
-    # `data?.records` and we only returned `contacts`).
+    # already expects without breaking.
     return {"records": contacts, "contacts": contacts, "total_count": len(contacts)}
 
 
@@ -4449,29 +4473,41 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     org_id = org_id or _get_user_org()
     if org_id and "ORG" in org_id and "-" not in org_id:
         org_id = f"ORG-{org_id.replace('ORG', '')}"
-    contact_filters = {}
+    # Build contact WHERE clause manually to avoid frappe.get_all alias conflict.
+    # frappe.get_all always auto-injects `name` (PK) into SELECT, so using
+    # 'full_name as name' creates a duplicate column alias that breaks as_dict
+    # result parsing, causing empty contact lists even when records exist.
+    contact_where = ["1=1"]
+    contact_params = []
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
-        contact_filters["organization_id"] = org_id
+        contact_where.append("organization_id = %s")
+        contact_params.append(org_id)
 
     if contact_type:
-        if "," in contact_type:
-            contact_filters["contact_type"] = ["in", contact_type.split(",")]
-        else:
-            contact_filters["contact_type"] = contact_type
+        types = contact_type.split(",") if "," in contact_type else [contact_type]
+        placeholders = ",".join(["%s"] * len(types))
+        contact_where.append(f"contact_type IN ({placeholders})")
+        contact_params.extend(types)
 
-    contact_fields = ["name as id", "full_name as name", "contact_type as type", "city"]
-    if frappe.db.has_column("Mandi Contact", "internal_id"):
-        contact_fields.append("internal_id")
+    has_internal_id = frappe.db.has_column("Mandi Contact", "internal_id")
+    internal_id_col = ", internal_id" if has_internal_id else ""
 
-    contacts = frappe.get_all("Mandi Contact",
-        filters=contact_filters,
-        fields=contact_fields,
-        order_by="full_name",
-        ignore_permissions=True,
-    )
-    for c in contacts:
-        if not c.get("name"):
-            c["name"] = c.get("id") or "Unknown"
+    contacts_raw = frappe.db.sql(f"""
+        SELECT name AS id, full_name AS display_name, contact_type AS type, city {internal_id_col}
+        FROM `tabMandi Contact`
+        WHERE {' AND '.join(contact_where)}
+        ORDER BY full_name ASC
+    """, contact_params, as_dict=True)
+
+    contacts = []
+    for c in contacts_raw:
+        contacts.append({
+            "id": c.get("id") or "",
+            "name": c.get("display_name") or c.get("id") or "Unknown",
+            "type": c.get("type") or "",
+            "city": c.get("city") or "",
+            "internal_id": c.get("internal_id") if has_internal_id else None,
+        })
 
     try:
         commodities_res = get_commodities()
@@ -4535,13 +4571,41 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
 
     crate_types = []
     if frappe.db.exists("DocType", "Mandi Crate Type"):
-        crate_types = frappe.get_all(
-            "Mandi Crate Type",
-            filters={"organization_id": org_id},
-            fields=["crate_name", "purchase_rate", "sale_rate"],
-            order_by="creation desc",
-            ignore_permissions=True
-        )
+        try:
+            _auto_migrate_crate_schema()
+        except Exception:
+            pass
+            
+        # Detect which optional columns exist in the live DB (safe after partial migration)
+        existing_cols = {row[0] for row in frappe.db.sql(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tabMandi Crate Type'"
+        )}
+
+        select_cols = "name as id, crate_name, capacity_kg, deposit_amount, is_active, organization_id"
+        if "purchase_rate" in existing_cols:
+            select_cols += ", purchase_rate"
+        if "sale_rate" in existing_cols:
+            select_cols += ", sale_rate"
+
+        try:
+            ct_list = frappe.db.sql(f"""
+                SELECT {select_cols}
+                FROM `tabMandi Crate Type`
+                WHERE is_active = 1 AND (organization_id = %s OR organization_id IS NULL OR organization_id = '')
+                ORDER BY crate_name
+            """, (org_id,), as_dict=True)
+            
+            for ct in ct_list:
+                ct["purchase_rate"] = float(ct.get("purchase_rate") or 0)
+                ct["sale_rate"] = float(ct.get("sale_rate") or 0)
+                ct["capacity_kg"] = float(ct.get("capacity_kg") or 0)
+                ct["deposit_amount"] = float(ct.get("deposit_amount") or 0)
+                
+            crate_types = ct_list
+        except Exception as e:
+            frappe.log_error(f"Error fetching crate types in get_master_data: {str(e)}")
+            crate_types = []
 
     return {
         "contacts": contacts,
@@ -5946,15 +6010,39 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
     if search:
         filters.append(["full_name", "like", f"%{search}%"])
 
-    total = frappe.db.count("Mandi Contact", filters=filters)
-    contacts = frappe.get_all("Mandi Contact",
-        filters=filters,
-        fields=["name as id", "full_name as name", "contact_type", "phone", "city", "address", "internal_id"],
-        order_by="full_name asc",
-        limit_start=(page - 1) * page_size,
-        limit_page_length=page_size,
-        ignore_permissions=True
-    )
+    # Build WHERE clause from filters list for raw SQL
+    sql_where = ["1=1"]
+    sql_params = []
+    for f in filters:
+        if f[1] == "=":
+            sql_where.append(f"`{f[0]}` = %s")
+            sql_params.append(f[2])
+        elif f[1] == "like":
+            sql_where.append(f"`{f[0]}` LIKE %s")
+            sql_params.append(f[2])
+        elif f[1] == "!=":
+            sql_where.append(f"`{f[0]}` != %s")
+            sql_params.append(f[2])
+    where_sql = " AND ".join(sql_where)
+    offset = (page - 1) * page_size
+
+    contacts_raw = frappe.db.sql(f"""
+        SELECT name AS id, full_name AS display_name, contact_type, phone, city, address, internal_id
+        FROM `tabMandi Contact`
+        WHERE {where_sql}
+        ORDER BY full_name ASC
+        LIMIT %s OFFSET %s
+    """, sql_params + [page_size, offset], as_dict=True)
+
+    contacts = [{
+        "id": c.get("id") or "",
+        "name": c.get("display_name") or c.get("id") or "Unknown",
+        "contact_type": c.get("contact_type") or "",
+        "phone": c.get("phone") or "",
+        "city": c.get("city") or "",
+        "address": c.get("address") or "",
+        "internal_id": c.get("internal_id") or "",
+    } for c in contacts_raw]
 
     if contacts and _is_crate_tracking_enabled(org_id):
         contact_ids = tuple([c["id"] for c in contacts])
@@ -5993,13 +6081,33 @@ def search_contacts(query: str = None, contact_type: str = None, org_id: str = N
     if query:
         filters.append(["full_name", "like", f"%{query}%"])
         
-    return frappe.get_all("Mandi Contact",
-        filters=filters,
-        fields=["name as id", "full_name as name", "contact_type", "phone", "city"],
-        order_by="full_name asc",
-        limit_page_length=20,
-        ignore_permissions=True
-    )
+    # Build WHERE and use raw SQL to avoid frappe.get_all alias conflict
+    s_where = ["full_name != 'Walk-in Buyer'"]
+    s_params = []
+    if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
+        s_where.append("organization_id = %s")
+        s_params.append(org_id)
+    if contact_type:
+        s_where.append("contact_type = %s")
+        s_params.append(contact_type)
+    if query:
+        s_where.append("full_name LIKE %s")
+        s_params.append(f"%{query}%")
+
+    results = frappe.db.sql(f"""
+        SELECT name AS id, full_name AS display_name, contact_type, phone, city
+        FROM `tabMandi Contact`
+        WHERE {' AND '.join(s_where)}
+        ORDER BY full_name ASC
+        LIMIT 20
+    """, s_params, as_dict=True)
+    return [{
+        "id": r.get("id") or "",
+        "name": r.get("display_name") or r.get("id") or "Unknown",
+        "contact_type": r.get("contact_type") or "",
+        "phone": r.get("phone") or "",
+        "city": r.get("city") or "",
+    } for r in results]
 
 
 @frappe.whitelist(allow_guest=False)
@@ -6839,18 +6947,21 @@ def get_sale_master_data(org_id: str = None) -> dict:
     if not org_id:
         return {}
 
-    # Buyers from Mandi Contact
-    buyer_filters = {"contact_type": ["in", ["buyer", "staff"]]}
+    # Buyers from Mandi Contact — raw SQL to avoid frappe.get_all alias conflict
+    b_where = ["contact_type IN ('buyer','staff')"]
+    b_params = []
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
-        buyer_filters["organization_id"] = org_id
+        b_where.append("organization_id = %s")
+        b_params.append(org_id)
 
-    buyers = frappe.get_all("Mandi Contact",
-        filters=buyer_filters,
-        fields=["name as id", "full_name as name", "contact_type as type", "city"],
-        order_by="full_name asc",
-        limit_page_length=500,
-        ignore_permissions=True
-    )
+    buyers_raw = frappe.db.sql(f"""
+        SELECT name AS id, full_name AS display_name, contact_type, city
+        FROM `tabMandi Contact`
+        WHERE {' AND '.join(b_where)}
+        ORDER BY full_name ASC
+        LIMIT 500
+    """, b_params, as_dict=True)
+    buyers = [{"id": b.get("id") or "", "name": b.get("display_name") or b.get("id") or "Unknown", "type": b.get("contact_type") or "", "city": b.get("city") or ""} for b in buyers_raw]
 
     # Lots from Mandi Lot — fields: item_id, qty, unit, supplier_rate, sale_price, lot_code
     lot_filters = {"qty": [">", 0]}
@@ -8651,16 +8762,20 @@ def get_pos_master_data() -> dict:
             fields=["name as id", "item_name as name", "stock_uom as default_unit", "image as image_url", "item_code as sku_code", "standard_rate as sale_price"]
         )
         
-        # 2. Fetch Buyers
-        buyer_filters = {"contact_type": ["in", ["buyer", "staff"]], "full_name": ["!=", "Walk-in Buyer"]}
+        # 2. Fetch Buyers — use raw SQL to avoid frappe.get_all 'name as id' alias conflict
+        # (frappe.get_all always adds `name` PK to SELECT, creating duplicate column with alias)
+        buyer_where = ["contact_type IN ('buyer','staff')", "full_name != 'Walk-in Buyer'"]
+        buyer_params = []
         if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
-            buyer_filters["organization_id"] = org_id
+            buyer_where.append("organization_id = %s")
+            buyer_params.append(org_id)
 
-        buyers = frappe.get_all("Mandi Contact",
-            filters=buyer_filters,
-            fields=["name as id", "full_name as name", "contact_type", "city"],
-            order_by="full_name"
-        )
+        buyers = frappe.db.sql(f"""
+            SELECT name AS id, full_name AS name, contact_type, city
+            FROM `tabMandi Contact`
+            WHERE {' AND '.join(buyer_where)}
+            ORDER BY full_name ASC
+        """, buyer_params, as_dict=True)
         
         # 3. Fetch Accounts (Cash/Bank) from ERPNext Chart of Accounts
         company = None
