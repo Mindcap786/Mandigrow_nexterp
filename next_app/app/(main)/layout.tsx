@@ -133,7 +133,7 @@ export default function MainLayout({
                     <SystemAlerts />
 
                     {/* Top Nav (sticky) */}
-                    <div className="web-only sticky top-0 z-30">
+                    <div className="web-only sticky top-0 z-30 print:hidden">
                         <TopNav />
                     </div>
 
@@ -144,7 +144,7 @@ export default function MainLayout({
                 </main>
 
                 {/* Mobile Bottom Nav (visible on mobile web) */}
-                <div className="md:hidden">
+                <div className="md:hidden print:hidden">
                     <MobileBottomNav />
                 </div>
 

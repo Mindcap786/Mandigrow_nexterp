@@ -16059,8 +16059,8 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
         frappe.db.commit()
         return {"success": True, "status": doc.status}
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "receive_crates Failed")
-        return {"success": False, "error": str(e)}
+        frappe.log_error(title="receive_crates Failed", message=frappe.get_traceback())
+        return {"success": False, "error": frappe.get_traceback() or str(e)}
 
 
 @frappe.whitelist(allow_guest=False)
@@ -16216,8 +16216,8 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             "message": f"₹{total_charge:,.2f} charged to {doc.party_name}'s ledger."
         }
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "charge_crate_to_ledger_v2 Failed")
-        return {"success": False, "error": str(e)}
+        frappe.log_error(title="charge_crate_to_ledger_v2 Failed", message=frappe.get_traceback())
+        return {"success": False, "error": frappe.get_traceback() or str(e)}
 
 
 # ─── 4. Reports API ───────────────────────────────────────────────────────────
@@ -16251,7 +16251,7 @@ def get_crate_issues_report(org_id: str = None) -> dict:
             FROM `tabMandi Crate Issue` i
             JOIN `tabMandi Crate Issue Item` ii ON ii.parent = i.name
             WHERE i.organization_id = %s AND i.status != 'Closed' AND i.issue_type = 'give'
-            ORDER BY i.expected_return_date, i.issue_date
+            ORDER BY i.creation DESC
         """, (org_id,), as_dict=True)
 
         # Enrich with overdue flag and value
