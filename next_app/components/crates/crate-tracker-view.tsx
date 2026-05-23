@@ -6,7 +6,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import {
     Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, Loader2, Plus, X,
     CheckCircle, Users, Calendar, Search, ChevronRight, IndianRupee,
-    RefreshCw, Clock, BarChart3, Trash2
+    RefreshCw, Clock, BarChart3, Trash2, Printer
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -496,8 +496,11 @@ export function CrateTrackerView() {
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="font-black text-slate-900">Outstanding Crates — Party Wise</h3>
+                            <Button size="sm" onClick={() => window.print()} variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold gap-2">
+                                <Printer className="w-4 h-4" /> Print Report
+                            </Button>
                         </div>
                         {issues.length === 0 ? (
                             <div className="py-16 text-center text-slate-400">
