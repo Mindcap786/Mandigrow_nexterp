@@ -114,13 +114,11 @@ export default function LandingPage() {
 
                         <h1 className="text-5xl sm:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter">
                             <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
-                            <span className="text-emerald-700 block mt-1">for Commission Agents.</span>
+                            <span className="text-emerald-700 block mt-1">for Fruit, Sabji, Anaj & Commission Agents.</span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-gray-700 mb-10 font-medium leading-relaxed max-w-3xl mx-auto">
-                            Auto commission, GST billing, mandi khata, and APMC compliance — 
-                            works on Android at the mandi gate and desktop in your office. 
-                            Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
+                            Sabji lot billing, fruit invoicing, anaj mandi, commission, GST, and live khata — works on Android at the mandi gate and desktop in your office. Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-10">

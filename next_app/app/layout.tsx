@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         default: 'Fruit Mandi Software India | Sabji & Vegetable Billing ERP | MandiGrow',
         template: '%s | MandiGrow',
     },
-    description: "India's leading Mandi ERP software for commission agents, fruit & vegetable traders, GST billing, auction management, farmer payments & inventory tracking.",
+    description: "India's best mandi ERP software — sabji lot billing, fruit invoicing, anaj mandi, commission calculation, GST, and digital khata. Try our live patti calculator free. Android + web, 7 Indian languages, ₹0 setup.",
     applicationName: 'MandiGrow',
     keywords: [
         'mandi ERP software',
