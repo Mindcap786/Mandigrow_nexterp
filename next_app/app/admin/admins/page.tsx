@@ -64,12 +64,8 @@ export default function AdminsPage() {
     const fetchAdmins = async (token: string) => {
         setLoading(true);
         try {
-            const res = await fetch('/api/admin/admins', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to fetch admins');
-            setAdmins(data.admins || []);
+            const data = await callApi('mandigrow.api.get_team_members');
+            setAdmins(data || []);
         } catch (e: any) {
             toast({ title: 'Access Denied', description: e.message, variant: 'destructive' });
         } finally {
@@ -81,16 +77,7 @@ export default function AdminsPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const res = await fetch('/api/admin/admins', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
-                },
-                body: JSON.stringify({ email, full_name: fullName, password, role })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to create admin');
+            await callApi('mandigrow.api.provision_team_member', { email, full_name: fullName, password, role });
             
             toast({ title: 'Success', description: 'Admin account created successfully' });
             setCreateOpen(false);
@@ -106,16 +93,18 @@ export default function AdminsPage() {
 
     const handleAction = async (adminId: string, action: string, newRole?: string) => {
         try {
-            const res = await fetch(`/api/admin/admins/${adminId}`, {
-                method: action === 'delete' ? 'DELETE' : 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
-                },
-                body: action === 'delete' ? undefined : JSON.stringify({ action: action === 'role' ? 'change_role' : action, role: newRole })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Action failed');
+            const settings: any = {};
+            if (action === 'delete') {
+                settings.action = 'delete';
+            } else if (action === 'lock' || action === 'suspend') {
+                settings.enabled = 0;
+            } else if (action === 'unlock') {
+                settings.enabled = 1;
+            } else if (action === 'role') {
+                // Not supported directly in update_team_member right now, usually we use provision for changes or update_team_member
+                settings.role = newRole;
+            }
+            await callApi('mandigrow.api.update_team_member', { user_id: adminId, settings });
             
             toast({ title: 'Success', description: `Action executed successfully` });
             if (sessionToken) fetchAdmins(sessionToken);
@@ -128,16 +117,7 @@ export default function AdminsPage() {
         if (!editingAdmin) return;
         setSubmitting(true);
         try {
-            const res = await fetch(`/api/admin/admins/${editingAdmin.id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
-                },
-                body: JSON.stringify({ action: 'update_rbac', rbac_matrix: matrix })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to update permissions');
+            await callApi('mandigrow.api.update_team_member', { user_id: editingAdmin.id, settings: { rbac_matrix: matrix } });
             
             toast({ title: 'Permissions Updated', description: `Access matrix for ${editingAdmin.full_name} has been synchronized.` });
             setPermissionOpen(false);
