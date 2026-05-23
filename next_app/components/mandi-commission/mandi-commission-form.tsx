@@ -493,6 +493,7 @@ export function MandiCommissionForm() {
                         buyerPackingCharges={buyerPacking}
                         taxSettings={settings}
                         buyerStateCode={buyers.find(b => b.id === buyerId)?.state_code}
+                        crateTotal={(cratesEnabled && crateCart) ? crateCart.reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0}
                     />
                 </div>
             </div>

@@ -14,6 +14,7 @@ interface SummaryPanelProps {
     buyerName?: string;
     taxSettings?: any;
     buyerStateCode?: string | null;
+    crateTotal?: number;
 }
 
 export function SummaryPanel({
@@ -24,6 +25,7 @@ export function SummaryPanel({
     buyerName,
     taxSettings,
     buyerStateCode,
+    crateTotal = 0,
 }: SummaryPanelProps) {
     // Aggregates
     const totalQty = farmers.reduce((s, f) => s + (f.qty || 0), 0);
@@ -53,7 +55,7 @@ export function SummaryPanel({
         discountAmount: 0,
     });
     
-    const buyerPayable = taxTotals.grandTotal;
+    const buyerPayable = taxTotals.grandTotal + crateTotal;
 
     // Mandi earnings
     const mandiEarnings = totalCommission + totalLoading + totalOther;
@@ -130,6 +132,9 @@ export function SummaryPanel({
                         )}
                         {taxTotals.gstTotal > 0 && (
                             <SummaryLine label={taxTotals.isIgst ? "IGST" : "CGST & SGST"} value={`+ ${fmt(taxTotals.gstTotal)}`} />
+                        )}
+                        {(crateTotal || 0) > 0 && (
+                            <SummaryLine label="Crates Total" value={`+ ${fmt(crateTotal!)}`} />
                         )}
                         <div className="border-t border-blue-200 pt-2 mt-1">
                             <SummaryLine label="Buyer Payable" value={fmt(buyerPayable)} big blue />
