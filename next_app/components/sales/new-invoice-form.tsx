@@ -725,13 +725,13 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                             id={`crate-qty-input-${index}`} 
                                                                             type="number" 
                                                                             placeholder="Qty" 
-                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-black text-slate-900" 
                                                                         />
                                                                         <Input 
                                                                             id={`crate-rate-input-${index}`} 
                                                                             type="number" 
                                                                             placeholder="Rate" 
-                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-black text-slate-900" 
                                                                         />
                                                                         <Button 
                                                                             type="button"

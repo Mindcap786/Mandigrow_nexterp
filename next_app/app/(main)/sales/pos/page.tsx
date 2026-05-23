@@ -1350,13 +1350,13 @@ export default function POSPage() {
                                                     const val = e.target.value;
                                                     setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, qty: val === '' ? 0 : (parseInt(val) || 0) } : c))
                                                 }}
-                                                className="w-16 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-center focus:outline-none" />
+                                                className="w-16 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-slate-900 text-center focus:outline-none placeholder:text-slate-400 placeholder:font-normal" />
                                             <input type="number" placeholder="₹ Rate" value={item.rate === 0 ? '' : item.rate}
                                                 onChange={e => {
                                                     const val = e.target.value;
                                                     setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, rate: val === '' ? 0 : (parseFloat(val) || 0) } : c))
                                                 }}
-                                                className="w-20 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black focus:outline-none" />
+                                                className="w-20 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-slate-900 focus:outline-none placeholder:text-slate-400 placeholder:font-normal" />
                                             <button onClick={() => setCrateCart(cc => cc.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 flex-shrink-0"><X className="w-4 h-4" /></button>
                                         </div>
                                     ))}

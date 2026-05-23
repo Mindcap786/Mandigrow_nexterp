@@ -1659,13 +1659,13 @@ function NewSaleForm() {
                                                     id="crate-qty-input" 
                                                     type="number" 
                                                     placeholder="Qty" 
-                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-black text-slate-900" 
                                                 />
                                                 <Input 
                                                     id="crate-rate-input" 
                                                     type="number" 
                                                     placeholder="Rate" 
-                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-black text-slate-900" 
                                                 />
                                                 <Button 
                                                     type="button"
