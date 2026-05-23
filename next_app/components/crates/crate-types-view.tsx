@@ -29,6 +29,8 @@ export function CrateTypesView() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [stockSaving, setStockSaving] = useState(false)
+    const [page, setPage] = useState(1)
+    const ITEMS_PER_PAGE = 10
 
     // Add/Edit Crate Type modal
     const [showTypeModal, setShowTypeModal] = useState(false)
@@ -218,7 +220,7 @@ export function CrateTypesView() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {crateTypes.map((c) => {
+                                {crateTypes.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE).map((c) => {
                                     const profit = c.sale_rate - c.purchase_rate
                                     const profitColor = profit > 0 ? 'text-emerald-600' : profit < 0 ? 'text-red-600' : 'text-slate-500'
                                     return (
@@ -275,6 +277,31 @@ export function CrateTypesView() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                )}
+                {crateTypes.length > ITEMS_PER_PAGE && (
+                    <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <span className="text-sm text-slate-500 font-semibold">
+                            Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, crateTypes.length)} of {crateTypes.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                disabled={page === 1}
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                            >
+                                Previous
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                disabled={page * ITEMS_PER_PAGE >= crateTypes.length}
+                                onClick={() => setPage(p => p + 1)}
+                            >
+                                Next
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>

@@ -39,6 +39,12 @@ export function CrateTrackerView() {
     const [saving, setSaving] = useState(false)
     const [searchParty, setSearchParty] = useState('')
     const [searchIssue, setSearchIssue] = useState('')
+    
+    // Filters and Pagination
+    const [fromDate, setFromDate] = useState('')
+    const [toDate, setToDate] = useState('')
+    const [page, setPage] = useState(1)
+    const ITEMS_PER_PAGE = 10
 
     // Give crates form
     const [giveForm, setGiveForm] = useState({
@@ -206,7 +212,14 @@ export function CrateTrackerView() {
         const totalValue = rows.reduce((s, r) => s + r.outstanding_value, 0)
         const hasOverdue = rows.some(r => r.is_overdue)
         return { id, party_name: first?.party_name, party_type: first?.party_type, issue_date: first?.issue_date, expected_return_date: first?.expected_return_date, status: first?.status, rows, totalBalance, totalValue, hasOverdue }
-    }).filter(g => searchIssue ? g.party_name?.toLowerCase().includes(searchIssue.toLowerCase()) : true)
+    }).filter(g => {
+        if (searchIssue && !g.party_name?.toLowerCase().includes(searchIssue.toLowerCase())) return false
+        if (fromDate && g.expected_return_date && g.expected_return_date < fromDate) return false
+        if (toDate && g.expected_return_date && g.expected_return_date > toDate) return false
+        return true
+    })
+    
+    const paginatedGroups = issueGroups.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
     const filteredContacts = contacts.filter(c =>
         c.name.toLowerCase().includes(searchParty.toLowerCase()) ||
@@ -399,12 +412,31 @@ export function CrateTrackerView() {
             {/* ── TAB: Receive / Track ── */}
             {tab === 'receive' && (
                 <div className="space-y-4">
-                    <Input
-                        placeholder="Search by party name..."
-                        value={searchIssue}
-                        onChange={e => setSearchIssue(e.target.value)}
-                        className="h-11 rounded-xl border-slate-200 max-w-sm"
-                    />
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <Input
+                            placeholder="Search by party name..."
+                            value={searchIssue}
+                            onChange={e => { setSearchIssue(e.target.value); setPage(1); }}
+                            className="h-11 rounded-xl border-slate-200 flex-1 max-w-sm"
+                        />
+                        <div className="flex items-center gap-2">
+                            <Input 
+                                type="date" 
+                                value={fromDate}
+                                onChange={e => { setFromDate(e.target.value); setPage(1); }}
+                                className="h-11 rounded-xl border-slate-200 w-36"
+                                title="Expected Return (From Date)"
+                            />
+                            <span className="text-slate-400 font-bold text-sm">to</span>
+                            <Input 
+                                type="date" 
+                                value={toDate}
+                                onChange={e => { setToDate(e.target.value); setPage(1); }}
+                                className="h-11 rounded-xl border-slate-200 w-36"
+                                title="Expected Return (To Date)"
+                            />
+                        </div>
+                    </div>
                     {loading ? (
                         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>
                     ) : issueGroups.length === 0 ? (
@@ -413,7 +445,7 @@ export function CrateTrackerView() {
                             <div className="font-black text-slate-600 text-lg">No Open Issues</div>
                             <div className="text-slate-400 text-sm mt-1">All crates have been returned</div>
                         </div>
-                    ) : issueGroups.map(group => (
+                    ) : paginatedGroups.map(group => (
                         <div key={group.id} className={cn('bg-white rounded-2xl shadow-sm border overflow-hidden', group.hasOverdue ? 'border-red-200' : 'border-slate-100')}>
                             {/* Issue Header */}
                             <div className={cn('px-5 py-4 flex items-start justify-between', group.hasOverdue ? 'bg-red-50' : 'bg-slate-50/50')}>
@@ -475,6 +507,34 @@ export function CrateTrackerView() {
                             )}
                         </div>
                     ))}
+                    
+                    {issueGroups.length > ITEMS_PER_PAGE && (
+                        <div className="px-2 py-4 flex items-center justify-between">
+                            <span className="text-sm text-slate-500 font-semibold">
+                                Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, issueGroups.length)} of {issueGroups.length}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    disabled={page === 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    className="bg-white"
+                                >
+                                    Previous
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    disabled={page * ITEMS_PER_PAGE >= issueGroups.length}
+                                    onClick={() => setPage(p => p + 1)}
+                                    className="bg-white"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
