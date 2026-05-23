@@ -16197,8 +16197,15 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             _tag_gl_entries(je.name, "Mandi Crate Issue", doc.name)
             
             # Trigger settlement repair to update the cache
+            # contact may be None for ad-hoc parties that were auto-registered —
+            # use party_id (which equals the contact's document name) directly.
             from mandigrow.api import repair_single_party_settlement
-            repair_single_party_settlement(contact.name, org_id)
+            repair_party_id = (contact.name if contact else None) or party_id
+            if repair_party_id:
+                try:
+                    repair_single_party_settlement(repair_party_id, org_id)
+                except Exception:
+                    frappe.log_error(frappe.get_traceback(), "repair_single_party_settlement after crate charge")
         else:
             frappe.log_error(f"charge_crate_to_ledger_v2: party_type={party_type} erp_party={erp_party} company={company}", "Crate Charge Skipped JE")
             return {"success": False, "error": f"Could not resolve party account for {doc.party_name}. Check ERPNext company and customer/supplier setup."}
