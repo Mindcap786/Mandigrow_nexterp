@@ -4305,6 +4305,36 @@ def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
     )
 
 @frappe.whitelist(allow_guest=False)
+
+@frappe.whitelist(allow_guest=False)
+def get_gate_entry(entry_id: str) -> dict:
+    """
+    Fetch a single Gate Entry by ID (name) for the current org.
+    """
+    org_id = _get_user_org()
+    if not frappe.db.exists("Mandi Gate Entry", entry_id):
+        frappe.throw("Gate Entry not found", frappe.DoesNotExistError)
+        
+    doc = frappe.get_doc("Mandi Gate Entry", entry_id)
+    if org_id and doc.organization_id != org_id:
+        frappe.throw("Not permitted", frappe.PermissionError)
+        
+    return {
+        "id": doc.name,
+        "token_no": doc.token_no,
+        "status": doc.status,
+        "vehicle_number": doc.vehicle_number or doc.vehicle_no,
+        "vehicle_no": doc.vehicle_number or doc.vehicle_no,
+        "driver_name": doc.driver_name,
+        "driver_phone": doc.driver_phone,
+        "commodity": doc.commodity,
+        "source": doc.source,
+        "created_at": doc.creation,
+        "updated_at": doc.modified,
+        "organization_id": doc.organization_id
+    }
+
+@frappe.whitelist(allow_guest=False)
 def create_gate_entry(vehicle_number: str, driver_name: str = None, driver_phone: str = None, commodity: str = None, source: str = None) -> dict:
     """
     Creates a new Gate Entry.
@@ -7034,6 +7064,36 @@ def delete_employee(employee_id: str = None) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE 2: GATE ENTRY WITH LOTS (Atomic)
 # ─────────────────────────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+
+@frappe.whitelist(allow_guest=False)
+def get_gate_entry(entry_id: str) -> dict:
+    """
+    Fetch a single Gate Entry by ID (name) for the current org.
+    """
+    org_id = _get_user_org()
+    if not frappe.db.exists("Mandi Gate Entry", entry_id):
+        frappe.throw("Gate Entry not found", frappe.DoesNotExistError)
+        
+    doc = frappe.get_doc("Mandi Gate Entry", entry_id)
+    if org_id and doc.organization_id != org_id:
+        frappe.throw("Not permitted", frappe.PermissionError)
+        
+    return {
+        "id": doc.name,
+        "token_no": doc.token_no,
+        "status": doc.status,
+        "vehicle_number": doc.vehicle_number or doc.vehicle_no,
+        "vehicle_no": doc.vehicle_number or doc.vehicle_no,
+        "driver_name": doc.driver_name,
+        "driver_phone": doc.driver_phone,
+        "commodity": doc.commodity,
+        "source": doc.source,
+        "created_at": doc.creation,
+        "updated_at": doc.modified,
+        "organization_id": doc.organization_id
+    }
 
 @frappe.whitelist(allow_guest=False)
 def create_gate_entry_with_lots(farmer_id: str = None, trading_model: str = "commission", items: str = None, **kwargs) -> dict:

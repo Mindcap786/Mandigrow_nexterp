@@ -45,16 +45,13 @@ export default function GateEntryDetailsPage() {
 
     const fetchEntry = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .schema('mandi')
-            .from('gate_entries')
-            .select('*')
-            .eq('id', id)
-            .eq('organization_id', profile?.organization_id)
-            .single();
-
-        if (data) {
-            setEntry(data);
+        try {
+            const data: any = await callApi('mandigrow.api.get_gate_entry', { entry_id: id });
+            if (data) {
+                setEntry(data);
+            }
+        } catch (error) {
+            console.error("Error fetching gate entry details:", error);
         }
         setLoading(false);
     };
