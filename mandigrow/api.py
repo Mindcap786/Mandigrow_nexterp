@@ -5753,6 +5753,123 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         entry["commission"] += commission
         entry["profit"]     += trading_profit
 
+    # ── Crate PNL (POS Sales) ─────────────────────────────────────────────────
+    crate_types = frappe.get_all("Mandi Crate Type", fields=["name", "crate_name", "purchase_rate"])
+    crate_map = {c.name: c for c in crate_types}
+
+    for s in sales:
+        crate_items_json = s.get("crate_items")
+        if crate_items_json:
+            import json
+            try:
+                c_items = json.loads(crate_items_json) if isinstance(crate_items_json, str) else crate_items_json
+                for ci in c_items:
+                    ctype = ci.get("crate_type")
+                    if not ctype: continue
+                    qty = float(ci.get("qty", 0))
+                    rate = float(ci.get("rate", 0))
+                    if qty <= 0: continue
+                    
+                    crate = crate_map.get(ctype)
+                    pur_rate = float(crate.purchase_rate if crate else 0)
+                    rev = qty * rate
+                    cost = qty * pur_rate
+                    prof = rev - cost
+                    
+                    stats_id = f"CRATE-SALE-{s.name}-{ctype}"
+                    if stats_id not in stats_map:
+                        stats_map[stats_id] = {
+                            "id": stats_id,
+                            "lot_code": f"Crates (POS)",
+                            "date": s.saledate,
+                            "item": ctype,
+                            "arrival_type": "Crate Sale",
+                            "lot": {"commodity": {"name": crate.crate_name if crate else ctype}},
+                            "qty": qty,
+                            "revenue": rev,
+                            "cost": cost,
+                            "expenses": 0,
+                            "commission": 0,
+                            "profit": prof
+                        }
+                    else:
+                        stats_map[stats_id]["qty"] += qty
+                        stats_map[stats_id]["revenue"] += rev
+                        stats_map[stats_id]["cost"] += cost
+                        stats_map[stats_id]["profit"] += prof
+
+                    total_revenue += rev
+                    total_cost += cost
+            except Exception:
+                pass
+
+    # ── Crate PNL (Ledger Charges) ────────────────────────────────────────────
+    try:
+        je_filters = {"user_remark": ["like", "Crate charge for%"]}
+        if date_from and date_to:
+            je_filters["posting_date"] = ["between", [date_from, date_to]]
+        elif date_from:
+            je_filters["posting_date"] = [">=", date_from]
+        elif date_to:
+            je_filters["posting_date"] = ["<=", date_to]
+
+        crate_jes = frappe.get_all("Journal Entry", filters=je_filters, fields=["name", "posting_date", "user_remark"], ignore_permissions=True)
+        import re
+        # Example remark: "Crate charge for PartyName: Plastic crate: 25 × ₹200 = ₹5000"
+        # We can extract the chunks after the colon.
+        pattern = re.compile(r"([^:;]+):\s*(\d+)\s*×\s*₹([\d\.]+)\s*=\s*₹([\d\.]+)")
+        
+        for je in crate_jes:
+            remark = je.get("user_remark", "")
+            matches = pattern.findall(remark)
+            for m in matches:
+                ctype_raw = m[0].strip()
+                qty = float(m[1])
+                rate = float(m[2])
+                rev = float(m[3])
+                if qty <= 0: continue
+                
+                # Try to find the actual Crate Type name (might exactly match or contain it)
+                ctype = ctype_raw
+                pur_rate = 0.0
+                cname = ctype_raw
+                for c_name, c_doc in crate_map.items():
+                    if c_name.lower() == ctype_raw.lower() or c_doc.crate_name.lower() == ctype_raw.lower():
+                        ctype = c_name
+                        pur_rate = float(c_doc.purchase_rate or 0)
+                        cname = c_doc.crate_name
+                        break
+                
+                cost = qty * pur_rate
+                prof = rev - cost
+                
+                stats_id = f"CRATE-CHG-{je.name}-{ctype}"
+                if stats_id not in stats_map:
+                    stats_map[stats_id] = {
+                        "id": stats_id,
+                        "lot_code": f"Crates (Ledger)",
+                        "date": je.posting_date,
+                        "item": ctype,
+                        "arrival_type": "Crate Charge",
+                        "lot": {"commodity": {"name": cname}},
+                        "qty": qty,
+                        "revenue": rev,
+                        "cost": cost,
+                        "expenses": 0,
+                        "commission": 0,
+                        "profit": prof
+                    }
+                else:
+                    stats_map[stats_id]["qty"] += qty
+                    stats_map[stats_id]["revenue"] += rev
+                    stats_map[stats_id]["cost"] += cost
+                    stats_map[stats_id]["profit"] += prof
+
+                total_revenue += rev
+                total_cost += cost
+    except Exception as e:
+        frappe.log_error(str(e), "Crate PNL Ledger Error")
+
     pl_items = []
     for lot_id, data in stats_map.items():
         data["saleRate"] = data["revenue"] / data["qty"] if data["qty"] > 0 else 0
