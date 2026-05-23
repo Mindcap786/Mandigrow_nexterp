@@ -57,6 +57,10 @@ export function MandiCommissionForm() {
     const [buyerId, setBuyerId] = useState<string | null>(null);
     const [buyerLoading, setBuyerLoading] = useState<number>(0);
     const [buyerPacking, setBuyerPacking] = useState<number>(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isCommitting, setIsCommitting] = useState(false);
+    const [cratePage, setCratePage] = useState(1);
+    const CRATES_PER_PAGE = 10;
 
     const [committedSessionData, setCommittedSessionData] = useState<any>(null);
 
@@ -524,6 +528,14 @@ export function MandiCommissionForm() {
                                         className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
                                         id="mandi-crate-type-select"
                                         defaultValue=""
+                                        onChange={(e) => {
+                                            const ct = e.target.value;
+                                            const crateDef = crateTypes.find((x: any) => x.id === ct);
+                                            if (crateDef?.sale_rate) {
+                                                const rateInput = document.getElementById('mandi-crate-rate-input') as HTMLInputElement;
+                                                if (rateInput) rateInput.value = String(crateDef.sale_rate);
+                                            }
+                                        }}
                                     >
                                         <option value="" disabled>Select Crate Type</option>
                                         {crateTypes.map((c: any) => (
@@ -608,7 +620,9 @@ export function MandiCommissionForm() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-amber-50">
-                                            {crateCart.map((c: any, ci: number) => (
+                                            {crateCart.slice((cratePage - 1) * CRATES_PER_PAGE, cratePage * CRATES_PER_PAGE).map((c: any, displayIndex: number) => {
+                                                const ci = (cratePage - 1) * CRATES_PER_PAGE + displayIndex;
+                                                return (
                                                 <tr key={ci} className="font-bold text-slate-700">
                                                     <td className="px-3 py-2">{c.crate_type}</td>
                                                     <td className="px-3 py-2 text-right">
@@ -655,9 +669,21 @@ export function MandiCommissionForm() {
                                                         }} className="text-red-400 hover:text-red-600">×</button>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
+                                    {crateCart.length > CRATES_PER_PAGE && (
+                                        <div className="px-3 py-2 border-t border-amber-100 flex items-center justify-between bg-amber-50/30">
+                                            <span className="text-[10px] font-bold text-slate-500">
+                                                Showing {(cratePage - 1) * CRATES_PER_PAGE + 1} - {Math.min(cratePage * CRATES_PER_PAGE, crateCart.length)} of {crateCart.length}
+                                            </span>
+                                            <div className="flex gap-1">
+                                                <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" disabled={cratePage === 1} onClick={() => setCratePage(p => Math.max(1, p - 1))}>Prev</Button>
+                                                <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" disabled={cratePage * CRATES_PER_PAGE >= crateCart.length} onClick={() => setCratePage(p => p + 1)}>Next</Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

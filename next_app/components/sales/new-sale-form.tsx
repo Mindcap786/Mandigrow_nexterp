@@ -144,6 +144,8 @@ function NewSaleForm() {
     const [crateTypes, setCrateTypes] = useState<any[]>([]);
     const [cratesEnabled, setCratesEnabled] = useState(false);
     const [crateCart, setCrateCart] = useState<{crate_type: string, qty: number, rate: number}[]>([]);
+    const [cratePage, setCratePage] = useState(1);
+    const CRATES_PER_PAGE = 10;
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('sales');
     const searchParams = useSearchParams();
@@ -1740,7 +1742,9 @@ function NewSaleForm() {
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-amber-50">
-                                                            {crateCart.map((c, i) => (
+                                                            {crateCart.slice((cratePage - 1) * CRATES_PER_PAGE, cratePage * CRATES_PER_PAGE).map((c, displayIndex) => {
+                                                                const i = (cratePage - 1) * CRATES_PER_PAGE + displayIndex;
+                                                                return (
                                                                 <tr key={i} className="font-bold text-slate-700">
                                                                     <td className="px-2 py-1.5">{c.crate_type}</td>
                                                                     <td className="px-2 py-1.5 text-right">
@@ -1785,9 +1789,21 @@ function NewSaleForm() {
                                                                         <button type="button" onClick={() => setCrateCart(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">×</button>
                                                                     </td>
                                                                 </tr>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </tbody>
                                                     </table>
+                                                    {crateCart.length > CRATES_PER_PAGE && (
+                                                        <div className="px-2 py-1.5 border-t border-amber-100 flex items-center justify-between bg-amber-50/30">
+                                                            <span className="text-[9px] font-bold text-slate-500">
+                                                                Showing {(cratePage - 1) * CRATES_PER_PAGE + 1} - {Math.min(cratePage * CRATES_PER_PAGE, crateCart.length)} of {crateCart.length}
+                                                            </span>
+                                                            <div className="flex gap-1">
+                                                                <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5" disabled={cratePage === 1} onClick={() => setCratePage(p => Math.max(1, p - 1))}>Prev</Button>
+                                                                <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5" disabled={cratePage * CRATES_PER_PAGE >= crateCart.length} onClick={() => setCratePage(p => p + 1)}>Next</Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

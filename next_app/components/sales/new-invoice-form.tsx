@@ -1023,7 +1023,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="font-[1000] text-xl text-slate-900 tracking-tighter">₹{(totals.grandTotal + (form.watch('distributions')?.reduce((sum: number, d: any) => sum + ((d.cratesEnabled && d.crateCart) ? d.crateCart.reduce((cs: number, c: any) => cs + (c.qty * c.rate), 0) : 0), 0) || 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+                                            <div className="font-[1000] text-xl text-slate-900 tracking-tighter">₹{(totals.grandTotal + ((d.cratesEnabled && d.crateCart) ? d.crateCart.reduce((cs: number, c: any) => cs + (c.qty * c.rate), 0) : 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
                                         </div>
                                     )
                                 })}

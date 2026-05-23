@@ -8339,7 +8339,7 @@ def commit_mandi_session(**kwargs) -> dict:
             arrival.status = "Pending"
 
             # Auto-assign sequential contact_bill_no for this farmer
-            arrival.contact_bill_no = _get_next_contact_bill_no("Mandi Arrival", "party_id", farmer_id)
+            arrival.contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", farmer_id)
 
             lot = arrival.append("items", {})
             lot.item_id = row.get("item_id")
@@ -9313,36 +9313,40 @@ def create_commodity(**kwargs) -> dict:
         frappe.log_error(frappe.get_traceback(), "create_commodity Failed")
         return {"success": False, "error": str(e)}
 
-def _get_next_contact_bill_no(doctype: str, party_field: str, party_id: str) -> str:
+def _get_next_annual_bill_no(doctype: str, party_field: str, party_id: str) -> str:
     """
-    SINGLE SOURCE OF TRUTH for sequential invoice numbering.
+    SINGLE SOURCE OF TRUTH for sequential annual invoice numbering.
 
-    Returns the next bill number in numeric format, scoped per party.
-    - Format  : 'N'  e.g. '1', '17', '356'
-    - Scope   : per party_id
+    Returns the next bill number in YYYY-N format, scoped per party per year.
+    - Format  : 'YYYY-N'  e.g. '2026-1', '2026-17', '2026-356'
+    - Scope   : per party_id, per calendar year (auto-resets every Jan 1)
     - Storage : stored as a string in the contact_bill_no field
-    - Parsing : scans existing records for digits-only pattern, takes MAX(N),
-                then returns 'MAX_N + 1' or '1' if none found
+    - Parsing : scans existing records for 'YYYY-N' pattern, takes MAX(N),
+                then returns 'YYYY-{MAX_N + 1}' or 'YYYY-1' if none found
     """
-    # Find the MAX sequential number for this party.
-    # Pattern: contact_bill_no must be digits only
+    current_year = frappe.utils.now_datetime().year
+    year_prefix = f"{current_year}-"
+
+    # Find the MAX sequential number for this party in the current year only.
+    # Pattern: contact_bill_no starts with 'YYYY-' followed by digits.
     result = frappe.db.sql(f"""
-        SELECT MAX(CAST(contact_bill_no AS UNSIGNED)) as max_n
+        SELECT MAX(CAST(SUBSTRING_INDEX(contact_bill_no, '-', -1) AS UNSIGNED)) as max_n
         FROM `tab{doctype}`
         WHERE {party_field} = %s
-          AND contact_bill_no REGEXP '^[0-9]+$'
-    """, (party_id,))
+          AND contact_bill_no LIKE %s
+          AND contact_bill_no REGEXP %s
+    """, (party_id, f"{year_prefix}%", f"^{current_year}-[0-9]+$"))
 
     max_n = result[0][0] if result and result[0][0] else 0
-    return str(int(max_n) + 1)
+    return f"{current_year}-{max_n + 1}"
 
 
 @frappe.whitelist(allow_guest=False)
 def get_next_bill_no(party_id: str = None) -> dict:
-    """Returns the next contact_bill_no for a specific party."""
+    """Returns the next annual contact_bill_no for a specific party."""
     if not party_id:
-        return {"next_bill_no": "1"}
-    next_no = _get_next_contact_bill_no("Mandi Arrival", "party_id", party_id)
+        return {"next_bill_no": f"{frappe.utils.now_datetime().year}-1"}
+    next_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", party_id)
     return {"next_bill_no": next_no}
 
 @frappe.whitelist(allow_guest=False)
@@ -9471,7 +9475,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
             "vehiclenumber": payload.get("p_vehicle_number") or payload.get("vehicle_number") or "",
             "bookno": payload.get("p_book_no") or payload.get("book_no") or "",
             "lotno": payload.get("p_lot_no") or payload.get("lot_no") or "",
-            "contact_bill_no": _get_next_contact_bill_no("Mandi Sale", "buyerid", buyer_id) if buyer_id else None,
+            "contact_bill_no": _get_next_annual_bill_no("Mandi Sale", "buyerid", buyer_id) if buyer_id else None,
             "items": []
         })
         
@@ -9666,7 +9670,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         contact_bill_no = payload.get("contact_bill_no")
         party_id = payload.get("party_id") or ""
         if not contact_bill_no and party_id:
-            contact_bill_no = _get_next_contact_bill_no("Mandi Arrival", "party_id", party_id)
+            contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", party_id)
             
         # 1. Create Mandi Arrival Document
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
@@ -14108,7 +14112,7 @@ def reset_invoice_sequence(contact_id: str):
 
         frappe.db.commit()
 
-        next_no = "1"
+        next_no = f"{current_year}-1"
 
         if reset_count == 0:
             return {

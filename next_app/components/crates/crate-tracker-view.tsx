@@ -238,8 +238,12 @@ export function CrateTrackerView() {
         return { id, party_name: first?.party_name, party_type: first?.party_type, issue_date: first?.issue_date, expected_return_date: first?.expected_return_date, status: first?.status, rows, totalBalance, totalValue, hasOverdue }
     }).filter(g => {
         if (searchIssue && !g.party_name?.toLowerCase().includes(searchIssue.toLowerCase())) return false
-        if (fromDate && g.expected_return_date && g.expected_return_date < fromDate) return false
-        if (toDate && g.expected_return_date && g.expected_return_date > toDate) return false
+        if (fromDate) {
+            if (!g.expected_return_date || g.expected_return_date < fromDate) return false
+        }
+        if (toDate) {
+            if (!g.expected_return_date || g.expected_return_date > toDate) return false
+        }
         return true
     })
     
@@ -247,8 +251,12 @@ export function CrateTrackerView() {
 
     const filteredIssues = issues.filter(row => {
         if (searchIssue && !row.party_name?.toLowerCase().includes(searchIssue.toLowerCase())) return false
-        if (fromDate && row.expected_return_date && row.expected_return_date < fromDate) return false
-        if (toDate && row.expected_return_date && row.expected_return_date > toDate) return false
+        if (fromDate) {
+            if (!row.expected_return_date || row.expected_return_date < fromDate) return false
+        }
+        if (toDate) {
+            if (!row.expected_return_date || row.expected_return_date > toDate) return false
+        }
         return true
     })
     
