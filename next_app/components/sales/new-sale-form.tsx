@@ -1646,6 +1646,14 @@ function NewSaleForm() {
                                                         className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
                                                         id="crate-type-select"
                                                         defaultValue=""
+                                                        onChange={(e) => {
+                                                            const ct = e.target.value;
+                                                            const crateDef = crateTypes.find((x: any) => x.id === ct);
+                                                            if (crateDef?.sale_rate) {
+                                                                const rateInput = document.getElementById('crate-rate-input') as HTMLInputElement;
+                                                                if (rateInput) rateInput.value = String(crateDef.sale_rate);
+                                                            }
+                                                        }}
                                                     >
                                                         <option value="" disabled>Select Crate Type</option>
                                                         {crateTypes.map((c: any) => (
@@ -1664,8 +1672,8 @@ function NewSaleForm() {
                                                 <Input 
                                                     id="crate-rate-input" 
                                                     type="number" 
-                                                    placeholder="Rate" 
-                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-black text-slate-900" 
+                                                    placeholder="Rate (auto)" 
+                                                    className="w-20 bg-amber-50 border-amber-300 h-9 text-xs font-black text-slate-900" 
                                                 />
                                                 <Button 
                                                     type="button"

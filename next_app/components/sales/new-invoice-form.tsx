@@ -712,6 +712,14 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                                 className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
                                                                                 id={`crate-type-select-${index}`}
                                                                                 defaultValue=""
+                                                                                onChange={(e) => {
+                                                                                    const ct = e.target.value;
+                                                                                    const crateDef = crateTypes.find((x: any) => x.id === ct);
+                                                                                    if (crateDef?.sale_rate) {
+                                                                                        const rateInput = document.getElementById(`crate-rate-input-${index}`) as HTMLInputElement;
+                                                                                        if (rateInput) rateInput.value = String(crateDef.sale_rate);
+                                                                                    }
+                                                                                }}
                                                                             >
                                                                                 <option value="" disabled>Select Crate Type</option>
                                                                                 {crateTypes.map((c: any) => (
@@ -730,8 +738,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                         <Input 
                                                                             id={`crate-rate-input-${index}`} 
                                                                             type="number" 
-                                                                            placeholder="Rate" 
-                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-black text-slate-900" 
+                                                                            placeholder="Rate (auto)" 
+                                                                            className="w-20 bg-amber-50 border-amber-300 h-9 text-xs font-black text-slate-900" 
                                                                         />
                                                                         <Button 
                                                                             type="button"

@@ -9256,6 +9256,18 @@ def confirm_sale_transaction(**kwargs) -> dict:
         # 1. Capture All Financial Inputs Robustly
         items_subtotal = sum(flt(i.get("qty", 0)) * flt(i.get("rate", 0)) for i in items)
         
+        # ── Include crate total in items_subtotal BEFORE gap formula so crates
+        #    don't get double-counted as "Other Expenses" ─────────────────────
+        raw_crate_items = payload.get("crate_items") or payload.get("p_crate_items") or []
+        if isinstance(raw_crate_items, str):
+            try:
+                raw_crate_items = json.loads(raw_crate_items)
+            except Exception:
+                raw_crate_items = []
+        crate_items_total = sum(flt(ci.get("qty", 0)) * flt(ci.get("rate", 0)) for ci in raw_crate_items if ci)
+        items_subtotal_with_crates = items_subtotal + crate_items_total
+        # ─────────────────────────────────────────────────────────────────────
+        
         # Explicit Charges
         m_fee = flt(payload.get("market_fee") or payload.get("p_market_fee") or 0)
         n_fee = flt(payload.get("nirashrit") or payload.get("p_nirashrit") or 0)
@@ -9275,7 +9287,8 @@ def confirm_sale_transaction(**kwargs) -> dict:
         
         p_total = flt(payload.get("p_total_amount") or payload.get("total_amount") or 0)
         if p_total > 0 and (m_fee + n_fee + ms_fee + l_fee + u_fee + o_fee) == 0:
-            charges_gap = (p_total + disc) - items_subtotal
+            # Use items_subtotal_with_crates so crate amounts don't become Other Expenses
+            charges_gap = (p_total + disc) - items_subtotal_with_crates
             if charges_gap > 0:
                 o_fee = charges_gap
         
@@ -15408,12 +15421,23 @@ def _get_or_create_crate_commodity(org_id: str, crate_type: str) -> str:
 def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     """
     Returns net stock balance per crate type.
-    Balance = SUM(qty from Inventory Entries) - SUM(qty_issued from open Issues)
+    
+    DESIGN:
+    - total_purchased = only TRUE purchase/add-stock entries (positive qty, no 'Auto-reduced' or 'Returned' notes)
+    - available = SUM(all inventory entries) = total_purchased - issued_via_ledger + returned_via_ledger
+      NOTE: _reduce_crate_stock already writes a negative entry when crates are issued,
+            so available = SUM(quantity) already accounts for those reductions.
+            Do NOT subtract issued_map again from available — that would double-subtract.
+    - total_issued_out = open balance from Crate Issue items (for display/tracker use only)
     """
     inv_query = """
-        SELECT crate_type, 
+        SELECT crate_type,
                SUM(quantity) as available,
-               SUM(CASE WHEN quantity > 0 AND (notes IS NULL OR notes NOT LIKE '%%Returned%%') THEN quantity ELSE 0 END) as total_purchased
+               SUM(CASE WHEN quantity > 0
+                         AND (notes IS NULL
+                              OR (notes NOT LIKE '%%Returned%%'
+                                  AND notes NOT LIKE '%%Auto-reduced%%'))
+                    THEN quantity ELSE 0 END) as total_purchased
         FROM `tabMandi Crate Inventory Entry`
         WHERE organization_id = %s
     """
@@ -15426,7 +15450,7 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     inv_rows = frappe.db.sql(inv_query, params_inv, as_dict=True)
     stock_map = {r["crate_type"]: r for r in inv_rows}
 
-    # Outstanding issued (not yet returned)
+    # Outstanding issued balance from open Crate Issues (for DISPLAY / tracker only)
     issue_query = """
         SELECT ii.crate_type, SUM(ii.qty_balance) as total_issued
         FROM `tabMandi Crate Issue Item` ii
@@ -15462,8 +15486,10 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     result = {}
     for ct in all_types:
         inv = stock_map.get(ct, {})
+        # available = SUM(all inventory entries) — already correct, no extra subtraction
         available = int(inv.get("available") or 0)
         total_purchased = int(inv.get("total_purchased") or 0)
+        # issued_map is the OPEN BALANCE shown in the tracker (not subtracted from available)
         issued = issued_map.get(ct, 0)
         sold = sold_map.get(ct, 0)
         
@@ -15471,7 +15497,7 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
             "total_purchased": total_purchased,
             "total_issued_out": issued,
             "total_sold": sold,
-            "available": available
+            "available": available  # already net of issue reductions from ledger
         }
 
     if crate_type:
