@@ -91,6 +91,17 @@ export default function GateEntryDetailsPage() {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
+            <style>{`
+                @media print {
+                    @page {
+                        size: A6 portrait;
+                        margin: 10mm;
+                    }
+                    body {
+                        background: white !important;
+                    }
+                }
+            `}</style>
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* Header Actions */}
                 <div className="flex items-center justify-between print:hidden">
@@ -121,16 +132,16 @@ export default function GateEntryDetailsPage() {
                             animate={{ opacity: 1, y: 0 }}
                             className="print:shadow-none print:break-inside-avoid"
                         >
-                            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white print:shadow-none print:rounded-none print:border-2 print:border-slate-800">
-                                <CardHeader className="bg-emerald-600 p-8 text-white relative print:bg-white print:text-slate-900 print:border-b-2 print:border-slate-800 print:p-6">
+                            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white print:shadow-none print:rounded-none print:border-none print:bg-transparent">
+                                <CardHeader className="bg-emerald-600 p-8 text-white relative print:bg-transparent print:text-black print:border-b-2 print:border-dashed print:border-slate-300 print:p-0 print:pb-4">
                                     <div className="relative z-10 space-y-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl print:bg-slate-100 print:text-slate-800 print:border print:border-slate-300">
-                                                <Truck className="w-8 h-8 text-white print:text-slate-800" />
+                                            <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl print:hidden">
+                                                <Truck className="w-8 h-8 text-white" />
                                             </div>
                                             <div>
-                                                <p className="text-emerald-100 text-xs font-black uppercase tracking-[0.2em] print:text-slate-500">Gate Entry Token</p>
-                                                <h1 className="text-4xl font-black tracking-tighter uppercase print:text-5xl">#{entry.token_no}</h1>
+                                                <p className="text-emerald-100 text-xs font-black uppercase tracking-[0.2em] print:text-slate-500 print:text-[10px]">Gate Entry Token</p>
+                                                <h1 className="text-4xl font-black tracking-tighter uppercase print:text-3xl print:text-black">#{entry.token_no}</h1>
                                             </div>
                                         </div>
                                     </div>
@@ -138,62 +149,62 @@ export default function GateEntryDetailsPage() {
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl print:hidden" />
                                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-400/20 rounded-full -ml-12 -mb-12 blur-2xl print:hidden" />
                                 </CardHeader>
-                                <CardContent className="p-8 space-y-8 print:p-6 print:space-y-6">
-                                    <div className="grid grid-cols-2 gap-8">
+                                <CardContent className="p-8 space-y-8 print:p-0 print:pt-4 print:space-y-4">
+                                    <div className="grid grid-cols-2 gap-8 print:gap-4">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                                                <Hash className="w-3 h-3" /> Vehicle Number
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 print:text-[8px]">
+                                                <Hash className="w-3 h-3 print:hidden" /> Vehicle Number
                                             </p>
-                                            <p className="text-2xl font-black text-slate-800 uppercase tracking-tight">{entry.vehicle_no}</p>
+                                            <p className="text-2xl font-black text-slate-800 uppercase tracking-tight print:text-lg print:text-black">{entry.vehicle_no}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                                                <Activity className="w-3 h-3" /> Status
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 print:text-[8px]">
+                                                <Activity className="w-3 h-3 print:hidden" /> Status
                                             </p>
-                                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase border ${getStatusColor(entry.status)}`}>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-current mr-2 animate-pulse" />
+                                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase border ${getStatusColor(entry.status)} print:border-none print:p-0 print:text-black print:text-sm`}>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-current mr-2 animate-pulse print:hidden" />
                                                 {entry.status.replace('_', ' ')}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="h-px bg-slate-100 w-full" />
+                                    <div className="h-px bg-slate-100 w-full print:border-t print:border-dashed print:border-slate-300 print:bg-transparent print:h-0" />
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                        <div className="flex items-start gap-4">
-                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 print:gap-4 print:grid-cols-2">
+                                        <div className="flex items-start gap-4 print:gap-0">
+                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 print:hidden">
                                                 <User className="w-5 h-5 text-slate-500" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Driver Name</p>
-                                                <p className="font-bold text-slate-900">{entry.driver_name || 'Not Provided'}</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-[8px]">Driver Name</p>
+                                                <p className="font-bold text-slate-900 print:text-sm print:text-black">{entry.driver_name || 'Not Provided'}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-start gap-4">
-                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div className="flex items-start gap-4 print:gap-0">
+                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 print:hidden">
                                                 <Phone className="w-5 h-5 text-slate-500" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Number</p>
-                                                <p className="font-bold text-slate-900">{entry.driver_phone || 'Not Provided'}</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-[8px]">Contact Number</p>
+                                                <p className="font-bold text-slate-900 print:text-sm print:text-black">{entry.driver_phone || 'Not Provided'}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-start gap-4">
-                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div className="flex items-start gap-4 print:gap-0">
+                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 print:hidden">
                                                 <Package className="w-5 h-5 text-slate-500" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Commodity</p>
-                                                <p className="font-bold text-slate-900">{entry.commodity || 'General Goods'}</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-[8px]">Commodity</p>
+                                                <p className="font-bold text-slate-900 print:text-sm print:text-black">{entry.commodity || 'General Goods'}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-start gap-4">
-                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div className="flex items-start gap-4 print:gap-0">
+                                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 print:hidden">
                                                 <MapPin className="w-5 h-5 text-slate-500" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coming From</p>
-                                                <p className="font-bold text-slate-900">{entry.source || 'Local Source'}</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-[8px]">Coming From</p>
+                                                <p className="font-bold text-slate-900 print:text-sm print:text-black">{entry.source || 'Local Source'}</p>
                                             </div>
                                         </div>
                                     </div>

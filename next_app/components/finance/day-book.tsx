@@ -924,9 +924,16 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             const repEntry = visibleLegs[0];
             const fullGroupKey = repEntry ? getEntryGroupKey(repEntry) : gid;
             const rawLegs = entriesByGroup.get(fullGroupKey) || visibleLegs;
-            const hasSaleLeg = rawLegs.some(l => inferVoucherFlow(l) === 'sale' || inferVoucherFlow(l) === 'sale_payment');
+            const hasSaleReturnLeg = rawLegs.some(l => inferVoucherFlow(l) === 'sale_return');
+            const hasStockReturnLeg = rawLegs.some(l => inferVoucherFlow(l) === 'stock_return');
             const hasPurchaseLeg = rawLegs.some(l => inferVoucherFlow(l) === 'purchase');
-            const flowType = hasPurchaseLeg ? 'purchase' : (hasSaleLeg ? 'sale' : inferVoucherFlow(rawLegs[0]));
+            const hasSaleLeg = rawLegs.some(l => inferVoucherFlow(l) === 'sale' || inferVoucherFlow(l) === 'sale_payment');
+            
+            let flowType = inferVoucherFlow(rawLegs[0]);
+            if (hasSaleReturnLeg) flowType = 'sale_return';
+            else if (hasStockReturnLeg) flowType = 'stock_return';
+            else if (hasPurchaseLeg) flowType = 'purchase';
+            else if (hasSaleLeg) flowType = 'sale';
             
             // ── CONTACT NAME RESOLUTION for summaryLegs ─────────────────────
             // rawLegs come from entriesByGroup (pre-enrichment), so they lack
@@ -935,7 +942,25 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             // This is purely display — it does NOT change contact_id on GL legs,
             // so amount calculations (getPurchaseSettlementTotals etc.) are unaffected.
             const groupContactId = rawLegs.find(l => !!l.contact_id)?.contact_id;
-            const groupContactName = groupContactId ? contactMap[groupContactId] : null;
+            let groupContactName = groupContactId ? contactMap[groupContactId] : null;
+            
+            if (!groupContactName && (flowType === 'sale_return' || flowType === 'stock_return')) {
+                const rep = rawLegs.find(l => !!extractBillNo(l)) || rawLegs[0];
+                const billNo = extractBillNo(rep);
+                if (flowType === 'sale_return') {
+                    const saleIdFromBill = billNo ? rawData?.billToSaleMap?.[billNo] : null;
+                    if (saleIdFromBill) {
+                        const buyerId = rawData?.saleToBuyerMap?.[saleIdFromBill];
+                        if (buyerId) groupContactName = contactMap[buyerId];
+                    }
+                } else if (flowType === 'stock_return') {
+                    const arrivalIdFromBill = billNo ? rawData?.billToArrivalMap?.[billNo] : null;
+                    if (arrivalIdFromBill) {
+                        const farmerId = rawData?.arrivalToFarmerMap?.[arrivalIdFromBill];
+                        if (farmerId) groupContactName = contactMap[farmerId];
+                    }
+                }
+            }
             
             let legs: any[] = [];
             if (flowType === 'purchase') {

@@ -1,53 +1,42 @@
 import re
 
-with open('mandigrow/api.py', 'r') as f:
+with open("mandigrow/api.py", "r") as f:
     content = f.read()
 
-replacement = """
-        party_ids = list(set([r["party_id"] for r in issues if r.get("party_id")]))
-        erp_status_map = {}
-        if party_ids:
-            contacts = frappe.db.get_all("Mandi Contact", filters={"name": ("in", party_ids)}, fields=["name", "customer", "supplier"])
-            for c in contacts:
-                is_erp = bool(c.get("customer") or c.get("supplier") or frappe.db.exists("Customer", c["name"]) or frappe.db.exists("Supplier", c["name"]))
-                erp_status_map[c["name"]] = is_erp
-
-        # Enrich with overdue flag and value
-        result = []
-        for row in issues:
-            is_overdue = bool(
-                row.get("expected_return_date") and
-                str(row["expected_return_date"]) < today and
-                int(row.get("qty_balance") or 0) > 0
-            )
-            val = int(row.get("qty_balance") or 0) * float(row.get("rate") or 0)
-            result.append({
-                **{k: row[k] for k in row},
-                "is_overdue": is_overdue,
-                "outstanding_value": val,
-                "is_erp_registered": erp_status_map.get(row.get("party_id"), False)
-            })
+new_func = """
+@frappe.whitelist(allow_guest=False)
+def get_gate_entry(entry_id: str) -> dict:
+    \"\"\"
+    Fetch a single Gate Entry by ID (name) for the current org.
+    \"\"\"
+    org_id = _get_user_org()
+    if not frappe.db.exists("Mandi Gate Entry", entry_id):
+        frappe.throw("Gate Entry not found", frappe.DoesNotExistError)
+        
+    doc = frappe.get_doc("Mandi Gate Entry", entry_id)
+    if org_id and doc.organization_id != org_id:
+        frappe.throw("Not permitted", frappe.PermissionError)
+        
+    return {
+        "id": doc.name,
+        "token_no": doc.token_no,
+        "status": doc.status,
+        "vehicle_number": doc.vehicle_number or doc.vehicle_no,
+        "vehicle_no": doc.vehicle_number or doc.vehicle_no,
+        "driver_name": doc.driver_name,
+        "driver_phone": doc.driver_phone,
+        "commodity": doc.commodity,
+        "source": doc.source,
+        "created_at": doc.creation,
+        "updated_at": doc.modified,
+        "organization_id": doc.organization_id
+    }
 """
 
-target = """
-        # Enrich with overdue flag and value
-        result = []
-        for row in issues:
-            is_overdue = bool(
-                row.get("expected_return_date") and
-                str(row["expected_return_date"]) < today and
-                int(row.get("qty_balance") or 0) > 0
-            )
-            val = int(row.get("qty_balance") or 0) * float(row.get("rate") or 0)
-            result.append({
-                **{k: row[k] for k in row},
-                "is_overdue": is_overdue,
-                "outstanding_value": val,
-            })
-"""
-
-content = content.replace(target.strip(), replacement.strip())
-
-with open('mandigrow/api.py', 'w') as f:
-    f.write(content)
-
+if "def get_gate_entry" not in content:
+    content = content.replace("def create_gate_entry", new_func + "\n@frappe.whitelist(allow_guest=False)\ndef create_gate_entry")
+    with open("mandigrow/api.py", "w") as f:
+        f.write(content)
+    print("Added get_gate_entry")
+else:
+    print("get_gate_entry already exists")
