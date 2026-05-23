@@ -16392,6 +16392,12 @@ def report_crate_loss(crate_type: str, qty: float, notes: str = None):
         frappe.throw("Crate type is required.")
     if not qty or float(qty) <= 0:
         frappe.throw("Quantity must be greater than zero.")
+        
+    stock_map = _get_crate_stock_balance(org_id, crate_type)
+    current_available = stock_map.get(crate_type, {}).get("available", 0)
+    
+    if float(qty) > current_available:
+        frappe.throw(f"Cannot report loss of {qty}. Only {current_available} crates available.")
     
     crate_doc = frappe.get_doc("Mandi Crate Type", crate_type)
     

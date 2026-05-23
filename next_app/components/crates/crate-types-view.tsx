@@ -164,7 +164,15 @@ export function CrateTypesView() {
 
     const handleReportLoss = async () => {
         if (!lossForm.crate_type) { toast.error('Select a crate type'); return }
-        if (!lossForm.qty || parseFloat(lossForm.qty) <= 0) { toast.error('Enter a valid quantity'); return }
+        const parsedQty = parseFloat(lossForm.qty);
+        if (!parsedQty || parsedQty <= 0) { toast.error('Enter a valid quantity'); return }
+        
+        const selectedCrate = crateTypes.find(c => c.id === lossForm.crate_type);
+        if (selectedCrate && parsedQty > selectedCrate.available) {
+            toast.error(`Cannot report loss greater than available stock (${selectedCrate.available})`);
+            return;
+        }
+
         if (!lossForm.notes.trim()) { toast.error('Please enter a reason for the loss'); return }
         setLossSaving(true)
         try {
