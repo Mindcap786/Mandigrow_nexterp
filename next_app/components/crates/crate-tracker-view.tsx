@@ -78,9 +78,9 @@ export function CrateTrackerView() {
             setCrateTypes(ctRes?.crate_types || [])
             const rawContacts = contactRes?.contacts || contactRes?.records || contactRes || []
             setContacts(rawContacts.map((c: any) => ({
-                id: c.name || c.id,
-                name: c.full_name || c.name,
-                type: c.contact_type || 'buyer',
+                id: c.id || c.name,
+                name: c.name || c.full_name,
+                type: c.contact_type || c.type || 'buyer',
                 city: c.city || ''
             })))
             const rows = issueRes?.rows || []
@@ -138,15 +138,19 @@ export function CrateTrackerView() {
     // ── Receive Crates ─────────────────────────────────────────────────────────
 
     const openReceive = (issueId: string) => {
-        const issue = paginatedIssues.find(i => i.issue_id === issueId)
-        if (!issue) return
+        // Use the full `issues` array (not paginated) so we always find the issue
+        const issueRows = issues.filter(i => i.issue_id === issueId && i.qty_balance > 0)
+        if (issueRows.length === 0) {
+            toast.error('No outstanding crates to receive for this issue.')
+            return
+        }
         setReceiveIssueId(issueId)
-        setReceiveItems(issue.raw_items.filter((i: any) => i.qty_balance > 0).map((i: any) => ({
+        setReceiveItems(issueRows.map(i => ({
             crate_type: i.crate_type,
             max: i.qty_balance,
             qty: '',
             qty_loss: '',
-            row_name: i.name
+            row_name: i.row_name
         })))
         setReceiveOpen(true)
     }
