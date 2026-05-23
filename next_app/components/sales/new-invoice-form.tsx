@@ -785,13 +785,26 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                                     {form.watch(`distributions.${index}.crateCart`).map((c: any, ci: number) => (
                                                                                         <tr key={ci} className="font-bold text-slate-700">
                                                                                             <td className="px-2 py-1.5">{c.crate_type}</td>
-                                                                                            <td className="px-2 py-1.5 text-right">{c.qty}</td>
                                                                                             <td className="px-2 py-1.5 text-right">
                                                                                                 <input 
                                                                                                     type="number" 
-                                                                                                    value={c.rate}
+                                                                                                    value={c.qty === 0 ? '' : c.qty}
                                                                                                     onChange={(e) => {
-                                                                                                        const newRate = parseFloat(e.target.value) || 0;
+                                                                                                        const newQty = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                                                                                        const currentCart = form.getValues(`distributions.${index}.crateCart`);
+                                                                                                        const newCart = [...currentCart];
+                                                                                                        newCart[ci].qty = newQty;
+                                                                                                        form.setValue(`distributions.${index}.crateCart`, newCart);
+                                                                                                    }}
+                                                                                                    className="w-12 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                                                                />
+                                                                                            </td>
+                                                                                            <td className="px-2 py-1.5 text-right">
+                                                                                                <input 
+                                                                                                    type="number" 
+                                                                                                    value={c.rate === 0 ? '' : c.rate}
+                                                                                                    onChange={(e) => {
+                                                                                                        const newRate = e.target.value === '' ? 0 : parseFloat(e.target.value);
                                                                                                         const currentCart = form.getValues(`distributions.${index}.crateCart`);
                                                                                                         const newCart = [...currentCart];
                                                                                                         newCart[ci].rate = newRate;

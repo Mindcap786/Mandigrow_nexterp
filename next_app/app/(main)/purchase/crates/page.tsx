@@ -294,9 +294,10 @@ export default function CrateIssuePage() {
                                     value={searchParty}
                                     onChange={e => setSearchParty(e.target.value)}
                                     onFocus={() => setPartyPickerOpen(true)}
+                                    onBlur={() => setTimeout(() => setPartyPickerOpen(false), 200)}
                                     className="h-11 rounded-xl border-slate-200"
                                 />
-                                {partyPickerOpen && searchParty && (
+                                {partyPickerOpen && (
                                     <div className="mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto z-50">
                                         {filteredContacts.slice(0, 10).map(c => (
                                             <button key={c.id} onClick={() => {

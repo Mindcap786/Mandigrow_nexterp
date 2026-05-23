@@ -1712,13 +1712,27 @@ function NewSaleForm() {
                                                             {crateCart.map((c, i) => (
                                                                 <tr key={i} className="font-bold text-slate-700">
                                                                     <td className="px-2 py-1.5">{c.crate_type}</td>
-                                                                    <td className="px-2 py-1.5 text-right">{c.qty}</td>
                                                                     <td className="px-2 py-1.5 text-right">
                                                                         <input 
                                                                             type="number" 
-                                                                            value={c.rate}
+                                                                            value={c.qty === 0 ? '' : c.qty}
                                                                             onChange={(e) => {
-                                                                                const newRate = parseFloat(e.target.value) || 0;
+                                                                                const newQty = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                                                                setCrateCart(prev => {
+                                                                                    const updated = [...prev];
+                                                                                    updated[i].qty = newQty;
+                                                                                    return updated;
+                                                                                });
+                                                                            }}
+                                                                            className="w-12 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="px-2 py-1.5 text-right">
+                                                                        <input 
+                                                                            type="number" 
+                                                                            value={c.rate === 0 ? '' : c.rate}
+                                                                            onChange={(e) => {
+                                                                                const newRate = e.target.value === '' ? 0 : parseFloat(e.target.value);
                                                                                 setCrateCart(prev => {
                                                                                     const updated = [...prev];
                                                                                     updated[i].rate = newRate;

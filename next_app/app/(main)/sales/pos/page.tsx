@@ -1335,11 +1335,11 @@ export default function POSPage() {
                                                 <option value="">Select crate...</option>
                                                 {crateTypes.map((ct: any) => <option key={ct.id} value={ct.id}>{ct.name}</option>)}
                                             </select>
-                                            <input type="number" placeholder="Qty" value={item.qty || ''}
-                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, qty: parseInt(e.target.value) || 0 } : c))}
+                                            <input type="number" placeholder="Qty" value={item.qty === 0 ? '' : item.qty}
+                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, qty: e.target.value === '' ? 0 : parseInt(e.target.value) } : c))}
                                                 className="w-16 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-center focus:outline-none" />
-                                            <input type="number" placeholder="₹ Rate" value={item.rate || ''}
-                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, rate: parseFloat(e.target.value) || 0 } : c))}
+                                            <input type="number" placeholder="₹ Rate" value={item.rate === 0 ? '' : item.rate}
+                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, rate: e.target.value === '' ? 0 : parseFloat(e.target.value) } : c))}
                                                 className="w-20 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black focus:outline-none" />
                                             <button onClick={() => setCrateCart(cc => cc.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 flex-shrink-0"><X className="w-4 h-4" /></button>
                                         </div>

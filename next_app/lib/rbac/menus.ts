@@ -72,6 +72,7 @@ export const NAV_ITEMS: MenuItem[] = [
         tKey: 'nav.master_data',
         icon: Database,
         items: [
+            { tKey: 'nav.crate_types', href: ROUTES.CRATES_MASTER, icon: Package },
             { tKey: 'nav.customers_vendors', href: ROUTES.CONTACTS, icon: Users },
             { tKey: 'nav.banks', href: ROUTES.SETTINGS_BANKS, icon: Wallet },
             { tKey: 'nav.employees', href: ROUTES.EMPLOYEES, icon: Briefcase },

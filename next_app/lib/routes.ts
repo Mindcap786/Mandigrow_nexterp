@@ -61,6 +61,7 @@ export const ROUTES = {
   STOCK:              '/stock',
   STOCK_QUICK_ENTRY:  '/stock/quick-entry',
   INVENTORY_ITEMS:    '/inventory/items',
+  CRATES_MASTER:      '/inventory/crates',
   INVENTORY_STORAGE:  '/inventory/storage-map',
   WAREHOUSE:          '/warehouse',
   PRICE_LISTS:        '/price-lists',
