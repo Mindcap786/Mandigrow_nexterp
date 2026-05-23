@@ -25,6 +25,18 @@
    "reqd": 1
   },
   {
+   "fieldname": "purchase_rate",
+   "fieldtype": "Currency",
+   "label": "Purchase Rate (₹)",
+   "default": "0"
+  },
+  {
+   "fieldname": "sale_rate",
+   "fieldtype": "Currency",
+   "label": "Sale Rate (₹)",
+   "default": "0"
+  },
+  {
    "fieldname": "capacity_kg",
    "fieldtype": "Float",
    "label": "Capacity (kg)"

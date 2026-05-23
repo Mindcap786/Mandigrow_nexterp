@@ -1,4 +1,6 @@
 import frappe
+from frappe.model.document import Document
 
-def before_save(doc, method):
-    doc.total_value = (doc.quantity or 0) * (doc.purchase_rate or 0)
+class MandiCrateInventoryEntry(Document):
+    def before_save(self):
+        self.total_value = (self.quantity or 0) * (self.purchase_rate or 0)
