@@ -5597,7 +5597,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
 
     sale_items = frappe.get_all("Mandi Sale Item",
         filters={"parent": ["in", sale_ids]},
-        fields=["parent", "lot_id", "qty", "rate", "amount"],
+        fields=["parent", "lot_id", "qty", "rate", "amount", "item_id"],
         ignore_permissions=True
     )
 
@@ -5757,61 +5757,52 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     crate_types = frappe.get_all("Mandi Crate Type", fields=["name", "crate_name", "purchase_rate"])
     crate_map = {c.name: c for c in crate_types}
 
-    if sale_ids:
-        crate_issues = frappe.get_all("Mandi Crate Issue",
-            filters={"source_doctype": "Mandi Sale", "source_docname": ["in", sale_ids], "docstatus": 1},
-            fields=["name", "source_docname", "issue_date"],
-            ignore_permissions=True
-        )
-        if crate_issues:
-            issue_ids = [c.name for c in crate_issues]
-            issue_items = frappe.get_all("Mandi Crate Issue Item",
-                filters={"parent": ["in", issue_ids]},
-                fields=["parent", "crate_type", "qty_issued", "rate"],
-                ignore_permissions=True
-            )
-            issue_map = {c.name: c for c in crate_issues}
-            
-            for ci in issue_items:
-                ctype = ci.crate_type
-                if not ctype: continue
-                qty = float(ci.qty_issued or 0)
-                rate = float(ci.rate or 0)
-                if qty <= 0 or rate <= 0: continue
-                
-                crate = crate_map.get(ctype)
-                pur_rate = float(crate.purchase_rate if crate else 0)
-                rev = qty * rate
-                cost = qty * pur_rate
-                prof = rev - cost
-                
-                issue_doc = issue_map.get(ci.parent)
-                sale_id = issue_doc.source_docname
-                
-                stats_id = f"CRATE-SALE-{sale_id}-{ctype}"
-                if stats_id not in stats_map:
-                    stats_map[stats_id] = {
-                        "id": stats_id,
-                        "lot_code": f"Crates (Sale)",
-                        "date": issue_doc.issue_date,
-                        "item": ctype,
-                        "arrival_type": "Crate Sale",
-                        "lot": {"commodity": {"name": crate.crate_name if crate else ctype}},
-                        "qty": qty,
-                        "revenue": rev,
-                        "cost": cost,
-                        "expenses": 0,
-                        "commission": 0,
-                        "profit": prof
-                    }
-                else:
-                    stats_map[stats_id]["qty"] += qty
-                    stats_map[stats_id]["revenue"] += rev
-                    stats_map[stats_id]["cost"] += cost
-                    stats_map[stats_id]["profit"] += prof
+    # map "CRATE-<SCUBBED>" to crate_type "name"
+    virtual_crate_map = {f"CRATE-{frappe.scrub(c.name).upper()[:20]}": c for c in crate_types}
 
-                total_revenue += rev
-                total_cost += cost
+    for si in sale_items:
+        if si.item_id and si.item_id.startswith("CRATE-"):
+            ctype = si.item_id
+            crate = virtual_crate_map.get(ctype)
+            if not crate: continue
+            
+            qty = float(si.qty or 0)
+            rate = float(si.rate or 0)
+            if qty <= 0 or rate <= 0: continue
+            
+            pur_rate = float(crate.purchase_rate if crate else 0)
+            rev = qty * rate
+            cost = qty * pur_rate
+            prof = rev - cost
+            
+            sale_id = si.parent
+            sale_doc = sale_map.get(sale_id)
+            if not sale_doc: continue
+            
+            stats_id = f"CRATE-SALE-{sale_id}-{ctype}"
+            if stats_id not in stats_map:
+                stats_map[stats_id] = {
+                    "id": stats_id,
+                    "lot_code": f"Crates (Sale)",
+                    "date": sale_doc.saledate,
+                    "item": crate.name,
+                    "arrival_type": "Crate Sale",
+                    "lot": {"commodity": {"name": crate.crate_name}},
+                    "qty": qty,
+                    "revenue": rev,
+                    "cost": cost,
+                    "expenses": 0,
+                    "commission": 0,
+                    "profit": prof
+                }
+            else:
+                stats_map[stats_id]["qty"] += qty
+                stats_map[stats_id]["revenue"] += rev
+                stats_map[stats_id]["cost"] += cost
+                stats_map[stats_id]["profit"] += prof
+
+            total_revenue += rev
+            total_cost += cost
 
     # ── Crate PNL (Ledger Charges) ────────────────────────────────────────────
     try:
