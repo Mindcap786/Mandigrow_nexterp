@@ -15268,9 +15268,6 @@ def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: s
     if not _is_crate_tracking_enabled(org_id):
         frappe.throw("Crate tracking is not enabled.")
 
-    crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
-    if not crate_income_account:
-        frappe.throw("Please set the 'Crate Income Account' in HQ Settings > Crate Tracking before charging for lost crates.")
 
     # Get Party Financial Profile
     contact = frappe.get_doc("Mandi Contact", party_id)
@@ -15295,6 +15292,13 @@ def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: s
 
     org_info = _get_org_info(org_id)
     company = org_info.get("company_name")
+    
+    crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
+    if not crate_income_account:
+        from mandigrow.mandigrow.logic.automation import get_acc
+        crate_income_account = get_acc("Miscellaneous Income", company) or get_acc("Sales", company)
+        if not crate_income_account:
+            frappe.throw("Could not automatically determine a Crate Income Account.")
     
     # Use ERPNext function to get default account
     from erpnext.accounts.party import get_party_account
@@ -15965,11 +15969,14 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
                 party_account = get_debtor_acc(company) if party_type == "Customer" else get_supplier_acc(company)
                 
             crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
+            if not crate_income_account:
+                from mandigrow.mandigrow.logic.automation import get_acc
+                crate_income_account = get_acc("Miscellaneous Income", company) or get_acc("Sales", company)
             
             if not party_account:
                 return {"success": False, "error": f"No default account set for {party_type} {erp_party} in company {company}."}
             if not crate_income_account:
-                return {"success": False, "error": "Crate Income Account is not set in Mandi Settings."}
+                return {"success": False, "error": "Could not determine an Income account to post the crate charges to."}
                 
             je = frappe.get_doc({
                 "doctype": "Journal Entry",
