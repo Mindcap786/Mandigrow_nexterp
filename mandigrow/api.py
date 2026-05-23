@@ -1325,10 +1325,27 @@ def reset_password_with_otp(identifier: str, otp: str, new_password: str) -> dic
         frappe.throw(_("User not found"))
         
     cached_otp = frappe.cache().get_value(f"reset_otp_{email}")
-    if not cached_otp or str(cached_otp) != str(otp):
-        frappe.throw(_("Invalid or expired OTP. Please request a new one."))
+    if not cached_otp:
+        frappe.throw(_("OTP expired or not found. Please request a new one."))
         
+    if str(cached_otp.decode('utf-8') if isinstance(cached_otp, bytes) else cached_otp) != str(otp):
+        # Increment attempt counter
+        attempts_key = f"reset_otp_attempts_{email}"
+        attempts_val = frappe.cache().get_value(attempts_key)
+        attempts = int(attempts_val) if attempts_val else 0
+        attempts += 1
+        
+        if attempts >= 5:
+            frappe.cache().delete_value(f"reset_otp_{email}")
+            frappe.cache().delete_value(attempts_key)
+            frappe.throw(_("Too many failed attempts. OTP has been invalidated. Please request a new one."))
+        else:
+            frappe.cache().set_value(attempts_key, attempts, expires_in_sec=900)
+            frappe.throw(_("Invalid OTP. You have {0} attempt(s) left.").format(5 - attempts))
+            
+    # Success: clean up cache
     frappe.cache().delete_value(f"reset_otp_{email}")
+    frappe.cache().delete_value(f"reset_otp_attempts_{email}")
     
     from frappe.utils.password import update_password
     update_password(email, new_password)

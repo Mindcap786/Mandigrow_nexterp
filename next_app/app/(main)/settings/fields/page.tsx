@@ -549,55 +549,7 @@ export default function FieldSettingsPage() {
                     )}
                 </TabsList>
  
-                {/* ─── FIELD LOGIC TAB ─── */}
-                                    ))}
-                                </Tabs>
-                            </section>
- 
-                            {/* Sales */}
-                            {hasSales && (
-                                <section className="space-y-6">
-                                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-[0.2em] flex items-center gap-3">
-                                        <span className="w-2 h-8 bg-indigo-600 rounded-full" /> Sale Invoice Module
-                                    </h2>
-                                    {renderModuleTable('sales')}
-                                </section>
-                            )}
- 
-                            {/* Gate Entry */}
-                            {hasGateEntry && (
-                                <section className="space-y-6">
-                                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-[0.2em] flex items-center gap-3">
-                                        <span className="w-2 h-8 bg-purple-600 rounded-full" /> Gate Entry Module
-                                    </h2>
-                                    {renderModuleTable('gate_entry')}
-                                </section>
-                            )}
- 
-                            {/* Expenses */}
-                            {hasExpenses && (
-                                <section className="space-y-6">
-                                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-[0.2em] flex items-center gap-3">
-                                        <span className="w-2 h-8 bg-orange-500 rounded-full" /> Expenses Module
-                                    </h2>
-                                    {renderModuleTable('expenses')}
-                                </section>
-                            )}
- 
-                            {/* Any other modules */}
-                            {otherModules.map(module => (
-                                <section key={module} className="space-y-6">
-                                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-[0.2em] flex items-center gap-3">
-                                        <span className="w-2 h-8 bg-slate-400 rounded-full" />
-                                        {module.replace(/_/g, ' ')} Module
-                                    </h2>
-                                    {renderModuleTable(module)}
-                                </section>
-                            ))}
-                        </>
-                    )}
-                </TabsContent>
- 
+
                 {/* ─── STORAGE POINTS TAB (mandi only) ─── */}
                 {isMandi && (
                     <TabsContent value="storage" className="space-y-8">
