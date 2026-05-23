@@ -15322,14 +15322,26 @@ def get_crate_master_data(org_id: str = None) -> dict:
     """
     Returns all crate types for this org (or global) with current stock balances.
     Used by Master Data page AND POS crate toggle dropdown.
+    Schema-safe: checks which columns exist before querying so it never
+    crashes due to a missing migration on the production server.
     """
     if not org_id:
         org_id = _get_user_org()
 
-    # Fetch crate types — both org-specific and global (no org_id) ones
-    crate_types = frappe.db.sql("""
-        SELECT name, crate_name, purchase_rate, sale_rate, capacity_kg,
-               deposit_amount, is_active, organization_id
+    # Detect which optional columns exist in the live DB (safe after partial migration)
+    existing_cols = {row[0] for row in frappe.db.sql(
+        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tabMandi Crate Type'"
+    )}
+
+    select_cols = "name, crate_name, capacity_kg, deposit_amount, is_active, organization_id"
+    if "purchase_rate" in existing_cols:
+        select_cols += ", purchase_rate"
+    if "sale_rate" in existing_cols:
+        select_cols += ", sale_rate"
+
+    crate_types = frappe.db.sql(f"""
+        SELECT {select_cols}
         FROM `tabMandi Crate Type`
         WHERE is_active = 1 AND (organization_id = %s OR organization_id IS NULL OR organization_id = '')
         ORDER BY crate_name
@@ -15343,10 +15355,10 @@ def get_crate_master_data(org_id: str = None) -> dict:
         result.append({
             "id": ct["name"],
             "name": ct["crate_name"],
-            "purchase_rate": float(ct["purchase_rate"] or 0),
-            "sale_rate": float(ct["sale_rate"] or 0),
-            "capacity_kg": float(ct["capacity_kg"] or 0),
-            "deposit_amount": float(ct["deposit_amount"] or 0),
+            "purchase_rate": float(ct.get("purchase_rate") or 0),
+            "sale_rate": float(ct.get("sale_rate") or 0),
+            "capacity_kg": float(ct.get("capacity_kg") or 0),
+            "deposit_amount": float(ct.get("deposit_amount") or 0),
             "total_purchased": s.get("total_purchased", 0),
             "total_issued_out": s.get("total_issued_out", 0),
             "total_sold": s.get("total_sold", 0),
