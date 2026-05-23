@@ -15411,7 +15411,9 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     Balance = SUM(qty from Inventory Entries) - SUM(qty_issued from open Issues)
     """
     inv_query = """
-        SELECT crate_type, SUM(quantity) as total_stock
+        SELECT crate_type, 
+               SUM(quantity) as available,
+               SUM(CASE WHEN quantity > 0 AND (notes IS NULL OR notes NOT LIKE '%%Returned%%') THEN quantity ELSE 0 END) as total_purchased
         FROM `tabMandi Crate Inventory Entry`
         WHERE organization_id = %s
     """
@@ -15422,7 +15424,7 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     inv_query += " GROUP BY crate_type"
 
     inv_rows = frappe.db.sql(inv_query, params_inv, as_dict=True)
-    stock_map = {r["crate_type"]: int(r["total_stock"] or 0) for r in inv_rows}
+    stock_map = {r["crate_type"]: r for r in inv_rows}
 
     # Outstanding issued (not yet returned)
     issue_query = """
@@ -15440,7 +15442,7 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     issue_rows = frappe.db.sql(issue_query, params_issue, as_dict=True)
     issued_map = {r["crate_type"]: int(r["total_issued"] or 0) for r in issue_rows}
 
-    # Sold (from crate transactions with source_doctype = Mandi Sale) - use existing CRTXN ledger
+    # Sold (from crate transactions with source_doctype = Mandi Sale)
     sold_query = """
         SELECT crate_type, SUM(qty_out) as total_sold
         FROM `tabMandi Crate Ledger`
@@ -15459,18 +15461,17 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     all_types = set(list(stock_map.keys()) + list(issued_map.keys()) + list(sold_map.keys()))
     result = {}
     for ct in all_types:
-        total_purchased = stock_map.get(ct, 0)
+        inv = stock_map.get(ct, {})
+        available = int(inv.get("available") or 0)
+        total_purchased = int(inv.get("total_purchased") or 0)
         issued = issued_map.get(ct, 0)
         sold = sold_map.get(ct, 0)
-        
-        # total_purchased is the sum of inventory entries
-        available = total_purchased - issued - sold
         
         result[ct] = {
             "total_purchased": total_purchased,
             "total_issued_out": issued,
             "total_sold": sold,
-            "available": max(0, available)
+            "available": available
         }
 
     if crate_type:
