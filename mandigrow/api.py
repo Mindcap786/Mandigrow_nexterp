@@ -14920,6 +14920,14 @@ def create_crate_transaction(
         else:
             party_name = party_id
 
+    if not frappe.db.exists("Mandi Crate Type", crate_type):
+        frappe.get_doc({
+            "doctype": "Mandi Crate Type",
+            "crate_name": crate_type,
+            "organization_id": org_id,
+            "deposit_amount": 0,
+        }).insert(ignore_permissions=True)
+
     txn = frappe.get_doc({
         "doctype": "Mandi Crate Transaction",
         "transaction_date": transaction_date or frappe.utils.today(),
