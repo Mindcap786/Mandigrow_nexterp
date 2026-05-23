@@ -47,7 +47,7 @@ class MandiArrival(Document):
                 AND contact_bill_no NOT LIKE 'ARC%%'
             """, (self.party_id,))
             max_val = last_bill_no[0][0] if last_bill_no and last_bill_no[0][0] else 0
-            self.contact_bill_no = int(max_val) + 1
+            self.contact_bill_no = str(int(max_val) + 1)
 
     def before_save(self):
         self._recompute_summary()
