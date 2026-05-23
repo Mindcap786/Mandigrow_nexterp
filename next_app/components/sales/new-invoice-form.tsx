@@ -942,7 +942,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                             <div className="pt-3 mt-auto space-y-4">
                                                                 <div>
                                                                     <div className="text-[9px] font-black tracking-[0.3em] uppercase text-indigo-400 mb-0.5">Net Invoice Total</div>
-                                                                    <div className="text-3xl font-black tracking-tight leading-none">₹{rowTotals.grandTotal.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+                                                                    <div className="text-3xl font-black tracking-tight leading-none">₹{(rowTotals.grandTotal + ((form.watch(`distributions.${index}.cratesEnabled`) && form.watch(`distributions.${index}.crateCart`)) ? form.watch(`distributions.${index}.crateCart`).reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
                                                                     {Number(distQty) > 0 && (
                                                                         <div className="text-[9px] font-black text-indigo-300 uppercase tracking-widest mt-1">
                                                                             Avg Rate: ₹{(rowTotals.grandTotal / Number(distQty)).toLocaleString(undefined, { maximumFractionDigits: 1 })}
@@ -1023,7 +1023,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="font-[1000] text-xl text-slate-900 tracking-tighter">₹{totals.grandTotal.toLocaleString()}</div>
+                                            <div className="font-[1000] text-xl text-slate-900 tracking-tighter">₹{(totals.grandTotal + (form.watch('distributions')?.reduce((sum: number, d: any) => sum + ((d.cratesEnabled && d.crateCart) ? d.crateCart.reduce((cs: number, c: any) => cs + (c.qty * c.rate), 0) : 0), 0) || 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
                                         </div>
                                     )
                                 })}
