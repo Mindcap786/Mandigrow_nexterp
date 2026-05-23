@@ -60,7 +60,7 @@ export default function CrateDashboardPage() {
                 callApi('mandigrow.api.get_contacts', { org_id: profile.organization_id })
             ]);
             setSummary(res);
-            setContacts(contactsRes || []);
+            setContacts(contactsRes?.contacts || contactsRes?.records || contactsRes || []);
             // Extract unique crate type names for the form dropdown
             const types = Array.from(new Set([
                 ...(res.godown || []).map((g: any) => g.crate_type),
