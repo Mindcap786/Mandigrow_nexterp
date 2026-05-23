@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 interface CrateSummary {
     godown: { crate_type: string; total_out: number; total_in: number; net_held_by_parties: number }[];
@@ -35,19 +37,24 @@ export default function CrateDashboardPage() {
         transaction_type: 'return',
         crate_type: '',
         quantity: '',
+        party_id: '',
         party_name: '',
         notes: '',
     });
     const [txnSaving, setTxnSaving] = useState(false);
+    const [contacts, setContacts] = useState<any[]>([]);
+    const [contactOpen, setContactOpen] = useState(false);
 
     const fetchSummary = useCallback(async () => {
         if (!profile?.organization_id) return;
         setLoading(true);
         try {
-            const res: any = await callApi('mandigrow.api.get_crate_summary', {
-                org_id: profile.organization_id,
-            });
+            const [res, contactsRes]: any = await Promise.all([
+                callApi('mandigrow.api.get_crate_summary', { org_id: profile.organization_id }),
+                callApi('mandigrow.api.get_contacts', { org_id: profile.organization_id })
+            ]);
             setSummary(res);
+            setContacts(contactsRes || []);
             // Extract unique crate type names for the form dropdown
             const types = Array.from(new Set([
                 ...(res.godown || []).map((g: any) => g.crate_type),
@@ -75,12 +82,13 @@ export default function CrateDashboardPage() {
                 transaction_type: txnForm.transaction_type,
                 crate_type: txnForm.crate_type,
                 quantity: parseInt(txnForm.quantity),
+                party_id: txnForm.party_id,
                 party_name: txnForm.party_name,
                 notes: txnForm.notes,
             });
             toast({ title: '✅ Recorded', description: `Transaction ${res.transaction_id} created.` });
             setTxnOpen(false);
-            setTxnForm({ transaction_type: 'return', crate_type: '', quantity: '', party_name: '', notes: '' });
+            setTxnForm({ transaction_type: 'return', crate_type: '', quantity: '', party_id: '', party_name: '', notes: '' });
             fetchSummary();
         } catch (e: any) {
             toast({ title: 'Failed', description: e.message, variant: 'destructive' });
@@ -307,14 +315,61 @@ export default function CrateDashboardPage() {
                                 onChange={e => setTxnForm(f => ({ ...f, quantity: e.target.value }))}
                             />
                         </div>
-                        <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Party Name (Optional)</label>
-                            <Input
-                                placeholder="Farmer / Buyer name"
-                                className="h-12 rounded-xl border-slate-200 font-bold"
-                                value={txnForm.party_name}
-                                onChange={e => setTxnForm(f => ({ ...f, party_name: e.target.value }))}
-                            />
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 block">Party (Farmer / Buyer)</label>
+                            <Popover open={contactOpen} onOpenChange={setContactOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={contactOpen}
+                                        className="w-full justify-between h-12 rounded-xl border-slate-200 font-bold"
+                                    >
+                                        {txnForm.party_id
+                                            ? contacts.find(c => c.name === txnForm.party_id)?.full_name || txnForm.party_name
+                                            : txnForm.party_name || "Select or type ad-hoc party..."}
+                                        <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50 rotate-90" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0" align="start">
+                                    <Command>
+                                        <CommandInput 
+                                            placeholder="Search contacts..." 
+                                            value={txnForm.party_name}
+                                            onValueChange={(val) => {
+                                                // If they are just typing, clear the ID so it becomes ad-hoc
+                                                setTxnForm(f => ({ ...f, party_name: val, party_id: '' }));
+                                            }}
+                                        />
+                                        <CommandList>
+                                            <CommandEmpty>
+                                                No contact found. Will save as ad-hoc party: <span className="font-bold text-amber-600">{txnForm.party_name || '...'}</span>
+                                            </CommandEmpty>
+                                            <CommandGroup heading="Registered Contacts">
+                                                {contacts.map((c) => (
+                                                    <CommandItem
+                                                        key={c.name}
+                                                        value={c.full_name}
+                                                        onSelect={() => {
+                                                            setTxnForm(f => ({ ...f, party_id: c.name, party_name: c.full_name }));
+                                                            setContactOpen(false);
+                                                        }}
+                                                        className="font-bold"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] uppercase text-slate-500">
+                                                                {c.contact_type?.[0] || 'C'}
+                                                            </div>
+                                                            {c.full_name}
+                                                            {c.phone_number && <span className="text-xs text-slate-400 font-normal ml-2">{c.phone_number}</span>}
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div>
                             <label className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Notes (Optional)</label>

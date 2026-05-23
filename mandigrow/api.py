@@ -5944,6 +5944,27 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
         limit_page_length=page_size,
         ignore_permissions=True
     )
+
+    if contacts and _is_crate_tracking_enabled(org_id):
+        contact_ids = tuple([c["id"] for c in contacts])
+        if contact_ids:
+            balances = frappe.db.sql("""
+                SELECT cl.party_id, cl.crate_type, cl.running_balance
+                FROM `tabMandi Crate Ledger` cl
+                INNER JOIN (
+                    SELECT party_id, crate_type, MAX(creation) as max_creation
+                    FROM `tabMandi Crate Ledger`
+                    WHERE organization_id = %s AND party_id IN %s
+                    GROUP BY party_id, crate_type
+                ) latest ON cl.party_id = latest.party_id
+                         AND cl.crate_type = latest.crate_type
+                         AND cl.creation = latest.max_creation
+                WHERE cl.running_balance != 0
+            """, (org_id, contact_ids), as_dict=True)
+            
+            for c in contacts:
+                c["crate_balances"] = [{"type": b["crate_type"], "qty": b["running_balance"]} for b in balances if b["party_id"] == c["id"]]
+
     return {"contacts": contacts, "total_count": total}
 
 
@@ -14888,6 +14909,16 @@ def create_crate_transaction(
 
     if transaction_type not in ("issue", "return", "damage", "stock_addition"):
         frappe.throw(f"Invalid transaction type: {transaction_type}")
+
+    if party_name and not party_id:
+        party_id = f"adhoc-{frappe.utils.scrub(party_name)}"
+    if party_id and not party_name:
+        # Try to resolve party_name if it is a real contact
+        contact_name = frappe.db.get_value("Mandi Contact", party_id, "full_name")
+        if contact_name:
+            party_name = contact_name
+        else:
+            party_name = party_id
 
     txn = frappe.get_doc({
         "doctype": "Mandi Crate Transaction",
