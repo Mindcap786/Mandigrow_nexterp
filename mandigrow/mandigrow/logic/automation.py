@@ -553,9 +553,14 @@ def post_arrival_ledger(doc, method=None):
             
         _tag_gl_entries(advance_je.name, "Mandi Arrival", doc.name)
 
-    # ── Update status on the Arrival doc ───────────────────────────────────
     status = _arrival_status(advance, net_payable, advance_mode, is_cleared)
     frappe.db.set_value("Mandi Arrival", doc.name, "status", status, update_modified=False)
+
+    try:
+        from mandigrow.api import repair_single_party_settlement
+        repair_single_party_settlement(doc.party_id, doc.organization_id)
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "repair_single_party_settlement failed after Mandi Arrival submit")
 
     msg_parts = []
     if goods_je:   msg_parts.append(f"Goods <b>{goods_je.name}</b>")
@@ -800,6 +805,12 @@ def post_sale_ledger(doc, method=None):
     
     # Release the reentrancy guard
     frappe.flags._posting_sale_ledger = False
+
+    try:
+        from mandigrow.api import repair_single_party_settlement
+        repair_single_party_settlement(doc.buyerid, doc.organization_id)
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "repair_single_party_settlement failed after Mandi Sale submit")
 
     frappe.msgprint(
         f"✅ Ledger Entry <b>{primary_je_name}</b> created for Bill <b>#{bill_ref}</b>",

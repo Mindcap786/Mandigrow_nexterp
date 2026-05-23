@@ -116,17 +116,24 @@ class MandiSale(Document):
             if not buyer_id:
                 return
 
-            crate_items = getattr(self, "crate_items", [])
+            crate_items = getattr(self, "crate_items", []) or self.flags.get("crate_items", [])
             if not crate_items:
                 return
 
             from mandigrow.api import _post_crate_ledger_entry
             for item in crate_items:
-                crate_type = getattr(item, "crate_type", None)
-                quantity = int(getattr(item, "quantity", 0) or 0)
+                if isinstance(item, dict):
+                    crate_type = item.get("crate_type")
+                    quantity = int(item.get("quantity") or 0)
+                    deposit_amount = float(item.get("deposit_amount") or 0)
+                else:
+                    crate_type = getattr(item, "crate_type", None)
+                    quantity = int(getattr(item, "quantity", 0) or 0)
+                    deposit_amount = float(getattr(item, "deposit_amount", 0) or 0)
+                    
                 if not crate_type or quantity <= 0:
                     continue
-                deposit_amount = float(getattr(item, "deposit_amount", 0) or 0)
+                    
                 _post_crate_ledger_entry(
                     org_id=org_id,
                     party_id=buyer_id,

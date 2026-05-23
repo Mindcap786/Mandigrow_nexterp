@@ -4596,11 +4596,15 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
                 ORDER BY crate_name
             """, (org_id,), as_dict=True)
             
+            stock_map = _get_crate_stock_balance(org_id)
+            
             for ct in ct_list:
+                s = stock_map.get(ct["id"], {})
                 ct["purchase_rate"] = float(ct.get("purchase_rate") or 0)
                 ct["sale_rate"] = float(ct.get("sale_rate") or 0)
                 ct["capacity_kg"] = float(ct.get("capacity_kg") or 0)
                 ct["deposit_amount"] = float(ct.get("deposit_amount") or 0)
+                ct["available"] = s.get("available", 0)
                 
             crate_types = ct_list
         except Exception as e:
@@ -9323,6 +9327,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
             
         # ── CRATE ITEMS: sold alongside commodities ───────────────────────
         crate_items = payload.get("crate_items") or payload.get("p_crate_items") or []
+        parsed_crate_items = []
         for ci in crate_items:
             ct = ci.get("crate_type")
             cqty = int(ci.get("qty") or 0)
@@ -9342,6 +9347,13 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 _reduce_crate_stock(org_id, ct, cqty)
             except Exception:
                 frappe.log_error(frappe.get_traceback(), "crate_stock_reduce non-fatal")
+            
+            parsed_crate_items.append({
+                "crate_type": ct,
+                "quantity": cqty,
+                "deposit_amount": float(crate)
+            })
+            
             # Append as sale item line using a virtual item_id
             crate_item_id = _get_or_create_crate_commodity(org_id, ct)
             doc.append("items", {
@@ -9352,6 +9364,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 "amount": float(cqty * crate)
             })
         # ─────────────────────────────────────────────────────────────────
+        doc.flags.crate_items = parsed_crate_items
         doc.insert(ignore_permissions=True)
 
         # Auto-populate lotno from first item's lot_code if not provided manually
@@ -15420,13 +15433,12 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     all_types = set(list(stock_map.keys()) + list(issued_map.keys()) + list(sold_map.keys()))
     result = {}
     for ct in all_types:
-        available = stock_map.get(ct, 0)
+        total_purchased = stock_map.get(ct, 0)
         issued = issued_map.get(ct, 0)
         sold = sold_map.get(ct, 0)
         
-        # available is already the net of purchases - issues - sales.
-        # So total_purchased = available + issued + sold.
-        total_purchased = available + issued + sold
+        # total_purchased is the sum of inventory entries
+        available = total_purchased - issued - sold
         
         result[ct] = {
             "total_purchased": total_purchased,
@@ -15832,17 +15844,25 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
         company = org_info.get("company_name")
 
         # Resolve party account
-        contact = frappe.get_doc("Mandi Contact", party_id)
+        contact = None
+        contact_type = doc.party_type or "buyer"
+        
+        if frappe.db.exists("Mandi Contact", party_id):
+            contact = frappe.get_doc("Mandi Contact", party_id)
+            contact_type = contact.contact_type
+            
         party_type = None
         erp_party = None
-        if contact.customer and frappe.db.exists("Customer", contact.customer):
-            party_type, erp_party = "Customer", contact.customer
-        elif contact.supplier and frappe.db.exists("Supplier", contact.supplier):
-            party_type, erp_party = "Supplier", contact.supplier
-        elif frappe.db.exists("Customer", contact.name):
-            party_type, erp_party = "Customer", contact.name
-        elif frappe.db.exists("Supplier", contact.name):
-            party_type, erp_party = "Supplier", contact.name
+        
+        if contact:
+            if contact.customer and frappe.db.exists("Customer", contact.customer):
+                party_type, erp_party = "Customer", contact.customer
+            elif contact.supplier and frappe.db.exists("Supplier", contact.supplier):
+                party_type, erp_party = "Supplier", contact.supplier
+            elif frappe.db.exists("Customer", contact.name):
+                party_type, erp_party = "Customer", contact.name
+            elif frappe.db.exists("Supplier", contact.name):
+                party_type, erp_party = "Supplier", contact.name
 
         total_charge = 0.0
         je_remarks = []
@@ -15869,9 +15889,25 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
 
         # Post Journal Entry (only if we have a proper ERP party)
         je_name = None
+        from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact, get_debtor_acc, get_supplier_acc
+        
+        if not erp_party:
+            # Fallback to auto-create based on contact type
+            if contact_type == "buyer":
+                erp_party = ensure_customer_for_contact(doc.party_id, company)
+                party_type = "Customer"
+            else:
+                erp_party = ensure_supplier_for_contact(doc.party_id, company)
+                party_type = "Supplier"
+        
         if party_type and erp_party and company:
             from erpnext.accounts.party import get_party_account
             party_account = get_party_account(party_type, erp_party, company)
+            
+            if not party_account:
+                # Fallback to default Master Accounts
+                party_account = get_debtor_acc(company) if party_type == "Customer" else get_supplier_acc(company)
+                
             crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
             
             if not party_account:
@@ -15905,6 +15941,14 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             je.insert(ignore_permissions=True)
             je.submit()
             je_name = je.name
+            
+            # Tag the GL entries to the Crate Issue so they can be identified
+            from mandigrow.mandigrow.logic.automation import _tag_gl_entries
+            _tag_gl_entries(je.name, "Mandi Crate Issue", doc.name)
+            
+            # Trigger settlement repair to update the cache
+            from mandigrow.api import repair_single_party_settlement
+            repair_single_party_settlement(contact.name, org_id)
         else:
             return {"success": False, "error": "Cannot charge to ledger: Party is not linked to ERPNext Customer or Supplier."}
 
