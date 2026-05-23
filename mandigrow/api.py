@@ -6068,6 +6068,12 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
             for c in contacts:
                 c["crate_balances"] = [{"type": b["crate_type"], "qty": b["running_balance"]} for b in balances if b["party_id"] == c["id"]]
 
+    total = frappe.db.sql(f"""
+        SELECT COUNT(*)
+        FROM `tabMandi Contact`
+        WHERE {where_sql}
+    """, sql_params)[0][0]
+
     return {"contacts": contacts, "total_count": total}
 
 
@@ -7051,6 +7057,14 @@ def get_sale_master_data(org_id: str = None) -> dict:
 
     # Fetch liquid accounts (Bank/Cash) via standard tenant-safe API
     liquid_accounts = get_bank_accounts(org_id)
+    
+    # Fetch crate types
+    try:
+        crate_res = get_crate_master_data(org_id)
+        crate_types = crate_res.get("crate_types", [])
+    except Exception:
+        crate_types = []
+
     return {
         "buyers": buyers,
         "bank_accounts": [a for a in liquid_accounts if a.get("account_type") == "Bank"],
@@ -7058,7 +7072,8 @@ def get_sale_master_data(org_id: str = None) -> dict:
         "items": items_list,
         "accounts": [a for a in liquid_accounts if a.get("account_type") == "Cash"],
         "lots": lots,
-        "settings": settings
+        "settings": settings,
+        "crate_types": crate_types
     }
 
 
@@ -15368,14 +15383,18 @@ def _reduce_crate_stock(org_id: str, crate_type: str, qty: int) -> None:
 def _get_or_create_crate_commodity(org_id: str, crate_type: str) -> str:
     """
     Returns a virtual commodity item_id representing a crate type.
-    Creates a zero-stock placeholder commodity if not already existing.
-    This allows crate lines to participate in Mandi Sale items without needing Lots.
+    Creates an Item record if it doesn't exist so that Link fields don't fail.
     """
     virtual_id = f"CRATE-{frappe.utils.scrub(crate_type).upper()[:20]}"
-    if not frappe.db.exists("Mandi Lot", {"item_id": virtual_id}):
-        # We only need it in the lot table if the sale item references it
-        # For now, just return the virtual ID — the sale items table accepts any item_id as Data
-        pass
+    if not frappe.db.exists("Item", virtual_id):
+        frappe.get_doc({
+            "doctype": "Item",
+            "item_code": virtual_id,
+            "item_name": f"Crate: {crate_type}",
+            "item_group": "Products",
+            "stock_uom": "Nos",
+            "is_stock_item": 0
+        }).insert(ignore_permissions=True)
     return virtual_id
 
 
