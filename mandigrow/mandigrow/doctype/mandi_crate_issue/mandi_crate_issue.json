@@ -1,0 +1,130 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "CRISL-.YYYY.-.#####",
+ "creation": "2026-05-23 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "issue_date",
+  "issue_type",
+  "organization_id",
+  "party_id",
+  "party_name",
+  "party_type",
+  "expected_return_date",
+  "status",
+  "charge_to_ledger",
+  "ledger_charged_date",
+  "items",
+  "notes"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Issue Date",
+   "reqd": 1
+  },
+  {
+   "default": "give",
+   "fieldname": "issue_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "give\nreceive",
+   "reqd": 1
+  },
+  {
+   "fieldname": "organization_id",
+   "fieldtype": "Data",
+   "label": "Organization ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "party_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Party ID"
+  },
+  {
+   "fieldname": "party_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Party Name"
+  },
+  {
+   "default": "buyer",
+   "fieldname": "party_type",
+   "fieldtype": "Select",
+   "label": "Party Type",
+   "options": "buyer\nfarmer\nsupplier\nadhoc"
+  },
+  {
+   "fieldname": "expected_return_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expected Return By"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Open\nPartially Returned\nClosed"
+  },
+  {
+   "default": "0",
+   "fieldname": "charge_to_ledger",
+   "fieldtype": "Check",
+   "label": "Charge Unreturned to Ledger"
+  },
+  {
+   "fieldname": "ledger_charged_date",
+   "fieldtype": "Date",
+   "label": "Ledger Charged On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Crate Items",
+   "options": "Mandi Crate Issue Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-05-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Mandigrow",
+ "name": "Mandi Crate Issue",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 0,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

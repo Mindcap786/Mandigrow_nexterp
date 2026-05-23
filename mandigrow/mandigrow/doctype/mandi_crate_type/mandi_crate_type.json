@@ -8,6 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "crate_name",
+  "purchase_rate",
+  "sale_rate",
   "capacity_kg",
   "deposit_amount",
   "deposit_mode",

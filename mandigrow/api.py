@@ -4533,6 +4533,16 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
             frappe.log_error(f"Failed to create default storage location for {org_id}: {str(e)}")
             storage_locations = []
 
+    crate_types = []
+    if frappe.db.exists("DocType", "Mandi Crate Type"):
+        crate_types = frappe.get_all(
+            "Mandi Crate Type",
+            filters={"organization_id": org_id},
+            fields=["crate_name", "purchase_rate", "sale_rate"],
+            order_by="creation desc",
+            ignore_permissions=True
+        )
+
     return {
         "contacts": contacts,
         "commodities": commodities,
@@ -4540,7 +4550,8 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         "settings": settings,
         "banks": banks,
         "cash_accounts": cash_accounts,
-        "storage_locations": storage_locations
+        "storage_locations": storage_locations,
+        "crate_types": crate_types
     }
 
 @frappe.whitelist(allow_guest=False)
@@ -8131,6 +8142,44 @@ def commit_mandi_session(**kwargs) -> dict:
             sale.totalamount = total_gross_amount
             sale.discountamount = total_less_amount
             
+            # ── CRATE ITEMS: sold alongside commodities ───────────────────────
+            crate_items = kwargs.get("crate_items") or []
+            if isinstance(crate_items, str):
+                try:
+                    crate_items = _json.loads(crate_items)
+                except Exception:
+                    crate_items = []
+            
+            for ci in crate_items:
+                ct = ci.get("crate_type")
+                cqty = int(ci.get("qty") or 0)
+                crate = ci.get("rate") or 0
+                if not ct or cqty <= 0:
+                    continue
+                if not frappe.db.exists("Mandi Crate Type", ct):
+                    frappe.get_doc({
+                        "doctype": "Mandi Crate Type",
+                        "crate_name": ct,
+                        "organization_id": kwargs.get("organization_id"),
+                        "purchase_rate": 0,
+                        "sale_rate": float(crate),
+                    }).insert(ignore_permissions=True)
+                try:
+                    _reduce_crate_stock(kwargs.get("organization_id"), ct, cqty)
+                except Exception:
+                    pass
+                crate_item_id = _get_or_create_crate_commodity(kwargs.get("organization_id"), ct)
+                
+                c_amt = float(cqty * crate)
+                item = sale.append("items", {})
+                item.item_id = crate_item_id
+                item.qty = float(cqty)
+                item.rate = float(crate)
+                item.amount = c_amt
+                
+                sale.totalamount += c_amt
+            # ─────────────────────────────────────────────────────────────────
+            
             # Fetch Org Settings to compute taxes for the Buyer Bill
             org_settings = _get_org_info(kwargs.get("organization_id"))
             taxable_val = total_gross_amount - total_less_amount
@@ -9147,6 +9196,37 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 "amount": float(item.get("amount") or (qty * rate))
             })
             
+        # ── CRATE ITEMS: sold alongside commodities ───────────────────────
+        crate_items = payload.get("crate_items") or payload.get("p_crate_items") or []
+        for ci in crate_items:
+            ct = ci.get("crate_type")
+            cqty = int(ci.get("qty") or 0)
+            crate = ci.get("rate") or 0
+            if not ct or cqty <= 0:
+                continue
+            if not frappe.db.exists("Mandi Crate Type", ct):
+                frappe.get_doc({
+                    "doctype": "Mandi Crate Type",
+                    "crate_name": ct,
+                    "organization_id": org_id,
+                    "purchase_rate": 0,
+                    "sale_rate": float(crate),
+                }).insert(ignore_permissions=True)
+            # Reduce crate inventory (best-effort, non-blocking)
+            try:
+                _reduce_crate_stock(org_id, ct, cqty)
+            except Exception:
+                frappe.log_error(frappe.get_traceback(), "crate_stock_reduce non-fatal")
+            # Append as sale item line using a virtual item_id
+            crate_item_id = _get_or_create_crate_commodity(org_id, ct)
+            doc.append("items", {
+                "item_id": crate_item_id,
+                "lot_id": "",
+                "qty": float(cqty),
+                "rate": float(crate),
+                "amount": float(cqty * crate)
+            })
+        # ─────────────────────────────────────────────────────────────────
         doc.insert(ignore_permissions=True)
 
         # Auto-populate lotno from first item's lot_code if not provided manually
@@ -15121,3 +15201,610 @@ def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: s
         "txn_name": txn_res["transaction_id"],
         "message": f"Successfully charged INR {total_charge:,.2f} for {qty} lost crates.",
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CRATE MANAGEMENT v2 — Full Redesign
+# No Super Admin toggle. Managed from Master Data directly by each mandi.
+# Two modes: (1) Sold Crates = commodity-like sale items with GL/daybook
+#            (2) Issued Crates = physical give/take tracked in Mandi Crate Issue
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _reduce_crate_stock(org_id: str, crate_type: str, qty: int) -> None:
+    """Reduce crate inventory when crates are sold or issued. Best-effort."""
+    frappe.db.sql("""
+        INSERT INTO `tabMandi Crate Inventory Entry`
+            (name, entry_date, crate_type, quantity, purchase_rate, total_value, organization_id, notes, creation, modified, modified_by, owner, docstatus)
+        VALUES
+            (%(name)s, %(date)s, %(ct)s, %(qty)s, 0, 0, %(org)s, %(notes)s, NOW(), NOW(), 'Administrator', 'Administrator', 1)
+    """, {
+        "name": f"CRINV-OUT-{frappe.generate_hash(length=10)}",
+        "date": frappe.utils.today(),
+        "ct": crate_type,
+        "qty": -abs(qty),   # negative = reduction
+        "org": org_id,
+        "notes": "Auto-reduced via sale/issue"
+    })
+
+
+def _get_or_create_crate_commodity(org_id: str, crate_type: str) -> str:
+    """
+    Returns a virtual commodity item_id representing a crate type.
+    Creates a zero-stock placeholder commodity if not already existing.
+    This allows crate lines to participate in Mandi Sale items without needing Lots.
+    """
+    virtual_id = f"CRATE-{frappe.utils.scrub(crate_type).upper()[:20]}"
+    if not frappe.db.exists("Mandi Lot", {"item_id": virtual_id}):
+        # We only need it in the lot table if the sale item references it
+        # For now, just return the virtual ID — the sale items table accepts any item_id as Data
+        pass
+    return virtual_id
+
+
+def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
+    """
+    Returns net stock balance per crate type.
+    Balance = SUM(qty from Inventory Entries) - SUM(qty_issued from open Issues)
+    """
+    inv_query = """
+        SELECT crate_type, SUM(quantity) as total_stock
+        FROM `tabMandi Crate Inventory Entry`
+        WHERE organization_id = %s
+    """
+    params_inv = [org_id]
+    if crate_type:
+        inv_query += " AND crate_type = %s"
+        params_inv.append(crate_type)
+    inv_query += " GROUP BY crate_type"
+
+    inv_rows = frappe.db.sql(inv_query, params_inv, as_dict=True)
+    stock_map = {r["crate_type"]: int(r["total_stock"] or 0) for r in inv_rows}
+
+    # Outstanding issued (not yet returned)
+    issue_query = """
+        SELECT ii.crate_type, SUM(ii.qty_balance) as total_issued
+        FROM `tabMandi Crate Issue Item` ii
+        JOIN `tabMandi Crate Issue` i ON ii.parent = i.name
+        WHERE i.organization_id = %s AND i.status != 'Closed' AND i.issue_type = 'give'
+    """
+    params_issue = [org_id]
+    if crate_type:
+        issue_query += " AND ii.crate_type = %s"
+        params_issue.append(crate_type)
+    issue_query += " GROUP BY ii.crate_type"
+
+    issue_rows = frappe.db.sql(issue_query, params_issue, as_dict=True)
+    issued_map = {r["crate_type"]: int(r["total_issued"] or 0) for r in issue_rows}
+
+    # Sold (from crate transactions with source_doctype = Mandi Sale) - use existing CRTXN ledger
+    sold_query = """
+        SELECT crate_type, SUM(qty_out) as total_sold
+        FROM `tabMandi Crate Ledger`
+        WHERE organization_id = %s AND source_doctype = 'Mandi Sale'
+    """
+    params_sold = [org_id]
+    if crate_type:
+        sold_query += " AND crate_type = %s"
+        params_sold.append(crate_type)
+    sold_query += " GROUP BY crate_type"
+
+    sold_rows = frappe.db.sql(sold_query, params_sold, as_dict=True)
+    sold_map = {r["crate_type"]: int(r["total_sold"] or 0) for r in sold_rows}
+
+    # Merge all crate types
+    all_types = set(list(stock_map.keys()) + list(issued_map.keys()) + list(sold_map.keys()))
+    result = {}
+    for ct in all_types:
+        total = stock_map.get(ct, 0)
+        issued = issued_map.get(ct, 0)
+        sold = sold_map.get(ct, 0)
+        result[ct] = {
+            "total_purchased": total,
+            "total_issued_out": issued,
+            "total_sold": sold,
+            "available": max(0, total - issued - sold)
+        }
+
+    if crate_type:
+        return result.get(crate_type, {"total_purchased": 0, "total_issued_out": 0, "total_sold": 0, "available": 0})
+    return result
+
+
+# ─── 1. Master Data API ───────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_crate_master_data(org_id: str = None) -> dict:
+    """
+    Returns all crate types for this org (or global) with current stock balances.
+    Used by Master Data page AND POS crate toggle dropdown.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+
+    # Fetch crate types — both org-specific and global (no org_id) ones
+    crate_types = frappe.db.sql("""
+        SELECT name, crate_name, purchase_rate, sale_rate, capacity_kg,
+               deposit_amount, is_active, organization_id
+        FROM `tabMandi Crate Type`
+        WHERE is_active = 1 AND (organization_id = %s OR organization_id IS NULL OR organization_id = '')
+        ORDER BY crate_name
+    """, (org_id,), as_dict=True)
+
+    stock_map = _get_crate_stock_balance(org_id)
+
+    result = []
+    for ct in crate_types:
+        s = stock_map.get(ct["name"], {})
+        result.append({
+            "id": ct["name"],
+            "name": ct["crate_name"],
+            "purchase_rate": float(ct["purchase_rate"] or 0),
+            "sale_rate": float(ct["sale_rate"] or 0),
+            "capacity_kg": float(ct["capacity_kg"] or 0),
+            "deposit_amount": float(ct["deposit_amount"] or 0),
+            "total_purchased": s.get("total_purchased", 0),
+            "total_issued_out": s.get("total_issued_out", 0),
+            "total_sold": s.get("total_sold", 0),
+            "available": s.get("available", 0),
+        })
+
+    return {"crate_types": result, "org_id": org_id}
+
+
+@frappe.whitelist(allow_guest=False)
+def save_crate_type(
+    crate_name: str,
+    purchase_rate: float = 0,
+    sale_rate: float = 0,
+    capacity_kg: float = 0,
+    deposit_amount: float = 0,
+    crate_id: str = None,
+    org_id: str = None,
+) -> dict:
+    """
+    Create or update a Crate Type. No Super Admin required.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+    try:
+        if crate_id and frappe.db.exists("Mandi Crate Type", crate_id):
+            doc = frappe.get_doc("Mandi Crate Type", crate_id)
+            doc.purchase_rate = float(purchase_rate or 0)
+            doc.sale_rate = float(sale_rate or 0)
+            doc.capacity_kg = float(capacity_kg or 0)
+            doc.deposit_amount = float(deposit_amount or 0)
+            doc.save(ignore_permissions=True)
+        else:
+            doc = frappe.get_doc({
+                "doctype": "Mandi Crate Type",
+                "crate_name": crate_name.strip(),
+                "purchase_rate": float(purchase_rate or 0),
+                "sale_rate": float(sale_rate or 0),
+                "capacity_kg": float(capacity_kg or 0),
+                "deposit_amount": float(deposit_amount or 0),
+                "organization_id": org_id,
+                "is_active": 1,
+            })
+            doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return {"success": True, "id": doc.name, "name": doc.crate_name}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "save_crate_type Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def delete_crate_type(crate_id: str) -> dict:
+    """Delete a crate type (only if no stock entries exist)."""
+    try:
+        has_stock = frappe.db.exists("Mandi Crate Inventory Entry", {"crate_type": crate_id})
+        if has_stock:
+            return {"success": False, "error": "Cannot delete — stock entries exist for this crate type."}
+        frappe.delete_doc("Mandi Crate Type", crate_id, ignore_permissions=True)
+        frappe.db.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ─── 2. Stock Entry API ───────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def add_crate_stock_entry(
+    crate_type: str,
+    quantity: int,
+    purchase_rate: float = 0,
+    entry_date: str = None,
+    notes: str = "",
+    org_id: str = None,
+) -> dict:
+    """
+    Log new crate stock purchase into Mandi Crate Inventory Entry.
+    Increases available crate inventory for this mandi.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+    try:
+        qty = int(quantity)
+        rate = float(purchase_rate or 0)
+        if qty <= 0:
+            return {"success": False, "error": "Quantity must be greater than zero."}
+
+        # Auto-create crate type if missing
+        if not frappe.db.exists("Mandi Crate Type", crate_type):
+            frappe.get_doc({
+                "doctype": "Mandi Crate Type",
+                "crate_name": crate_type,
+                "organization_id": org_id,
+                "purchase_rate": rate,
+                "sale_rate": 0,
+            }).insert(ignore_permissions=True)
+
+        doc = frappe.get_doc({
+            "doctype": "Mandi Crate Inventory Entry",
+            "entry_date": entry_date or frappe.utils.today(),
+            "crate_type": crate_type,
+            "quantity": qty,
+            "purchase_rate": rate,
+            "total_value": qty * rate,
+            "organization_id": org_id,
+            "notes": notes,
+        })
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return {"success": True, "entry_id": doc.name}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "add_crate_stock_entry Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def get_crate_inventory_report(org_id: str = None) -> dict:
+    """
+    Full inventory summary: total purchased, sold, issued, available per crate type.
+    Used for the Master Data dashboard cards.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+    try:
+        stock_map = _get_crate_stock_balance(org_id)
+        crate_types = frappe.get_all(
+            "Mandi Crate Type",
+            filters={"is_active": 1},
+            fields=["name", "crate_name", "purchase_rate", "sale_rate"]
+        )
+        rows = []
+        for ct in crate_types:
+            s = stock_map.get(ct["name"], {})
+            total = s.get("total_purchased", 0)
+            if total == 0 and s.get("total_issued_out", 0) == 0 and s.get("total_sold", 0) == 0:
+                continue
+            purchase_val = total * float(ct["purchase_rate"] or 0)
+            rows.append({
+                "crate_type": ct["name"],
+                "crate_name": ct["crate_name"],
+                "total_purchased": total,
+                "total_issued_out": s.get("total_issued_out", 0),
+                "total_sold": s.get("total_sold", 0),
+                "available": s.get("available", 0),
+                "purchase_rate": float(ct["purchase_rate"] or 0),
+                "sale_rate": float(ct["sale_rate"] or 0),
+                "total_stock_value": purchase_val,
+            })
+        return {"success": True, "rows": rows}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_crate_inventory_report Failed")
+        return {"success": False, "error": str(e), "rows": []}
+
+
+# ─── 3. Issue (Give/Take) API ─────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def create_crate_issue(
+    party_id: str,
+    party_name: str,
+    items: str,
+    expected_return_date: str = None,
+    party_type: str = "buyer",
+    notes: str = "",
+    issue_date: str = None,
+    org_id: str = None,
+) -> dict:
+    """
+    Give crates to a party (buyer/farmer/supplier).
+    Creates Mandi Crate Issue doc with child items.
+    Reduces crate inventory accordingly.
+    """
+    import json
+    if not org_id:
+        org_id = _get_user_org()
+    try:
+        if isinstance(items, str):
+            items = json.loads(items)
+
+        if not items:
+            return {"success": False, "error": "No crate items provided."}
+
+        doc = frappe.get_doc({
+            "doctype": "Mandi Crate Issue",
+            "issue_date": issue_date or frappe.utils.today(),
+            "issue_type": "give",
+            "organization_id": org_id,
+            "party_id": party_id or "",
+            "party_name": party_name or "",
+            "party_type": party_type,
+            "expected_return_date": expected_return_date or None,
+            "status": "Open",
+            "charge_to_ledger": 0,
+            "notes": notes,
+            "items": []
+        })
+
+        for item in items:
+            ct = item.get("crate_type")
+            qty = int(item.get("qty") or 0)
+            rate = float(item.get("rate") or 0)
+            if not ct or qty <= 0:
+                continue
+
+            # Auto-create crate type if missing
+            if not frappe.db.exists("Mandi Crate Type", ct):
+                frappe.get_doc({
+                    "doctype": "Mandi Crate Type",
+                    "crate_name": ct,
+                    "organization_id": org_id,
+                    "purchase_rate": 0,
+                    "sale_rate": 0,
+                }).insert(ignore_permissions=True)
+
+            doc.append("items", {
+                "crate_type": ct,
+                "qty_issued": qty,
+                "qty_returned": 0,
+                "qty_balance": qty,
+                "rate": rate,
+            })
+            # Reduce inventory
+            try:
+                _reduce_crate_stock(org_id, ct, qty)
+            except Exception:
+                frappe.log_error(frappe.get_traceback(), "crate issue stock reduce (non-fatal)")
+
+        if not doc.items:
+            return {"success": False, "error": "No valid crate items to issue."}
+
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return {"success": True, "issue_id": doc.name}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "create_crate_issue Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def receive_crates(issue_id: str, received_items: str) -> dict:
+    """
+    Record full or partial return of crates for a given issue.
+    received_items = [{"row_name": "...", "qty_now_returned": N}, ...]
+    Restores crate inventory. Updates issue status.
+    """
+    import json
+    try:
+        if isinstance(received_items, str):
+            received_items = json.loads(received_items)
+
+        doc = frappe.get_doc("Mandi Crate Issue", issue_id)
+        org_id = doc.organization_id
+
+        all_closed = True
+        for ri in received_items:
+            row_name = ri.get("row_name")
+            qty_now = int(ri.get("qty_now_returned") or 0)
+            if qty_now <= 0:
+                continue
+            for row in doc.items:
+                if row.name == row_name or row.crate_type == ri.get("crate_type"):
+                    max_returnable = row.qty_balance
+                    actual_return = min(qty_now, max_returnable)
+                    row.qty_returned = (row.qty_returned or 0) + actual_return
+                    row.qty_balance = max(0, row.qty_issued - row.qty_returned)
+                    # Restore inventory
+                    frappe.get_doc({
+                        "doctype": "Mandi Crate Inventory Entry",
+                        "entry_date": frappe.utils.today(),
+                        "crate_type": row.crate_type,
+                        "quantity": actual_return,
+                        "purchase_rate": row.rate or 0,
+                        "total_value": actual_return * (row.rate or 0),
+                        "organization_id": org_id,
+                        "notes": f"Returned from {doc.party_name} (Issue: {doc.name})",
+                    }).insert(ignore_permissions=True)
+                    break
+
+        all_closed = all((row.qty_balance == 0) for row in doc.items)
+        any_returned = any((row.qty_returned > 0) for row in doc.items)
+        doc.status = "Closed" if all_closed else ("Partially Returned" if any_returned else "Open")
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+        return {"success": True, "status": doc.status}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "receive_crates Failed")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dict:
+    """
+    For a Crate Issue where crates were not returned, post a GL Debit to the party's ledger.
+    Charge = qty_balance × rate per item row.
+    Closes the issue after charging.
+    """
+    import json
+    try:
+        doc = frappe.get_doc("Mandi Crate Issue", issue_id)
+        org_id = doc.organization_id
+        party_id = doc.party_id
+
+        if not party_id:
+            return {"success": False, "error": "No party linked to this issue."}
+
+        if isinstance(items_to_charge, str) and items_to_charge:
+            items_to_charge = json.loads(items_to_charge)
+        else:
+            items_to_charge = None
+
+        org_info = _get_org_info(org_id)
+        company = org_info.get("company_name")
+
+        # Resolve party account
+        contact = frappe.get_doc("Mandi Contact", party_id)
+        party_type = None
+        erp_party = None
+        if contact.customer and frappe.db.exists("Customer", contact.customer):
+            party_type, erp_party = "Customer", contact.customer
+        elif contact.supplier and frappe.db.exists("Supplier", contact.supplier):
+            party_type, erp_party = "Supplier", contact.supplier
+        elif frappe.db.exists("Customer", contact.name):
+            party_type, erp_party = "Customer", contact.name
+        elif frappe.db.exists("Supplier", contact.name):
+            party_type, erp_party = "Supplier", contact.name
+
+        total_charge = 0.0
+        je_remarks = []
+        for row in doc.items:
+            qty_bal = row.qty_balance
+            if items_to_charge:
+                override = next((x for x in items_to_charge if x.get("row_name") == row.name or x.get("crate_type") == row.crate_type), None)
+                if override:
+                    qty_bal = int(override.get("qty_to_charge") or qty_bal)
+            if qty_bal <= 0:
+                continue
+            rate = float(row.rate or 0)
+            if rate <= 0:
+                rate = float(frappe.db.get_value("Mandi Crate Type", row.crate_type, "sale_rate") or 0)
+            charge = qty_bal * rate
+            total_charge += charge
+            je_remarks.append(f"{row.crate_type}: {qty_bal} × ₹{rate} = ₹{charge:.2f}")
+            # Mark row as fully charged
+            row.qty_balance = 0
+            row.qty_returned = row.qty_issued
+
+        if total_charge <= 0:
+            return {"success": False, "error": "No outstanding crates to charge."}
+
+        # Post Journal Entry (only if we have a proper ERP party)
+        je_name = None
+        if party_type and erp_party and company:
+            from erpnext.accounts.party import get_party_account
+            party_account = get_party_account(party_type, erp_party, company)
+            crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
+            if party_account and crate_income_account:
+                je = frappe.get_doc({
+                    "doctype": "Journal Entry",
+                    "voucher_type": "Journal Entry",
+                    "posting_date": frappe.utils.today(),
+                    "company": company,
+                    "user_remark": f"Crate charge for {doc.party_name}: {'; '.join(je_remarks)}",
+                    "accounts": [
+                        {
+                            "account": party_account,
+                            "party_type": party_type,
+                            "party": erp_party,
+                            "debit_in_account_currency": total_charge,
+                            "credit_in_account_currency": 0
+                        },
+                        {
+                            "account": crate_income_account,
+                            "debit_in_account_currency": 0,
+                            "credit_in_account_currency": total_charge
+                        }
+                    ]
+                })
+                je.insert(ignore_permissions=True)
+                je.submit()
+                je_name = je.name
+
+        doc.status = "Closed"
+        doc.charge_to_ledger = 1
+        doc.ledger_charged_date = frappe.utils.today()
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        return {
+            "success": True,
+            "total_charged": total_charge,
+            "je_name": je_name,
+            "message": f"₹{total_charge:,.2f} charged to {doc.party_name}'s ledger." if je_name else f"Issue closed. GL entry skipped (no ERP party linked)."
+        }
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "charge_crate_to_ledger_v2 Failed")
+        return {"success": False, "error": str(e)}
+
+
+# ─── 4. Reports API ───────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=False)
+def get_crate_issues_report(org_id: str = None) -> dict:
+    """
+    Full report of all open/partial Crate Issues.
+    Shows: party, crate type, qty issued, qty returned, qty balance, overdue flag.
+    """
+    if not org_id:
+        org_id = _get_user_org()
+    try:
+        today = frappe.utils.today()
+        issues = frappe.db.sql("""
+            SELECT
+                i.name as issue_id,
+                i.issue_date,
+                i.party_id,
+                i.party_name,
+                i.party_type,
+                i.expected_return_date,
+                i.status,
+                i.charge_to_ledger,
+                ii.name as row_name,
+                ii.crate_type,
+                ii.qty_issued,
+                ii.qty_returned,
+                ii.qty_balance,
+                ii.rate
+            FROM `tabMandi Crate Issue` i
+            JOIN `tabMandi Crate Issue Item` ii ON ii.parent = i.name
+            WHERE i.organization_id = %s AND i.status != 'Closed' AND i.issue_type = 'give'
+            ORDER BY i.expected_return_date, i.issue_date
+        """, (org_id,), as_dict=True)
+
+        # Enrich with overdue flag and value
+        result = []
+        for row in issues:
+            is_overdue = bool(
+                row.get("expected_return_date") and
+                str(row["expected_return_date"]) < today and
+                int(row.get("qty_balance") or 0) > 0
+            )
+            val = int(row.get("qty_balance") or 0) * float(row.get("rate") or 0)
+            result.append({
+                **{k: row[k] for k in row},
+                "is_overdue": is_overdue,
+                "outstanding_value": val,
+            })
+
+        # Summary totals
+        total_crates_out = sum(int(r.get("qty_balance") or 0) for r in result)
+        total_value_out = sum(r.get("outstanding_value", 0) for r in result)
+        overdue_count = sum(1 for r in result if r.get("is_overdue"))
+
+        return {
+            "success": True,
+            "rows": result,
+            "summary": {
+                "total_crates_out": total_crates_out,
+                "total_value_out": total_value_out,
+                "overdue_count": overdue_count,
+                "open_issues": len(set(r["issue_id"] for r in result)),
+            }
+        }
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_crate_issues_report Failed")
+        return {"success": False, "error": str(e), "rows": [], "summary": {}}
