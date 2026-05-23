@@ -16139,13 +16139,43 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
         from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact, get_debtor_acc, get_supplier_acc
         
         if not erp_party:
+            # If no Mandi Contact exists for this party_id (ad-hoc entry),
+            # create a minimal one so the party ledger can track this charge.
+            if not contact and party_id:
+                try:
+                    pt_lower = (doc.party_type or "buyer").lower()
+                    ct_type = pt_lower if pt_lower in ("farmer", "supplier") else "buyer"
+                    new_contact = frappe.get_doc({
+                        "doctype": "Mandi Contact",
+                        "name": party_id,
+                        "full_name": doc.party_name or party_id,
+                        "contact_type": ct_type,
+                        "organization_id": org_id,
+                        "phone": "",
+                    })
+                    new_contact.flags.ignore_mandatory = True
+                    new_contact.insert(ignore_permissions=True)
+                    contact = new_contact
+                    contact_type = ct_type
+                except Exception:
+                    frappe.log_error(frappe.get_traceback(), "charge_crate: failed to create Mandi Contact for ad-hoc party")
+
             # Auto-create ERP party based on contact type — never block the charge
             if contact_type in ("buyer", "", None):
-                erp_party = ensure_customer_for_contact(doc.party_id, company)
+                erp_party = ensure_customer_for_contact(party_id, company)
                 party_type = "Customer"
             else:
-                erp_party = ensure_supplier_for_contact(doc.party_id, company)
+                erp_party = ensure_supplier_for_contact(party_id, company)
                 party_type = "Supplier"
+
+            # Write back the ERP party link to Mandi Contact so get_ledger_statement
+            # can find the GL entries via (party_type, party) lookup
+            if contact and erp_party:
+                try:
+                    link_field = "customer" if party_type == "Customer" else "supplier"
+                    frappe.db.set_value("Mandi Contact", contact.name, link_field, erp_party, update_modified=False)
+                except Exception:
+                    pass
         
         if party_type and erp_party and company:
             from erpnext.accounts.party import get_party_account
