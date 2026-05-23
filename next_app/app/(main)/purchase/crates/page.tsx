@@ -1,482 +1,652 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/components/auth/auth-provider';
-import { callApi } from '@/lib/frappeClient';
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { callApi } from '@/lib/frappeClient'
+import { useAuth } from '@/components/auth/auth-provider'
 import {
-    Package, AlertTriangle, TrendingDown, ArrowDownLeft, ArrowUpRight,
-    RefreshCw, Loader2, Plus, X, ChevronRight, Building2, Users, BarChart3
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+    Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, Loader2, Plus, X,
+    CheckCircle, Users, Calendar, Search, ChevronRight, IndianRupee,
+    RefreshCw, Clock, BarChart3, Trash2
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast, Toaster } from 'sonner'
+import { cn } from '@/lib/utils'
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
+} from '@/components/ui/dialog'
 
-interface CrateSummary {
-    godown: { crate_type: string; total_out: number; total_in: number; net_held_by_parties: number }[];
-    outstanding: { party_id: string; party_name: string; crate_type: string; running_balance: number; posting_date: string }[];
-    alerts: { party_id: string; party_name: string; crate_type: string; running_balance: number; posting_date: string }[];
-    ageing_days: number;
+type Tab = 'give' | 'receive' | 'report'
+
+interface CrateType { id: string; name: string; purchase_rate: number; sale_rate: number; available: number }
+interface Contact { id: string; name: string; type: string; city?: string }
+interface IssueRow {
+    issue_id: string; issue_date: string; party_id: string; party_name: string; party_type: string
+    expected_return_date: string | null; status: string; row_name: string; crate_type: string
+    qty_issued: number; qty_returned: number; qty_balance: number; rate: number
+    is_overdue: boolean; outstanding_value: number; charge_to_ledger: boolean
 }
 
-export default function CrateDashboardPage() {
-    const { profile } = useAuth();
-    const { toast } = useToast();
-    const [summary, setSummary] = useState<CrateSummary | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-    const [txnOpen, setTxnOpen] = useState(false);
-    const [crateTypes, setCrateTypes] = useState<string[]>([]);
+export default function CrateIssuePage() {
+    const { profile } = useAuth()
+    const [tab, setTab] = useState<Tab>('give')
+    const [crateTypes, setCrateTypes] = useState<CrateType[]>([])
+    const [contacts, setContacts] = useState<Contact[]>([])
+    const [issues, setIssues] = useState<IssueRow[]>([])
+    const [summary, setSummary] = useState<any>({})
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [searchParty, setSearchParty] = useState('')
+    const [searchIssue, setSearchIssue] = useState('')
 
-    // New transaction form state
-    const [txnForm, setTxnForm] = useState({
-        transaction_type: 'return',
-        crate_type: '',
-        quantity: '',
-        party_id: '',
-        party_name: '',
-        notes: '',
-    });
-    const [txnSaving, setTxnSaving] = useState(false);
-    const [contacts, setContacts] = useState<any[]>([]);
-    const [contactOpen, setContactOpen] = useState(false);
+    // Give crates form
+    const [giveForm, setGiveForm] = useState({
+        party_id: '', party_name: '', party_type: 'buyer', expected_return_date: '', notes: '',
+        items: [{ crate_type: '', qty: '', rate: '' }]
+    })
+    const [partyPickerOpen, setPartyPickerOpen] = useState(false)
 
-    // Charge state
-    const [chargeOpen, setChargeOpen] = useState(false);
-    const [chargeData, setChargeData] = useState<any>(null);
-    const [chargeQty, setChargeQty] = useState<number>(0);
-    const [charging, setCharging] = useState(false);
+    // Receive dialog
+    const [receiveOpen, setReceiveOpen] = useState(false)
+    const [receiveIssueId, setReceiveIssueId] = useState('')
+    const [receiveItems, setReceiveItems] = useState<{ row_name: string; crate_type: string; max: number; qty: string }[]>([])
+    const [receiveSaving, setReceiveSaving] = useState(false)
 
-    const fetchSummary = useCallback(async () => {
-        if (!profile?.organization_id) return;
-        setLoading(true);
+    // Charge to ledger dialog
+    const [chargeOpen, setChargeOpen] = useState(false)
+    const [chargeIssueId, setChargeIssueId] = useState('')
+    const [chargeIssueRows, setChargeIssueRows] = useState<any[]>([])
+    const [chargePartyName, setChargePartyName] = useState('')
+    const [chargeSaving, setChargeSaving] = useState(false)
+
+    const fetchAll = useCallback(async () => {
+        if (!profile?.organization_id) return
+        setLoading(true)
         try {
-            const [res, contactsRes]: any = await Promise.all([
-                callApi('mandigrow.api.get_crate_summary', { org_id: profile.organization_id }),
-                callApi('mandigrow.api.get_contacts', { org_id: profile.organization_id })
-            ]);
-            setSummary(res);
-            setContacts(contactsRes?.contacts || contactsRes?.records || contactsRes || []);
-            // Extract unique crate type names for the form dropdown
-            const types = Array.from(new Set([
-                ...(res.godown || []).map((g: any) => g.crate_type),
-                ...(res.outstanding || []).map((o: any) => o.crate_type),
-            ])) as string[];
-            setCrateTypes(types);
+            const [ctRes, contactRes, issueRes] = await Promise.all([
+                callApi('mandigrow.api.get_crate_master_data'),
+                callApi('mandigrow.api.get_contacts', { org_id: profile.organization_id }),
+                callApi('mandigrow.api.get_crate_issues_report'),
+            ])
+            setCrateTypes(ctRes?.crate_types || [])
+            const rawContacts = contactRes?.contacts || contactRes?.records || contactRes || []
+            setContacts(rawContacts.map((c: any) => ({
+                id: c.name || c.id,
+                name: c.full_name || c.name,
+                type: c.contact_type || 'buyer',
+                city: c.city || ''
+            })))
+            const rows = issueRes?.rows || []
+            setIssues(rows)
+            setSummary(issueRes?.summary || {})
         } catch (e: any) {
-            toast({ title: 'Error', description: e.message || 'Failed to load crate data', variant: 'destructive' });
+            toast.error('Failed to load data', { description: e.message })
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    }, [profile?.organization_id]);
+    }, [profile?.organization_id])
 
-    useEffect(() => { fetchSummary(); }, [fetchSummary]);
+    useEffect(() => { fetchAll() }, [fetchAll])
 
-    const handleTxnSubmit = async () => {
-        if (!txnForm.crate_type || !txnForm.quantity) {
-            toast({ title: 'Missing Fields', description: 'Crate Type and Quantity are required.', variant: 'destructive' });
-            return;
-        }
-        setTxnSaving(true);
+    // ── Give Crates ────────────────────────────────────────────────────────────
+
+    const addGiveItem = () => setGiveForm(f => ({ ...f, items: [...f.items, { crate_type: '', qty: '', rate: '' }] }))
+    const removeGiveItem = (i: number) => setGiveForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }))
+    const updateGiveItem = (i: number, key: string, val: string) =>
+        setGiveForm(f => ({ ...f, items: f.items.map((item, idx) => idx === i ? { ...item, [key]: val } : item) }))
+
+    const handleGive = async () => {
+        if (!giveForm.party_id && !giveForm.party_name) { toast.error('Select or enter a party name'); return }
+        const validItems = giveForm.items.filter(i => i.crate_type && parseInt(i.qty) > 0)
+        if (validItems.length === 0) { toast.error('Add at least one crate item'); return }
+        setSaving(true)
         try {
-            const res: any = await callApi('mandigrow.api.create_crate_transaction', {
-                org_id: profile?.organization_id,
-                transaction_type: txnForm.transaction_type,
-                crate_type: txnForm.crate_type,
-                quantity: parseInt(txnForm.quantity),
-                party_id: txnForm.party_id,
-                party_name: txnForm.party_name,
-                notes: txnForm.notes,
-            });
-            toast({ title: '✅ Recorded', description: `Transaction ${res.transaction_id} created.` });
-            setTxnOpen(false);
-            setTxnForm({ transaction_type: 'return', crate_type: '', quantity: '', party_id: '', party_name: '', notes: '' });
-            fetchSummary();
+            const res = await callApi('mandigrow.api.create_crate_issue', {
+                party_id: giveForm.party_id,
+                party_name: giveForm.party_name,
+                party_type: giveForm.party_type,
+                expected_return_date: giveForm.expected_return_date || null,
+                notes: giveForm.notes,
+                items: JSON.stringify(validItems.map(i => ({
+                    crate_type: i.crate_type,
+                    qty: parseInt(i.qty),
+                    rate: parseFloat(i.rate) || 0,
+                }))),
+            })
+            if (res?.success) {
+                toast.success('Crates issued successfully!', { description: `Issue ID: ${res.issue_id}` })
+                setGiveForm({ party_id: '', party_name: '', party_type: 'buyer', expected_return_date: '', notes: '', items: [{ crate_type: '', qty: '', rate: '' }] })
+                setTab('receive')
+                fetchAll()
+            } else {
+                toast.error(res?.error || 'Failed to issue crates')
+            }
         } catch (e: any) {
-            toast({ title: 'Failed', description: e.message, variant: 'destructive' });
+            toast.error(e.message)
         } finally {
-            setTxnSaving(false);
+            setSaving(false)
         }
-    };
+    }
 
-    const handleChargeClick = (row: any) => {
-        setChargeData(row);
-        setChargeQty(row.running_balance);
-        setChargeOpen(true);
-    };
+    // ── Receive Crates ─────────────────────────────────────────────────────────
 
-    const handleChargeConfirm = async () => {
-        if (!chargeData || !chargeQty || chargeQty <= 0) return;
-        setCharging(true);
+    const openReceive = (issueId: string) => {
+        const rows = issues.filter(r => r.issue_id === issueId && r.qty_balance > 0)
+        if (rows.length === 0) { toast.info('All crates already returned'); return }
+        setReceiveIssueId(issueId)
+        setReceiveItems(rows.map(r => ({ row_name: r.row_name, crate_type: r.crate_type, max: r.qty_balance, qty: String(r.qty_balance) })))
+        setReceiveOpen(true)
+    }
+
+    const handleReceive = async () => {
+        const payload = receiveItems.filter(r => parseInt(r.qty) > 0).map(r => ({
+            row_name: r.row_name, crate_type: r.crate_type, qty_now_returned: parseInt(r.qty)
+        }))
+        if (payload.length === 0) { toast.error('Enter qty to receive'); return }
+        setReceiveSaving(true)
         try {
-            const res: any = await callApi('mandigrow.api.convert_crate_deposit_to_financial', {
-                org_id: profile?.organization_id,
-                party_id: chargeData.party_id,
-                crate_type: chargeData.crate_type,
-                qty_to_charge: chargeQty
-            });
-            toast({ title: '✅ Ledger Charged', description: res.message || "Successfully charged to ledger" });
-            setChargeOpen(false);
-            fetchSummary();
+            const res = await callApi('mandigrow.api.receive_crates', {
+                issue_id: receiveIssueId,
+                received_items: JSON.stringify(payload)
+            })
+            if (res?.success) {
+                toast.success('Crates received!', { description: `Status: ${res.status}` })
+                setReceiveOpen(false)
+                fetchAll()
+            } else {
+                toast.error(res?.error || 'Failed to receive crates')
+            }
         } catch (e: any) {
-            toast({ title: 'Charge Failed', description: e.message || "Failed to charge ledger", variant: 'destructive' });
+            toast.error(e.message)
         } finally {
-            setCharging(false);
+            setReceiveSaving(false)
         }
-    };
+    }
 
-    const filtered = (summary?.outstanding || []).filter(r =>
-        !search || r.party_name.toLowerCase().includes(search.toLowerCase())
-    );
+    // ── Charge to Ledger ───────────────────────────────────────────────────────
 
-    const totalCratesOut = (summary?.godown || []).reduce((s, g) => s + (g.net_held_by_parties || 0), 0);
+    const openCharge = (issueId: string) => {
+        const rows = issues.filter(r => r.issue_id === issueId && r.qty_balance > 0)
+        if (rows.length === 0) { toast.info('No outstanding balance to charge'); return }
+        setChargeIssueId(issueId)
+        setChargePartyName(rows[0]?.party_name || '')
+        setChargeIssueRows(rows.map(r => ({ ...r, qty_to_charge: r.qty_balance })))
+        setChargeOpen(true)
+    }
+
+    const handleCharge = async () => {
+        setChargeSaving(true)
+        try {
+            const res = await callApi('mandigrow.api.charge_crate_to_ledger_v2', {
+                issue_id: chargeIssueId,
+                items_to_charge: JSON.stringify(chargeIssueRows.map(r => ({
+                    row_name: r.row_name, crate_type: r.crate_type, qty_to_charge: r.qty_to_charge
+                })))
+            })
+            if (res?.success) {
+                toast.success('Charged to ledger!', { description: res.message })
+                setChargeOpen(false)
+                fetchAll()
+            } else {
+                toast.error(res?.error || 'Failed to charge')
+            }
+        } catch (e: any) {
+            toast.error(e.message)
+        } finally {
+            setChargeSaving(false)
+        }
+    }
+
+    // Group issues by issue_id for receive/charge
+    const issueGroups = Array.from(new Set(issues.map(r => r.issue_id))).map(id => {
+        const rows = issues.filter(r => r.issue_id === id)
+        const first = rows[0]
+        const totalBalance = rows.reduce((s, r) => s + r.qty_balance, 0)
+        const totalValue = rows.reduce((s, r) => s + r.outstanding_value, 0)
+        const hasOverdue = rows.some(r => r.is_overdue)
+        return { id, party_name: first?.party_name, party_type: first?.party_type, issue_date: first?.issue_date, expected_return_date: first?.expected_return_date, status: first?.status, rows, totalBalance, totalValue, hasOverdue }
+    }).filter(g => searchIssue ? g.party_name?.toLowerCase().includes(searchIssue.toLowerCase()) : true)
+
+    const filteredContacts = contacts.filter(c =>
+        c.name.toLowerCase().includes(searchParty.toLowerCase()) ||
+        (c.city || '').toLowerCase().includes(searchParty.toLowerCase())
+    )
+
+    const TABS: { id: Tab; label: string; icon: any; color: string }[] = [
+        { id: 'give', label: 'Give Crates', icon: ArrowUpRight, color: 'text-orange-600 bg-orange-50 border-orange-200' },
+        { id: 'receive', label: 'Receive / Track', icon: ArrowDownLeft, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+        { id: 'report', label: 'Summary Report', icon: BarChart3, color: 'text-blue-600 bg-blue-50 border-blue-200' },
+    ]
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 pb-40 space-y-6 animate-in fade-in">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-emerald-50/10 p-4 md:p-6">
+            <Toaster richColors position="top-center" />
 
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end bg-gradient-to-br from-white via-slate-50/50 to-white p-6 md:p-8 rounded-[28px] border border-slate-200/60 shadow-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-amber-100/30 rounded-full blur-3xl -mr-40 -mt-40 pointer-events-none" />
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center">
-                                <Package className="w-5 h-5 text-amber-600" />
-                            </div>
-                            <h1 className="text-3xl md:text-4xl font-[1000] italic tracking-tighter uppercase text-slate-900">
-                                Crate <span className="text-amber-500">Tracker</span>
-                            </h1>
-                        </div>
-                        <p className="text-slate-500 font-bold text-sm italic">
-                            Dabba / Bardan physical inventory — real-time double-entry ledger
-                        </p>
-                    </div>
-                    <div className="flex gap-3 mt-4 md:mt-0">
-                        <Button
-                            variant="outline"
-                            onClick={fetchSummary}
-                            className="h-11 rounded-xl border-slate-200 bg-white font-bold"
-                        >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Refresh
-                        </Button>
-                        <Button
-                            onClick={() => setTxnOpen(true)}
-                            className="h-11 rounded-xl bg-slate-900 text-white font-black hover:bg-slate-700"
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            New Entry
-                        </Button>
-                    </div>
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <Package className="w-5 h-5 text-white" />
                 </div>
-
-                {/* Ageing Alerts */}
-                {(summary?.alerts?.length ?? 0) > 0 && (
-                    <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2">
-                        <AlertTriangle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                            <div className="font-black text-rose-700 text-sm">
-                                {summary!.alerts.length} {summary!.alerts.length === 1 ? 'Party has' : 'Parties have'} held crates for more than {summary?.ageing_days} days
-                            </div>
-                            <div className="text-xs text-rose-500 mt-1 font-bold">
-                                {summary!.alerts.map(a => a.party_name).join(', ')}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {loading ? (
-                    <div className="flex justify-center py-20">
-                        <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
-                    </div>
-                ) : (
-                    <>
-                        {/* Godown Summary Cards */}
-                        <div>
-                            <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 pl-1">
-                                Godown Stock — Net with Parties
-                            </div>
-                            {summary?.godown.length === 0 ? (
-                                <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold text-sm uppercase tracking-widest">
-                                    No crate movements yet. Enable crate tracking in Settings and add crate types.
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {summary?.godown.map(g => (
-                                        <div key={g.crate_type} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 truncate">{g.crate_type}</div>
-                                            <div className="text-3xl font-mono font-black text-slate-900">{g.net_held_by_parties ?? 0}</div>
-                                            <div className="text-[10px] text-slate-400 font-bold mt-1">Held by parties</div>
-                                            <div className="flex gap-3 mt-2 text-[10px] font-bold">
-                                                <span className="text-rose-500 flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" />{g.total_out} out</span>
-                                                <span className="text-emerald-500 flex items-center gap-0.5"><ArrowDownLeft className="w-3 h-3" />{g.total_in} in</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
-                                        <div className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-1">Total Outstanding</div>
-                                        <div className="text-3xl font-mono font-black text-amber-700">{totalCratesOut}</div>
-                                        <div className="text-[10px] text-amber-500 font-bold mt-1">All types combined</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Outstanding Party List */}
-                        <div>
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="text-xs font-black uppercase tracking-widest text-slate-400 pl-1">
-                                    Parties Holding Crates
-                                </div>
-                                <div className="text-xs font-black text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                                    {filtered.length} {filtered.length === 1 ? 'party' : 'parties'}
-                                </div>
-                            </div>
-                            <div className="bg-white/80 backdrop-blur-xl border border-slate-200/80 p-2 md:p-3 rounded-2xl shadow-sm mb-3 flex items-center gap-2">
-                                <Input
-                                    placeholder="Search party name..."
-                                    className="border-0 bg-transparent focus:ring-0 shadow-none font-bold text-black placeholder:text-slate-400"
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                />
-                                {search && (
-                                    <button onClick={() => setSearch('')}>
-                                        <X className="w-4 h-4 text-slate-400 hover:text-black" />
-                                    </button>
-                                )}
-                            </div>
-
-                            {filtered.length === 0 ? (
-                                <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 font-bold text-sm uppercase tracking-widest">
-                                    All Crates Returned 🎉
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {filtered.map((r, idx) => {
-                                        const isAged = summary?.alerts.some(a => a.party_id === r.party_id && a.crate_type === r.crate_type);
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className={cn(
-                                                    "bg-white border rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all",
-                                                    isAged ? "border-rose-200 bg-rose-50/30" : "border-slate-200"
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-black",
-                                                    isAged ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-700"
-                                                )}>
-                                                    {isAged ? <AlertTriangle className="w-4 h-4" /> : r.running_balance}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="font-black text-black text-sm truncate">{r.party_name}</div>
-                                                        {isAged && (
-                                                            <span className="text-[9px] font-black bg-rose-100 text-rose-600 border border-rose-200 px-2 py-0.5 rounded-full uppercase tracking-widest flex-shrink-0">
-                                                                Overdue
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-xs text-slate-400 font-bold mt-0.5">
-                                                        {r.crate_type} · Since {r.posting_date}
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                                    <div className="text-right flex-shrink-0">
-                                                        <div className="text-xl font-mono font-black text-rose-600">{r.running_balance}</div>
-                                                        <div className="text-[10px] text-slate-400 font-bold">crates</div>
-                                                    </div>
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        className="h-6 text-[10px] font-black tracking-wider uppercase border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-full px-3"
-                                                        onClick={() => handleChargeClick(r)}
-                                                    >
-                                                        Charge
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900">Crate Tracker</h1>
+                    <p className="text-slate-500 text-sm">Issue, receive, and charge crates to parties</p>
+                </div>
+                <button onClick={fetchAll} className="ml-auto p-2 rounded-xl hover:bg-slate-100 text-slate-500" title="Refresh">
+                    <RefreshCw className={cn('w-5 h-5', loading && 'animate-spin')} />
+                </button>
             </div>
 
-            {/* New Transaction Dialog */}
-            <Dialog open={txnOpen} onOpenChange={setTxnOpen}>
-                <DialogContent className="bg-white text-black rounded-3xl border-slate-200 max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="font-black text-xl">New Crate Entry</DialogTitle>
-                        <DialogDescription className="text-slate-500 font-bold text-sm">
-                            Record a manual crate movement (return, issue, damage, stock addition).
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 mt-2">
+            {/* Summary Bar */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+                {[
+                    { label: 'Open Issues', value: summary.open_issues || 0, color: 'text-blue-700', bg: 'bg-blue-50' },
+                    { label: 'Crates Out', value: summary.total_crates_out || 0, color: 'text-amber-700', bg: 'bg-amber-50' },
+                    { label: 'Overdue', value: summary.overdue_count || 0, color: 'text-red-700', bg: 'bg-red-50' },
+                ].map((s, i) => (
+                    <div key={i} className={cn('rounded-2xl p-3 text-center', s.bg)}>
+                        <div className={cn('text-2xl font-black', s.color)}>{s.value}</div>
+                        <div className="text-xs font-bold text-slate-500">{s.label}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6 overflow-x-auto">
+                {TABS.map(t => (
+                    <button
+                        key={t.id}
+                        onClick={() => setTab(t.id)}
+                        className={cn(
+                            'flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all border whitespace-nowrap',
+                            tab === t.id ? t.color : 'text-slate-500 bg-white border-slate-200 hover:bg-slate-50'
+                        )}
+                    >
+                        <t.icon className="w-4 h-4" />
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* ── TAB: Give Crates ── */}
+            {tab === 'give' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 max-w-2xl mx-auto">
+                    <h2 className="text-lg font-black text-slate-900 mb-5">Give Crates to Party</h2>
+
+                    {/* Party Selection */}
+                    <div className="mb-4">
+                        <Label className="text-xs font-black uppercase text-slate-600 tracking-widest mb-1.5 block">Party (Buyer / Farmer / Supplier)</Label>
+                        {giveForm.party_name ? (
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                                <Users className="w-5 h-5 text-blue-600" />
+                                <div className="flex-1">
+                                    <div className="font-black text-blue-900 text-sm">{giveForm.party_name}</div>
+                                    <div className="text-xs text-blue-600 capitalize">{giveForm.party_type}</div>
+                                </div>
+                                <button onClick={() => setGiveForm(f => ({ ...f, party_id: '', party_name: '' }))} className="text-blue-400 hover:text-blue-700">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div>
+                                <Input
+                                    placeholder="Search by name or type ad-hoc name..."
+                                    value={searchParty}
+                                    onChange={e => setSearchParty(e.target.value)}
+                                    onFocus={() => setPartyPickerOpen(true)}
+                                    className="h-11 rounded-xl border-slate-200"
+                                />
+                                {partyPickerOpen && searchParty && (
+                                    <div className="mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto z-50">
+                                        {filteredContacts.slice(0, 10).map(c => (
+                                            <button key={c.id} onClick={() => {
+                                                setGiveForm(f => ({ ...f, party_id: c.id, party_name: c.name, party_type: c.type }))
+                                                setSearchParty('')
+                                                setPartyPickerOpen(false)
+                                            }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left">
+                                                <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900">{c.name}</div>
+                                                    <div className="text-xs text-slate-500 capitalize">{c.type}{c.city ? ` • ${c.city}` : ''}</div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                        {filteredContacts.length === 0 && (
+                                            <button onClick={() => {
+                                                setGiveForm(f => ({ ...f, party_id: '', party_name: searchParty }))
+                                                setSearchParty('')
+                                                setPartyPickerOpen(false)
+                                            }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left">
+                                                <Plus className="w-4 h-4 text-orange-500" />
+                                                <div className="font-bold text-sm text-orange-700">Use "{searchParty}" (ad-hoc)</div>
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Expected Return Date */}
+                    <div className="grid grid-cols-2 gap-3 mb-5">
                         <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Type</label>
-                            <Select value={txnForm.transaction_type} onValueChange={v => setTxnForm(f => ({ ...f, transaction_type: v }))}>
-                                <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="return">🟢 Return (Party returned crates)</SelectItem>
-                                    <SelectItem value="issue">🔴 Issue (Crates given to party)</SelectItem>
-                                    <SelectItem value="damage">⚠️ Damage (Write-off)</SelectItem>
-                                    <SelectItem value="stock_addition">📦 Stock Addition (Bought new crates)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Crate Type</label>
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest mb-1.5 block">Expected Return Date</Label>
                             <Input
-                                placeholder="e.g. 20kg Plastic Crate"
-                                className="h-12 rounded-xl border-slate-200 font-bold"
-                                value={txnForm.crate_type}
-                                onChange={e => setTxnForm(f => ({ ...f, crate_type: e.target.value }))}
-                                list="crate-type-list"
-                            />
-                            <datalist id="crate-type-list">
-                                {crateTypes.map(t => <option key={t} value={t} />)}
-                            </datalist>
-                        </div>
-                        <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Quantity</label>
-                            <Input
-                                type="number"
-                                min="1"
-                                placeholder="0"
-                                className="h-12 rounded-xl border-slate-200 font-bold font-mono"
-                                value={txnForm.quantity}
-                                onChange={e => setTxnForm(f => ({ ...f, quantity: e.target.value }))}
-                            />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 block">Party (Farmer / Buyer)</label>
-                            <Popover open={contactOpen} onOpenChange={setContactOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={contactOpen}
-                                        className="w-full justify-between h-12 rounded-xl border-slate-200 font-bold"
-                                    >
-                                        {txnForm.party_id
-                                            ? contacts.find(c => c.name === txnForm.party_id)?.full_name || txnForm.party_name
-                                            : txnForm.party_name || "Select or type ad-hoc party..."}
-                                        <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50 rotate-90" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0" align="start">
-                                    <Command>
-                                        <CommandInput 
-                                            placeholder="Search contacts..." 
-                                            value={txnForm.party_name}
-                                            onValueChange={(val) => {
-                                                // If they are just typing, clear the ID so it becomes ad-hoc
-                                                setTxnForm(f => ({ ...f, party_name: val, party_id: '' }));
-                                            }}
-                                        />
-                                        <CommandList>
-                                            <CommandEmpty>
-                                                No contact found. Will save as ad-hoc party: <span className="font-bold text-amber-600">{txnForm.party_name || '...'}</span>
-                                            </CommandEmpty>
-                                            <CommandGroup heading="Registered Contacts">
-                                                {contacts.map((c) => (
-                                                    <CommandItem
-                                                        key={c.name}
-                                                        value={c.full_name}
-                                                        onSelect={() => {
-                                                            setTxnForm(f => ({ ...f, party_id: c.name, party_name: c.full_name }));
-                                                            setContactOpen(false);
-                                                        }}
-                                                        className="font-bold"
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] uppercase text-slate-500">
-                                                                {c.contact_type?.[0] || 'C'}
-                                                            </div>
-                                                            {c.full_name}
-                                                            {c.phone_number && <span className="text-xs text-slate-400 font-normal ml-2">{c.phone_number}</span>}
-                                                        </div>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5 block">Notes (Optional)</label>
-                            <Input
-                                placeholder="Any remarks..."
-                                className="h-12 rounded-xl border-slate-200 font-bold"
-                                value={txnForm.notes}
-                                onChange={e => setTxnForm(f => ({ ...f, notes: e.target.value }))}
+                                type="date"
+                                value={giveForm.expected_return_date}
+                                onChange={e => setGiveForm(f => ({ ...f, expected_return_date: e.target.value }))}
+                                className="h-11 rounded-xl border-slate-200 font-semibold"
                             />
                         </div>
-                        <div className="flex gap-3 pt-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setTxnOpen(false)}
-                                className="flex-1 h-12 rounded-xl border-slate-200 font-bold"
-                                disabled={txnSaving}
+                        <div>
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest mb-1.5 block">Party Type</Label>
+                            <select
+                                value={giveForm.party_type}
+                                onChange={e => setGiveForm(f => ({ ...f, party_type: e.target.value }))}
+                                className="w-full h-11 rounded-xl border border-slate-200 px-3 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleTxnSubmit}
-                                disabled={txnSaving}
-                                className="flex-1 h-12 rounded-xl bg-slate-900 text-white font-black hover:bg-slate-700"
-                            >
-                                {txnSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Entry'}
-                            </Button>
+                                <option value="buyer">Buyer</option>
+                                <option value="farmer">Farmer</option>
+                                <option value="supplier">Supplier</option>
+                                <option value="adhoc">Ad-hoc</option>
+                            </select>
                         </div>
                     </div>
+
+                    {/* Crate Items */}
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Crate Items</Label>
+                            <button onClick={addGiveItem} className="text-xs font-black text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                <Plus className="w-3.5 h-3.5" /> Add Row
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {giveForm.items.map((item, i) => (
+                                <div key={i} className="flex gap-2 items-center">
+                                    <select
+                                        value={item.crate_type}
+                                        onChange={e => {
+                                            const ct = crateTypes.find(c => c.id === e.target.value)
+                                            updateGiveItem(i, 'crate_type', e.target.value)
+                                            if (ct) updateGiveItem(i, 'rate', String(ct.sale_rate || ct.purchase_rate || ''))
+                                        }}
+                                        className="flex-1 h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select crate type</option>
+                                        {crateTypes.map(c => <option key={c.id} value={c.id}>{c.name} (Avail: {c.available})</option>)}
+                                    </select>
+                                    <Input type="number" placeholder="Qty" value={item.qty}
+                                        onChange={e => updateGiveItem(i, 'qty', e.target.value)}
+                                        className="w-24 h-10 rounded-xl border-slate-200 font-bold text-center" />
+                                    <Input type="number" placeholder="Rate ₹" value={item.rate}
+                                        onChange={e => updateGiveItem(i, 'rate', e.target.value)}
+                                        className="w-28 h-10 rounded-xl border-slate-200 font-bold" />
+                                    {giveForm.items.length > 1 && (
+                                        <button onClick={() => removeGiveItem(i)} className="text-red-400 hover:text-red-600">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Notes */}
+                    <div className="mb-6">
+                        <Label className="text-xs font-black uppercase text-slate-600 tracking-widest mb-1.5 block">Notes (optional)</Label>
+                        <Input placeholder="e.g. Given for packing purposes"
+                            value={giveForm.notes}
+                            onChange={e => setGiveForm(f => ({ ...f, notes: e.target.value }))}
+                            className="h-11 rounded-xl border-slate-200" />
+                    </div>
+
+                    <Button onClick={handleGive} disabled={saving} className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-base gap-2 shadow-lg">
+                        {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5" />}
+                        Issue Crates
+                    </Button>
+                </div>
+            )}
+
+            {/* ── TAB: Receive / Track ── */}
+            {tab === 'receive' && (
+                <div className="space-y-4">
+                    <Input
+                        placeholder="Search by party name..."
+                        value={searchIssue}
+                        onChange={e => setSearchIssue(e.target.value)}
+                        className="h-11 rounded-xl border-slate-200 max-w-sm"
+                    />
+                    {loading ? (
+                        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>
+                    ) : issueGroups.length === 0 ? (
+                        <div className="bg-white rounded-2xl p-12 text-center border border-slate-100">
+                            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                            <div className="font-black text-slate-600 text-lg">No Open Issues</div>
+                            <div className="text-slate-400 text-sm mt-1">All crates have been returned</div>
+                        </div>
+                    ) : issueGroups.map(group => (
+                        <div key={group.id} className={cn('bg-white rounded-2xl shadow-sm border overflow-hidden', group.hasOverdue ? 'border-red-200' : 'border-slate-100')}>
+                            {/* Issue Header */}
+                            <div className={cn('px-5 py-4 flex items-start justify-between', group.hasOverdue ? 'bg-red-50' : 'bg-slate-50/50')}>
+                                <div className="flex items-center gap-3">
+                                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', group.hasOverdue ? 'bg-red-100' : 'bg-blue-100')}>
+                                        <Users className={cn('w-5 h-5', group.hasOverdue ? 'text-red-600' : 'text-blue-600')} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-slate-900 text-sm">{group.party_name}</span>
+                                            <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full capitalize', {
+                                                'bg-blue-100 text-blue-700': group.party_type === 'buyer',
+                                                'bg-green-100 text-green-700': group.party_type === 'farmer',
+                                                'bg-purple-100 text-purple-700': group.party_type === 'supplier',
+                                                'bg-slate-100 text-slate-700': !['buyer', 'farmer', 'supplier'].includes(group.party_type || ''),
+                                            })}>{group.party_type}</span>
+                                            {group.hasOverdue && <span className="text-xs font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-full flex items-center gap-1"><AlertTriangle className="w-3 h-3" />OVERDUE</span>}
+                                        </div>
+                                        <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-3">
+                                            <span>Issued: {group.issue_date}</span>
+                                            {group.expected_return_date && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Return by: {group.expected_return_date}</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-lg font-black text-slate-900">{group.totalBalance} crates</div>
+                                    {group.totalValue > 0 && <div className="text-xs font-bold text-slate-500">₹{group.totalValue.toLocaleString('en-IN')}</div>}
+                                </div>
+                            </div>
+
+                            {/* Issue Rows */}
+                            <div className="px-5 py-3 divide-y divide-slate-50">
+                                {group.rows.map(row => (
+                                    <div key={row.row_name} className="py-2.5 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-slate-400" />
+                                            <span className="font-bold text-slate-700 text-sm">{row.crate_type}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-sm">
+                                            <span className="text-slate-500">Issued: <b>{row.qty_issued}</b></span>
+                                            <span className="text-emerald-600">Returned: <b>{row.qty_returned}</b></span>
+                                            <span className={cn('font-black', row.qty_balance > 0 ? 'text-red-600' : 'text-emerald-700')}>Balance: {row.qty_balance}</span>
+                                            {row.rate > 0 && <span className="text-slate-400">@₹{row.rate}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Actions */}
+                            {group.totalBalance > 0 && (
+                                <div className="px-5 py-3 border-t border-slate-100 flex gap-2">
+                                    <Button size="sm" onClick={() => openReceive(group.id)} variant="outline" className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-1.5">
+                                        <ArrowDownLeft className="w-3.5 h-3.5" /> Receive Crates
+                                    </Button>
+                                    <Button size="sm" onClick={() => openCharge(group.id)} variant="outline" className="rounded-xl border-red-200 text-red-700 hover:bg-red-50 font-bold gap-1.5">
+                                        <IndianRupee className="w-3.5 h-3.5" /> Charge to Ledger
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ── TAB: Summary Report ── */}
+            {tab === 'report' && (
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        {[
+                            { label: 'Total Issues Open', value: summary.open_issues || 0, color: 'text-blue-700', bg: 'bg-blue-50' },
+                            { label: 'Total Crates Out', value: summary.total_crates_out || 0, color: 'text-amber-700', bg: 'bg-amber-50' },
+                            { label: 'Overdue Parties', value: summary.overdue_count || 0, color: 'text-red-700', bg: 'bg-red-50' },
+                            { label: 'Value Outstanding', value: `₹${(summary.total_value_out || 0).toLocaleString('en-IN')}`, color: 'text-purple-700', bg: 'bg-purple-50' },
+                        ].map((s, i) => (
+                            <div key={i} className={cn('rounded-2xl p-4', s.bg)}>
+                                <div className={cn('text-2xl font-black', s.color)}>{s.value}</div>
+                                <div className="text-xs font-bold text-slate-500 mt-1">{s.label}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100">
+                            <h3 className="font-black text-slate-900">Outstanding Crates — Party Wise</h3>
+                        </div>
+                        {issues.length === 0 ? (
+                            <div className="py-16 text-center text-slate-400">
+                                <CheckCircle className="w-10 h-10 mx-auto mb-2 text-emerald-300" />
+                                <div className="font-bold">All crates accounted for!</div>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                                            {['Party', 'Type', 'Crate Type', 'Issued', 'Returned', 'Balance', 'Return By', 'Status', 'Value'].map(h => (
+                                                <th key={h} className="text-left text-xs font-black uppercase text-slate-500 tracking-widest px-4 py-3">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {issues.map((row, i) => (
+                                            <tr key={i} className={cn('border-b border-slate-50 hover:bg-slate-50/50', row.is_overdue && 'bg-red-50/30')}>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-bold text-slate-900">{row.party_name}</div>
+                                                    <div className="text-xs text-slate-400">{row.issue_id}</div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full capitalize">{row.party_type}</span>
+                                                </td>
+                                                <td className="px-4 py-3 font-bold text-slate-700">{row.crate_type}</td>
+                                                <td className="px-4 py-3 font-bold text-slate-700">{row.qty_issued}</td>
+                                                <td className="px-4 py-3 font-bold text-emerald-700">{row.qty_returned}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={cn('font-black', row.qty_balance > 0 ? 'text-red-700' : 'text-emerald-700')}>{row.qty_balance}</span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className={cn('flex items-center gap-1 text-xs font-bold', row.is_overdue ? 'text-red-600' : 'text-slate-500')}>
+                                                        {row.is_overdue && <AlertTriangle className="w-3 h-3" />}
+                                                        {row.expected_return_date || '—'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={cn('text-xs font-black px-2 py-0.5 rounded-full', {
+                                                        'bg-amber-100 text-amber-700': row.status === 'Open',
+                                                        'bg-blue-100 text-blue-700': row.status === 'Partially Returned',
+                                                        'bg-emerald-100 text-emerald-700': row.status === 'Closed',
+                                                    })}>{row.status}</span>
+                                                </td>
+                                                <td className="px-4 py-3 font-bold text-slate-700">
+                                                    {row.outstanding_value > 0 ? `₹${row.outstanding_value.toLocaleString('en-IN')}` : '—'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Receive Dialog ── */}
+            <Dialog open={receiveOpen} onOpenChange={setReceiveOpen}>
+                <DialogContent className="sm:max-w-md rounded-2xl border-0 shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-slate-900">Receive Crates</DialogTitle>
+                        <DialogDescription>Enter how many crates were returned.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        {receiveItems.map((item, i) => (
+                            <div key={i} className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+                                <Package className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <div className="font-black text-sm text-slate-900">{item.crate_type}</div>
+                                    <div className="text-xs text-slate-500">Outstanding: {item.max}</div>
+                                </div>
+                                <Input
+                                    type="number"
+                                    value={item.qty}
+                                    max={item.max}
+                                    onChange={e => setReceiveItems(ri => ri.map((r, idx) => idx === i ? { ...r, qty: e.target.value } : r))}
+                                    className="w-24 h-9 rounded-xl border-slate-200 font-black text-center text-lg"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setReceiveOpen(false)} className="rounded-xl">Cancel</Button>
+                        <Button onClick={handleReceive} disabled={receiveSaving} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black gap-2">
+                            {receiveSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            Confirm Receipt
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
-            {/* Charge Dialog */}
+
+            {/* ── Charge to Ledger Dialog ── */}
             <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
-                <DialogContent className="bg-white text-black rounded-3xl border-slate-200 max-w-sm">
+                <DialogContent className="sm:max-w-md rounded-2xl border-0 shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle className="font-black text-xl text-rose-600">Charge to Ledger</DialogTitle>
-                        <DialogDescription className="text-slate-500 font-bold text-sm">
-                            Convert lost/unreturned crates into a financial debit for {chargeData?.party_name}.
-                        </DialogDescription>
+                        <DialogTitle className="text-xl font-black text-slate-900">Charge to Ledger</DialogTitle>
+                        <DialogDescription>This will post a Debit entry to <b>{chargePartyName}</b>'s financial ledger for unreturned crates.</DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 mt-2">
-                        <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-400 pl-1 block mb-1">Crate Type</label>
-                            <Input value={chargeData?.crate_type || ''} readOnly className="bg-slate-50 font-bold text-black" />
-                        </div>
-                        <div>
-                            <label className="text-xs font-black uppercase tracking-widest text-slate-400 pl-1 block mb-1">Quantity to Charge</label>
-                            <Input 
-                                type="number" 
-                                value={chargeQty} 
-                                onChange={e => setChargeQty(Number(e.target.value))} 
-                                max={chargeData?.running_balance}
-                                className="font-black text-black"
-                            />
-                            <p className="text-xs text-slate-400 font-bold mt-1 pl-1">Max available: {chargeData?.running_balance}</p>
+                    <div className="space-y-3 py-2">
+                        {chargeIssueRows.map((row, i) => {
+                            const rate = row.rate || 0
+                            const total = (row.qty_to_charge || 0) * rate
+                            return (
+                                <div key={i} className="flex items-center gap-3 bg-red-50 rounded-xl p-3">
+                                    <Package className="w-5 h-5 text-red-500 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <div className="font-black text-sm text-slate-900">{row.crate_type}</div>
+                                        <div className="text-xs text-red-600 font-bold">Balance: {row.qty_balance} × ₹{rate} = ₹{total.toLocaleString('en-IN')}</div>
+                                    </div>
+                                    <Input
+                                        type="number"
+                                        value={row.qty_to_charge}
+                                        max={row.qty_balance}
+                                        onChange={e => setChargeIssueRows(rows => rows.map((r, idx) => idx === i ? { ...r, qty_to_charge: parseInt(e.target.value) || 0 } : r))}
+                                        className="w-20 h-9 rounded-xl border-red-200 font-black text-center text-base"
+                                    />
+                                </div>
+                            )
+                        })}
+                        <div className="bg-red-100 rounded-xl p-3 text-center">
+                            <div className="text-sm font-black text-red-800">
+                                Total to charge: ₹{chargeIssueRows.reduce((s, r) => s + ((r.qty_to_charge || 0) * (r.rate || 0)), 0).toLocaleString('en-IN')}
+                            </div>
+                            <div className="text-xs text-red-600 mt-0.5">This will be posted as Debit in {chargePartyName}'s ledger</div>
                         </div>
                     </div>
-                    <DialogFooter className="mt-4 gap-2 sm:gap-0">
-                        <Button variant="outline" onClick={() => setChargeOpen(false)} className="rounded-xl font-bold">Cancel</Button>
-                        <Button onClick={handleChargeConfirm} disabled={charging} className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-200">
-                            {charging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                            Confirm Charge
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setChargeOpen(false)} className="rounded-xl">Cancel</Button>
+                        <Button onClick={handleCharge} disabled={chargeSaving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-black gap-2">
+                            {chargeSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <IndianRupee className="w-4 h-4" />}
+                            Charge to Ledger
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
-    );
+    )
 }

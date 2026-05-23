@@ -55,6 +55,7 @@ export interface MandiSessionInput {
     totalNetQty: number;
     saleRate: number;
     buyerPayable: number;
+    crateItems?: any[];
 }
 
 export interface MandiSessionResult {
@@ -132,6 +133,7 @@ export function useMandiSession() {
                     buyer_loading_charges: input.buyerLoadingCharges,
                     buyer_packing_charges: input.buyerPackingCharges,
                     buyer_payable: input.buyerPayable,
+                    crate_items: input.crateItems || [],
                     farmers: input.farmers.map((f, idx) => ({
                         sort_order: idx,
                         farmer_id: f.farmerId || null,

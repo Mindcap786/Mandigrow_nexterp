@@ -63,7 +63,6 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     expense_receipt:  'expense_receipt',
     opening_balance:  'opening_balance',
     // ── Expense / Income from Mandi Expense dialog & backend ──────────────
-    expense:          'expense_receipt',
     income:           'receive_receipt',
     stock_loss:       'expense_receipt',
     // ── Stock Return: Mandi sends goods BACK to supplier → DEBIT (outflow) ──

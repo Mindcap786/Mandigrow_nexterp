@@ -150,6 +150,12 @@ export default function POSPage() {
     // Additional Charges
     const [additionalCharges, setAdditionalCharges] = useState<{name: string, amount: number}[]>([])
     
+    // ── CRATE SALE TOGGLE ──────────────────────────────────────────────────────
+    const [cratesEnabled, setCratesEnabled] = useState(false)
+    const [crateTypes, setCrateTypes] = useState<any[]>([])
+    const [crateCart, setCrateCart] = useState<{crate_type: string; crate_name: string; qty: number; rate: number}[]>([])
+    // ──────────────────────────────────────────────────────────────────────────
+    
     const [showConfirm, setShowConfirm] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
     const [showErrors, setShowErrors] = useState(false)
@@ -386,6 +392,12 @@ export default function POSPage() {
             setItems(normalizedItems);
             setFilteredItems(normalizedItems);
             
+            // Fetch crate types for crate sale toggle
+            try {
+                const crateRes = await callApi('mandigrow.api.get_crate_master_data');
+                if (crateRes?.crate_types) setCrateTypes(crateRes.crate_types);
+            } catch (e) { /* non-fatal */ }
+            
             cacheSet('pos_masters', orgId, {
                 items: normalizedItems,
                 accounts: accountData || [],
@@ -514,7 +526,8 @@ export default function POSPage() {
     const miscFeeAmount = Math.round(taxableSubTotal * taxSettings.misc_fee_percent / 100);
     
     const extraChargesTotal = additionalCharges.reduce((acc, c) => acc + c.amount, 0)
-    const grandTotal = taxableSubTotal + gstTotal + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal
+    const crateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + c.qty * c.rate, 0) : 0
+    const grandTotal = taxableSubTotal + gstTotal + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
 
     const handleConfirmCheckout = async () => {
         if (cart.length === 0) {
@@ -591,7 +604,8 @@ export default function POSPage() {
                 cheque_status: chequeStatus,
                 narration: paymentMode === 'Cheque' 
                     ? `POS via Cheque. No: ${chequeDetails.no}, Bank: ${chequeDetails.bank}`
-                    : `POS via ${paymentMode}`
+                    : `POS via ${paymentMode}`,
+                crate_items: cratesEnabled && crateCart.length > 0 ? crateCart.map(c => ({ crate_type: c.crate_type, qty: c.qty, rate: c.rate })) : [],
             };
 
             const result = await callApi('mandigrow.api.confirm_pos_sale', { payload: JSON.stringify(payload) });
@@ -604,6 +618,8 @@ export default function POSPage() {
             setLastRefNo("Bill #" + result.bill_no)
             setShowSuccess(true)
             setScannedLots([])
+            setCrateCart([])
+            setCratesEnabled(false)
             
             // Refresh stock
             fetchData()
@@ -1295,6 +1311,52 @@ export default function POSPage() {
                                 <Plus className="w-3 h-3" /> Add Charge
                             </button>
                         </div>
+
+                        {/* ── CRATE SALE TOGGLE ── */}
+                        <div className="w-full p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3 shadow-sm mb-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-1.5">
+                                    <Package className="w-3.5 h-3.5" /> Include Crates in Invoice
+                                </label>
+                                <Switch checked={cratesEnabled} onCheckedChange={(v) => { setCratesEnabled(v); if (!v) setCrateCart([]); }} />
+                            </div>
+                            {cratesEnabled && (
+                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                    {crateCart.map((item, idx) => (
+                                        <div key={idx} className="flex gap-2 items-center">
+                                            <select
+                                                value={item.crate_type}
+                                                onChange={e => {
+                                                    const ct = crateTypes.find((c: any) => c.id === e.target.value)
+                                                    setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, crate_type: e.target.value, crate_name: ct?.name || e.target.value, rate: ct?.sale_rate || c.rate } : c))
+                                                }}
+                                                className="flex-1 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-bold text-slate-800 focus:outline-none"
+                                            >
+                                                <option value="">Select crate...</option>
+                                                {crateTypes.map((ct: any) => <option key={ct.id} value={ct.id}>{ct.name}</option>)}
+                                            </select>
+                                            <input type="number" placeholder="Qty" value={item.qty || ''}
+                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, qty: parseInt(e.target.value) || 0 } : c))}
+                                                className="w-16 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-center focus:outline-none" />
+                                            <input type="number" placeholder="₹ Rate" value={item.rate || ''}
+                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, rate: parseFloat(e.target.value) || 0 } : c))}
+                                                className="w-20 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black focus:outline-none" />
+                                            <button onClick={() => setCrateCart(cc => cc.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 flex-shrink-0"><X className="w-4 h-4" /></button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => setCrateCart(cc => [...cc, { crate_type: '', crate_name: '', qty: 1, rate: 0 }])}
+                                        className="w-full text-[10px] font-bold text-amber-700 border border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 rounded-lg py-2 flex items-center justify-center gap-1 transition-colors"
+                                    >
+                                        <Plus className="w-3 h-3" /> Add Crate
+                                    </button>
+                                    {crateTotal > 0 && (
+                                        <div className="text-right text-xs font-black text-amber-700">Crate Total: ₹{crateTotal.toLocaleString('en-IN')}</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        {/* ───────────────────────────────────────── */}
 
                         {paymentMode !== 'Credit' && (
                             <div className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 shadow-sm text-slate-800 mb-2">

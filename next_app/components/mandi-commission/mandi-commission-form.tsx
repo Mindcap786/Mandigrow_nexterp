@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Switch } from "@/components/ui/switch";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
 import { callApi } from "@/lib/frappeClient";
 import { calculateSaleTotals } from "@/lib/sales-tax";
@@ -59,6 +60,10 @@ export function MandiCommissionForm() {
 
     const [committedSessionData, setCommittedSessionData] = useState<any>(null);
 
+    const [crateTypes, setCrateTypes] = useState<any[]>([]);
+    const [cratesEnabled, setCratesEnabled] = useState(false);
+    const [crateCart, setCrateCart] = useState<any[]>([]);
+
     // Refs for keyboard navigation
     const farmerSearchRef = useRef<HTMLButtonElement>(null);
     const itemSearchRef = useRef<HTMLButtonElement>(null);
@@ -103,6 +108,9 @@ export function MandiCommissionForm() {
                 }
                 if (data.units) {
                     setUnits(Array.from(new Set([...STANDARD_UNITS, ...data.units, "Kg"])));
+                }
+                if (data.crate_types) {
+                    setCrateTypes(data.crate_types);
                 }
             } catch (err) {
                 console.error("Master Data Load Error:", err);
@@ -256,7 +264,8 @@ export function MandiCommissionForm() {
                 otherExpenses: 0,
                 discountAmount: 0,
             });
-            buyerPayable = taxTotals.grandTotal;
+            const crateTotal = (cratesEnabled && crateCart) ? crateCart.reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0;
+            buyerPayable = taxTotals.grandTotal + crateTotal;
         }
 
         const buyerName = buyers.find(b => b.id === buyerId)?.name;
@@ -275,6 +284,7 @@ export function MandiCommissionForm() {
             totalNetQty,
             saleRate: derivedSaleRate,
             buyerPayable,
+            crateItems: (cratesEnabled && crateCart.length > 0) ? crateCart : [],
         };
 
         const res = await commitSession(input);
@@ -291,6 +301,8 @@ export function MandiCommissionForm() {
         setBuyerId(null);
         setBuyerLoading(0);
         setBuyerPacking(0);
+        setCratesEnabled(false);
+        setCrateCart([]);
         setCommittedSessionData(null);
         setRows([]);
         resetCurrentRow();
@@ -484,6 +496,137 @@ export function MandiCommissionForm() {
                     />
                 </div>
             </div>
+
+            {/* Bottom Crate Section for Buyer */}
+            {buyerId && (
+                <div className="mt-4 bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Add Crates to Sale</span>
+                            <span className="text-[9px] font-bold text-amber-600/70">Bill crates separately to this buyer</span>
+                        </div>
+                        <Switch
+                            checked={cratesEnabled}
+                            onCheckedChange={(checked) => {
+                                setCratesEnabled(checked);
+                                if (!checked) setCrateCart([]);
+                            }}
+                            className="data-[state=checked]:bg-amber-500"
+                        />
+                    </div>
+                    
+                    {cratesEnabled && (
+                        <div className="space-y-3 mt-4 border-t border-amber-200/50 pt-3">
+                            <div className="flex items-center gap-2 max-w-2xl">
+                                <div className="flex-1">
+                                    <select
+                                        className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
+                                        id="mandi-crate-type-select"
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Select Crate Type</option>
+                                        {crateTypes.map((c: any) => (
+                                            <option key={c.crate_name} value={c.crate_name}>
+                                                {c.crate_name} (₹{c.sale_rate})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <Input 
+                                    id="mandi-crate-qty-input" 
+                                    type="number" 
+                                    placeholder="Qty" 
+                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                />
+                                <Input 
+                                    id="mandi-crate-rate-input" 
+                                    type="number" 
+                                    placeholder="Rate" 
+                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                />
+                                <Button 
+                                    type="button"
+                                    onClick={() => {
+                                        const sel = document.getElementById("mandi-crate-type-select") as HTMLSelectElement;
+                                        const qtyInput = document.getElementById("mandi-crate-qty-input") as HTMLInputElement;
+                                        const rateInput = document.getElementById("mandi-crate-rate-input") as HTMLInputElement;
+                                        
+                                        const ct = sel.value;
+                                        const q = parseInt(qtyInput.value) || 0;
+                                        const r = parseFloat(rateInput.value);
+                                        
+                                        if (!ct || q <= 0) return;
+                                        
+                                        const finalRate = isNaN(r) ? (crateTypes.find(x => x.crate_name === ct)?.sale_rate || 0) : r;
+                                        
+                                        setCrateCart(prev => {
+                                            const exists = prev.findIndex(x => x.crate_type === ct);
+                                            const newCart = [...prev];
+                                            if (exists >= 0) {
+                                                newCart[exists].qty += q;
+                                                newCart[exists].rate = finalRate;
+                                            } else {
+                                                newCart.push({ crate_type: ct, qty: q, rate: finalRate });
+                                            }
+                                            return newCart;
+                                        });
+                                        qtyInput.value = "";
+                                        rateInput.value = "";
+                                    }}
+                                    className="bg-amber-600 hover:bg-amber-700 text-white h-9 px-4 rounded-lg text-xs font-black"
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                            
+                            {crateCart.length > 0 && (
+                                <div className="bg-white rounded-lg border border-amber-100 overflow-hidden mt-2 max-w-2xl">
+                                    <table className="w-full text-xs text-left">
+                                        <thead className="bg-amber-50/50 text-[9px] uppercase tracking-widest text-amber-700">
+                                            <tr>
+                                                <th className="px-3 py-2">Type</th>
+                                                <th className="px-3 py-2 text-right">Qty</th>
+                                                <th className="px-3 py-2 text-right">Rate</th>
+                                                <th className="px-3 py-2 text-right">Total</th>
+                                                <th className="px-3 py-2 text-center">x</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-amber-50">
+                                            {crateCart.map((c: any, ci: number) => (
+                                                <tr key={ci} className="font-bold text-slate-700">
+                                                    <td className="px-3 py-2">{c.crate_type}</td>
+                                                    <td className="px-3 py-2 text-right">{c.qty}</td>
+                                                    <td className="px-3 py-2 text-right">
+                                                        <input 
+                                                            type="number" 
+                                                            value={c.rate}
+                                                            onChange={(e) => {
+                                                                const newRate = parseFloat(e.target.value) || 0;
+                                                                setCrateCart(prev => {
+                                                                    const newCart = [...prev];
+                                                                    newCart[ci].rate = newRate;
+                                                                    return newCart;
+                                                                });
+                                                            }}
+                                                            className="w-16 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right">₹{(c.qty * c.rate).toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-2 text-center">
+                                                        <button type="button" onClick={() => {
+                                                            setCrateCart(prev => prev.filter((_, idx) => idx !== ci));
+                                                        }} className="text-red-400 hover:text-red-600">×</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Bottom Buyer Section directly based on Sci-Fi Mockup */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 p-1 border-t border-slate-200/50 pt-6">

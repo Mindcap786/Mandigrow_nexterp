@@ -36,6 +36,7 @@ type ConfirmSaleTransactionParams = {
     narration?: string | null;
     createdBy?: string | null;
     gstEnabled?: boolean;
+    crateItems?: any[];
 };
 
 type ConfirmSaleTransactionResult = {
@@ -92,6 +93,7 @@ export async function confirmSaleTransactionWithFallback(
         p_narration: params.narration,
         p_created_by: params.createdBy,
         p_gst_enabled: params.gstEnabled || false,
+        p_crate_items: params.crateItems || [],
     };
 
     // 15-second timeout guard — prevents infinite spinners if Frappe hangs.

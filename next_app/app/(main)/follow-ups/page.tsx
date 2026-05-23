@@ -60,7 +60,7 @@ export default function FollowUpsPage() {
         const absBalance = Math.abs(party.net_balance);
         const formattedBalance = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(absBalance);
         
-        const orgName = profile?.organization_name || "us";
+        const orgName = profile?.organization || "us";
         
         let message = "";
         if (isPayable) {

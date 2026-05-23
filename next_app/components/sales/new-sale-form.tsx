@@ -141,6 +141,9 @@ function NewSaleForm() {
     const [buyerWarning, setBuyerWarning] = useState<{ isOverdue: boolean; overLimit: boolean; balance: number } | null>(null);
     const [maxInvoiceAmount, setMaxInvoiceAmount] = useState<number>(0);
     const [orgSettings, setOrgSettings] = useState<any>(null);
+    const [crateTypes, setCrateTypes] = useState<any[]>([]);
+    const [cratesEnabled, setCratesEnabled] = useState(false);
+    const [crateCart, setCrateCart] = useState<{crate_type: string, qty: number, rate: number}[]>([]);
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('sales');
     const searchParams = useSearchParams();
@@ -313,6 +316,7 @@ function NewSaleForm() {
             if (data?.items) setItems(data.items);
             if (data?.accounts) setAccounts(data.accounts);
             if (data?.lots) setLots(data.lots);
+            if (data?.crate_types) setCrateTypes(data.crate_types);
 
             if (data?.settings) {
                 const settingsData = data.settings;
@@ -519,8 +523,9 @@ function NewSaleForm() {
                 discountAmount: Number(values.discount_amount || 0),
             });
 
+            const crateTotal = cratesEnabled ? crateCart.reduce((sum, c) => sum + (c.qty * c.rate), 0) : 0;
             const totalAmount = totals.subTotal;
-            const grandTotal = totals.grandTotal;
+            const grandTotal = totals.grandTotal + crateTotal;
             const isPartial = values.payment_mode !== 'credit' && amountPaid < grandTotal;
 
             if (isPartial && !values.buyer_id) {
@@ -619,7 +624,8 @@ function NewSaleForm() {
                 isIgst: totals.isIgst,
                 vehicleNumber: values.vehicle_number || null,
                 bookNo: values.book_no || null,
-                lotNo: values.lot_no || null
+                lotNo: values.lot_no || null,
+                crateItems: cratesEnabled && crateCart.length > 0 ? crateCart : []
             });
 
             if (error) throw error;
@@ -1609,7 +1615,134 @@ function NewSaleForm() {
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-slate-700 text-[9px] font-medium leading-relaxed max-w-sm">
+
+                                {/* ── CRATE SALE TOGGLE ── */}
+                                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm mb-4 mt-3">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Add Crates to Sale</span>
+                                            <span className="text-[9px] font-bold text-amber-600/70">Bill crates separately in the same invoice</span>
+                                        </div>
+                                        <Switch
+                                            checked={cratesEnabled}
+                                            onCheckedChange={(checked) => {
+                                                setCratesEnabled(checked);
+                                                if (!checked) setCrateCart([]);
+                                            }}
+                                            className="data-[state=checked]:bg-amber-500"
+                                        />
+                                    </div>
+                                    
+                                    {cratesEnabled && (
+                                        <div className="space-y-3 mt-4 border-t border-amber-200/50 pt-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1">
+                                                    <select
+                                                        className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
+                                                        id="crate-type-select"
+                                                        defaultValue=""
+                                                    >
+                                                        <option value="" disabled>Select Crate Type</option>
+                                                        {crateTypes.map((c: any) => (
+                                                            <option key={c.crate_name} value={c.crate_name}>
+                                                                {c.crate_name} (₹{c.sale_rate})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <Input 
+                                                    id="crate-qty-input" 
+                                                    type="number" 
+                                                    placeholder="Qty" 
+                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                />
+                                                <Input 
+                                                    id="crate-rate-input" 
+                                                    type="number" 
+                                                    placeholder="Rate" 
+                                                    className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                />
+                                                <Button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const sel = document.getElementById('crate-type-select') as HTMLSelectElement;
+                                                        const qtyInput = document.getElementById('crate-qty-input') as HTMLInputElement;
+                                                        const rateInput = document.getElementById('crate-rate-input') as HTMLInputElement;
+                                                        
+                                                        const ct = sel.value;
+                                                        const q = parseInt(qtyInput.value) || 0;
+                                                        const r = parseFloat(rateInput.value);
+                                                        
+                                                        if (!ct || q <= 0) return;
+                                                        
+                                                        const finalRate = isNaN(r) ? (crateTypes.find(x => x.crate_name === ct)?.sale_rate || 0) : r;
+                                                        
+                                                        setCrateCart(prev => {
+                                                            const exists = prev.findIndex(x => x.crate_type === ct);
+                                                            if (exists >= 0) {
+                                                                const updated = [...prev];
+                                                                updated[exists].qty += q;
+                                                                updated[exists].rate = finalRate;
+                                                                return updated;
+                                                            }
+                                                            return [...prev, { crate_type: ct, qty: q, rate: finalRate }];
+                                                        });
+                                                        qtyInput.value = "";
+                                                        rateInput.value = "";
+                                                    }}
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white h-9 px-3 rounded-lg text-xs font-black"
+                                                >
+                                                    Add
+                                                </Button>
+                                            </div>
+                                            
+                                            {crateCart.length > 0 && (
+                                                <div className="bg-white rounded-lg border border-amber-100 overflow-hidden mt-2">
+                                                    <table className="w-full text-xs text-left">
+                                                        <thead className="bg-amber-50/50 text-[9px] uppercase tracking-widest text-amber-700">
+                                                            <tr>
+                                                                <th className="px-2 py-1.5">Type</th>
+                                                                <th className="px-2 py-1.5 text-right">Qty</th>
+                                                                <th className="px-2 py-1.5 text-right">Rate</th>
+                                                                <th className="px-2 py-1.5 text-right">Total</th>
+                                                                <th className="px-2 py-1.5 text-center">x</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-amber-50">
+                                                            {crateCart.map((c, i) => (
+                                                                <tr key={i} className="font-bold text-slate-700">
+                                                                    <td className="px-2 py-1.5">{c.crate_type}</td>
+                                                                    <td className="px-2 py-1.5 text-right">{c.qty}</td>
+                                                                    <td className="px-2 py-1.5 text-right">
+                                                                        <input 
+                                                                            type="number" 
+                                                                            value={c.rate}
+                                                                            onChange={(e) => {
+                                                                                const newRate = parseFloat(e.target.value) || 0;
+                                                                                setCrateCart(prev => {
+                                                                                    const updated = [...prev];
+                                                                                    updated[i].rate = newRate;
+                                                                                    return updated;
+                                                                                });
+                                                                            }}
+                                                                            className="w-14 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="px-2 py-1.5 text-right">₹{(c.qty * c.rate).toLocaleString('en-IN')}</td>
+                                                                    <td className="px-2 py-1.5 text-center">
+                                                                        <button type="button" onClick={() => setCrateCart(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">×</button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="text-slate-700 text-[9px] font-medium leading-relaxed max-w-sm mt-3">
                                     * Computer generated invoice. Signature not required.
                                 </div>
                             </div>
@@ -1645,6 +1778,12 @@ function NewSaleForm() {
                                                         <span>Taxable Val</span>
                                                         <span className="text-white">₹{totals.subTotal.toLocaleString()}</span>
                                                     </div>
+                                                    {cratesEnabled && crateCart.length > 0 && (
+                                                        <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-amber-400/80 mt-1">
+                                                            <span>Crate Sale</span>
+                                                            <span className="text-amber-400">+ ₹{crateCart.reduce((s, c) => s + (c.qty * c.rate), 0).toLocaleString()}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50">
                                                         <span>GST</span>
                                                         <span className="text-indigo-400">+ ₹{totals.gstTotal.toLocaleString()}</span>

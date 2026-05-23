@@ -52,6 +52,8 @@ const distributionSchema = z.object({
     other_expenses: z.coerce.number({ message: "Invalid number" }).min(0).default(0),
     discount_percent: z.coerce.number().min(0).max(100).optional(),
     discount_amount: z.coerce.number().min(0).optional(),
+    cratesEnabled: z.boolean().default(false).optional(),
+    crateCart: z.array(z.any()).default([]).optional(),
 });
 
 const formSchema = z.object({
@@ -81,6 +83,7 @@ const NewInvoiceForm = () => {
     const [lots, setLots] = useState<any[]>([]);
     const [items, setItems] = useState<any[]>([]);
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+    const [crateTypes, setCrateTypes] = useState<any[]>([]);
     const [orgSettings, setOrgSettings] = useState<any>(null);
     const [taxSettings, setTaxSettings] = useState({ market_fee_percent: 0.0, nirashrit_percent: 0.0, misc_fee_percent: 0.0, gst_enabled: false, gst_type: 'intra', cgst_percent: 0, sgst_percent: 0, igst_percent: 0 });
     const [defaultCreditDays, setDefaultCreditDays] = useState<number>(15);
@@ -115,7 +118,9 @@ const NewInvoiceForm = () => {
                 bank_name: "",
                 loading_charges: 0,
                 unloading_charges: 0,
-                other_expenses: 0
+                other_expenses: 0,
+                cratesEnabled: false,
+                crateCart: []
             }]
         } as any
     });
@@ -143,6 +148,7 @@ const NewInvoiceForm = () => {
             if (data?.org_settings) setOrgSettings(data.org_settings);
             if (data?.items) setItems(data.items);
             if (data?.lots) setLots(data.lots);
+            if (data?.crate_types) setCrateTypes(data.crate_types);
 
             if (data?.settings) {
                 const settingsData = data.settings;
@@ -200,7 +206,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                 otherExpenses: d.other_expenses,
                 discountAmount: Number(d.discount_amount) || 0,
             });
-            const newRowTotal = rowTotals.grandTotal;
+            const crateTotal = (d.cratesEnabled && d.crateCart) ? d.crateCart.reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0;
+            const newRowTotal = rowTotals.grandTotal + crateTotal;
 
             const lastRowTotal = lastCalculatedTotals.current[index];
 
@@ -265,6 +272,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                     discountAmount: Number(dist.discount_amount) || 0,
                 });
                 const totalItemsRaw = totals.subTotal;
+                const crateTotal = (dist.cratesEnabled && dist.crateCart) ? dist.crateCart.reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0;
                 
                 const idempotencyKey = crypto.randomUUID();
 
@@ -305,6 +313,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                     placeOfSupply: totals.isIgst ? (buyerInfo?.state_code || null) : (orgStateCode || null),
                     buyerGstin: buyerInfo?.gstin || null,
                     isIgst: totals.isIgst,
+                    crateItems: (dist.cratesEnabled && dist.crateCart?.length > 0) ? dist.crateCart : [],
                 });
 
                 if (error) throw error;
@@ -354,7 +363,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                             otherExpenses: d.other_expenses,
                             discountAmount: Number(d.discount_amount) || 0,
                         });
-                        return rowTotals.grandTotal > maxInvoiceAmount;
+                        const crateTotal = (d.cratesEnabled && d.crateCart) ? d.crateCart.reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0;
+                        return (rowTotals.grandTotal + crateTotal) > maxInvoiceAmount;
                     });
 
                     if (exceededDist) {
@@ -495,7 +505,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                                     )}
                                     <Button type="button" variant="outline" onClick={() => append({ 
                                         buyer_id: "", qty: selectedLot ? remainingInLot : 0, rate: selectedLot?.sale_price || 0, 
-                                        payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, cheque_status: false 
+                                        payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, cheque_status: false,
+                                        cratesEnabled: false, crateCart: [] 
                                     })} className="text-xs font-bold uppercase tracking-widest h-8 rounded-lg text-slate-600">
                                         <Plus className="w-3 h-3 mr-1" /> Add Buyer
                                     </Button>
@@ -566,7 +577,9 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                     <div className="flex items-center gap-4 min-w-[200px] justify-end">
                                                     <div className="flex flex-col text-right cursor-pointer" onClick={() => toggleRow(index)}>
                                                         <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Net Payable</span>
-                                                        <span className="text-xl font-[1000] tracking-tighter text-slate-900">₹{rowTotals.grandTotal.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                                                        <span className="text-xl font-[1000] tracking-tighter text-slate-900">
+                                                            ₹{(rowTotals.grandTotal + ((form.watch(`distributions.${index}.cratesEnabled`) && form.watch(`distributions.${index}.crateCart`)) ? form.watch(`distributions.${index}.crateCart`).reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0)).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                                                        </span>
                                                     </div>
                                                     <Button type="button" variant="outline" size="icon" onClick={() => toggleRow(index)} className="h-10 w-10 shrink-0 rounded-xl bg-white border-slate-200">
                                                         {isExpanded ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
@@ -666,13 +679,143 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">Party Bank</FormLabel><Input {...f} value={f.value || ''} className="h-10 bg-white font-bold"/></FormItem>
                                                                     )}/>
                                                                     {!form.watch(`distributions.${index}.cheque_status`) && (
-                                                                         <FormField control={form.control} name={`distributions.${index}.cheque_date`} render={({ field: f }) => (
-                                                                            <FormItem><FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">Clear Date</FormLabel><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full h-10 bg-white font-bold">{f.value ? format(f.value, "PP") : "Date"}</Button></PopoverTrigger><PopoverContent className="p-0 bg-white"><Calendar mode="single" selected={f.value || undefined} onSelect={f.onChange}/></PopoverContent></Popover></FormItem>
-                                                                        )}/>
+                                                                    <FormField control={form.control} name={`distributions.${index}.cheque_date`} render={({ field: f }) => (
+                                                                         <FormItem><FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-600">Cheque Date</FormLabel><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full h-10 border-slate-200 bg-white shadow-sm font-bold justify-start text-left">{f.value ? format(f.value, "PP") : "Pick date"}<CalendarIcon className="ml-auto w-4 h-4 opacity-50" /></Button></PopoverTrigger><PopoverContent className="p-0 bg-white"><Calendar mode="single" selected={f.value || undefined} onSelect={f.onChange} initialFocus/></PopoverContent></Popover></FormItem>
+                                                                    )}/>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                         )}
+
+                                                        {/* ── CRATE SALE TOGGLE FOR THIS DISTRIBUTION ── */}
+                                                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm mb-4">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Add Crates to Sale</span>
+                                                                    <span className="text-[9px] font-bold text-amber-600/70">Bill crates separately to this buyer</span>
+                                                                </div>
+                                                                <Switch
+                                                                    checked={form.watch(`distributions.${index}.cratesEnabled`)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        form.setValue(`distributions.${index}.cratesEnabled`, checked);
+                                                                        if (!checked) form.setValue(`distributions.${index}.crateCart`, []);
+                                                                    }}
+                                                                    className="data-[state=checked]:bg-amber-500"
+                                                                />
+                                                            </div>
+                                                            
+                                                            {form.watch(`distributions.${index}.cratesEnabled`) && (
+                                                                <div className="space-y-3 mt-4 border-t border-amber-200/50 pt-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex-1">
+                                                                            <select
+                                                                                className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
+                                                                                id={`crate-type-select-${index}`}
+                                                                                defaultValue=""
+                                                                            >
+                                                                                <option value="" disabled>Select Crate Type</option>
+                                                                                {crateTypes.map((c: any) => (
+                                                                                    <option key={c.crate_name} value={c.crate_name}>
+                                                                                        {c.crate_name} (₹{c.sale_rate})
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                        <Input 
+                                                                            id={`crate-qty-input-${index}`} 
+                                                                            type="number" 
+                                                                            placeholder="Qty" 
+                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                                        />
+                                                                        <Input 
+                                                                            id={`crate-rate-input-${index}`} 
+                                                                            type="number" 
+                                                                            placeholder="Rate" 
+                                                                            className="w-16 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                                        />
+                                                                        <Button 
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const sel = document.getElementById(`crate-type-select-${index}`) as HTMLSelectElement;
+                                                                                const qtyInput = document.getElementById(`crate-qty-input-${index}`) as HTMLInputElement;
+                                                                                const rateInput = document.getElementById(`crate-rate-input-${index}`) as HTMLInputElement;
+                                                                                
+                                                                                const ct = sel.value;
+                                                                                const q = parseInt(qtyInput.value) || 0;
+                                                                                const r = parseFloat(rateInput.value);
+                                                                                
+                                                                                if (!ct || q <= 0) return;
+                                                                                
+                                                                                const finalRate = isNaN(r) ? (crateTypes.find(x => x.crate_name === ct)?.sale_rate || 0) : r;
+                                                                                
+                                                                                const currentCart = form.getValues(`distributions.${index}.crateCart`) || [];
+                                                                                const exists = currentCart.findIndex((x: any) => x.crate_type === ct);
+                                                                                
+                                                                                const newCart = [...currentCart];
+                                                                                if (exists >= 0) {
+                                                                                    newCart[exists].qty += q;
+                                                                                    newCart[exists].rate = finalRate;
+                                                                                } else {
+                                                                                    newCart.push({ crate_type: ct, qty: q, rate: finalRate });
+                                                                                }
+                                                                                
+                                                                                form.setValue(`distributions.${index}.crateCart`, newCart);
+                                                                                qtyInput.value = "";
+                                                                                rateInput.value = "";
+                                                                            }}
+                                                                            className="bg-amber-600 hover:bg-amber-700 text-white h-9 px-3 rounded-lg text-xs font-black"
+                                                                        >
+                                                                            Add
+                                                                        </Button>
+                                                                    </div>
+                                                                    
+                                                                    {form.watch(`distributions.${index}.crateCart`)?.length > 0 && (
+                                                                        <div className="bg-white rounded-lg border border-amber-100 overflow-hidden mt-2">
+                                                                            <table className="w-full text-xs text-left">
+                                                                                <thead className="bg-amber-50/50 text-[9px] uppercase tracking-widest text-amber-700">
+                                                                                    <tr>
+                                                                                        <th className="px-2 py-1.5">Type</th>
+                                                                                        <th className="px-2 py-1.5 text-right">Qty</th>
+                                                                                        <th className="px-2 py-1.5 text-right">Rate</th>
+                                                                                        <th className="px-2 py-1.5 text-right">Total</th>
+                                                                                        <th className="px-2 py-1.5 text-center">x</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody className="divide-y divide-amber-50">
+                                                                                    {form.watch(`distributions.${index}.crateCart`).map((c: any, ci: number) => (
+                                                                                        <tr key={ci} className="font-bold text-slate-700">
+                                                                                            <td className="px-2 py-1.5">{c.crate_type}</td>
+                                                                                            <td className="px-2 py-1.5 text-right">{c.qty}</td>
+                                                                                            <td className="px-2 py-1.5 text-right">
+                                                                                                <input 
+                                                                                                    type="number" 
+                                                                                                    value={c.rate}
+                                                                                                    onChange={(e) => {
+                                                                                                        const newRate = parseFloat(e.target.value) || 0;
+                                                                                                        const currentCart = form.getValues(`distributions.${index}.crateCart`);
+                                                                                                        const newCart = [...currentCart];
+                                                                                                        newCart[ci].rate = newRate;
+                                                                                                        form.setValue(`distributions.${index}.crateCart`, newCart);
+                                                                                                    }}
+                                                                                                    className="w-14 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                                                                />
+                                                                                            </td>
+                                                                                            <td className="px-2 py-1.5 text-right">₹{(c.qty * c.rate).toLocaleString('en-IN')}</td>
+                                                                                            <td className="px-2 py-1.5 text-center">
+                                                                                                <button type="button" onClick={() => {
+                                                                                                    const currentCart = form.getValues(`distributions.${index}.crateCart`);
+                                                                                                    form.setValue(`distributions.${index}.crateCart`, currentCart.filter((_: any, idx: number) => idx !== ci));
+                                                                                                }} className="text-red-400 hover:text-red-600">×</button>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    ))}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
 
                                                         {/* Item Discounts */}
                                                         <div className="border-l-4 border-emerald-500 bg-slate-50 p-4 rounded-r-xl mb-4">
