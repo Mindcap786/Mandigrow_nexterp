@@ -112,9 +112,9 @@ export default function LandingPage() {
                             Enterprise-Grade Mandi Software
                         </div>
 
-                        <h1 className="text-5xl sm:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter">
-                            <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
-                            <span className="text-emerald-700 block mt-1">for Fruit, Sabji, Anaj & Commission Agents.</span>
+                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black mb-6 leading-tight tracking-tight">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 block drop-shadow-sm pb-1">India's Best Mandi ERP Software</span>
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 block mt-1 pb-2">for Fruit, Sabji, Anaj & Commission Agents.</span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-gray-700 mb-10 font-medium leading-relaxed max-w-3xl mx-auto">
@@ -187,7 +187,7 @@ export default function LandingPage() {
                         <p className="text-gray-700 text-lg font-medium">{t('landing.enterprise_subtitle')}</p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-2 gap-8">
                         {/* Feature 1 */}
                         <div className="p-8 rounded-3xl bg-white border border-emerald-100 hover:border-emerald-400 transition-colors group shadow-sm">
                             <div className="w-14 h-14 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-100 transition-colors">
@@ -213,6 +213,15 @@ export default function LandingPage() {
                             </div>
                             <h3 className="text-2xl font-bold mb-3 text-gray-900">{t('landing.feature_compliance_title')}</h3>
                             <p className="text-gray-600 leading-relaxed font-medium">{t('landing.feature_compliance_desc')}</p>
+                        </div>
+
+                        {/* Feature 4: Crate Management */}
+                        <div className="p-8 rounded-3xl bg-white border border-emerald-100 hover:border-emerald-400 transition-colors group shadow-sm">
+                            <div className="w-14 h-14 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-100 transition-colors">
+                                <LayoutGrid className="w-6 h-6 text-orange-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold mb-3 text-gray-900">Advanced Crate Management</h3>
+                            <p className="text-gray-600 leading-relaxed font-medium">Auto-track crate deposits, returns, and outstanding balances. Integrated directly with the party Ledger (Khata) to generate real-time crate reports and prevent supplier disputes.</p>
                         </div>
                     </div>
                 </div>
@@ -527,6 +536,7 @@ export default function LandingPage() {
                             <Link href="/fruit-mandi-software" className="hover:text-white transition">Fruit Mandi Software</Link>
                             <Link href="/sabji-mandi-software" className="hover:text-white transition">Sabji Mandi Software</Link>
                             <Link href="/anaj-mandi-erp-software" className="hover:text-white transition">Anaj Mandi ERP Software</Link>
+                            <Link href="/sabji-crate-management-app" className="hover:text-white transition">Sabji Crate Management App</Link>
                             <Link href="/apple-mandi-software" className="hover:text-white transition">Apple Trader Software</Link>
                             <Link href="/mango-mandi-software" className="hover:text-white transition">Mango Commission Agent Software</Link>
                             <Link href="/onion-potato-mandi-software" className="hover:text-white transition">Onion & Potato Billing Software</Link>
@@ -557,6 +567,7 @@ export default function LandingPage() {
                             <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Core Solutions</h3>
                             <Link href="/mandi-khata-software" className="hover:text-white transition">Digital Mandi Khata App</Link>
                             <Link href="/mandi-billing-software" className="hover:text-white transition">Mandi Billing Software</Link>
+                            <Link href="/mandi-crate-management-software" className="hover:text-white transition">Mandi Crate Tracking Software</Link>
                             <Link href="/commission-agent-software" className="hover:text-white transition">Commission Agent Software</Link>
                             <Link href="/farmer-payment-management" className="hover:text-white transition">Farmer Payment Management</Link>
                             <Link href="/gst-mandi-compliance" className="hover:text-white transition">GST Mandi Compliance</Link>
