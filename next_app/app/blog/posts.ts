@@ -523,7 +523,7 @@ export const POSTS: BlogPost[] = [
     {
         slug: 'anaj-mandi-software-erp',
         title: 'Anaj Mandi ERP Software: APMC Compliance and Digital Khata for Grain Traders',
-        description: 'The ultimate guide to Anaj Mandi ERP software. Manage grain trading, MSP compliance, moisture deductions, and gunny bags (bardana) with India\\'s top mandi software.',
+        description: "The ultimate guide to Anaj Mandi ERP software. Manage grain trading, MSP compliance, moisture deductions, and gunny bags (bardana) with India's top mandi software.",
         keywords: [
             'anaj mandi software',
             'grain trading software',
