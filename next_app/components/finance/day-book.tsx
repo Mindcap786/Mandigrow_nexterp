@@ -65,6 +65,7 @@ const TX_TYPE_FLOW_MAP: Record<string, string> = {
     // ── Expense / Income from Mandi Expense dialog & backend ──────────────
     income:           'receive_receipt',
     stock_loss:       'expense_receipt',
+    sale_return:      'sale_return',
     // ── Stock Return: Mandi sends goods BACK to supplier → DEBIT (outflow) ──
     // Dr Creditors (reduces payable) = value going OUT of Mandi's liability
     // Displayed in DEBIT column, labelled "Return"
@@ -92,6 +93,9 @@ export const inferVoucherFlow = (entry: any) => {
     }
 
     // Step 1b: Text-based stock return detection (fallback for legacy/pre-tag entries)
+    if (text.includes('sales return') || text.includes('sale return')) {
+        return 'sale_return';
+    }
     if (text.includes('stock return') || text.includes('returned to supplier') || text.includes('returned to farmer')) {
         return 'stock_return';
     }
@@ -362,6 +366,8 @@ export const getScenarioStyles = (scenario: string = "") => {
             return { bg: "bg-rose-50/60", border: "border-rose-200", chipBg: "bg-rose-100", chipBorder: "border-rose-200", text: "text-rose-700", color: "#f43f5e" };
         if (lower.includes('partial')) 
             return { bg: "bg-violet-50/60", border: "border-violet-200", chipBg: "bg-violet-100", chipBorder: "border-violet-200", text: "text-violet-700", color: "#8b5cf6" };
+        if (lower.includes('return'))
+            return { bg: "bg-pink-50/60", border: "border-pink-200", chipBg: "bg-pink-100", chipBorder: "border-pink-200", text: "text-pink-700", color: "#ec4899" };
     }
     
     // 2. Purchase Scenarios (Emerald/Orange/Amber)
@@ -680,6 +686,10 @@ export const getTransactionScenario = (
         if (flowType === 'sale') return "SALE RECORD";
     }
 
+    if (flowType === 'sale_return') {
+        return "SALES RETURN";
+    }
+
     if (flowType === 'receipt' || flowType === 'receive_receipt') {
         const hasWriteOff = group.some(l => (l.description || '').includes('Settlement Write-off'));
         if (hasWriteOff && !group.some(l => isLiquidAccountEntry(l) && Number(l.debit || 0) > 0)) {
@@ -775,6 +785,14 @@ export const getEntryDescription = (
                 return `Sale Bill #${bNo || 'N/A'} (${detailStr})\nTotal Qty: ${totals}`;
             }
         }
+    }
+
+    if (flowType === 'sale_return') {
+        const match = baseDescription.match(/Sales Return from (SALE-[^\s]+)\s*-\s*(.*)/i);
+        const match2 = baseDescription.match(/Sales Return:\s*(SALE-[^\s-]+)/i);
+        const invoicePart = match ? match[1] : (match2 ? match2[1] : (billNo || 'N/A'));
+        const namePart = match ? match[2] : (counterpartyName || '');
+        return `Sales Return for Invoice #${invoicePart}` + (namePart ? ` (${namePart})` : '');
     }
 
     if (flowType === 'transfer' || flowType === 'deposit' || flowType === 'withdrawal') {
@@ -881,12 +899,14 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
             else if (rowType === 'expense_receipt') displayLabel = 'Expense';
             else if (rowType === 'payment') displayLabel = 'Receipt';
             else if (rowType === 'stock_return') displayLabel = 'Return';
+            else if (rowType === 'sale_return') displayLabel = 'Return';
             else if (rowType === 'sale') displayLabel = 'Sale';
             else if (rowType === 'opening_balance') displayLabel = 'Opening Balance';
             else if (flowType === 'purchase') displayLabel = 'Purchase';
-            // For stock_return: always show in DEBIT (goods going out, payable reduced)
-            const stockReturnDebit = rowType === 'stock_return' ? Math.max(rawDebit, rawCredit) : rawDebit;
-            const stockReturnCredit = rowType === 'stock_return' ? 0 : rawCredit;
+            // For stock_return and sale_return: always show in DEBIT (goods going out, payable reduced)
+            const isAnyReturn = rowType === 'stock_return' || rowType === 'sale_return';
+            const stockReturnDebit = isAnyReturn ? Math.max(rawDebit, rawCredit) : rawDebit;
+            const stockReturnCredit = isAnyReturn ? 0 : rawCredit;
             return { ...e, sortIndex: index, displayTimestamp: transactionTimestamp || e.created_at || e.entry_date, reference_no: e.reference_no || (flowType === 'purchase' && e.reference_id ? arrivalReferenceMap[String(e.reference_id)] : e.reference_no), contact: { name: baseDisplayName }, displayNameLotPrefix: displayLotPrefix, displayType: rowType, displayLabel, displayDescription, displayDebit: stockReturnDebit, displayCredit: stockReturnCredit, isUdhaar: (rowType === 'sale' || rowType === 'purchase') && !((e.account?.account_sub_type === 'cash' || e.account?.account_sub_type === 'bank' || e.account?.type === 'bank')) };
         });
 
@@ -1000,7 +1020,7 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     const isReceipt = flowType === 'receive_receipt' || flowType === 'receipt' || flowType === 'sale_payment';
                     const isPayment = flowType === 'paid_receipt' || flowType === 'payment';
                     const isExpense = flowType === 'expense_receipt';
-                    const isReturn = flowType === 'stock_return';
+                    const isReturn = flowType === 'stock_return' || flowType === 'sale_return';
                     const isOpeningBal = flowType === 'opening_balance';
 
                     const v = mainLeg.voucher || {};

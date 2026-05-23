@@ -5238,34 +5238,18 @@ def get_sale_items_for_return(sale_id: str) -> list:
     # 1. Fetch Original Sale Items
     sale_items = frappe.get_all("Mandi Sale Item",
         filters={"parent": sale_id},
-        fields=["name as id", "lot_id", "qty", "rate", "amount", "item_id"],
+        fields=["name as id", "lot_id", "qty", "rate", "amount", "item_id", "returned_qty"],
         ignore_permissions=True
     )
 
-    # 2. Fetch Previously Returned Items (This is a placeholder until Mandi Sale Return is implemented)
-    # For now, we assume 0 returned if the DocType doesn't exist yet or is empty
-    returned_qty_map = {}
-    try:
-        previous_returns = frappe.db.sql("""
-            SELECT item.lot_id, SUM(item.qty) as total_qty
-            FROM `tabMandi Sale Return Item` item
-            JOIN `tabMandi Sale Return` ret ON item.parent = ret.name
-            WHERE ret.sale_id = %s AND ret.docstatus = 1
-            GROUP BY item.lot_id
-        """, (sale_id,), as_dict=1)
-        for r in previous_returns:
-            returned_qty_map[r.lot_id] = r.total_qty
-    except Exception:
-        pass
-
-    # 3. Calculate Remaining
+    # 2. Calculate Remaining
     for item in sale_items:
         lot_info = frappe.db.get_value("Mandi Lot", item.lot_id, ["name as id", "lot_code", "item_id"], as_dict=1)
         if lot_info:
             lot_info.item = frappe.db.get_value("Item", lot_info.item_id, ["name as id", "item_name as name"], as_dict=1)
             item.lot = lot_info
         
-        already_returned = returned_qty_map.get(item.lot_id, 0)
+        already_returned = item.get("returned_qty") or 0
         item.max_qty = max(0, item.qty - already_returned)
         item.original_sold_qty = item.qty
         item.already_returned = already_returned
@@ -5307,6 +5291,7 @@ def process_sale_return(payload: dict) -> dict:
     credit_account = get_debtor_acc(company)
     party_type = "Customer"
     party = frappe.db.get_value("Mandi Contact", sale.buyerid, "customer")
+    buyer_name = frappe.db.get_value("Mandi Contact", sale.buyerid, "full_name") or "Unknown"
 
     if return_type == "cash":
         credit_account = get_acc("Cash", company)
@@ -5318,13 +5303,13 @@ def process_sale_return(payload: dict) -> dict:
             "account": get_stock_acc(company),
             "debit_in_account_currency": total_refund,
             "cost_center": cost_center,
-            "user_remark": f"Sales Return from {sale.name} - {remarks}"
+            "user_remark": f"Sales Return from {sale.name} - {buyer_name}"
         },
         {
             "account": credit_account,
             "credit_in_account_currency": total_refund,
             "cost_center": cost_center,
-            "user_remark": f"Sales Return credit for {sale.name}"
+            "user_remark": f"Sales Return credit for {sale.name} - {buyer_name}"
         }
     ]
 
@@ -5337,14 +5322,14 @@ def process_sale_return(payload: dict) -> dict:
         "voucher_type": "Journal Entry",
         "company": company,
         "posting_date": today(),
-        "user_remark": f"Sales Return: {sale.name}",
+        "user_remark": f"Sales Return: {sale.name} - {buyer_name}",
         "accounts": je_accounts
     })
     je.insert(ignore_permissions=True)
     je.submit()
     _tag_gl_entries(je.name, "Mandi Sale", sale.name)
     
-    # 2. Update Lot Quantities
+    # 2. Update Lot Quantities and Sale Item returned_qty
     for item in return_items:
         lot_id = item.get("lot_id")
         qty = flt(item.get("qty", 0))
@@ -5354,6 +5339,11 @@ def process_sale_return(payload: dict) -> dict:
                 SET current_qty = current_qty + %s 
                 WHERE name = %s
             """, (qty, lot_id))
+            frappe.db.sql("""
+                UPDATE `tabMandi Sale Item`
+                SET returned_qty = COALESCE(returned_qty, 0) + %s
+                WHERE parent = %s AND lot_id = %s
+            """, (qty, sale_id, lot_id))
             
     return {
         "success": True,
@@ -16062,9 +16052,11 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
             for row in doc.items:
                 if row.name == row_name or row.crate_type == ri.get("crate_type"):
                     max_returnable = row.qty_balance
-                    actual_return = min(qty_now, max_returnable)
-                    remaining = max_returnable - actual_return
-                    actual_loss = min(qty_loss, remaining)
+                    if qty_now + qty_loss > max_returnable:
+                        return {"success": False, "error": f"Cannot return/report {qty_now + qty_loss} crates. Only {max_returnable} {row.crate_type} pending."}
+                    
+                    actual_return = qty_now
+                    actual_loss = qty_loss
                     
                     total_resolve = actual_return + actual_loss
                     row.qty_returned = (row.qty_returned or 0) + total_resolve
@@ -16119,6 +16111,7 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
         frappe.db.commit()
         return {"success": True, "status": doc.status}
     except Exception as e:
+        frappe.db.rollback()
         frappe.log_error(title="receive_crates Failed", message=frappe.get_traceback())
         return {"success": False, "error": frappe.get_traceback() or str(e)}
 
@@ -16178,7 +16171,10 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             if items_to_charge:
                 override = next((x for x in items_to_charge if x.get("row_name") == row.name or x.get("crate_type") == row.crate_type), None)
                 if override:
-                    qty_bal = int(override.get("qty_to_charge") or qty_bal)
+                    qty_to_charge_override = int(override.get("qty_to_charge") or 0)
+                    if qty_to_charge_override > qty_bal:
+                        return {"success": False, "error": f"Cannot charge {qty_to_charge_override} crates. Only {qty_bal} {row.crate_type} pending."}
+                    qty_bal = qty_to_charge_override
             if qty_bal <= 0:
                 continue
             rate = float(row.rate or 0)
@@ -16304,7 +16300,7 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
         if total_remaining_balance <= 0:
             doc.status = "Closed"
         else:
-            doc.status = "Partial"
+            doc.status = "Partially Returned"
             
         doc.charge_to_ledger = 1
         doc.ledger_charged_date = frappe.utils.today()
@@ -16318,6 +16314,7 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             "message": f"₹{total_charge:,.2f} charged to {doc.party_name}'s ledger."
         }
     except Exception as e:
+        frappe.db.rollback()
         frappe.log_error(title="charge_crate_to_ledger_v2 Failed", message=frappe.get_traceback())
         return {"success": False, "error": frappe.get_traceback() or str(e)}
 
