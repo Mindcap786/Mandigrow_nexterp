@@ -1022,7 +1022,9 @@ function NewSaleForm() {
                                                         otherExpenses: form.watch("other_expenses"),
                                                         discountAmount: Number(form.watch("discount_amount")) || 0,
                                                     });
-                                                    const grandTotal = totals.grandTotal;
+                                                    const crateCartLocal = form.watch("crate_items") || [];
+                                                    const crateTotalLocal = cratesEnabled ? crateCartLocal.reduce((s: number, c: any) => s + (c.qty * c.rate), 0) : 0;
+                                                    const grandTotal = totals.grandTotal + crateTotalLocal;
                                                     const qrAmount = amountPaid > 0 ? amountPaid : grandTotal;
                                                     if (upiId) {
                                                         const orgName = orgSettings?.name || "MandiGrow";
@@ -1819,6 +1821,8 @@ function NewSaleForm() {
                                             discountAmount: Number(form.watch("discount_amount")) || 0,
                                         });
                                         const otherFees = totals.marketFee + totals.nirashrit + totals.miscFee + totals.extraCharges;
+                                        const crateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + (c.qty * c.rate), 0) : 0;
+                                        const finalNetTotal = totals.grandTotal + crateTotal;
 
                                         return (
                                             <>
@@ -1830,7 +1834,7 @@ function NewSaleForm() {
                                                     {cratesEnabled && crateCart.length > 0 && (
                                                         <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-amber-400/80 mt-1">
                                                             <span>Crate Sale</span>
-                                                            <span className="text-amber-400">+ ₹{crateCart.reduce((s, c) => s + (c.qty * c.rate), 0).toLocaleString()}</span>
+                                                            <span className="text-amber-400">+ ₹{crateTotal.toLocaleString()}</span>
                                                         </div>
                                                     )}
                                                     <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50">
@@ -1847,7 +1851,7 @@ function NewSaleForm() {
                                                     <div>
                                                         <div className="text-[9px] font-black tracking-[0.3em] uppercase text-indigo-400 mb-0.5">Net Invoice Total</div>
                                                         <div className="text-3xl font-black tracking-tight leading-none">
-                                                            ₹{totals.grandTotal.toLocaleString()}
+                                                            ₹{finalNetTotal.toLocaleString()}
                                                         </div>
                                                         {safeItems.reduce((s, i) => s + (Number(i.qty) || 0), 0) > 0 && (
                                                             <div className="text-[9px] font-black text-indigo-300 uppercase tracking-widest mt-1">
