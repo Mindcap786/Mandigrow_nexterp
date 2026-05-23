@@ -21,6 +21,7 @@ const FOOTER_COLUMNS = [
             { label: 'GST Compliance',     href: '/gst-mandi-compliance' },
             { label: 'Mandi Billing Software', href: '/mandi-billing-software' },
             { label: 'Mandi Khata App',    href: '/mandi-khata-software' },
+            { label: 'Crate Tracking',     href: '/mandi-crate-management-software' },
             { label: 'Farmer Payments',    href: '/farmer-payment-management' },
         ],
     },
@@ -36,6 +37,7 @@ const FOOTER_COLUMNS = [
             { label: 'Tomato Mandi',          href: '/tomato-mandi-software' },
             { label: 'Anaj / Grain',          href: '/anaj-mandi-erp-software' },
             { label: 'Poultry Wholesale',     href: '/poultry-wholesale-software' },
+            { label: 'Sabji Crate App',       href: '/sabji-crate-management-app' },
         ],
     },
     {
