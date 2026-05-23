@@ -1265,14 +1265,16 @@ function NewSaleForm() {
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <FormControl>
-                                                                    <Input type="number" {...field}
+                                                                    <Input type="number" 
+                                                                        {...field}
+                                                                        value={field.value === 0 ? '' : field.value}
                                                                         onChange={e => {
-                                                                            field.onChange(e);
-                                                                            const newQty = Number(e.target.value) || 0;
-                                                                            applyTierPricing(index, currentItemId, newQty);
+                                                                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                                                            field.onChange(val);
+                                                                            applyTierPricing(index, currentItemId, val);
                                                                             setTimeout(() => {
-                                                                                const currentRate = form.getValues(`sale_items.${index}.rate`);
-                                                                                form.setValue(`sale_items.${index}.amount`, newQty * currentRate);
+                                                                                const currentRate = form.getValues(`sale_items.${index}.rate`) || 0;
+                                                                                form.setValue(`sale_items.${index}.amount`, val * currentRate);
                                                                             }, 0);
                                                                         }}
                                                                         className={cn(
@@ -1293,11 +1295,14 @@ function NewSaleForm() {
                                                             <FormItem>
                                                                 <FormControl>
                                                                     <div className="relative">
-                                                                        <Input type="number" {...field}
+                                                                        <Input type="number" 
+                                                                            {...field}
+                                                                            value={field.value === 0 ? '' : field.value}
                                                                             onChange={e => {
-                                                                                field.onChange(e);
-                                                                                const qty = form.getValues(`sale_items.${index}.qty`);
-                                                                                form.setValue(`sale_items.${index}.amount`, Number(e.target.value) * qty);
+                                                                                const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                                                                field.onChange(val);
+                                                                                const qty = form.getValues(`sale_items.${index}.qty`) || 0;
+                                                                                form.setValue(`sale_items.${index}.amount`, val * qty);
                                                                             }}
                                                                             className={cn(
                                                                                 "bg-transparent border-slate-300 border-2 h-9 text-slate-900 font-black text-center rounded-lg shadow-none focus:border-indigo-600 pl-4",
@@ -1644,8 +1649,8 @@ function NewSaleForm() {
                                                     >
                                                         <option value="" disabled>Select Crate Type</option>
                                                         {crateTypes.map((c: any) => (
-                                                            <option key={c.crate_name} value={c.crate_name}>
-                                                                {c.crate_name} (₹{c.sale_rate})
+                                                            <option key={c.id} value={c.id}>
+                                                                {c.name || c.crate_name} (₹{c.sale_rate}) - Avail: {c.available || 0}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -1675,7 +1680,22 @@ function NewSaleForm() {
                                                         
                                                         if (!ct || q <= 0) return;
                                                         
-                                                        const finalRate = isNaN(r) ? (crateTypes.find(x => x.crate_name === ct)?.sale_rate || 0) : r;
+                                                        const crateDef = crateTypes.find(x => x.id === ct);
+                                                        const availableStock = crateDef?.available || 0;
+                                                        const currentCart = form.getValues('crateCart') || crateCart || [];
+                                                        const exists = currentCart.findIndex((x: any) => x.crate_type === ct);
+                                                        const currentQty = exists >= 0 ? currentCart[exists].qty : 0;
+                                                        
+                                                        if (currentQty + q > availableStock) {
+                                                            toast({
+                                                                title: "Stock Exceeded",
+                                                                description: `You are adding ${q} but only ${availableStock - currentQty} more available.`,
+                                                                variant: "destructive"
+                                                            });
+                                                            return;
+                                                        }
+                                                        
+                                                        const finalRate = isNaN(r) ? (crateDef?.sale_rate || 0) : r;
                                                         
                                                         setCrateCart(prev => {
                                                             const exists = prev.findIndex(x => x.crate_type === ct);
@@ -1717,7 +1737,13 @@ function NewSaleForm() {
                                                                             type="number" 
                                                                             value={c.qty === 0 ? '' : c.qty}
                                                                             onChange={(e) => {
-                                                                                const newQty = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                                                                const val = e.target.value;
+                                                                                const newQty = val === '' ? 0 : (parseInt(val) || 0);
+                                                                                const crateDef = crateTypes.find((x: any) => x.id === c.crate_type);
+                                                                                if (newQty > (crateDef?.available || 0)) {
+                                                                                    toast({ title: "Stock Exceeded", description: `Only ${crateDef?.available || 0} available.`, variant: "destructive" });
+                                                                                    return;
+                                                                                }
                                                                                 setCrateCart(prev => {
                                                                                     const updated = [...prev];
                                                                                     updated[i].qty = newQty;
@@ -1732,7 +1758,8 @@ function NewSaleForm() {
                                                                             type="number" 
                                                                             value={c.rate === 0 ? '' : c.rate}
                                                                             onChange={(e) => {
-                                                                                const newRate = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                                                                const val = e.target.value;
+                                                                                const newRate = val === '' ? 0 : (parseFloat(val) || 0);
                                                                                 setCrateCart(prev => {
                                                                                     const updated = [...prev];
                                                                                     updated[i].rate = newRate;

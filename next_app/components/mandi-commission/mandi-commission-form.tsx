@@ -526,8 +526,8 @@ export function MandiCommissionForm() {
                                     >
                                         <option value="" disabled>Select Crate Type</option>
                                         {crateTypes.map((c: any) => (
-                                            <option key={c.crate_name} value={c.crate_name}>
-                                                {c.crate_name} (₹{c.sale_rate})
+                                            <option key={c.id} value={c.id}>
+                                                {c.name || c.crate_name} (₹{c.sale_rate}) - Avail: {c.available || 0}
                                             </option>
                                         ))}
                                     </select>
@@ -557,7 +557,22 @@ export function MandiCommissionForm() {
                                         
                                         if (!ct || q <= 0) return;
                                         
-                                        const finalRate = isNaN(r) ? (crateTypes.find(x => x.crate_name === ct)?.sale_rate || 0) : r;
+                                        const crateDef = crateTypes.find((x: any) => x.id === ct);
+                                        const availableStock = crateDef?.available || 0;
+                                        const currentCart = crateCart || [];
+                                        const exists = currentCart.findIndex((x: any) => x.crate_type === ct);
+                                        const currentQty = exists >= 0 ? currentCart[exists].qty : 0;
+                                        
+                                        if (currentQty + q > availableStock) {
+                                            toast({
+                                                title: "Stock Exceeded",
+                                                description: `You are adding ${q} but only ${availableStock - currentQty} more available.`,
+                                                variant: "destructive"
+                                            });
+                                            return;
+                                        }
+                                        
+                                        const finalRate = isNaN(r) ? (crateDef?.sale_rate || 0) : r;
                                         
                                         setCrateCart(prev => {
                                             const exists = prev.findIndex(x => x.crate_type === ct);
@@ -595,20 +610,41 @@ export function MandiCommissionForm() {
                                             {crateCart.map((c: any, ci: number) => (
                                                 <tr key={ci} className="font-bold text-slate-700">
                                                     <td className="px-3 py-2">{c.crate_type}</td>
-                                                    <td className="px-3 py-2 text-right">{c.qty}</td>
                                                     <td className="px-3 py-2 text-right">
                                                         <input 
                                                             type="number" 
-                                                            value={c.rate}
+                                                            value={c.qty === 0 ? '' : c.qty}
                                                             onChange={(e) => {
-                                                                const newRate = parseFloat(e.target.value) || 0;
+                                                                const val = e.target.value;
+                                                                const newQty = val === '' ? 0 : (parseInt(val) || 0);
+                                                                const crateDef = crateTypes.find((x: any) => x.id === c.crate_type);
+                                                                if (newQty > (crateDef?.available || 0)) {
+                                                                    toast({ title: "Stock Exceeded", description: `Only ${crateDef?.available || 0} available.`, variant: "destructive" });
+                                                                    return;
+                                                                }
                                                                 setCrateCart(prev => {
-                                                                    const newCart = [...prev];
-                                                                    newCart[ci].rate = newRate;
-                                                                    return newCart;
+                                                                    const updated = [...prev];
+                                                                    updated[ci].qty = newQty;
+                                                                    return updated;
                                                                 });
                                                             }}
                                                             className="w-16 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right">
+                                                        <input 
+                                                            type="number" 
+                                                            value={c.rate === 0 ? '' : c.rate}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                const newRate = val === '' ? 0 : (parseFloat(val) || 0);
+                                                                setCrateCart(prev => {
+                                                                    const updated = [...prev];
+                                                                    updated[ci].rate = newRate;
+                                                                    return updated;
+                                                                });
+                                                            }}
+                                                            className="w-20 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 text-right">₹{(c.qty * c.rate).toLocaleString('en-IN')}</td>

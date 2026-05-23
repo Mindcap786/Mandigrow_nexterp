@@ -715,8 +715,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                             >
                                                                                 <option value="" disabled>Select Crate Type</option>
                                                                                 {crateTypes.map((c: any) => (
-                                                                                    <option key={c.crate_name} value={c.crate_name}>
-                                                                                        {c.crate_name} (₹{c.sale_rate})
+                                                                                    <option key={c.id} value={c.id}>
+                                                                                        {c.name || c.crate_name} (₹{c.sale_rate}) - Avail: {c.available || 0}
                                                                                     </option>
                                                                                 ))}
                                                                             </select>
@@ -746,10 +746,23 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                                 
                                                                                 if (!ct || q <= 0) return;
                                                                                 
-                                                                                const finalRate = isNaN(r) ? (crateTypes.find(x => x.crate_name === ct)?.sale_rate || 0) : r;
+                                                                                const crateDef = crateTypes.find(x => x.id === ct);
+                                                                                const availableStock = crateDef?.available || 0;
                                                                                 
                                                                                 const currentCart = form.getValues(`distributions.${index}.crateCart`) || [];
                                                                                 const exists = currentCart.findIndex((x: any) => x.crate_type === ct);
+                                                                                const currentQty = exists >= 0 ? currentCart[exists].qty : 0;
+                                                                                
+                                                                                if (currentQty + q > availableStock) {
+                                                                                    toast({
+                                                                                        title: "Stock Exceeded",
+                                                                                        description: `You are adding ${q} but only ${availableStock - currentQty} more available.`,
+                                                                                        variant: "destructive"
+                                                                                    });
+                                                                                    return;
+                                                                                }
+                                                                                
+                                                                                const finalRate = isNaN(r) ? (crateDef?.sale_rate || 0) : r;
                                                                                 
                                                                                 const newCart = [...currentCart];
                                                                                 if (exists >= 0) {

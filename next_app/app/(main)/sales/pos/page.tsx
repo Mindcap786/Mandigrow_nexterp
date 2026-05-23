@@ -638,6 +638,16 @@ export default function POSPage() {
             return;
         }
 
+        if (cratesEnabled && crateCart.length > 0) {
+            for (let c of crateCart) {
+                const ct = crateTypes.find((x: any) => x.id === c.crate_type);
+                if (ct && c.qty > (ct.available || 0)) {
+                    toast.error(`Stock Exceeded for Crate: ${ct.name}`, { description: `You are adding ${c.qty} but only ${ct.available || 0} available.`, position: 'top-center' });
+                    return;
+                }
+            }
+        }
+
         if (maxInvoiceAmount > 0 && grandTotal > maxInvoiceAmount) {
             toast.error("Invoice Limit Exceeded", {
                 description: `This invoice total (₹${grandTotal.toLocaleString()}) exceeds the maximum limit of ₹${maxInvoiceAmount.toLocaleString()}.`,
@@ -1333,13 +1343,19 @@ export default function POSPage() {
                                                 className="flex-1 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-bold text-slate-800 focus:outline-none"
                                             >
                                                 <option value="">Select crate...</option>
-                                                {crateTypes.map((ct: any) => <option key={ct.id} value={ct.id}>{ct.name}</option>)}
+                                                {crateTypes.map((ct: any) => <option key={ct.id} value={ct.id}>{ct.name} (Avail: {ct.available || 0})</option>)}
                                             </select>
                                             <input type="number" placeholder="Qty" value={item.qty === 0 ? '' : item.qty}
-                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, qty: e.target.value === '' ? 0 : parseInt(e.target.value) } : c))}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, qty: val === '' ? 0 : (parseInt(val) || 0) } : c))
+                                                }}
                                                 className="w-16 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-center focus:outline-none" />
                                             <input type="number" placeholder="₹ Rate" value={item.rate === 0 ? '' : item.rate}
-                                                onChange={e => setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, rate: e.target.value === '' ? 0 : parseFloat(e.target.value) } : c))}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setCrateCart(cc => cc.map((c, i) => i === idx ? { ...c, rate: val === '' ? 0 : (parseFloat(val) || 0) } : c))
+                                                }}
                                                 className="w-20 h-9 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black focus:outline-none" />
                                             <button onClick={() => setCrateCart(cc => cc.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 flex-shrink-0"><X className="w-4 h-4" /></button>
                                         </div>

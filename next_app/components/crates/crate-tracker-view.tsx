@@ -235,8 +235,8 @@ export function CrateTrackerView() {
                 ))}
             </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-2 mb-6">
+            {/* Action Tabs */}
+            <div className="flex items-center gap-2 mb-6 print:hidden">
                 {TABS.map(t => (
                     <button
                         key={t.id}
@@ -498,7 +498,7 @@ export function CrateTrackerView() {
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="font-black text-slate-900">Outstanding Crates — Party Wise</h3>
-                            <Button size="sm" onClick={() => window.print()} variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold gap-2">
+                            <Button size="sm" onClick={() => window.print()} variant="outline" className="print:hidden rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold gap-2">
                                 <Printer className="w-4 h-4" /> Print Report
                             </Button>
                         </div>

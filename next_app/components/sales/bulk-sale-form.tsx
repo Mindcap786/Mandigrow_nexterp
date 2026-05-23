@@ -9,7 +9,7 @@ import {
     Plus, Trash2, Loader2, User, 
     Package, CheckCircle2, AlertCircle, Save, ArrowLeft,
     Zap, Truck, Settings2, Calculator, Info, Landmark,
-    CalendarCheck, History, Tag
+    CalendarCheck, History, Tag, X
 } from "lucide-react";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
 import { Button } from "@/components/ui/button";
@@ -639,10 +639,22 @@ export function BulkLotSaleForm() {
                                                             />
                                                         </td>
                                                         <td className="px-3 py-4 text-center font-black">
-                                                            <Input type="number" step="0.01" {...form.register(`distributions.${index}.qty`)} className="h-10 text-center font-black rounded-xl border-slate-200" />
+                                                            <Input 
+                                                                type="number" 
+                                                                step="0.01" 
+                                                                value={form.watch(`distributions.${index}.qty`) === 0 ? '' : form.watch(`distributions.${index}.qty`)}
+                                                                onChange={(e) => form.setValue(`distributions.${index}.qty`, parseFloat(e.target.value) || 0)}
+                                                                className="h-10 text-center font-black rounded-xl border-slate-200" 
+                                                            />
                                                         </td>
                                                         <td className="px-3 py-4">
-                                                            <Input type="number" step="0.01" {...form.register(`distributions.${index}.rate`)} className="h-10 text-center font-black rounded-xl border-slate-200" />
+                                                            <Input 
+                                                                type="number" 
+                                                                step="0.01" 
+                                                                value={form.watch(`distributions.${index}.rate`) === 0 ? '' : form.watch(`distributions.${index}.rate`)}
+                                                                onChange={(e) => form.setValue(`distributions.${index}.rate`, parseFloat(e.target.value) || 0)}
+                                                                className="h-10 text-center font-black rounded-xl border-slate-200" 
+                                                            />
                                                         </td>
                                                         <td className="px-3 py-4 text-center">
                                                             <Dialog>
@@ -871,6 +883,177 @@ export function BulkLotSaleForm() {
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
+                                                                        </div>
+
+                                                                        {/* Bottom Crate Section for Buyer */}
+                                                                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
+                                                                            <div className="flex items-center justify-between mb-3">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Add Crates to Sale</span>
+                                                                                    <span className="text-[9px] font-bold text-amber-600/70">Bill crates separately to this buyer</span>
+                                                                                </div>
+                                                                                <Switch
+                                                                                    checked={form.watch(`distributions.${index}.cratesEnabled`)}
+                                                                                    onCheckedChange={(checked) => {
+                                                                                        form.setValue(`distributions.${index}.cratesEnabled`, checked);
+                                                                                        if (!checked) {
+                                                                                            form.setValue(`distributions.${index}.crateCart`, []);
+                                                                                        }
+                                                                                    }}
+                                                                                    className="data-[state=checked]:bg-amber-500"
+                                                                                />
+                                                                            </div>
+                                                                            
+                                                                            {form.watch(`distributions.${index}.cratesEnabled`) && (
+                                                                                <div className="space-y-3 mt-4 border-t border-amber-200/50 pt-3">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="flex-1">
+                                                                                            <select
+                                                                                                className="w-full bg-white border border-amber-200 rounded-lg h-9 text-xs font-bold text-slate-800 px-2 outline-none"
+                                                                                                id={`bulk-crate-type-${index}`}
+                                                                                                defaultValue=""
+                                                                                            >
+                                                                                                <option value="" disabled>Select Crate Type</option>
+                                                                                                {crateTypes.map((c: any) => (
+                                                                                                    <option key={c.id} value={c.id}>
+                                                                                                        {c.name || c.crate_name} (₹{c.sale_rate}) - Avail: {c.available || 0}
+                                                                                                    </option>
+                                                                                                ))}
+                                                                                            </select>
+                                                                                        </div>
+                                                                                        <Input 
+                                                                                            id={`bulk-crate-qty-${index}`}
+                                                                                            type="number" 
+                                                                                            placeholder="Qty" 
+                                                                                            className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                                                        />
+                                                                                        <Input 
+                                                                                            id={`bulk-crate-rate-${index}`}
+                                                                                            type="number" 
+                                                                                            placeholder="Rate" 
+                                                                                            className="w-20 bg-white border-amber-200 h-9 text-xs font-bold" 
+                                                                                        />
+                                                                                        <Button 
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                const sel = document.getElementById(`bulk-crate-type-${index}`) as HTMLSelectElement;
+                                                                                                const qtyInput = document.getElementById(`bulk-crate-qty-${index}`) as HTMLInputElement;
+                                                                                                const rateInput = document.getElementById(`bulk-crate-rate-${index}`) as HTMLInputElement;
+                                                                                                
+                                                                                                const ct = sel.value;
+                                                                                                const q = parseInt(qtyInput.value) || 0;
+                                                                                                const r = parseFloat(rateInput.value);
+                                                                                                
+                                                                                                if (!ct || q <= 0) return;
+                                                                                                
+                                                                                                const crateDef = crateTypes.find((x: any) => x.id === ct);
+                                                                                                const availableStock = crateDef?.available || 0;
+                                                                                                
+                                                                                                const prevCart = form.getValues(`distributions.${index}.crateCart`) || [];
+                                                                                                const exists = prevCart.findIndex((x: any) => x.crate_type === ct);
+                                                                                                const currentQty = exists >= 0 ? prevCart[exists].qty : 0;
+                                                                                                
+                                                                                                if (currentQty + q > availableStock) {
+                                                                                                    toast({
+                                                                                                        title: "Stock Exceeded",
+                                                                                                        description: `You are adding ${q} but only ${availableStock - currentQty} more available.`,
+                                                                                                        variant: "destructive"
+                                                                                                    });
+                                                                                                    return;
+                                                                                                }
+                                                                                                
+                                                                                                const finalRate = isNaN(r) ? (crateDef?.sale_rate || 0) : r;
+                                                                                                
+                                                                                                const newCart = [...prevCart];
+                                                                                                if (exists >= 0) {
+                                                                                                    newCart[exists].qty += q;
+                                                                                                    newCart[exists].rate = finalRate;
+                                                                                                } else {
+                                                                                                    newCart.push({ crate_type: ct, crate_name: ct, qty: q, rate: finalRate });
+                                                                                                }
+                                                                                                form.setValue(`distributions.${index}.crateCart`, newCart);
+                                                                                                qtyInput.value = "";
+                                                                                                rateInput.value = "";
+                                                                                            }}
+                                                                                            className="bg-amber-600 hover:bg-amber-700 text-white h-9 px-4 rounded-lg text-xs font-black"
+                                                                                        >
+                                                                                            Add
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                    
+                                                                                    {(form.watch(`distributions.${index}.crateCart`) || []).length > 0 && (
+                                                                                        <div className="bg-white rounded-lg border border-amber-100 overflow-hidden mt-2">
+                                                                                            <table className="w-full text-xs text-left">
+                                                                                                <thead className="bg-amber-50/50 text-[9px] uppercase tracking-widest text-amber-700">
+                                                                                                    <tr>
+                                                                                                        <th className="px-3 py-2">Type</th>
+                                                                                                        <th className="px-3 py-2 text-right">Qty</th>
+                                                                                                        <th className="px-3 py-2 text-right">Rate</th>
+                                                                                                        <th className="px-3 py-2 text-right">Total</th>
+                                                                                                        <th className="px-3 py-2 text-center">x</th>
+                                                                                                    </tr>
+                                                                                                </thead>
+                                                                                                <tbody className="divide-y divide-amber-50">
+                                                                                                    {(form.watch(`distributions.${index}.crateCart`) || []).map((c: any, ci: number) => (
+                                                                                                        <tr key={ci} className="font-bold text-slate-700">
+                                                                                                            <td className="px-3 py-2">{c.crate_type}</td>
+                                                                                                            <td className="px-3 py-2 text-right">
+                                                                                                                <input 
+                                                                                                                    type="number" 
+                                                                                                                    value={c.qty === 0 ? '' : c.qty}
+                                                                                                                    onChange={(e) => {
+                                                                                                                        const val = e.target.value;
+                                                                                                                        const newQty = val === '' ? 0 : (parseInt(val) || 0);
+                                                                                                                        const crateDef = crateTypes.find((x: any) => x.id === c.crate_type);
+                                                                                                                        if (newQty > (crateDef?.available || 0)) {
+                                                                                                                            toast({ title: "Stock Exceeded", description: `Only ${crateDef?.available || 0} available.`, variant: "destructive" });
+                                                                                                                            return;
+                                                                                                                        }
+                                                                                                                        const prev = form.getValues(`distributions.${index}.crateCart`);
+                                                                                                                        const updated = [...prev];
+                                                                                                                        updated[ci].qty = newQty;
+                                                                                                                        form.setValue(`distributions.${index}.crateCart`, updated);
+                                                                                                                    }}
+                                                                                                                    className="w-16 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                                                                                />
+                                                                                                            </td>
+                                                                                                            <td className="px-3 py-2 text-right">
+                                                                                                                <input 
+                                                                                                                    type="number" 
+                                                                                                                    value={c.rate === 0 ? '' : c.rate}
+                                                                                                                    onChange={(e) => {
+                                                                                                                        const val = e.target.value;
+                                                                                                                        const newRate = val === '' ? 0 : (parseFloat(val) || 0);
+                                                                                                                        const prev = form.getValues(`distributions.${index}.crateCart`);
+                                                                                                                        const updated = [...prev];
+                                                                                                                        updated[ci].rate = newRate;
+                                                                                                                        form.setValue(`distributions.${index}.crateCart`, updated);
+                                                                                                                    }}
+                                                                                                                    className="w-20 text-right bg-transparent border-b border-amber-200 outline-none focus:border-amber-500"
+                                                                                                                />
+                                                                                                            </td>
+                                                                                                            <td className="px-3 py-2 text-right">₹{(c.qty * c.rate).toLocaleString('en-IN')}</td>
+                                                                                                            <td className="px-3 py-2 text-center">
+                                                                                                                <button 
+                                                                                                                    type="button" 
+                                                                                                                    onClick={() => {
+                                                                                                                        const prev = form.getValues(`distributions.${index}.crateCart`);
+                                                                                                                        const updated = prev.filter((_: any, i: number) => i !== ci);
+                                                                                                                        form.setValue(`distributions.${index}.crateCart`, updated);
+                                                                                                                    }}
+                                                                                                                    className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                                                                                                >
+                                                                                                                    <X className="w-3 h-3" />
+                                                                                                                </button>
+                                                                                                            </td>
+                                                                                                        </tr>
+                                                                                                    ))}
+                                                                                                </tbody>
+                                                                                            </table>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                     <DialogFooter className="p-8 bg-white border-t border-slate-100">
