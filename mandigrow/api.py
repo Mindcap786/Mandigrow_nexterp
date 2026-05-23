@@ -8272,6 +8272,11 @@ def commit_mandi_session(**kwargs) -> dict:
                 crate = ci.get("rate") or 0
                 if not ct or cqty <= 0:
                     continue
+                
+                stock_data = _get_crate_stock_balance(kwargs.get("organization_id"), ct)
+                if cqty > stock_data.get("available", 0):
+                    return {"success": False, "error": f"Cannot sell {cqty} of '{ct}'. Only {stock_data.get('available', 0)} available."}
+
                 if not frappe.db.exists("Mandi Crate Type", ct):
                     frappe.get_doc({
                         "doctype": "Mandi Crate Type",
@@ -15415,14 +15420,19 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
     all_types = set(list(stock_map.keys()) + list(issued_map.keys()) + list(sold_map.keys()))
     result = {}
     for ct in all_types:
-        total = stock_map.get(ct, 0)
+        available = stock_map.get(ct, 0)
         issued = issued_map.get(ct, 0)
         sold = sold_map.get(ct, 0)
+        
+        # available is already the net of purchases - issues - sales.
+        # So total_purchased = available + issued + sold.
+        total_purchased = available + issued + sold
+        
         result[ct] = {
-            "total_purchased": total,
+            "total_purchased": total_purchased,
             "total_issued_out": issued,
             "total_sold": sold,
-            "available": max(0, total - issued - sold)
+            "available": max(0, available)
         }
 
     if crate_type:
@@ -15548,12 +15558,19 @@ def save_crate_type(
 
 @frappe.whitelist(allow_guest=False)
 def delete_crate_type(crate_id: str) -> dict:
-    """Delete a crate type (only if no stock entries exist)."""
+    """Soft delete a crate type if there is no available stock and no outstanding issues."""
     try:
-        has_stock = frappe.db.exists("Mandi Crate Inventory Entry", {"crate_type": crate_id})
-        if has_stock:
-            return {"success": False, "error": "Cannot delete — stock entries exist for this crate type."}
-        frappe.delete_doc("Mandi Crate Type", crate_id, ignore_permissions=True)
+        org_id = frappe.db.get_value("Mandi Crate Type", crate_id, "organization_id")
+        stock_data = _get_crate_stock_balance(org_id, crate_id)
+        
+        if stock_data.get("available", 0) > 0:
+            return {"success": False, "error": f"Cannot delete — you still have {stock_data.get('available')} available in stock."}
+            
+        if stock_data.get("total_issued_out", 0) > 0:
+            return {"success": False, "error": f"Cannot delete — there are {stock_data.get('total_issued_out')} crates yet to receive."}
+
+        # Instead of hard delete which fails on linked historical data, soft-delete it
+        frappe.db.set_value("Mandi Crate Type", crate_id, "is_active", 0)
         frappe.db.commit()
         return {"success": True}
     except Exception as e:
@@ -15699,6 +15716,11 @@ def create_crate_issue(
             rate = float(item.get("rate") or 0)
             if not ct or qty <= 0:
                 continue
+
+            stock_data = _get_crate_stock_balance(org_id, ct)
+            available = stock_data.get("available", 0)
+            if qty > available:
+                return {"success": False, "error": f"Cannot give {qty} of '{ct}'. Only {available} available in stock."}
 
             # Auto-create crate type if missing
             if not frappe.db.exists("Mandi Crate Type", ct):
@@ -15851,31 +15873,38 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             from erpnext.accounts.party import get_party_account
             party_account = get_party_account(party_type, erp_party, company)
             crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
-            if party_account and crate_income_account:
-                je = frappe.get_doc({
-                    "doctype": "Journal Entry",
-                    "voucher_type": "Journal Entry",
-                    "posting_date": frappe.utils.today(),
-                    "company": company,
-                    "user_remark": f"Crate charge for {doc.party_name}: {'; '.join(je_remarks)}",
-                    "accounts": [
-                        {
-                            "account": party_account,
-                            "party_type": party_type,
-                            "party": erp_party,
-                            "debit_in_account_currency": total_charge,
-                            "credit_in_account_currency": 0
-                        },
-                        {
-                            "account": crate_income_account,
-                            "debit_in_account_currency": 0,
-                            "credit_in_account_currency": total_charge
-                        }
-                    ]
-                })
-                je.insert(ignore_permissions=True)
-                je.submit()
-                je_name = je.name
+            
+            if not party_account:
+                return {"success": False, "error": f"No default account set for {party_type} {erp_party} in company {company}."}
+            if not crate_income_account:
+                return {"success": False, "error": "Crate Income Account is not set in Mandi Settings."}
+                
+            je = frappe.get_doc({
+                "doctype": "Journal Entry",
+                "voucher_type": "Journal Entry",
+                "posting_date": frappe.utils.today(),
+                "company": company,
+                "user_remark": f"Crate charge for {doc.party_name}: {'; '.join(je_remarks)}",
+                "accounts": [
+                    {
+                        "account": party_account,
+                        "party_type": party_type,
+                        "party": erp_party,
+                        "debit_in_account_currency": total_charge,
+                        "credit_in_account_currency": 0
+                    },
+                    {
+                        "account": crate_income_account,
+                        "debit_in_account_currency": 0,
+                        "credit_in_account_currency": total_charge
+                    }
+                ]
+            })
+            je.insert(ignore_permissions=True)
+            je.submit()
+            je_name = je.name
+        else:
+            return {"success": False, "error": "Cannot charge to ledger: Party is not linked to ERPNext Customer or Supplier."}
 
         doc.status = "Closed"
         doc.charge_to_ledger = 1
@@ -15887,7 +15916,7 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             "success": True,
             "total_charged": total_charge,
             "je_name": je_name,
-            "message": f"₹{total_charge:,.2f} charged to {doc.party_name}'s ledger." if je_name else f"Issue closed. GL entry skipped (no ERP party linked)."
+            "message": f"₹{total_charge:,.2f} charged to {doc.party_name}'s ledger."
         }
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "charge_crate_to_ledger_v2 Failed")
