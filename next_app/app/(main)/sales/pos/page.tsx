@@ -596,7 +596,6 @@ export default function POSPage() {
                 cgst_amount: taxSettings.gst_type === 'intra' && taxSettings.gst_enabled ? Math.round((taxableSubTotal * taxSettings.cgst_percent) / 100) : 0,
                 sgst_amount: taxSettings.gst_type === 'intra' && taxSettings.gst_enabled ? Math.round((taxableSubTotal * taxSettings.sgst_percent) / 100) : 0,
                 igst_amount: taxSettings.gst_type === 'inter' && taxSettings.gst_enabled ? globalGstAmount : 0,
-                other_expenses: extraChargesTotal,
                 additional_charges: additionalCharges,
                 bank_account_id: selectedAccountId || null,
                 cheque_no: paymentMode === 'Cheque' ? chequeDetails.no : null,
