@@ -62,6 +62,13 @@ const formSchema = z.object({
         is_igst: z.boolean().default(false),
         discount_percent: z.coerce.number().min(0).max(100).default(0),
         discount_amount: z.coerce.number().min(0).default(0),
+        cratesEnabled: z.boolean().default(false).optional(),
+        crateCart: z.array(z.object({
+            crate_type: z.string(),
+            crate_name: z.string(),
+            qty: z.coerce.number(),
+            rate: z.coerce.number()
+        })).optional()
     })).min(1, "Add at least one buyer"),
 });
 
@@ -82,6 +89,7 @@ export function BulkLotSaleForm() {
     const [taxSettings, setTaxSettings] = useState({ market_fee_percent: 0.0, nirashrit_percent: 0.0, misc_fee_percent: 0.0, default_credit_days: 0, state_code: null as string | null });
     const [priceHistory, setPriceHistory] = useState<Record<string, Record<string, number>>>({}); // buyer_id -> { item_id -> price }
     const [buyerWarnings, setBuyerWarnings] = useState<Record<string, { overLimit: boolean; balance: number }>>({});
+    const [crateTypes, setCrateTypes] = useState<any[]>([]);
 
     const fetchPriceHistory = async (buyerId: string) => {
         if (priceHistory[buyerId]) return;
@@ -157,7 +165,9 @@ export function BulkLotSaleForm() {
                 igst_amount: 0,
                 is_igst: false,
                 discount_percent: 0,
-                discount_amount: 0
+                discount_amount: 0,
+                cratesEnabled: false,
+                crateCart: []
             }]
         }
     });
@@ -220,6 +230,11 @@ export function BulkLotSaleForm() {
                     state_code: sData.state_code || null
                 });
             }
+            
+            try {
+                const crateRes = await callApi('mandigrow.api.get_crate_master_data');
+                if (crateRes?.crate_types) setCrateTypes(crateRes.crate_types);
+            } catch (e) { /* non-fatal */ }
         };
         fetchMasters();
     }, [profile]);
@@ -256,7 +271,8 @@ export function BulkLotSaleForm() {
             
             const subtotal = qty * rate;
             const discount = Number(dist.discount_amount) || 0;
-            const taxableSubtotal = Math.max(0, subtotal - discount);
+            const crateTotal = (dist.cratesEnabled && dist.crateCart) ? dist.crateCart.reduce((sum: number, c: any) => sum + (c.qty * c.rate), 0) : 0;
+            const taxableSubtotal = Math.max(0, subtotal - discount) + crateTotal;
 
             const mf = Math.round(taxableSubtotal * (taxSettings.market_fee_percent / 100));
             const nr = Math.round(taxableSubtotal * (taxSettings.nirashrit_percent / 100));
@@ -401,7 +417,8 @@ export function BulkLotSaleForm() {
                     // New meta fields
                     placeOfSupply: dist.is_igst ? (buyerInfo?.state_code || null) : (taxSettings.state_code || null),
                     buyerGstin: buyerInfo?.gstin || null,
-                    isIgst: !!dist.is_igst
+                    isIgst: !!dist.is_igst,
+                    crate_items: (dist.cratesEnabled && dist.crateCart?.length > 0) ? dist.crateCart : []
                 };
 
                 const { error } = await confirmSaleTransactionWithFallback(params as any);
