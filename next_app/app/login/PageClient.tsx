@@ -364,11 +364,46 @@ export default function LoginClient() {
     }
 
     const handleRequestPasswordReset = async () => {
-        throw new Error('Password reset not implemented yet. Please contact support.');
+        if (!identifier.trim()) throw new Error('Please enter your email or username.');
+        try {
+            setLoading(true);
+            await callApi('mandigrow.api.send_reset_password_otp', { identifier: identifier.trim() });
+            setActualEmail(identifier.trim());
+            setAuthStep('otp');
+            startResendCooldown();
+        } catch (error: any) {
+            console.error('Send OTP error:', error);
+            setError(error.message || 'Failed to send OTP.');
+        } finally {
+            setLoading(false);
+        }
     }
 
     const handleUpdatePassword = async () => {
-        throw new Error('Update password not implemented yet.');
+        if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
+        if (password !== confirmPassword) throw new Error('Passwords do not match.');
+        
+        try {
+            setLoading(true);
+            await callApi('mandigrow.api.reset_password_with_otp', {
+                identifier: actualEmail,
+                otp: otpValue,
+                new_password: password
+            });
+            logDebug('Password reset successfully! Switch to login...')
+            setMode('login');
+            setAuthStep('info');
+            setOtpValue('');
+            setPassword('');
+            setConfirmPassword('');
+            setIdentifier('');
+            setError(null);
+        } catch (error: any) {
+            console.error('Update password error:', error);
+            setError(error.message || 'Failed to update password.');
+        } finally {
+            setLoading(false);
+        }
     }
 
     const handleVerifyOtp = async () => {
@@ -391,6 +426,8 @@ export default function LoginClient() {
                 
                 logDebug('Signup successful! Auto-logging in...')
                 await handleLogin();
+            } else if (mode === 'forgot_password') {
+                setAuthStep('reset');
             } else {
                 throw new Error('OTP verification not implemented for this mode.');
             }

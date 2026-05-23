@@ -454,91 +454,8 @@ export default function FieldSettingsPage() {
                                     Storage
                                 </TabsTrigger>
                             )}
-                            <TabsTrigger value="fields"
-                                className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                                Field Logic
-                            </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="fields" className="mt-6 space-y-8">
-                            {configs.length === 0 ? (
-                                <div className="p-10 text-center bg-white rounded-3xl border-2 border-dashed border-slate-100 mt-10">
-                                    <Terminal className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">No fields configured</p>
-                                    <Button onClick={handleReset} size="sm" className="mt-4 bg-emerald-600">Restore Defaults</Button>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Mobile Logic: Module by Module */}
-                                    {['arrivals_direct', 'arrivals_farmer', 'arrivals_supplier', 'sales', 'gate_entry', 'expenses', ...otherModules].map(module => {
-                                        const moduleConfigs = configs.filter(c => c.module_id === module);
-                                        if (moduleConfigs.length === 0) return null;
-
-                                        return (
-                                            <div key={module} className="space-y-4">
-                                                <NativeSectionLabel>
-                                                    {module.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                                                </NativeSectionLabel>
-                                                <div className="space-y-4">
-                                                    {moduleConfigs.map(config => (
-                                                        <NativeCard key={config.id} className="p-4 space-y-4">
-                                                            <div className="flex items-start justify-between">
-                                                                <div className="min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <p className="font-bold text-sm text-slate-900 leading-tight">{config.label}</p>
-                                                                        {config.is_default ? (
-                                                                            <span className="text-[8px] font-black uppercase bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">System</span>
-                                                                        ) : (
-                                                                            <span className="text-[8px] font-black uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Custom</span>
-                                                                        )}
-                                                                    </div>
-                                                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">{config.field_key}</p>
-                                                                </div>
-                                                                {!config.is_default && (
-                                                                    <button onClick={() => removeField(config.id)} className="p-1.5 text-slate-300 hover:text-red-500">
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                    </button>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-4">
-                                                                <div className="space-y-2">
-                                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Visible</p>
-                                                                    <div className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-xl">
-                                                                        {config.is_visible ? <Eye className="w-3.5 h-3.5 text-emerald-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-300" />}
-                                                                        <Switch checked={config.is_visible} onCheckedChange={() => toggleField(config.id, 'is_visible')} className="scale-75" />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mandatory</p>
-                                                                    <div className={cn(
-                                                                        "flex items-center justify-between px-3 py-2 rounded-xl",
-                                                                        config.is_visible ? "bg-slate-50 text-slate-900" : "bg-slate-50/50 text-slate-300"
-                                                                    )}>
-                                                                        <Lock className={cn("w-3.5 h-3.5", config.is_mandatory ? "text-amber-500" : "opacity-20")} />
-                                                                        <Switch disabled={!config.is_visible} checked={config.is_mandatory} onCheckedChange={() => toggleField(config.id, 'is_mandatory')} className="scale-75" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Default Value</p>
-                                                                <Input 
-                                                                    value={config.default_value || ''} 
-                                                                    onChange={(e) => updateDefaultValue(config.id, e.target.value)}
-                                                                    placeholder="Constant value (optional)" 
-                                                                    className="h-10 text-xs bg-slate-50 border-none rounded-xl" 
-                                                                />
-                                                            </div>
-                                                        </NativeCard>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </>
-                            )}
-                        </TabsContent>
 
                         <TabsContent value="storage" className="mt-6 space-y-6 px-0.5">
                              <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 mb-4">
@@ -630,51 +547,9 @@ export default function FieldSettingsPage() {
                             Storage Points
                         </TabsTrigger>
                     )}
-                    <TabsTrigger value="fields"
-                        className="rounded-2xl px-10 font-bold uppercase tracking-widest text-[11px] data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
-                        Field Logic
-                    </TabsTrigger>
                 </TabsList>
  
                 {/* ─── FIELD LOGIC TAB ─── */}
-                <TabsContent value="fields" className="space-y-12">
-                    {configs.length === 0 ? (
-                        <div className="p-20 text-center border border-dashed border-slate-200 rounded-[40px] bg-slate-50/50">
-                            <Terminal className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                            <h3 className="text-slate-900 font-bold uppercase tracking-widest text-sm">No Fields Found</h3>
-                            <p className="text-slate-500 text-xs mt-2 font-medium max-w-sm mx-auto">
-                                System fields may have been removed. Click <strong>"Restore Defaults"</strong> to recover all standard fields from the master template.
-                            </p>
-                            <Button onClick={handleReset} disabled={loading}
-                                className="mt-6 bg-emerald-600 text-white font-black uppercase h-12 px-8 rounded-2xl">
-                                <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-                                Restore System Defaults
-                            </Button>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Arrivals section */}
-                            <section className="space-y-6">
-                                <h2 className="text-xl font-black text-slate-800 uppercase tracking-[0.2em] flex items-center gap-3">
-                                    <span className="w-2 h-8 bg-emerald-600 rounded-full" /> Arrivals Module
-                                </h2>
-                                <Tabs defaultValue="arrivals_direct" className="w-full">
-                                    <TabsList className="bg-slate-100 border border-slate-200 p-1 rounded-2xl h-12 mb-4 w-full md:w-auto">
-                                        {[
-                                            ['arrivals_direct', 'Direct Purchase'],
-                                            ['arrivals_farmer', 'Farmer Commission'],
-                                            ['arrivals_supplier', 'Supplier Commission']
-                                        ].map(([val, label]) => (
-                                            <TabsTrigger key={val} value={val}
-                                                className="rounded-xl px-6 font-bold uppercase text-[9px] tracking-wider data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                                                {label}
-                                            </TabsTrigger>
-                                        ))}
-                                    </TabsList>
-                                    {ARRIVAL_TYPES.map(m => (
-                                        <TabsContent key={m} value={m} className="mt-0">
-                                            {renderModuleTable(m)}
-                                        </TabsContent>
                                     ))}
                                 </Tabs>
                             </section>

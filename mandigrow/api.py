@@ -1227,6 +1227,116 @@ def send_signup_otp(email: str, full_name: str) -> dict:
 
 
 @frappe.whitelist(allow_guest=True)
+def send_reset_password_otp(identifier: str) -> dict:
+    if not identifier:
+        frappe.throw(_("Email or username is required"))
+    
+    # Resolve username to email
+    email = resolve_user_for_login(identifier.strip())
+    
+    if not frappe.db.exists("User", email):
+        frappe.throw(_("No account found with this email or username"))
+        
+    full_name = frappe.db.get_value("User", email, "full_name") or "User"
+    
+    import random
+    otp = str(random.randint(100000, 999999))
+    
+    # Store OTP in cache for 15 minutes
+    frappe.cache().set_value(f"reset_otp_{email}", otp, expires_in_sec=900)
+    
+    # Send OTP via DIRECT SMTP to Brevo (bypasses Frappe Cloud email interception)
+    subject = "Your MandiGrow Password Reset OTP"
+    html_body = (
+        f"<div style='font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;'>"
+        f"<h2 style='color:#047857;'>Password Reset Request, {full_name}!</h2>"
+        f"<p>Use this OTP to reset your password:</p>"
+        f"<div style='background:#f0fdf4;border:2px solid #047857;padding:20px;"
+        f"border-radius:10px;text-align:center;margin:20px 0;'>"
+        f"<h1 style='letter-spacing:12px;color:#047857;font-size:40px;margin:0;'>{otp}</h1>"
+        f"</div>"
+        f"<p style='color:#6b7280;font-size:14px;'>This OTP is valid for <strong>15 minutes</strong>. Do not share it.</p>"
+        f"</div>"
+    )
+
+    try:
+        import smtplib
+        import ssl
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from frappe.utils.password import get_decrypted_password
+
+        acct = frappe.db.get_value(
+            "Email Account",
+            {"enable_outgoing": 1, "default_outgoing": 1},
+            ["name", "email_id", "smtp_server", "smtp_port", "login_id", "use_tls"],
+            as_dict=True
+        )
+        if not acct:
+            frappe.throw(_("Outgoing email not configured. Please contact support."))
+
+        smtp_pw = get_decrypted_password("Email Account", acct["name"], "password") or ""
+        if not smtp_pw:
+            frappe.throw(_("SMTP password not configured. Please contact support."))
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = "MandiGrow <" + acct["email_id"] + ">"
+        msg["To"] = email
+        msg.attach(MIMEText(html_body, "html"))
+
+        smtp_host = str(acct.get("smtp_server") or "smtp-relay.brevo.com")
+        smtp_port = int(acct.get("smtp_port") or 587)
+        smtp_login = str(acct.get("login_id") or acct["email_id"])
+        ctx = ssl.create_default_context()
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as srv:
+            srv.ehlo()
+            if acct.get("use_tls"):
+                srv.starttls(context=ctx)
+            srv.login(smtp_login, smtp_pw)
+            srv.sendmail(acct["email_id"], [email], msg.as_string())
+
+        frappe.logger().info(f"[send_reset_password_otp] OTP sent via Brevo to {email}")
+
+    except smtplib.SMTPAuthenticationError as e:
+        frappe.cache().delete_value(f"reset_otp_{email}")
+        frappe.log_error(f"SMTP Auth failed for OTP: {e}", "send_reset_password_otp")
+        frappe.throw(_("Email delivery failed: SMTP authentication error."))
+    except smtplib.SMTPException as e:
+        frappe.cache().delete_value(f"reset_otp_{email}")
+        frappe.log_error(f"SMTP error sending OTP: {e}", "send_reset_password_otp")
+        frappe.throw(_("Email delivery failed. Please try again."))
+    except Exception as e:
+        frappe.cache().delete_value(f"reset_otp_{email}")
+        frappe.log_error(f"OTP send failed to {email}: {e}", "send_reset_password_otp")
+        frappe.throw(_("Failed to send OTP. Please try again."))
+
+    return {"status": "success", "message": "OTP sent to email"}
+
+
+@frappe.whitelist(allow_guest=True)
+def reset_password_with_otp(identifier: str, otp: str, new_password: str) -> dict:
+    if not identifier or not otp or not new_password:
+        frappe.throw(_("Missing required fields"))
+        
+    email = resolve_user_for_login(identifier.strip())
+    if not frappe.db.exists("User", email):
+        frappe.throw(_("User not found"))
+        
+    cached_otp = frappe.cache().get_value(f"reset_otp_{email}")
+    if not cached_otp or str(cached_otp) != str(otp):
+        frappe.throw(_("Invalid or expired OTP. Please request a new one."))
+        
+    frappe.cache().delete_value(f"reset_otp_{email}")
+    
+    from frappe.utils.password import update_password
+    update_password(email, new_password)
+    
+    return {"status": "success", "message": "Password reset successfully"}
+
+
+@frappe.whitelist(allow_guest=True)
 def test_email_config() -> dict:
     """
     DIAGNOSTIC: Tests if Frappe outgoing email is configured and working.
