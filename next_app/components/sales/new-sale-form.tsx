@@ -291,7 +291,8 @@ function NewSaleForm() {
             discountAmount,
         });
 
-        const gTotal = totals.grandTotal;
+        const crateTotalAmt = cratesEnabled ? crateCart.reduce((s, c) => s + (c.qty * c.rate), 0) : 0;
+        const gTotal = totals.grandTotal + crateTotalAmt;
 
         if (pMode === 'credit') {
             setAmountPaid(0);
@@ -299,7 +300,7 @@ function NewSaleForm() {
         } else if (!amountPaidManuallyEdited.current) {
             setAmountPaid(gTotal);
         }
-    }, [form.watch('payment_mode'), JSON.stringify(form.watch('sale_items')), form.watch('loading_charges'), form.watch('unloading_charges'), form.watch('other_expenses'), form.watch('discount_amount'), taxSettings, items, orgStateCode, selectedBuyerInfo?.state_code]);
+    }, [form.watch('payment_mode'), JSON.stringify(form.watch('sale_items')), form.watch('loading_charges'), form.watch('unloading_charges'), form.watch('other_expenses'), form.watch('discount_amount'), taxSettings, items, orgStateCode, selectedBuyerInfo?.state_code, cratesEnabled, JSON.stringify(crateCart)]);
 
     const fetchMasters = async () => {
         const orgId = profile?.organization_id;
@@ -1864,7 +1865,7 @@ function NewSaleForm() {
                                                         <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
                                                             <div className="flex justify-between items-center">
                                                                 <Label className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Amount Received</Label>
-                                                                {amountPaid < totals.grandTotal && (
+                                                                {amountPaid < finalNetTotal && (
                                                                     <span className="text-[8px] font-bold text-yellow-500 uppercase tracking-tight bg-yellow-500/10 px-2 py-0.5 rounded-full">Partial</span>
                                                                 )}
                                                             </div>
@@ -1876,8 +1877,8 @@ function NewSaleForm() {
                                                                     onChange={e => {
                                                                         const val = parseFloat(e.target.value) || 0;
                                                                         amountPaidManuallyEdited.current = true;
-                                                                        if (val > totals.grandTotal) {
-                                                                            setAmountPaid(totals.grandTotal);
+                                                                        if (val > finalNetTotal) {
+                                                                            setAmountPaid(finalNetTotal);
                                                                             toast({ title: "Amount Capped", description: "Received amount cannot exceed invoice total.", variant: "default" });
                                                                         } else {
                                                                             setAmountPaid(val);
@@ -1886,9 +1887,9 @@ function NewSaleForm() {
                                                                     className="pl-8 bg-white border-slate-200 h-10 text-lg font-black text-slate-900 focus:border-indigo-500 rounded-xl shadow-sm"
                                                                 />
                                                             </div>
-                                                            {amountPaid < totals.grandTotal && amountPaid > 0 && (
+                                                            {amountPaid < finalNetTotal && amountPaid > 0 && (
                                                                 <div className="text-[9px] font-bold text-yellow-500/80 italic leading-tight">
-                                                                    ₹{(totals.grandTotal - amountPaid).toLocaleString()} will be recorded as Udhaar.
+                                                                    ₹{(finalNetTotal - amountPaid).toLocaleString()} will be recorded as Udhaar.
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1954,6 +1955,9 @@ function NewSaleForm() {
                                     otherExpenses: pendingValues?.other_expenses,
                                     discountAmount: Number(pendingValues?.discount_amount) || 0,
                                 });
+
+                                const pendingCrateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + (c.qty * c.rate), 0) : 0;
+                                const dialogFinalNetTotal = totals.grandTotal + pendingCrateTotal;
 
                                 const isChequeCleared = pendingValues?.payment_mode === 'cheque' ? !!pendingValues?.cheque_status : true;
                                 const effectiveAmountPaid = isChequeCleared ? amountPaid : 0;
@@ -2025,7 +2029,7 @@ function NewSaleForm() {
                                                     </div>
                                                     <div className="flex justify-between items-center pt-1">
                                                         <span className="text-[10px] font-black text-indigo-600 uppercase">Total Payable</span>
-                                                        <span className="font-[1000] text-indigo-600 text-sm italic tracking-tighter">₹{totals.grandTotal.toLocaleString()}</span>
+                                                        <span className="font-[1000] text-indigo-600 text-sm italic tracking-tighter">₹{dialogFinalNetTotal.toLocaleString()}</span>
                                                     </div>
                                                 </div>
 
@@ -2054,12 +2058,12 @@ function NewSaleForm() {
                                                                 )}>₹{amountPaid.toLocaleString()}</div>
                                                             </div>
                                                         </div>
-                                                        {(totals.grandTotal - effectiveAmountPaid > 0) && (
+                                                        {(dialogFinalNetTotal - effectiveAmountPaid > 0) && (
                                                             <div className="text-right">
                                                                 <div className="text-[9px] font-black text-amber-600 uppercase tracking-widest">
                                                                     {isChequeCleared ? "Remaining Udhaar" : "Total Outstanding"}
                                                                 </div>
-                                                                <div className="text-sm font-black text-amber-700 tracking-tighter">₹{(totals.grandTotal - effectiveAmountPaid).toLocaleString()}</div>
+                                                                <div className="text-sm font-black text-amber-700 tracking-tighter">₹{(dialogFinalNetTotal - effectiveAmountPaid).toLocaleString()}</div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -2071,7 +2075,7 @@ function NewSaleForm() {
                                                     <div className="flex flex-col">
                                                         <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Final Invoice Total</span>
                                                         <div className="text-4xl font-black italic tracking-tighter">
-                                                            ₹{totals.grandTotal.toLocaleString()}
+                                                            ₹{dialogFinalNetTotal.toLocaleString()}
                                                         </div>
                                                     </div>
                                                     <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md">
