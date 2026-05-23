@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { callApi } from '@/lib/frappeClient';
-import { Loader2, Info, Check, Zap, TrendingUp, Building2, Star } from 'lucide-react';
+import { Loader2, Info, Check, Zap, TrendingUp, Building2, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PlansGridProps {
@@ -114,7 +114,7 @@ export function PlansGrid({ isSubscribePage = false }: PlansGridProps) {
                                     : 'bg-emerald-100 text-emerald-700'
                             )}
                         >
-                            SAVE ~20%
+                            SAVE 2 MONTHS
                         </span>
                     </button>
                 </div>
@@ -220,17 +220,24 @@ export function PlansGrid({ isSubscribePage = false }: PlansGridProps) {
                             {/* Feature list — grows to fill remaining space */}
                             <ul className="space-y-3 flex-1">
                                 {features.length > 0 ? (
-                                    features.map((feat: string, index: number) => (
-                                        <li key={index} className={cn('flex items-start gap-3 text-sm', highlight ? 'text-emerald-100' : 'text-gray-700')}>
+                                    features.map((feat: string, index: number) => {
+                                        const isMissing = feat.trim().startsWith('-');
+                                        const cleanFeat = isMissing ? feat.replace(/^-+\s*/, '') : feat;
+                                        return (
+                                        <li key={index} className={cn('flex items-start gap-3 text-sm', 
+                                            isMissing ? 'opacity-50 line-through' : '',
+                                            highlight ? 'text-emerald-100' : 'text-gray-700'
+                                        )}>
                                             <span className={cn(
                                                 'flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5',
+                                                isMissing ? 'bg-gray-100 text-gray-400' : 
                                                 highlight ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-700'
                                             )}>
-                                                <Check className="w-3 h-3" strokeWidth={3} />
+                                                {isMissing ? <X className="w-3 h-3" strokeWidth={3} /> : <Check className="w-3 h-3" strokeWidth={3} />}
                                             </span>
-                                            <span className="leading-snug">{feat}</span>
+                                            <span className="leading-snug">{cleanFeat}</span>
                                         </li>
-                                    ))
+                                    )})
                                 ) : (
                                     <li className={cn('text-xs italic', highlight ? 'text-emerald-400' : 'text-gray-400')}>
                                         Feature list coming soon.
