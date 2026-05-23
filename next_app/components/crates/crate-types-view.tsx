@@ -428,41 +428,41 @@ export function CrateTypesView() {
                         <div>
                             <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Crate Type *</Label>
                             <select
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Add Crate Stock</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Crate Type</Label>
-                            <select
-                                className="w-full h-10 px-3 rounded-md border border-slate-200"
                                 value={stockForm.crate_type}
-                                onChange={e => setStockForm({ ...stockForm, crate_type: e.target.value })}
+                                onChange={e => {
+                                    const ct = crateTypes.find(c => c.id === e.target.value)
+                                    setStockForm(f => ({ ...f, crate_type: e.target.value, purchase_rate: ct ? String(ct.purchase_rate) : '' }))
+                                }}
+                                className="mt-1.5 w-full h-11 rounded-xl border border-slate-200 px-3 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                             >
-                                <option value="">Select Crate Type</option>
+                                <option value="">Select crate type...</option>
                                 {crateTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Quantity</Label>
-                                <Input type="number" placeholder="0" value={stockForm.qty} onChange={e => setStockForm({ ...stockForm, qty: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Purchase Rate</Label>
-                                <Input type="number" placeholder="0" value={stockForm.purchase_rate} onChange={e => setStockForm({ ...stockForm, purchase_rate: e.target.value })} />
-                            </div>
+                        <div>
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Quantity *</Label>
+                            <Input
+                                type="number"
+                                placeholder="e.g. 100"
+                                value={stockForm.qty}
+                                onChange={e => setStockForm(f => ({ ...f, qty: e.target.value }))}
+                                className="mt-1.5 h-11 rounded-xl border-slate-200 font-bold"
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label>Notes / Reference (Optional)</Label>
-                            <Input placeholder="Invoice No, Supplier Name, etc." value={stockForm.notes} onChange={e => setStockForm({ ...stockForm, notes: e.target.value })} />
+                        <div>
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Notes (optional)</Label>
+                            <Input
+                                placeholder="e.g. Purchased from XYZ supplier"
+                                value={stockForm.notes}
+                                onChange={e => setStockForm(f => ({ ...f, notes: e.target.value }))}
+                                className="mt-1.5 h-11 rounded-xl border-slate-200"
+                            />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowStockModal(false)}>Cancel</Button>
-                        <Button onClick={handleAddStock} disabled={stockSaving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                            {stockSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setShowStockModal(false)} className="rounded-xl">Cancel</Button>
+                        <Button onClick={handleAddStock} disabled={stockSaving} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black gap-2">
+                            {stockSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                             Add Stock
                         </Button>
                     </DialogFooter>
