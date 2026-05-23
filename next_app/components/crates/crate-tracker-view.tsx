@@ -354,7 +354,10 @@ export function CrateTrackerView() {
                                         onChange={e => {
                                             const ct = crateTypes.find(c => c.id === e.target.value)
                                             updateGiveItem(i, 'crate_type', e.target.value)
-                                            if (ct) updateGiveItem(i, 'rate', String(ct.sale_rate || ct.purchase_rate || ''))
+                                            if (ct) {
+                                                const defaultRate = ct.sale_rate !== undefined && ct.sale_rate !== 0 ? ct.sale_rate : (ct.purchase_rate !== undefined ? ct.purchase_rate : '')
+                                                updateGiveItem(i, 'rate', String(defaultRate))
+                                            }
                                         }}
                                         className="flex-1 h-10 rounded-xl border border-slate-200 px-3 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
