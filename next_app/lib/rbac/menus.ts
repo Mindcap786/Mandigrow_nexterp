@@ -32,7 +32,6 @@ export const NAV_ITEMS: MenuItem[] = [
             { tKey: 'nav.gate_entry', href: ROUTES.GATE, icon: Gavel },
             { tKey: 'nav.arrivals', href: ROUTES.ARRIVALS, icon: Truck },
             { tKey: 'nav.purchase_bills', href: ROUTES.PURCHASE_BILLS, icon: Receipt },
-            { tKey: 'nav.crate_tracker', href: ROUTES.CRATE_TRACKER, icon: Package },
         ]
     },
     {

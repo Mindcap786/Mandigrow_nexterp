@@ -28,7 +28,7 @@ interface IssueRow {
     is_overdue: boolean; outstanding_value: number; charge_to_ledger: boolean
 }
 
-export default function CrateIssuePage() {
+export function CrateTrackerView() {
     const { profile } = useAuth()
     const [tab, setTab] = useState<Tab>('give')
     const [crateTypes, setCrateTypes] = useState<CrateType[]>([])
@@ -220,24 +220,8 @@ export default function CrateIssuePage() {
     ]
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-emerald-50/10 p-4 md:p-6">
+        <div className="space-y-6">
             <Toaster richColors position="top-center" />
-
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                    <Package className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                    <h1 className="text-2xl font-black text-slate-900">Crate Tracker</h1>
-                    <p className="text-slate-500 text-sm">Issue, receive, and charge crates to parties</p>
-                </div>
-                <button onClick={fetchAll} className="ml-auto p-2 rounded-xl hover:bg-slate-100 text-slate-500" title="Refresh">
-                    <RefreshCw className={cn('w-5 h-5', loading && 'animate-spin')} />
-                </button>
-            </div>
-
-            {/* Summary Bar */}
             <div className="grid grid-cols-3 gap-3 mb-6">
                 {[
                     { label: 'Open Issues', value: summary.open_issues || 0, color: 'text-blue-700', bg: 'bg-blue-50' },
@@ -252,7 +236,7 @@ export default function CrateIssuePage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto">
+            <div className="flex items-center gap-2 mb-6">
                 {TABS.map(t => (
                     <button
                         key={t.id}
