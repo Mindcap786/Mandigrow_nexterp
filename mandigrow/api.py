@@ -16254,6 +16254,14 @@ def get_crate_issues_report(org_id: str = None) -> dict:
             ORDER BY i.creation DESC
         """, (org_id,), as_dict=True)
 
+        party_ids = list(set([r["party_id"] for r in issues if r.get("party_id")]))
+        erp_status_map = {}
+        if party_ids:
+            contacts = frappe.db.get_all("Mandi Contact", filters={"name": ("in", party_ids)}, fields=["name", "customer", "supplier"])
+            for c in contacts:
+                is_erp = bool(c.get("customer") or c.get("supplier") or frappe.db.exists("Customer", c["name"]) or frappe.db.exists("Supplier", c["name"]))
+                erp_status_map[c["name"]] = is_erp
+
         # Enrich with overdue flag and value
         result = []
         for row in issues:
@@ -16267,6 +16275,7 @@ def get_crate_issues_report(org_id: str = None) -> dict:
                 **{k: row[k] for k in row},
                 "is_overdue": is_overdue,
                 "outstanding_value": val,
+                "is_erp_registered": erp_status_map.get(row.get("party_id"), False)
             })
 
         # Summary totals

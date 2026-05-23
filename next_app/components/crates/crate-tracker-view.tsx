@@ -25,7 +25,7 @@ interface IssueRow {
     issue_id: string; issue_date: string; party_id: string; party_name: string; party_type: string
     expected_return_date: string | null; status: string; row_name: string; crate_type: string
     qty_issued: number; qty_returned: number; qty_balance: number; rate: number
-    is_overdue: boolean; outstanding_value: number; charge_to_ledger: boolean
+    is_overdue: boolean; outstanding_value: number; charge_to_ledger: boolean; is_erp_registered?: boolean
 }
 
 export function CrateTrackerView() {
@@ -235,7 +235,7 @@ export function CrateTrackerView() {
         const totalBalance = rows.reduce((s, r) => s + r.qty_balance, 0)
         const totalValue = rows.reduce((s, r) => s + r.outstanding_value, 0)
         const hasOverdue = rows.some(r => r.is_overdue)
-        return { id, party_name: first?.party_name, party_type: first?.party_type, issue_date: first?.issue_date, expected_return_date: first?.expected_return_date, status: first?.status, rows, totalBalance, totalValue, hasOverdue }
+        return { id, party_name: first?.party_name, party_type: first?.party_type, issue_date: first?.issue_date, expected_return_date: first?.expected_return_date, status: first?.status, rows, totalBalance, totalValue, hasOverdue, is_erp_registered: first?.is_erp_registered }
     }).filter(g => {
         if (searchIssue && !g.party_name?.toLowerCase().includes(searchIssue.toLowerCase())) return false
         if (fromDate) {
@@ -546,9 +546,11 @@ export function CrateTrackerView() {
                                     <Button size="sm" onClick={() => openReceive(group.id)} variant="outline" className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-1.5">
                                         <ArrowDownLeft className="w-3.5 h-3.5" /> Receive Crates
                                     </Button>
+                                    {group.is_erp_registered && (
                                     <Button size="sm" onClick={() => openCharge(group.id)} variant="outline" className="rounded-xl border-red-200 text-red-700 hover:bg-red-50 font-bold gap-1.5">
                                         <IndianRupee className="w-3.5 h-3.5" /> Charge to Ledger
                                     </Button>
+                                    )}
                                 </div>
                             )}
                         </div>

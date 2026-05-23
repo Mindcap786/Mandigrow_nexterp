@@ -58,7 +58,7 @@ export function MandiCommissionForm() {
     const [buyerLoading, setBuyerLoading] = useState<number>(0);
     const [buyerPacking, setBuyerPacking] = useState<number>(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+    const [isCommitting, setIsCommitting] = useState(false);
     const [cratePage, setCratePage] = useState(1);
     const CRATES_PER_PAGE = 10;
 
