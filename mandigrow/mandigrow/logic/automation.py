@@ -735,6 +735,7 @@ def post_sale_ledger(doc, method=None):
         "accounts":     sale_legs
     })
     sale_je.flags.ignore_permissions = True
+    sale_je.flags.ignore_credit_limit = True
     sale_je.insert()
     sale_je.submit()
     primary_je_name = sale_je.name
@@ -760,6 +761,7 @@ def post_sale_ledger(doc, method=None):
             receipt_je.clearance_date = pje_posting_date
         
         receipt_je.flags.ignore_permissions = True
+        receipt_je.flags.ignore_credit_limit = True
         receipt_je.insert()
         
         if is_cleared:

@@ -15900,6 +15900,8 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
                     }
                 ]
             })
+            je.flags.ignore_permissions = True
+            je.flags.ignore_credit_limit = True
             je.insert(ignore_permissions=True)
             je.submit()
             je_name = je.name
