@@ -11661,26 +11661,30 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
         org.is_active = config["is_active"]
         org.status = "active" if config["is_active"] else "suspended"
 
-    if "trial_ends_at" in config and config["trial_ends_at"]:
-        # Strip timezone offset — MySQL datetime columns reject timezone-aware strings
-        # e.g. '2026-10-10 00:00:00+00:00' → '2026-10-10 00:00:00'
-        raw_dt = config["trial_ends_at"]
-        try:
-            import re as _re
-            raw_dt = _re.sub(r'[+-]\d{2}:\d{2}$', '', str(raw_dt)).replace('T', ' ').strip()
-            raw_dt = raw_dt[:19]  # keep YYYY-MM-DD HH:MM:SS only
-        except Exception:
-            pass
-        org.trial_ends_at = get_datetime(raw_dt)
+    if "trial_ends_at" in config:
+        if config["trial_ends_at"]:
+            raw_dt = config["trial_ends_at"]
+            try:
+                import re as _re
+                raw_dt = _re.sub(r'[+-]\d{2}:\d{2}$', '', str(raw_dt)).replace('T', ' ').strip()
+                raw_dt = raw_dt[:19]  # keep YYYY-MM-DD HH:MM:SS only
+            except Exception:
+                pass
+            org.trial_ends_at = get_datetime(raw_dt)
+        else:
+            org.trial_ends_at = None
 
-    if "subscription_end_date" in config and config["subscription_end_date"]:
-        try:
-            raw_end = config["subscription_end_date"]
-            import re as _re2
-            raw_end = _re2.sub(r'[+-]\d{2}:\d{2}$', '', str(raw_end)).replace('T', ' ').strip()[:19]
-            org.subscription_end_date = get_datetime(raw_end)
-        except Exception:
-            pass
+    if "subscription_end_date" in config:
+        if config["subscription_end_date"]:
+            try:
+                raw_end = config["subscription_end_date"]
+                import re as _re2
+                raw_end = _re2.sub(r'[+-]\d{2}:\d{2}$', '', str(raw_end)).replace('T', ' ').strip()[:19]
+                org.subscription_end_date = get_datetime(raw_end)
+            except Exception:
+                pass
+        else:
+            org.subscription_end_date = None
 
     if "grace_period_days" in config:
         # Grace period is now globally controlled — we store it in frappe.db.get_default,
