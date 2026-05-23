@@ -370,33 +370,16 @@ export function CrateTypesView() {
                                 {crateTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Quantity *</Label>
-                                <Input
-                                    type="number"
-                                    placeholder="e.g. 100"
-                                    value={stockForm.qty}
-                                    onChange={e => setStockForm(f => ({ ...f, qty: e.target.value }))}
-                                    className="mt-1.5 h-11 rounded-xl border-slate-200 font-bold"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Purchase Rate (₹)</Label>
-                                <Input
-                                    type="number"
-                                    placeholder="0"
-                                    value={stockForm.purchase_rate}
-                                    onChange={e => setStockForm(f => ({ ...f, purchase_rate: e.target.value }))}
-                                    className="mt-1.5 h-11 rounded-xl border-slate-200 font-bold"
-                                />
-                            </div>
+                        <div>
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Quantity *</Label>
+                            <Input
+                                type="number"
+                                placeholder="e.g. 100"
+                                value={stockForm.qty}
+                                onChange={e => setStockForm(f => ({ ...f, qty: e.target.value }))}
+                                className="mt-1.5 h-11 rounded-xl border-slate-200 font-bold"
+                            />
                         </div>
-                        {stockForm.qty && stockForm.purchase_rate && (
-                            <div className="bg-blue-50 p-3 rounded-xl text-sm font-black text-blue-700 text-center">
-                                Total Purchase Value: ₹{(parseInt(stockForm.qty) * parseFloat(stockForm.purchase_rate)).toLocaleString('en-IN')}
-                            </div>
-                        )}
                         <div>
                             <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Notes (optional)</Label>
                             <Input
