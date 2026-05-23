@@ -16,6 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         // ── Core ─────────────────────────────────────────────────────────────────
         { url: `${BASE_URL}/`,                               lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
         { url: `${BASE_URL}/user-guide`,                     lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
+        { url: `${BASE_URL}/about`,                          lastModified: now, changeFrequency: 'monthly', priority: 0.95 },
+        { url: `${BASE_URL}/best-mandi-software-in-india`,   lastModified: now, changeFrequency: 'monthly', priority: 1.0 },
 
 
         // ── Money pages — commodity/category ──────────────────────────────────────
@@ -43,6 +45,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/auction-management-software`,    lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
         { url: `${BASE_URL}/farmer-payment-management`,      lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
         { url: `${BASE_URL}/inventory-management-mandi`,     lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+        { url: `${BASE_URL}/mandi-crate-management-software`,lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
+        { url: `${BASE_URL}/sabji-crate-management-app`,     lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
 
         // ── State pages ───────────────────────────────────────────────────────────
         { url: `${BASE_URL}/mandi-software-andhra-pradesh`,  lastModified: now, changeFrequency: 'monthly', priority: 0.90 },
@@ -59,6 +63,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE_URL}/mandi-software-nashik`,          lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
         { url: `${BASE_URL}/mandi-software-delhi`,           lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
         { url: `${BASE_URL}/mandi-software-pune`,            lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+        { url: `${BASE_URL}/mandi-software-ahmedabad`,       lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+        { url: `${BASE_URL}/mandi-software-bangalore`,       lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+        { url: `${BASE_URL}/mandi-software-indore`,          lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
 
         // ── Major Local Mandis (High Volume) ──────────────────────────────────────
         { url: `${BASE_URL}/azadpur-mandi-software`,         lastModified: now, changeFrequency: 'monthly', priority: 0.95 },

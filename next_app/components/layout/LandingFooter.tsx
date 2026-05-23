@@ -23,6 +23,7 @@ const FOOTER_COLUMNS = [
             { label: 'Mandi Khata App',    href: '/mandi-khata-software' },
             { label: 'Crate Tracking',     href: '/mandi-crate-management-software' },
             { label: 'Farmer Payments',    href: '/farmer-payment-management' },
+            { label: 'Best Mandi Software in India', href: '/best-mandi-software-in-india' },
         ],
     },
     {
@@ -64,6 +65,11 @@ const FOOTER_COLUMNS = [
             { label: 'Yeshwanthpur',        href: '/yeshwanthpur-mandi-software' },
             { label: 'Bowenpally',          href: '/bowenpally-mandi-software' },
             { label: 'Okhla Mandi',         href: '/okhla-mandi-software' },
+            { label: 'Ahmedabad',           href: '/mandi-software-ahmedabad' },
+            { label: 'Bangalore',           href: '/mandi-software-bangalore' },
+            { label: 'Indore',              href: '/mandi-software-indore' },
+            { label: 'Pune',                href: '/mandi-software-pune' },
+            { label: 'Nashik',              href: '/mandi-software-nashik' },
         ],
     },
     {
@@ -78,6 +84,7 @@ const FOOTER_COLUMNS = [
     {
         heading: 'Company',
         links: [
+            { label: 'About Us',       href: '/about' },
             { label: 'Blog',           href: '/blog' },
             { label: 'FAQ',            href: '/faq' },
             { label: 'Partners',       href: '/partners' },

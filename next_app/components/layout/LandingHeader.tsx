@@ -24,6 +24,7 @@ export function LandingHeader() {
                         <span className="text-xl font-bold tracking-tighter text-gray-900">MandiGrow</span>
                     </Link>
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
+                        <Link href="/about" className="hover:text-emerald-800 transition-colors font-bold">{t('landing.about_us') || 'About Us'}</Link>
                         <Link href="/features" className="hover:text-emerald-800 transition-colors">{t('landing.nav_features')}</Link>
                         <Link href="/#solutions" className="hover:text-emerald-800 transition-colors">{t('landing.nav_solutions')}</Link>
                         <Link href="/subscribe" className="hover:text-emerald-800 transition-colors font-bold text-emerald-800">{t('nav.subscription_billing')}</Link>
