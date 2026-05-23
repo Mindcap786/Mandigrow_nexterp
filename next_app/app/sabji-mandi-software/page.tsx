@@ -142,6 +142,20 @@ export default function SabjiMandiSoftwarePage() {
                     </div>
                 </div>
             </section>
+            {/* SEO Topical Authority Links */}
+            <section className="py-16 px-6 bg-[#0d1f14] text-white">
+                <div className="max-w-5xl mx-auto text-center">
+                    <h2 className="text-2xl md:text-3xl font-black mb-8">Explore the MandiGrow Ecosystem</h2>
+                    <div className="flex flex-wrap justify-center gap-4">
+                        <Link href="/tomato-mandi-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Tomato Mandi Billing</Link>
+                        <Link href="/onion-potato-mandi-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Onion/Potato Trade App</Link>
+                        <Link href="/fruit-mandi-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Fruit Commission Software</Link>
+                        <Link href="/sabji-crate-management-app" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Sabji Crate Tracking App</Link>
+                        <Link href="/digital-mandi-khata-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Digital Sabji Khata</Link>
+                        <Link href="/best-mandi-software-in-india" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Why We Are #1 in India</Link>
+                    </div>
+                </div>
+            </section>
 
             <LandingFooter />
         </main>
