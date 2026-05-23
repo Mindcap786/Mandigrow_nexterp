@@ -15868,7 +15868,10 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             items_to_charge = None
 
         org_info = _get_org_info(org_id)
-        company = org_info.get("company_name")
+        company = org_info.get("erp_company") or org_info.get("company_name") or frappe.db.get_value("Company", {}, "name")
+        # Patch blank erp_company so future calls work instantly
+        if company and not org_info.get("erp_company"):
+            frappe.db.set_value("Mandi Organization", org_id, "erp_company", company, update_modified=False)
 
         # Resolve party account
         contact = None
@@ -15919,8 +15922,8 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
         from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact, get_debtor_acc, get_supplier_acc
         
         if not erp_party:
-            # Fallback to auto-create based on contact type
-            if contact_type == "buyer":
+            # Auto-create ERP party based on contact type — never block the charge
+            if contact_type in ("buyer", "", None):
                 erp_party = ensure_customer_for_contact(doc.party_id, company)
                 party_type = "Customer"
             else:
@@ -15977,7 +15980,8 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             from mandigrow.api import repair_single_party_settlement
             repair_single_party_settlement(contact.name, org_id)
         else:
-            return {"success": False, "error": "Cannot charge to ledger: Party is not linked to ERPNext Customer or Supplier."}
+            frappe.log_error(f"charge_crate_to_ledger_v2: party_type={party_type} erp_party={erp_party} company={company}", "Crate Charge Skipped JE")
+            return {"success": False, "error": f"Could not resolve party account for {doc.party_name}. Check ERPNext company and customer/supplier setup."}
 
         doc.status = "Closed"
         doc.charge_to_ledger = 1
