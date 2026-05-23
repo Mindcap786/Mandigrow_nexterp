@@ -5948,6 +5948,30 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     except Exception:
         pass
 
+    # -- Crate Loss (From Mandi Crate Inventory Entry) --
+    try:
+        crate_loss_query = """
+            SELECT SUM(ABS(quantity) * purchase_rate) as loss
+            FROM `tabMandi Crate Inventory Entry`
+            WHERE organization_id = %s AND quantity < 0 AND notes LIKE '%%Loss:%%'
+        """
+        params_cl = [org_id]
+        if date_from and date_to:
+            crate_loss_query += " AND entry_date BETWEEN %s AND %s"
+            params_cl.extend([date_from, date_to])
+        elif date_from:
+            crate_loss_query += " AND entry_date >= %s"
+            params_cl.append(date_from)
+        elif date_to:
+            crate_loss_query += " AND entry_date <= %s"
+            params_cl.append(date_to)
+            
+        crate_loss_res = frappe.db.sql(crate_loss_query, params_cl, as_dict=True)
+        if crate_loss_res and crate_loss_res[0].loss:
+            total_stock_loss += flt(crate_loss_res[0].loss)
+    except Exception as e:
+        frappe.log_error(str(e), "Crate Loss PNL Error")
+
     # ── Write-off / Settlements (GL-based, buyer write-offs: Discount Allowed) ─
     # These are separate from business expenses — they represent amounts forgiven
     # to buyers (Discount Allowed) or received from suppliers (Discount Received).
@@ -16227,3 +16251,25 @@ def get_crate_issues_report(org_id: str = None) -> dict:
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_crate_issues_report Failed")
         return {"success": False, "error": str(e), "rows": [], "summary": {}}
+
+@frappe.whitelist(allow_guest=False)
+def report_crate_loss(crate_type: str, qty: float, notes: str = None):
+    org_id = _get_user_org()
+    if not crate_type:
+        frappe.throw("Crate type is required.")
+    if not qty or float(qty) <= 0:
+        frappe.throw("Quantity must be greater than zero.")
+    
+    crate_doc = frappe.get_doc("Mandi Crate Type", crate_type)
+    
+    frappe.get_doc({
+        "doctype": "Mandi Crate Inventory Entry",
+        "entry_date": frappe.utils.today(),
+        "crate_type": crate_type,
+        "quantity": -abs(float(qty)),
+        "purchase_rate": crate_doc.purchase_rate,
+        "organization_id": org_id,
+        "notes": f"Loss: {notes}" if notes else "Loss: Reported missing/damaged"
+    }).insert(ignore_permissions=True)
+    
+    return {"status": "success"}

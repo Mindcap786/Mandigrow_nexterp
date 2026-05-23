@@ -41,6 +41,11 @@ export function CrateTypesView() {
     const [showStockModal, setShowStockModal] = useState(false)
     const [stockForm, setStockForm] = useState({ crate_type: '', qty: '', purchase_rate: '', notes: '' })
 
+    // Report Loss modal
+    const [showLossModal, setShowLossModal] = useState(false)
+    const [lossSaving, setLossSaving] = useState(false)
+    const [lossForm, setLossForm] = useState({ crate_type: '', qty: '', notes: '' })
+
     const fetchData = useCallback(async () => {
         if (!profile?.organization_id) return
         setLoading(true)
@@ -145,6 +150,40 @@ export function CrateTypesView() {
             toast.error(e.message)
         } finally {
             setStockSaving(false)
+        }
+    }
+
+    const openLossModal = (c?: CrateType) => {
+        setLossForm({
+            crate_type: c?.id || '',
+            qty: '',
+            notes: ''
+        })
+        setShowLossModal(true)
+    }
+
+    const handleReportLoss = async () => {
+        if (!lossForm.crate_type) { toast.error('Select a crate type'); return }
+        if (!lossForm.qty || parseFloat(lossForm.qty) <= 0) { toast.error('Enter a valid quantity'); return }
+        if (!lossForm.notes.trim()) { toast.error('Please enter a reason for the loss'); return }
+        setLossSaving(true)
+        try {
+            const res = await callApi('mandigrow.api.report_crate_loss', {
+                crate_type: lossForm.crate_type,
+                qty: parseFloat(lossForm.qty),
+                notes: lossForm.notes,
+            })
+            if (res?.status === 'success') {
+                toast.success('Loss reported successfully!')
+                setShowLossModal(false)
+                fetchData()
+            } else {
+                toast.error(res?.error || 'Failed to report loss')
+            }
+        } catch (e: any) {
+            toast.error(e.message)
+        } finally {
+            setLossSaving(false)
         }
     }
 
@@ -263,6 +302,9 @@ export function CrateTypesView() {
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button onClick={() => openStockModal(c)} className="p-2 rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors" title="Add Stock">
                                                         <Archive className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => openLossModal(c)} className="p-2 rounded-lg hover:bg-orange-50 text-orange-500 transition-colors" title="Report Loss">
+                                                        <TrendingDown className="w-4 h-4" />
                                                     </button>
                                                     <button onClick={() => openEdit(c)} className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors" title="Edit">
                                                         <Edit2 className="w-4 h-4" />
@@ -386,42 +428,82 @@ export function CrateTypesView() {
                         <div>
                             <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Crate Type *</Label>
                             <select
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add Crate Stock</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Crate Type</Label>
+                            <select
+                                className="w-full h-10 px-3 rounded-md border border-slate-200"
                                 value={stockForm.crate_type}
-                                onChange={e => {
-                                    const ct = crateTypes.find(c => c.id === e.target.value)
-                                    setStockForm(f => ({ ...f, crate_type: e.target.value, purchase_rate: ct ? String(ct.purchase_rate) : '' }))
-                                }}
-                                className="mt-1.5 w-full h-11 rounded-xl border border-slate-200 px-3 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                onChange={e => setStockForm({ ...stockForm, crate_type: e.target.value })}
                             >
-                                <option value="">Select crate type...</option>
+                                <option value="">Select Crate Type</option>
                                 {crateTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Quantity *</Label>
-                            <Input
-                                type="number"
-                                placeholder="e.g. 100"
-                                value={stockForm.qty}
-                                onChange={e => setStockForm(f => ({ ...f, qty: e.target.value }))}
-                                className="mt-1.5 h-11 rounded-xl border-slate-200 font-bold"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Quantity</Label>
+                                <Input type="number" placeholder="0" value={stockForm.qty} onChange={e => setStockForm({ ...stockForm, qty: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Purchase Rate</Label>
+                                <Input type="number" placeholder="0" value={stockForm.purchase_rate} onChange={e => setStockForm({ ...stockForm, purchase_rate: e.target.value })} />
+                            </div>
                         </div>
-                        <div>
-                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Notes (optional)</Label>
-                            <Input
-                                placeholder="e.g. Purchased from XYZ supplier"
-                                value={stockForm.notes}
-                                onChange={e => setStockForm(f => ({ ...f, notes: e.target.value }))}
-                                className="mt-1.5 h-11 rounded-xl border-slate-200"
-                            />
+                        <div className="space-y-2">
+                            <Label>Notes / Reference (Optional)</Label>
+                            <Input placeholder="Invoice No, Supplier Name, etc." value={stockForm.notes} onChange={e => setStockForm({ ...stockForm, notes: e.target.value })} />
                         </div>
                     </div>
-                    <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setShowStockModal(false)} className="rounded-xl">Cancel</Button>
-                        <Button onClick={handleAddStock} disabled={stockSaving} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black gap-2">
-                            {stockSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowStockModal(false)}>Cancel</Button>
+                        <Button onClick={handleAddStock} disabled={stockSaving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                            {stockSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             Add Stock
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Report Loss Modal */}
+            <Dialog open={showLossModal} onOpenChange={setShowLossModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-red-600 flex items-center gap-2">
+                            <TrendingDown className="w-5 h-5" /> Report Crate Loss
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Crate Type</Label>
+                            <select
+                                className="w-full h-10 px-3 rounded-md border border-slate-200"
+                                value={lossForm.crate_type}
+                                onChange={e => setLossForm({ ...lossForm, crate_type: e.target.value })}
+                            >
+                                <option value="">Select Crate Type</option>
+                                {crateTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Lost Quantity</Label>
+                            <Input type="number" placeholder="0" value={lossForm.qty} onChange={e => setLossForm({ ...lossForm, qty: e.target.value })} />
+                            <p className="text-xs text-slate-500">This will reduce your available stock and record a loss in Trading P&L.</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Reason / Notes</Label>
+                            <Input placeholder="e.g. Broken during transit, Stolen, etc." value={lossForm.notes} onChange={e => setLossForm({ ...lossForm, notes: e.target.value })} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowLossModal(false)}>Cancel</Button>
+                        <Button onClick={handleReportLoss} disabled={lossSaving} className="bg-red-600 hover:bg-red-700 text-white">
+                            {lossSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Report Loss
                         </Button>
                     </DialogFooter>
                 </DialogContent>
