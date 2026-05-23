@@ -93,10 +93,10 @@ export default function GateEntryDetailsPage() {
         <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* Header Actions */}
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between print:hidden">
                     <Button
                         variant="ghost"
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/gate')}
                         className="rounded-xl hover:bg-white hover:shadow-sm text-slate-600 font-bold gap-2"
                     >
                         <ChevronLeft className="w-5 h-5" /> Back to Gate
@@ -113,31 +113,32 @@ export default function GateEntryDetailsPage() {
                 </div>
 
                 {/* Main Content */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 print:block print:w-full">
                     {/* Left Column: Basic Info */}
-                    <div className="md:col-span-2 space-y-6">
+                    <div className="md:col-span-2 space-y-6 print:m-0 print:p-0">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
+                            className="print:shadow-none print:break-inside-avoid"
                         >
-                            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
-                                <CardHeader className="bg-emerald-600 p-8 text-white relative">
+                            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white print:shadow-none print:rounded-none print:border-2 print:border-slate-800">
+                                <CardHeader className="bg-emerald-600 p-8 text-white relative print:bg-white print:text-slate-900 print:border-b-2 print:border-slate-800 print:p-6">
                                     <div className="relative z-10 space-y-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
-                                                <Truck className="w-8 h-8 text-white" />
+                                            <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl print:bg-slate-100 print:text-slate-800 print:border print:border-slate-300">
+                                                <Truck className="w-8 h-8 text-white print:text-slate-800" />
                                             </div>
                                             <div>
-                                                <p className="text-emerald-100 text-xs font-black uppercase tracking-[0.2em]">Gate Entry Token</p>
-                                                <h1 className="text-4xl font-black tracking-tighter uppercase">#{entry.token_no}</h1>
+                                                <p className="text-emerald-100 text-xs font-black uppercase tracking-[0.2em] print:text-slate-500">Gate Entry Token</p>
+                                                <h1 className="text-4xl font-black tracking-tighter uppercase print:text-5xl">#{entry.token_no}</h1>
                                             </div>
                                         </div>
                                     </div>
                                     {/* Abstract Design Elements */}
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-                                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-400/20 rounded-full -ml-12 -mb-12 blur-2xl" />
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl print:hidden" />
+                                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-400/20 rounded-full -ml-12 -mb-12 blur-2xl print:hidden" />
                                 </CardHeader>
-                                <CardContent className="p-8 space-y-8">
+                                <CardContent className="p-8 space-y-8 print:p-6 print:space-y-6">
                                     <div className="grid grid-cols-2 gap-8">
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
@@ -202,7 +203,7 @@ export default function GateEntryDetailsPage() {
                     </div>
 
                     {/* Right Column: Timeline & Metadata */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 print:hidden">
                         <Card className="border-none shadow-xl shadow-slate-200/30 rounded-[2rem] bg-white overflow-hidden">
                             <CardHeader className="bg-slate-50 border-b border-slate-100">
                                 <CardTitle className="text-sm font-black text-slate-400 uppercase tracking-widest">Audit Logs</CardTitle>

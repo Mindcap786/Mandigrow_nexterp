@@ -252,7 +252,8 @@ export function CrateTypesView() {
                         </Button>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50/50">
@@ -328,6 +329,74 @@ export function CrateTypesView() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile View */}
+                    <div className="md:hidden flex flex-col gap-4 p-4 bg-slate-50/30">
+                        {crateTypes.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE).map((c) => {
+                            const profit = c.sale_rate - c.purchase_rate
+                            const profitColor = profit > 0 ? 'text-emerald-600' : profit < 0 ? 'text-red-600' : 'text-slate-500'
+                            
+                            return (
+                                <div key={c.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4">
+                                    <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center flex-shrink-0">
+                                                <Package className="w-5 h-5 text-orange-600" />
+                                            </div>
+                                            <div>
+                                                <div className="font-black text-slate-900 text-lg">{c.name}</div>
+                                                <div className={cn('text-xs font-semibold flex items-center gap-1', profitColor)}>
+                                                    {profit > 0 ? <TrendingUp className="w-3 h-3" /> : profit < 0 ? <TrendingDown className="w-3 h-3" /> : null}
+                                                    {profit !== 0 ? `₹${Math.abs(profit).toLocaleString('en-IN')} ${profit > 0 ? 'profit' : 'loss'}/crate` : 'No margin set'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Available</div>
+                                            <div className={cn('font-black text-xl', c.available > 0 ? 'text-emerald-600' : 'text-red-500')}>
+                                                {c.available}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div className="bg-slate-50 p-3 rounded-xl">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Purchase Rate</div>
+                                            <div className="font-bold text-slate-700">₹{c.purchase_rate.toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded-xl">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sale Rate</div>
+                                            <div className="font-bold text-slate-700">₹{c.sale_rate.toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded-xl">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Purchased / Sold</div>
+                                            <div className="font-bold text-slate-700">{c.total_purchased} <span className="text-slate-300">/</span> <span className="text-blue-600">{c.total_sold}</span></div>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded-xl">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Issued Out</div>
+                                            <div className="font-bold text-amber-600">{c.total_issued_out}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                        <button onClick={() => openStockModal(c)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-emerald-50 text-emerald-600 font-bold text-xs transition-colors">
+                                            <Archive className="w-3.5 h-3.5" /> Stock
+                                        </button>
+                                        <button onClick={() => openLossModal(c)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-orange-50 text-orange-500 font-bold text-xs transition-colors">
+                                            <TrendingDown className="w-3.5 h-3.5" /> Loss
+                                        </button>
+                                        <button onClick={() => openEdit(c)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-blue-50 text-blue-600 font-bold text-xs transition-colors">
+                                            <Edit2 className="w-3.5 h-3.5" /> Edit
+                                        </button>
+                                        <button onClick={() => handleDelete(c)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-red-50 text-red-500 font-bold text-xs transition-colors">
+                                            <Trash2 className="w-3.5 h-3.5" /> Del
+                                        </button>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                    </>
                 )}
                 {crateTypes.length > ITEMS_PER_PAGE && (
                     <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
