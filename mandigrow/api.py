@@ -6581,12 +6581,17 @@ def update_contact(contact_id: str = None, **kwargs) -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def delete_contact(contact_id: str = None) -> dict:
-    """Delete a Mandi Contact."""
+    """Delete a Mandi Contact.
+    
+    Deletes ONLY the contact record. All linked financial records
+    (arrivals, ledger entries, daybook, invoices) are fully preserved.
+    force=True bypasses Frappe's link-existence check without cascading.
+    """
     if not contact_id:
         frappe.throw("Contact ID required")
     from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Contact", contact_id)
-    frappe.delete_doc("Mandi Contact", contact_id, ignore_permissions=True)
+    frappe.delete_doc("Mandi Contact", contact_id, ignore_permissions=True, force=True)
     frappe.db.commit()
     return {"status": "deleted"}
 

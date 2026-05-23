@@ -27,7 +27,6 @@
    "in_list_view": 1,
    "label": "Full Name",
    "reqd": 1
-   
   },
   {
    "default": "farmer",
