@@ -16187,9 +16187,9 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             charge = qty_bal * rate
             total_charge += charge
             je_remarks.append(f"{row.crate_type}: {qty_bal} × ₹{rate} = ₹{charge:.2f}")
-            # Mark row as fully charged
-            row.qty_balance = 0
-            row.qty_returned = row.qty_issued
+            # Partially or fully resolve the row based on the charged amount
+            row.qty_returned = (row.qty_returned or 0) + qty_bal
+            row.qty_balance = (row.qty_balance or 0) - qty_bal
 
         if total_charge <= 0:
             return {"success": False, "error": "No outstanding crates to charge."}
@@ -16300,7 +16300,12 @@ def charge_crate_to_ledger_v2(issue_id: str, items_to_charge: str = None) -> dic
             frappe.log_error(f"charge_crate_to_ledger_v2: party_type={party_type} erp_party={erp_party} company={company}", "Crate Charge Skipped JE")
             return {"success": False, "error": f"Could not resolve party account for {doc.party_name}. Check ERPNext company and customer/supplier setup."}
 
-        doc.status = "Closed"
+        total_remaining_balance = sum((r.qty_balance or 0) for r in doc.items)
+        if total_remaining_balance <= 0:
+            doc.status = "Closed"
+        else:
+            doc.status = "Partial"
+            
         doc.charge_to_ledger = 1
         doc.ledger_charged_date = frappe.utils.today()
         doc.save(ignore_permissions=True)
