@@ -135,6 +135,33 @@ const FEATURES = [
         detail:
             'Granular module-level permissions. Full audit log — every change is attributed to the user who made it. Two-factor authentication available.',
     },
+    {
+        id: 'crate-management',
+        icon: '🛒',
+        title: 'Advanced Crate Management',
+        description:
+            'Auto-track crate deposits, returns, and outstanding balances. Completely eliminate lost crates and supplier disputes.',
+        detail:
+            'Integrated directly with the party Ledger (Khata). Generates real-time crate reports, aging analytics, and color-coded inventory tracking.',
+    },
+    {
+        id: 'storage-points',
+        icon: '🏭',
+        title: 'Multi-Godown Storage Points',
+        description:
+            'Operating out of multiple shops or cold storages? Track inventory and shipments across distinct locations seamlessly.',
+        detail:
+            'Define unlimited storage points. Transfer stock between godowns with one click. Get location-wise stock reports instantly.',
+    },
+    {
+        id: 'whatsapp-sharing',
+        icon: '💬',
+        title: 'WhatsApp Patti & Invoice Sharing',
+        description:
+            'Stop wasting paper. Send professional PDF Pattis, Invoices, and Khata Statements directly to farmers and buyers on WhatsApp.',
+        detail:
+            'One-click sharing from the Android app or Web dashboard. Builds massive trust with farmers by delivering instant, transparent calculations.',
+    },
 ];
 
 const FAQ = [
