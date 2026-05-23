@@ -9219,6 +9219,8 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 items = json.loads(items)
         else:
             items = payload.get("items", [])
+            if isinstance(items, str):
+                items = json.loads(items)
             
         buyer_id = payload.get("p_buyer_id") or payload.get("buyer_id")
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
@@ -9263,6 +9265,8 @@ def confirm_sale_transaction(**kwargs) -> dict:
         
         # Additional charges array sum and labels
         extra_charges_list = payload.get("additional_charges") or []
+        if isinstance(extra_charges_list, str):
+            extra_charges_list = json.loads(extra_charges_list)
         add_charges = sum(flt(c.get("amount")) for c in extra_charges_list)
         charge_remarks = ", ".join([f"{c.get('name') or 'Charge'}: {c.get('amount')}" for c in extra_charges_list if c.get('amount')])
         
@@ -9342,6 +9346,9 @@ def confirm_sale_transaction(**kwargs) -> dict:
             
         # ── CRATE ITEMS: sold alongside commodities ───────────────────────
         crate_items = payload.get("crate_items") or payload.get("p_crate_items") or []
+        if isinstance(crate_items, str):
+            crate_items = json.loads(crate_items)
+            
         parsed_crate_items = []
         for ci in crate_items:
             ct = ci.get("crate_type")
@@ -15385,13 +15392,13 @@ def _get_or_create_crate_commodity(org_id: str, crate_type: str) -> str:
     Returns a virtual commodity item_id representing a crate type.
     Creates an Item record if it doesn't exist so that Link fields don't fail.
     """
-    virtual_id = f"CRATE-{frappe.utils.scrub(crate_type).upper()[:20]}"
+    virtual_id = f"CRATE-{frappe.scrub(crate_type).upper()[:20]}"
     if not frappe.db.exists("Item", virtual_id):
         frappe.get_doc({
             "doctype": "Item",
             "item_code": virtual_id,
             "item_name": f"Crate: {crate_type}",
-            "item_group": "Products",
+            "item_group": "All Item Groups",
             "stock_uom": "Nos",
             "is_stock_item": 0
         }).insert(ignore_permissions=True)
