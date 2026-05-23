@@ -15317,16 +15317,34 @@ def _get_crate_stock_balance(org_id: str, crate_type: str = None) -> dict:
 
 # ─── 1. Master Data API ───────────────────────────────────────────────────────
 
+def _auto_migrate_crate_schema():
+    """Silently add columns that might be missing if bench migrate wasn't run on production"""
+    try:
+        # Check tabMandi Crate Type
+        existing_cols = {row[0] for row in frappe.db.sql("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tabMandi Crate Type'")}
+        if "purchase_rate" not in existing_cols:
+            frappe.db.sql("ALTER TABLE `tabMandi Crate Type` ADD COLUMN `purchase_rate` DECIMAL(21,9) NOT NULL DEFAULT 0.0")
+        if "sale_rate" not in existing_cols:
+            frappe.db.sql("ALTER TABLE `tabMandi Crate Type` ADD COLUMN `sale_rate` DECIMAL(21,9) NOT NULL DEFAULT 0.0")
+            
+        # Check tabMandi Crate Issue Item
+        item_cols = {row[0] for row in frappe.db.sql("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tabMandi Crate Issue Item'")}
+        if "rate" not in item_cols:
+            frappe.db.sql("ALTER TABLE `tabMandi Crate Issue Item` ADD COLUMN `rate` DECIMAL(21,9) NOT NULL DEFAULT 0.0")
+            
+        frappe.db.commit()
+    except Exception:
+        pass
+
 @frappe.whitelist(allow_guest=False)
 def get_crate_master_data(org_id: str = None) -> dict:
     """
     Returns all crate types for this org (or global) with current stock balances.
-    Used by Master Data page AND POS crate toggle dropdown.
-    Schema-safe: checks which columns exist before querying so it never
-    crashes due to a missing migration on the production server.
     """
     if not org_id:
         org_id = _get_user_org()
+        
+    _auto_migrate_crate_schema()
 
     # Detect which optional columns exist in the live DB (safe after partial migration)
     existing_cols = {row[0] for row in frappe.db.sql(
@@ -15383,6 +15401,9 @@ def save_crate_type(
     """
     if not org_id:
         org_id = _get_user_org()
+        
+    _auto_migrate_crate_schema()
+        
     try:
         if crate_id and frappe.db.exists("Mandi Crate Type", crate_id):
             doc = frappe.get_doc("Mandi Crate Type", crate_id)
