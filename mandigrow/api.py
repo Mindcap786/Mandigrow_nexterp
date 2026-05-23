@@ -15990,25 +15990,62 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
         for ri in received_items:
             row_name = ri.get("row_name")
             qty_now = int(ri.get("qty_now_returned") or 0)
-            if qty_now <= 0:
+            qty_loss = int(ri.get("qty_loss") or 0)
+            loss_notes = ri.get("notes") or "Reported missing/damaged"
+            
+            if qty_now <= 0 and qty_loss <= 0:
                 continue
             for row in doc.items:
                 if row.name == row_name or row.crate_type == ri.get("crate_type"):
                     max_returnable = row.qty_balance
                     actual_return = min(qty_now, max_returnable)
-                    row.qty_returned = (row.qty_returned or 0) + actual_return
+                    remaining = max_returnable - actual_return
+                    actual_loss = min(qty_loss, remaining)
+                    
+                    total_resolve = actual_return + actual_loss
+                    row.qty_returned = (row.qty_returned or 0) + total_resolve
                     row.qty_balance = max(0, row.qty_issued - row.qty_returned)
-                    # Restore inventory
-                    frappe.get_doc({
-                        "doctype": "Mandi Crate Inventory Entry",
-                        "entry_date": frappe.utils.today(),
-                        "crate_type": row.crate_type,
-                        "quantity": actual_return,
-                        "purchase_rate": row.rate or 0,
-                        "total_value": actual_return * (row.rate or 0),
-                        "organization_id": org_id,
-                        "notes": f"Returned from {doc.party_name} (Issue: {doc.name})",
-                    }).insert(ignore_permissions=True)
+                    
+                    # 1. Restore inventory for the ACTUAL returned crates
+                    if actual_return > 0:
+                        frappe.get_doc({
+                            "doctype": "Mandi Crate Inventory Entry",
+                            "entry_date": frappe.utils.today(),
+                            "crate_type": row.crate_type,
+                            "quantity": actual_return,
+                            "purchase_rate": row.rate or 0,
+                            "total_value": actual_return * (row.rate or 0),
+                            "organization_id": org_id,
+                            "notes": f"Returned from {doc.party_name} (Issue: {doc.name})",
+                        }).insert(ignore_permissions=True)
+                        
+                    # 2. For the LOST crates, we simulate receiving them back, then immediately writing them off
+                    #    This ensures the issue is closed, inventory is NOT inflated, and P&L records the loss.
+                    if actual_loss > 0:
+                        # Dummy receive to offset the subsequent loss deduction
+                        frappe.get_doc({
+                            "doctype": "Mandi Crate Inventory Entry",
+                            "entry_date": frappe.utils.today(),
+                            "crate_type": row.crate_type,
+                            "quantity": actual_loss,
+                            "purchase_rate": row.rate or 0,
+                            "total_value": actual_loss * (row.rate or 0),
+                            "organization_id": org_id,
+                            "notes": f"System Return for Loss Offset (Issue: {doc.name})",
+                        }).insert(ignore_permissions=True)
+                        
+                        # Actual loss entry (will hit Trading P&L)
+                        frappe.get_doc({
+                            "doctype": "Mandi Crate Inventory Entry",
+                            "entry_date": frappe.utils.today(),
+                            "crate_type": row.crate_type,
+                            "quantity": -actual_loss,
+                            "purchase_rate": row.rate or 0,
+                            "total_value": -actual_loss * (row.rate or 0),
+                            "organization_id": org_id,
+                            "notes": f"Loss: {loss_notes} (Issue: {doc.name})"
+                        }).insert(ignore_permissions=True)
+                        
                     break
 
         all_closed = all((row.qty_balance == 0) for row in doc.items)

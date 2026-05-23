@@ -61,6 +61,11 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
     const avgRate = totalQty > 0 ? (subtotal / totalQty) : 0
     const isCreditSale = sale.payment_mode === 'credit' || !sale.payment_mode;
 
+    const crateAmount = items
+        .filter((i: any) => String(i.item_name || i.lot?.item?.name || '').toUpperCase().startsWith('CRATE-'))
+        .reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+    const cropSubtotal = subtotal - crateAmount;
+
     // ── Single source of truth for received amount ────────────────────────────
     // IMPORTANT: We use Math.max to ensure we pick up the most up-to-date 
     //            payment info from either the direct DB column OR the 
@@ -342,8 +347,14 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     <div className="space-y-1.5 border-t-2 border-black pt-4">
                         <div className="flex justify-between items-center text-xs">
                             <span className="font-bold text-gray-500 uppercase">Sub Total</span>
-                            <span className="font-bold">₹{subtotal.toLocaleString()}</span>
+                            <span className="font-bold">₹{cropSubtotal.toLocaleString()}</span>
                         </div>
+                        {crateAmount > 0 && (
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="font-bold text-slate-500 uppercase">Crate Amount</span>
+                                <span className="font-bold text-slate-700">+ ₹{crateAmount.toLocaleString()}</span>
+                            </div>
+                        )}
                         {/* GST Breakdown - individual lines for compliance */}
                         {Number(sale.cgst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">

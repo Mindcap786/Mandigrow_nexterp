@@ -56,7 +56,7 @@ export function CrateTrackerView() {
     // Receive dialog
     const [receiveOpen, setReceiveOpen] = useState(false)
     const [receiveIssueId, setReceiveIssueId] = useState('')
-    const [receiveItems, setReceiveItems] = useState<{ row_name: string; crate_type: string; max: number; qty: string }[]>([])
+    const [receiveItems, setReceiveItems] = useState<{ crate_type: string, max: number, qty: string, qty_loss: string, row_name: string }[]>([])
     const [receiveSaving, setReceiveSaving] = useState(false)
 
     // Charge to ledger dialog
@@ -138,20 +138,44 @@ export function CrateTrackerView() {
     // ── Receive Crates ─────────────────────────────────────────────────────────
 
     const openReceive = (issueId: string) => {
-        const rows = issues.filter(r => r.issue_id === issueId && r.qty_balance > 0)
-        if (rows.length === 0) { toast.info('All crates already returned'); return }
+        const issue = paginatedIssues.find(i => i.issue_id === issueId)
+        if (!issue) return
         setReceiveIssueId(issueId)
-        setReceiveItems(rows.map(r => ({ row_name: r.row_name, crate_type: r.crate_type, max: r.qty_balance, qty: String(r.qty_balance) })))
+        setReceiveItems(issue.raw_items.filter((i: any) => i.qty_balance > 0).map((i: any) => ({
+            crate_type: i.crate_type,
+            max: i.qty_balance,
+            qty: '',
+            qty_loss: '',
+            row_name: i.name
+        })))
         setReceiveOpen(true)
     }
 
     const handleReceive = async () => {
-        const payload = receiveItems.filter(r => parseInt(r.qty) > 0).map(r => ({
-            row_name: r.row_name, crate_type: r.crate_type, qty_now_returned: parseInt(r.qty)
-        }))
-        if (payload.length === 0) { toast.error('Enter qty to receive'); return }
+        const hasAnyValue = receiveItems.some(i => parseInt(i.qty || '0') > 0 || parseInt(i.qty_loss || '0') > 0)
+        if (!hasAnyValue) {
+            toast.error('Enter at least one valid returned or lost quantity.')
+            return
+        }
+        
+        // Basic validation so they don't exceed max combined
+        for (const item of receiveItems) {
+            const returned = parseInt(item.qty || '0');
+            const lost = parseInt(item.qty_loss || '0');
+            if (returned + lost > item.max) {
+                toast.error(`Total returned + lost for ${item.crate_type} cannot exceed ${item.max}.`);
+                return;
+            }
+        }
+
         setReceiveSaving(true)
         try {
+            const payload = receiveItems.map(i => ({
+                row_name: i.row_name,
+                crate_type: i.crate_type,
+                qty_now_returned: parseInt(i.qty || '0'),
+                qty_loss: parseInt(i.qty_loss || '0')
+            }))
             const res = await callApi('mandigrow.api.receive_crates', {
                 issue_id: receiveIssueId,
                 received_items: JSON.stringify(payload)
@@ -221,6 +245,15 @@ export function CrateTrackerView() {
     
     const paginatedGroups = issueGroups.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
+    const filteredIssues = issues.filter(row => {
+        if (searchIssue && !row.party_name?.toLowerCase().includes(searchIssue.toLowerCase())) return false
+        if (fromDate && row.expected_return_date && row.expected_return_date < fromDate) return false
+        if (toDate && row.expected_return_date && row.expected_return_date > toDate) return false
+        return true
+    })
+    
+    const paginatedIssues = filteredIssues.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+
     const filteredContacts = contacts.filter(c =>
         c.name.toLowerCase().includes(searchParty.toLowerCase()) ||
         (c.city || '').toLowerCase().includes(searchParty.toLowerCase())
@@ -264,6 +297,35 @@ export function CrateTrackerView() {
                     </button>
                 ))}
             </div>
+
+            {/* Filters for Receive and Report Tabs */}
+            {(tab === 'receive' || tab === 'report') && (
+                <div className="flex flex-col md:flex-row gap-3 mb-4">
+                    <Input
+                        placeholder="Search by party name..."
+                        value={searchIssue}
+                        onChange={e => { setSearchIssue(e.target.value); setPage(1); }}
+                        className="h-11 rounded-xl border-slate-200 flex-1 max-w-sm"
+                    />
+                    <div className="flex items-center gap-2">
+                        <Input 
+                            type="date" 
+                            value={fromDate}
+                            onChange={e => { setFromDate(e.target.value); setPage(1); }}
+                            className="h-11 rounded-xl border-slate-200 w-36"
+                            title="Expected Return (From Date)"
+                        />
+                        <span className="text-slate-400 font-bold text-sm">to</span>
+                        <Input 
+                            type="date" 
+                            value={toDate}
+                            onChange={e => { setToDate(e.target.value); setPage(1); }}
+                            className="h-11 rounded-xl border-slate-200 w-36"
+                            title="Expected Return (To Date)"
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* ── TAB: Give Crates ── */}
             {tab === 'give' && (
@@ -412,31 +474,7 @@ export function CrateTrackerView() {
             {/* ── TAB: Receive / Track ── */}
             {tab === 'receive' && (
                 <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row gap-3">
-                        <Input
-                            placeholder="Search by party name..."
-                            value={searchIssue}
-                            onChange={e => { setSearchIssue(e.target.value); setPage(1); }}
-                            className="h-11 rounded-xl border-slate-200 flex-1 max-w-sm"
-                        />
-                        <div className="flex items-center gap-2">
-                            <Input 
-                                type="date" 
-                                value={fromDate}
-                                onChange={e => { setFromDate(e.target.value); setPage(1); }}
-                                className="h-11 rounded-xl border-slate-200 w-36"
-                                title="Expected Return (From Date)"
-                            />
-                            <span className="text-slate-400 font-bold text-sm">to</span>
-                            <Input 
-                                type="date" 
-                                value={toDate}
-                                onChange={e => { setToDate(e.target.value); setPage(1); }}
-                                className="h-11 rounded-xl border-slate-200 w-36"
-                                title="Expected Return (To Date)"
-                            />
-                        </div>
-                    </div>
+
                     {loading ? (
                         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>
                     ) : issueGroups.length === 0 ? (
@@ -562,7 +600,7 @@ export function CrateTrackerView() {
                                 <Printer className="w-4 h-4" /> Print Report
                             </Button>
                         </div>
-                        {issues.length === 0 ? (
+                        {filteredIssues.length === 0 ? (
                             <div className="py-16 text-center text-slate-400">
                                 <CheckCircle className="w-10 h-10 mx-auto mb-2 text-emerald-300" />
                                 <div className="font-bold">All crates accounted for!</div>
@@ -578,7 +616,7 @@ export function CrateTrackerView() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {issues.map((row, i) => (
+                                        {paginatedIssues.map((row, i) => (
                                             <tr key={i} className={cn('border-b border-slate-50 hover:bg-slate-50/50', row.is_overdue && 'bg-red-50/30')}>
                                                 <td className="px-4 py-3">
                                                     <div className="font-bold text-slate-900">{row.party_name}</div>
@@ -615,6 +653,33 @@ export function CrateTrackerView() {
                                 </table>
                             </div>
                         )}
+                        {filteredIssues.length > ITEMS_PER_PAGE && (
+                            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                                <span className="text-sm text-slate-500 font-semibold">
+                                    Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, filteredIssues.length)} of {filteredIssues.length}
+                                </span>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        disabled={page === 1}
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        className="bg-white"
+                                    >
+                                        Previous
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        disabled={page * ITEMS_PER_PAGE >= filteredIssues.length}
+                                        onClick={() => setPage(p => p + 1)}
+                                        className="bg-white"
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -634,13 +699,30 @@ export function CrateTrackerView() {
                                     <div className="font-black text-sm text-slate-900">{item.crate_type}</div>
                                     <div className="text-xs text-slate-500">Outstanding: {item.max}</div>
                                 </div>
-                                <Input
-                                    type="number"
-                                    value={item.qty}
-                                    max={item.max}
-                                    onChange={e => setReceiveItems(ri => ri.map((r, idx) => idx === i ? { ...r, qty: e.target.value } : r))}
-                                    className="w-24 h-9 rounded-xl border-slate-200 font-black text-center text-lg"
-                                />
+                                <div className="flex gap-2">
+                                    <div>
+                                        <Label className="text-[10px] uppercase font-black text-slate-400">Returned</Label>
+                                        <Input
+                                            type="number"
+                                            value={item.qty}
+                                            max={item.max}
+                                            placeholder="0"
+                                            onChange={e => setReceiveItems(ri => ri.map((r, idx) => idx === i ? { ...r, qty: e.target.value } : r))}
+                                            className="w-20 h-9 rounded-xl border-emerald-200 focus:ring-emerald-500 font-black text-center text-emerald-700"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-[10px] uppercase font-black text-slate-400">Lost/Broken</Label>
+                                        <Input
+                                            type="number"
+                                            value={item.qty_loss}
+                                            max={item.max}
+                                            placeholder="0"
+                                            onChange={e => setReceiveItems(ri => ri.map((r, idx) => idx === i ? { ...r, qty_loss: e.target.value } : r))}
+                                            className="w-20 h-9 rounded-xl border-red-200 focus:ring-red-500 font-black text-center text-red-600"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
