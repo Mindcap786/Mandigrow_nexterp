@@ -18,7 +18,8 @@
   "igst_percent",
   "sb_crate",
   "enable_crate_tracking",
-  "crate_ageing_days"
+  "crate_ageing_days",
+  "crate_income_account"
  ],
  "fields": [
   {
@@ -92,6 +93,13 @@
    "fieldname": "crate_ageing_days",
    "fieldtype": "Int",
    "label": "Crate Ageing Alert (Days)"
+  },
+  {
+   "fieldname": "crate_income_account",
+   "fieldtype": "Link",
+   "label": "Crate Income Account",
+   "options": "Account",
+   "description": "GL Account where lost/damaged crate deposit charges will be credited."
   }
  ],
  "grid_page_length": 50,

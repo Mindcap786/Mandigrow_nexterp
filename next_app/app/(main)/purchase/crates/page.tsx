@@ -45,6 +45,12 @@ export default function CrateDashboardPage() {
     const [contacts, setContacts] = useState<any[]>([]);
     const [contactOpen, setContactOpen] = useState(false);
 
+    // Charge state
+    const [chargeOpen, setChargeOpen] = useState(false);
+    const [chargeData, setChargeData] = useState<any>(null);
+    const [chargeQty, setChargeQty] = useState<number>(0);
+    const [charging, setCharging] = useState(false);
+
     const fetchSummary = useCallback(async () => {
         if (!profile?.organization_id) return;
         setLoading(true);
@@ -94,6 +100,32 @@ export default function CrateDashboardPage() {
             toast({ title: 'Failed', description: e.message, variant: 'destructive' });
         } finally {
             setTxnSaving(false);
+        }
+    };
+
+    const handleChargeClick = (row: any) => {
+        setChargeData(row);
+        setChargeQty(row.running_balance);
+        setChargeOpen(true);
+    };
+
+    const handleChargeConfirm = async () => {
+        if (!chargeData || !chargeQty || chargeQty <= 0) return;
+        setCharging(true);
+        try {
+            const res: any = await callApi('mandigrow.api.convert_crate_deposit_to_financial', {
+                org_id: profile?.organization_id,
+                party_id: chargeData.party_id,
+                crate_type: chargeData.crate_type,
+                qty_to_charge: chargeQty
+            });
+            toast({ title: '✅ Ledger Charged', description: res.message || "Successfully charged to ledger" });
+            setChargeOpen(false);
+            fetchSummary();
+        } catch (e: any) {
+            toast({ title: 'Charge Failed', description: e.message || "Failed to charge ledger", variant: 'destructive' });
+        } finally {
+            setCharging(false);
         }
     };
 
@@ -253,9 +285,19 @@ export default function CrateDashboardPage() {
                                                         {r.crate_type} · Since {r.posting_date}
                                                     </div>
                                                 </div>
-                                                <div className="text-right flex-shrink-0">
-                                                    <div className="text-xl font-mono font-black text-rose-600">{r.running_balance}</div>
-                                                    <div className="text-[10px] text-slate-400 font-bold">crates</div>
+                                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                    <div className="text-right flex-shrink-0">
+                                                        <div className="text-xl font-mono font-black text-rose-600">{r.running_balance}</div>
+                                                        <div className="text-[10px] text-slate-400 font-bold">crates</div>
+                                                    </div>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        className="h-6 text-[10px] font-black tracking-wider uppercase border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-full px-3"
+                                                        onClick={() => handleChargeClick(r)}
+                                                    >
+                                                        Charge
+                                                    </Button>
                                                 </div>
                                             </div>
                                         );
@@ -398,6 +440,41 @@ export default function CrateDashboardPage() {
                             </Button>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+            {/* Charge Dialog */}
+            <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
+                <DialogContent className="bg-white text-black rounded-3xl border-slate-200 max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="font-black text-xl text-rose-600">Charge to Ledger</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-bold text-sm">
+                            Convert lost/unreturned crates into a financial debit for {chargeData?.party_name}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-2">
+                        <div>
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-400 pl-1 block mb-1">Crate Type</label>
+                            <Input value={chargeData?.crate_type || ''} readOnly className="bg-slate-50 font-bold text-black" />
+                        </div>
+                        <div>
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-400 pl-1 block mb-1">Quantity to Charge</label>
+                            <Input 
+                                type="number" 
+                                value={chargeQty} 
+                                onChange={e => setChargeQty(Number(e.target.value))} 
+                                max={chargeData?.running_balance}
+                                className="font-black text-black"
+                            />
+                            <p className="text-xs text-slate-400 font-bold mt-1 pl-1">Max available: {chargeData?.running_balance}</p>
+                        </div>
+                    </div>
+                    <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setChargeOpen(false)} className="rounded-xl font-bold">Cancel</Button>
+                        <Button onClick={handleChargeConfirm} disabled={charging} className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-200">
+                            {charging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            Confirm Charge
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

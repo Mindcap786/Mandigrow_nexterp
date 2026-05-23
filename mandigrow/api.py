@@ -14996,11 +14996,10 @@ def get_party_crate_ledger(org_id: str, party_id: str) -> dict:
 
 
 @frappe.whitelist(allow_guest=False)
-def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: str) -> dict:
+def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: str, qty_to_charge: int = None) -> dict:
     """
-    Returns the financial debit amount for unreturned crates. Human-triggered only.
-    Marks the ledger entry as deposit_converted = 1.
-    Phase 2 will auto-post a Journal Entry to GL.
+    Charges a party's financial ledger for lost/unreturned crates via Journal Entry.
+    Reduces physical crate balance.
     """
     if not org_id or not party_id or not crate_type:
         frappe.throw("org_id, party_id, and crate_type are required.")
@@ -15008,6 +15007,41 @@ def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: s
     if not _is_crate_tracking_enabled(org_id):
         frappe.throw("Crate tracking is not enabled.")
 
+    crate_income_account = frappe.db.get_single_value("Mandi Settings", "crate_income_account")
+    if not crate_income_account:
+        frappe.throw("Please set the 'Crate Income Account' in HQ Settings > Crate Tracking before charging for lost crates.")
+
+    # Get Party Financial Profile
+    contact = frappe.get_doc("Mandi Contact", party_id)
+    party_type = None
+    erp_party = None
+
+    if contact.customer and frappe.db.exists("Customer", contact.customer):
+        party_type = "Customer"
+        erp_party = contact.customer
+    elif contact.supplier and frappe.db.exists("Supplier", contact.supplier):
+        party_type = "Supplier"
+        erp_party = contact.supplier
+    elif frappe.db.exists("Customer", contact.name):
+        party_type = "Customer"
+        erp_party = contact.name
+    elif frappe.db.exists("Supplier", contact.name):
+        party_type = "Supplier"
+        erp_party = contact.name
+
+    if not party_type or not erp_party:
+        frappe.throw(f"Contact '{contact.full_name}' does not have an active Customer or Supplier profile linked in the ERP. Please create their accounting profile first.")
+
+    org_info = _get_org_info(org_id)
+    company = org_info.get("company_name")
+    
+    # Use ERPNext function to get default account
+    from erpnext.accounts.party import get_party_account
+    party_account = get_party_account(party_type, erp_party, company)
+    if not party_account:
+        frappe.throw(f"No default Receivable/Payable account found for {party_type} '{erp_party}' in company '{company}'.")
+
+    # Get current physical balance
     latest = frappe.db.sql("""
         SELECT cl.running_balance, cl.name
         FROM `tabMandi Crate Ledger` cl
@@ -15025,22 +15059,57 @@ def convert_crate_deposit_to_financial(org_id: str, party_id: str, crate_type: s
 
     balance = int(latest[0]["running_balance"])
     if balance <= 0:
-        frappe.throw(f"No outstanding crates. Current balance: {balance}")
+        frappe.throw(f"No outstanding crates to charge. Current balance: {balance}")
+
+    qty = int(qty_to_charge) if qty_to_charge else balance
+    if qty <= 0 or qty > balance:
+        frappe.throw(f"Invalid charge quantity: {qty}. Max available: {balance}")
 
     deposit_per_crate = float(frappe.db.get_value("Mandi Crate Type", crate_type, "deposit_amount") or 0)
     if deposit_per_crate <= 0:
-        frappe.throw("Set a deposit amount in the Crate Type master before charging.")
+        frappe.throw(f"Set a deposit amount in the Crate Type master for '{crate_type}' before charging.")
 
-    total_charge = balance * deposit_per_crate
-    frappe.db.set_value("Mandi Crate Ledger", latest[0]["name"], "deposit_converted", 1)
-    frappe.db.commit()
+    total_charge = qty * deposit_per_crate
+
+    # 1. Post Journal Entry
+    je = frappe.get_doc({
+        "doctype": "Journal Entry",
+        "voucher_type": "Journal Entry",
+        "posting_date": frappe.utils.today(),
+        "company": company,
+        "user_remark": f"Charge for {qty} unreturned {crate_type} crates.",
+        "accounts": [
+            {
+                "account": party_account,
+                "party_type": party_type,
+                "party": erp_party,
+                "debit_in_account_currency": total_charge,
+                "credit_in_account_currency": 0
+            },
+            {
+                "account": crate_income_account,
+                "debit_in_account_currency": 0,
+                "credit_in_account_currency": total_charge
+            }
+        ]
+    })
+    je.insert(ignore_permissions=True)
+    je.submit()
+
+    # 2. Reset physical crate balance via a Transaction
+    txn_res = create_crate_transaction(
+        org_id=org_id,
+        transaction_type="damage",
+        crate_type=crate_type,
+        quantity=qty,
+        party_id=party_id,
+        party_name=contact.full_name,
+        notes=f"Lost/Unreturned crates converted to financial debit. (JE: {je.name})"
+    )
 
     return {
         "success": True,
-        "party_id": party_id,
-        "crate_type": crate_type,
-        "balance_crates": balance,
-        "deposit_per_crate": deposit_per_crate,
-        "total_charge": total_charge,
-        "message": f"INR {total_charge:,.2f} should be charged for {balance} unreturned {crate_type} crates.",
+        "je_name": je.name,
+        "txn_name": txn_res["transaction_id"],
+        "message": f"Successfully charged INR {total_charge:,.2f} for {qty} lost crates.",
     }
