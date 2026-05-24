@@ -261,6 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const isPublicPath = pathname === '/login' ||
                          pathname === '/' ||
+                         pathname === '/about' ||
                          pathname === '/subscribe' ||
                          pathname === '/checkout' ||
                          pathname === '/join' ||
