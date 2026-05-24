@@ -443,6 +443,17 @@ export default function GSTReportsPage() {
                                             </TableRow>
                                         ))
                                     )}
+                                    {filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).length > 0 && (
+                                        <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-200">
+                                            <TableCell colSpan={4} className="text-right font-black text-slate-900 uppercase tracking-widest text-[10px] pr-6">Total</TableCell>
+                                            <TableCell className="text-right font-black text-slate-900 text-lg">
+                                                ₹{filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).reduce((sum, s) => sum + Number(s.total_amount || 0), 0).toLocaleString('en-IN')}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6 font-black text-indigo-700 text-lg">
+                                                ₹{filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).reduce((sum, s) => sum + (Number(s.igst_amount || 0) + Number(s.cgst_amount || 0) + Number(s.sgst_amount || 0)), 0).toLocaleString('en-IN')}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
@@ -474,6 +485,17 @@ export default function GSTReportsPage() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                    {filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).length > 0 && (
+                                        <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-200">
+                                            <TableCell colSpan={3} className="text-right font-black text-slate-900 uppercase tracking-widest text-[10px] pr-6">Total</TableCell>
+                                            <TableCell className="text-right font-black text-slate-900 text-lg">
+                                                ₹{filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).reduce((sum, s) => sum + Number(s.total_amount || 0), 0).toLocaleString('en-IN')}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6 font-black text-emerald-700 text-lg">
+                                                ₹{filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).reduce((sum, s) => sum + (Number(s.igst_amount || 0) + Number(s.cgst_amount || 0) + Number(s.sgst_amount || 0)), 0).toLocaleString('en-IN')}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
@@ -520,6 +542,17 @@ export default function GSTReportsPage() {
                                         <TableRow>
                                             <TableCell colSpan={7} className="text-center py-20 text-slate-300 uppercase font-black text-xs tracking-widest">
                                                 No HSN data found for this period
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {hsnData.length > 0 && (
+                                        <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-200">
+                                            <TableCell colSpan={5} className="text-right font-black text-slate-900 uppercase tracking-widest text-[10px] pr-6">Total</TableCell>
+                                            <TableCell className="text-right font-black text-slate-900 text-lg">
+                                                ₹{hsnData.reduce((sum, hsn) => sum + Number(hsn.taxable_value || 0), 0).toLocaleString('en-IN')}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-8 font-black text-indigo-700 text-lg">
+                                                ₹{hsnData.reduce((sum, hsn) => sum + Number(hsn.total_tax || 0), 0).toLocaleString('en-IN')}
                                             </TableCell>
                                         </TableRow>
                                     )}
