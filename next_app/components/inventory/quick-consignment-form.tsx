@@ -520,7 +520,7 @@ export function QuickPurchaseForm() {
                 className="space-y-8 pb-32"
             >
                 {/* Header Section */}
-                <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
+                <div className="bg-white/80 backdrop-blur-xl rounded-[32px] border border-white p-8 shadow-xl shadow-purple-500/5">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <FormField
                             control={form.control}
@@ -534,7 +534,7 @@ export function QuickPurchaseForm() {
                                                 <Button
                                                     variant={"outline"}
                                                     className={cn(
-                                                        "h-14 pl-4 text-left font-black text-xl bg-slate-50 border-none rounded-2xl hover:bg-slate-100 transition-all",
+                                                        "h-14 pl-4 text-left font-black text-xl bg-indigo-50/50 border-none rounded-2xl hover:bg-indigo-100/50 transition-all",
                                                         !field.value && "text-muted-foreground"
                                                     )}
                                                 >
@@ -584,7 +584,7 @@ export function QuickPurchaseForm() {
                                             }, 50);
                                         }}
                                         placeholder="Select party..."
-                                        className="h-14 bg-slate-50 border-none rounded-2xl text-xl font-black"
+                                        className="h-14 bg-indigo-50/50 border-none rounded-2xl text-xl font-black"
                                         error={!!form.formState.errors.supplier_id}
                                     />
                                     <FormMessage />
@@ -600,7 +600,7 @@ export function QuickPurchaseForm() {
                                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Storage Location</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="h-14 bg-slate-50 border-none rounded-2xl text-xl font-black shadow-sm">
+                                            <SelectTrigger className="h-14 bg-indigo-50/50 border-none rounded-2xl text-xl font-black shadow-sm">
                                                 <SelectValue placeholder="Select Location" />
                                             </SelectTrigger>
                                         </FormControl>
@@ -620,7 +620,7 @@ export function QuickPurchaseForm() {
                         {/* Arrival Type Hidden (Managed by logic) */}
 
                         {/* Transport Section Hidden as per user request */}
-                        <div className="flex flex-col justify-center gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
+                        <div className="flex flex-col justify-center gap-3 bg-white/60 p-4 rounded-2xl border border-indigo-50 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Arrival Type</span>
                                 <div className="flex bg-slate-200/50 p-0.5 rounded-lg gap-0.5">
@@ -636,7 +636,7 @@ export function QuickPurchaseForm() {
                                         }}
                                         className={cn(
                                             "px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all",
-                                            arrivalType === 'direct' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                            arrivalType === 'direct' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                                         )}
                                     >
                                         Direct
@@ -650,7 +650,7 @@ export function QuickPurchaseForm() {
                                         }}
                                         className={cn(
                                             "px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all",
-                                            arrivalType !== 'direct' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                            arrivalType !== 'direct' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                                         )}
                                     >
                                         Commission
@@ -663,7 +663,7 @@ export function QuickPurchaseForm() {
                                     <div className="h-px bg-slate-100 w-full" />
                                     <div className="flex items-center justify-between">
                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Commission Mode</span>
-                                        <div className="flex bg-blue-50 p-0.5 rounded-lg gap-0.5">
+                                        <div className="flex bg-indigo-50 p-0.5 rounded-lg gap-0.5">
                                             {[
                                                 { id: 'commission', label: 'Farmer' },
                                                 { id: 'commission_supplier', label: 'Supplier' }
@@ -681,7 +681,7 @@ export function QuickPurchaseForm() {
                                                     }}
                                                     className={cn(
                                                         "px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all",
-                                                        arrivalType === mode.id ? "bg-white text-blue-600 shadow-sm" : "text-blue-400 hover:text-blue-500"
+                                                        arrivalType === mode.id ? "bg-white text-indigo-600 shadow-sm" : "text-indigo-400 hover:text-indigo-500"
                                                     )}
                                                 >
                                                     {mode.label}
@@ -701,7 +701,7 @@ export function QuickPurchaseForm() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-4 mt-12">
                         <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
+                            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 p-2 rounded-xl shadow-lg shadow-indigo-500/30">
                                 <Tag className="w-5 h-5 text-white" />
                             </div>
                             <h2 className="text-2xl font-black tracking-tight text-slate-900">Line Items</h2>
@@ -721,7 +721,7 @@ export function QuickPurchaseForm() {
                                 other_cut: '',
                                 less_units: '',
                             })}
-                            className="bg-slate-900 text-white hover:bg-black rounded-2xl h-12 px-6 font-black tracking-widest text-[10px] shadow-xl shadow-slate-200 uppercase flex items-center gap-2 group transition-all"
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 rounded-2xl h-12 px-6 font-black tracking-widest text-[10px] shadow-xl shadow-indigo-500/30 uppercase flex items-center gap-2 group transition-all"
                         >
                             <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
                             Add Line Item
@@ -736,7 +736,7 @@ export function QuickPurchaseForm() {
                             return (
                                 <div
                                     key={field.id}
-                                    className="group bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 relative overflow-hidden"
+                                    className="group bg-white/70 backdrop-blur-md rounded-[40px] border border-white p-8 shadow-xl shadow-indigo-500/5 hover:shadow-2xl hover:shadow-purple-500/20 hover:bg-white/90 transition-all duration-500 relative overflow-hidden"
                                 >
                                     <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-blue-500 transition-colors" />
 
@@ -783,7 +783,7 @@ export function QuickPurchaseForm() {
                                                             <div className="flex items-center justify-between mb-2">
                                                                 <FormLabel className="text-[9px] font-black uppercase text-slate-400">Commodity</FormLabel>
                                                                 <ItemDialog onSuccess={masterLoading ? undefined : () => refetchMasterData()}>
-                                                                    <Button type="button" variant="link" className="h-auto p-0 text-blue-600 text-[9px] font-bold uppercase tracking-widest hover:text-blue-800 transition-colors">
+                                                                    <Button type="button" variant="link" className="h-auto p-0 text-indigo-600 text-[9px] font-bold uppercase tracking-widest hover:text-indigo-800 transition-colors">
                                                                         + ADD
                                                                     </Button>
                                                                 </ItemDialog>
@@ -819,7 +819,7 @@ export function QuickPurchaseForm() {
                                                             <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block">Unit</FormLabel>
                                                             <Select onValueChange={field.onChange} value={field.value}>
                                                                 <FormControl>
-                                                                    <SelectTrigger className="h-10 bg-slate-50 border-none rounded-xl text-sm font-black shadow-sm">
+                                                                    <SelectTrigger className="h-10 bg-indigo-50/50 border-none rounded-xl text-sm font-black shadow-sm">
                                                                         <SelectValue placeholder="Unit" />
                                                                     </SelectTrigger>
                                                                 </FormControl>
@@ -850,7 +850,7 @@ export function QuickPurchaseForm() {
                                                                 {...field}
                                                                 onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                                 className={cn(
-                                                                    "h-10 font-black text-lg bg-slate-50 border-none text-center rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm",
+                                                                    "h-10 font-black text-lg bg-indigo-50/50 border-none text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm",
                                                                     !!(form.formState.errors.rows as any)?.[index]?.qty && "ring-2 ring-red-500/20 border-red-500"
                                                                 )}
                                                             />
@@ -870,7 +870,7 @@ export function QuickPurchaseForm() {
                                                                 {...field}
                                                                 onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                                 className={cn(
-                                                                    "h-10 font-black text-lg bg-blue-50 border-none text-center text-blue-700 rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm",
+                                                                    "h-10 font-black text-lg bg-indigo-50 border-none text-center text-indigo-700 rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm",
                                                                     !!(form.formState.errors.rows as any)?.[index]?.rate && "ring-2 ring-red-500/20 border-red-500"
                                                                 )}
                                                             />
@@ -897,7 +897,7 @@ export function QuickPurchaseForm() {
                                                                                 const val = e.target.value === '' ? '' : Number(e.target.value);
                                                                                 field.onChange(val);
                                                                             }}
-                                                                            className="h-10 font-black text-lg bg-white border-slate-100 text-center rounded-xl focus:ring-4 focus:ring-blue-500/10 shadow-sm"
+                                                                            className="h-10 font-black text-lg bg-white border-indigo-50 text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
                                                                         />
                                                                     </FormControl>
                                                                 </FormItem>
@@ -911,29 +911,28 @@ export function QuickPurchaseForm() {
                                         {/* Deductions block hidden as per user request */}
 
 
-                                        {/* Financial Summary Bar (Matches Screenshots) */}
                                         <div className="md:col-span-12 mt-4 pt-4 border-t border-slate-50">
                                             <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-slate-50/50">
-                                                    <span className="text-[7px] font-black uppercase text-slate-400 mb-1">Gross Value</span>
+                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-indigo-50/40">
+                                                    <span className="text-[7px] font-black uppercase text-indigo-400 mb-1">Gross Value</span>
                                                     <span className="text-xs font-black text-slate-900">₹{(rowFinancials?.grossValue || 0).toLocaleString()}</span>
                                                     <span className="text-[6px] text-slate-400">{row.qty} x {row.rate}</span>
                                                 </div>
-                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-purple-50/50">
-                                                    <span className="text-[7px] font-black uppercase text-purple-400 mb-1">Commission</span>
-                                                    <span className="text-xs font-black text-purple-600">₹{(rowFinancials?.commissionAmount || 0).toLocaleString()}</span>
+                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-purple-100/50 border border-purple-100">
+                                                    <span className="text-[7px] font-black uppercase text-purple-500 mb-1">Commission</span>
+                                                    <span className="text-xs font-black text-purple-700">₹{(rowFinancials?.commissionAmount || 0).toLocaleString()}</span>
                                                     <span className="text-[6px] text-purple-400">{row.commission}% of gross</span>
                                                 </div>
-                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                                                    <span className="text-[7px] font-black uppercase text-emerald-500 mb-1">
+                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-emerald-100/50 border border-emerald-200 shadow-sm shadow-emerald-500/5">
+                                                    <span className="text-[7px] font-black uppercase text-emerald-600 mb-1">
                                                         {form.watch('arrival_type') === 'direct' ? 'Net Cost' :
                                                             form.watch('arrival_type') === 'commission' ? 'Farmer Gets' : 'Supplier Gets'}
                                                     </span>
-                                                    <span className="text-sm font-black text-emerald-600">₹{(rowFinancials?.netPayable || 0).toLocaleString()}</span>
-                                                    <span className="text-[6px] text-emerald-400">Net payable</span>
+                                                    <span className="text-sm font-black text-emerald-700">₹{(rowFinancials?.netPayable || 0).toLocaleString()}</span>
+                                                    <span className="text-[6px] text-emerald-500">Net payable</span>
                                                 </div>
-                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-slate-50/50">
-                                                    <span className="text-[7px] font-black uppercase text-slate-400 mb-1">Unit Cost</span>
+                                                <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-indigo-50/40">
+                                                    <span className="text-[7px] font-black uppercase text-indigo-400 mb-1">Unit Cost</span>
                                                     <span className="text-xs font-black text-slate-900">₹{(rowFinancials?.unitCost || 0).toFixed(2)}</span>
                                                     <span className="text-[6px] text-slate-400">Per {row.unit}</span>
                                                 </div>
@@ -960,14 +959,16 @@ export function QuickPurchaseForm() {
                     <div className="space-y-12 mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                             {/* Left: Advance/Payout */}
-                            <div className="p-8 bg-emerald-50/40 border border-emerald-100 rounded-[40px] space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                            <div className="p-8 bg-white/70 backdrop-blur-xl border border-white shadow-xl shadow-emerald-500/10 rounded-[40px] space-y-6 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                                
+                                <div className="flex items-center gap-3 relative z-10">
+                                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600">
                                         <Wallet className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Advance / Payout</h3>
-                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter mt-1">Record payment for this group</p>
+                                        <p className="text-[9px] text-emerald-600/70 font-bold uppercase tracking-tighter mt-1">Record payment for this group</p>
                                     </div>
                                 </div>
 
@@ -1191,38 +1192,39 @@ export function QuickPurchaseForm() {
                                 "grid gap-4 h-fit",
                                 totalFinancials.commissionAmount > 0 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
                             )}>
-                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col items-center justify-center">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Gross</span>
+                                <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-indigo-50 shadow-xl shadow-indigo-500/5 flex flex-col items-center justify-center">
+                                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Total Gross</span>
                                     <span className="text-2xl font-black text-slate-900">₹{(totalFinancials?.grossValue || 0).toLocaleString()}</span>
                                 </div>
                                 {totalFinancials.commissionAmount > 0 && (
-                                    <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 flex flex-col items-center justify-center animate-in zoom-in-95 duration-300">
-                                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Mandi Commission</span>
-                                        <span className="text-2xl font-black text-emerald-600">₹{(totalFinancials?.commissionAmount || 0).toLocaleString()}</span>
+                                    <div className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/80 p-6 rounded-3xl border border-emerald-200 flex flex-col items-center justify-center animate-in zoom-in-95 duration-300 shadow-xl shadow-emerald-500/5 backdrop-blur-md">
+                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Mandi Commission</span>
+                                        <span className="text-2xl font-black text-emerald-700">₹{(totalFinancials?.commissionAmount || 0).toLocaleString()}</span>
                                     </div>
                                 )}
-                                <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 flex flex-col items-center justify-center">
-                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Balance Pending</span>
-                                    <span className="text-2xl font-black text-blue-600">₹{(totalFinancials?.finalPay || 0).toLocaleString()}</span>
+                                <div className="bg-gradient-to-br from-indigo-50/80 to-indigo-100/80 p-6 rounded-3xl border border-indigo-200 flex flex-col items-center justify-center shadow-xl shadow-indigo-500/5 backdrop-blur-md">
+                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Balance Pending</span>
+                                    <span className="text-2xl font-black text-indigo-700">₹{(totalFinancials?.finalPay || 0).toLocaleString()}</span>
                                 </div>
                                 <div className={cn(
-                                    "bg-slate-900 p-6 rounded-[32px] flex items-center justify-between shadow-2xl shadow-slate-200 ring-8 ring-slate-50",
+                                    "bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between shadow-2xl shadow-purple-500/20 ring-4 ring-white/50 relative overflow-hidden gap-4 md:gap-0",
                                     totalFinancials.commissionAmount > 0 ? "md:col-span-3" : "md:col-span-2"
                                 )}>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Payable</span>
-                                        <span className="text-3xl font-black text-white">₹{(totalFinancials?.finalPay || 0).toLocaleString()}</span>
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[60px] pointer-events-none" />
+                                    <div className="flex flex-col relative z-10 text-center md:text-left w-full md:w-auto">
+                                        <span className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-1">Total Payable</span>
+                                        <span className="text-4xl font-black text-white">₹{(totalFinancials?.finalPay || 0).toLocaleString()}</span>
                                     </div>
                                     <Button
                                         type="submit"
                                         disabled={isSubmitting || totalFinancials.isOverpaid || fields.length === 0}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-16 px-10 font-black tracking-widest uppercase flex items-center gap-3 transition-all active:scale-95 group overflow-hidden relative shadow-xl shadow-blue-500/20"
+                                        className="bg-gradient-to-r w-full md:w-auto from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-2xl h-16 px-10 font-black tracking-widest uppercase flex items-center justify-center gap-3 transition-all active:scale-95 group overflow-hidden relative shadow-xl shadow-emerald-500/30"
                                     >
                                         {isSubmitting ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
                                             <>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/10 to-blue-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-white/20 to-emerald-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                                                 <CheckCircle2 className="w-6 h-6" />
                                                 <span>Complete Purchase</span>
                                             </>

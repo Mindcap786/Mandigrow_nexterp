@@ -5909,7 +5909,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         entry["profit"]     += trading_profit
 
     # ── Crate PNL (POS Sales) ─────────────────────────────────────────────────
-    crate_types = frappe.get_all("Mandi Crate Type", fields=["name", "crate_name", "purchase_rate"])
+    crate_types = frappe.get_all("Mandi Crate Type", filters={"organization_id": org_id}, fields=["name", "crate_name", "purchase_rate"])
     crate_map = {c.name: c for c in crate_types}
 
     # map "CRATE-<SCUBBED>" to crate_type "name"
@@ -5961,7 +5961,11 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
 
     # ── Crate PNL (Ledger Charges) ────────────────────────────────────────────
     try:
+        je_company = _get_user_company()
         je_filters = {"user_remark": ["like", "Crate charge for%"]}
+        if je_company:
+            je_filters["company"] = je_company
+            
         if date_from and date_to:
             je_filters["posting_date"] = ["between", [date_from, date_to]]
         elif date_from:
