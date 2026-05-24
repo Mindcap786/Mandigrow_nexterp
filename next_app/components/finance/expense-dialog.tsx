@@ -423,7 +423,7 @@ export function ExpenseDialog({
                                                                 )}
                                                             >
                                                                 {field.value
-                                                                    ? expenseAccounts.find((a) => a.id === field.value)?.name
+                                                                    ? (expenseAccounts.find((a) => a.id === field.value)?.name || "").replace(/ \(Non Mandi Expense\)/ig, "")
                                                                     : getLabel('account_id', "Select category...")}
                                                                 <ArrowRightLeft className="ml-2 h-4 w-4 shrink-0 opacity-50 rotate-90" />
                                                             </Button>
@@ -449,28 +449,51 @@ export function ExpenseDialog({
                                                                         Loading categories...
                                                                     </div>
                                                                 ) : (
-                                                                    <>
-                                                                        {expenseAccounts
+                                                                    (() => {
+                                                                        const filtered = expenseAccounts
                                                                             .filter(a => (a.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()))
-                                                                            .sort((a, b) => a.name.localeCompare(b.name))
-                                                                            .map((account) => (
-                                                                                <div
-                                                                                    key={account.id}
-                                                                                    className="flex items-center justify-between hover:bg-orange-50 cursor-pointer rounded-xl transition-colors group m-1 relative h-12 overflow-hidden"
+                                                                            .sort((a, b) => a.name.localeCompare(b.name));
+                                                                            
+                                                                        const nonMandi = filtered.filter(a => (a.name || "").toLowerCase().includes('(non mandi'));
+                                                                        const mandi = filtered.filter(a => !(a.name || "").toLowerCase().includes('(non mandi'));
+
+                                                                        const renderItem = (account: any) => (
+                                                                            <div
+                                                                                key={account.id}
+                                                                                className="flex items-center justify-between hover:bg-orange-50 cursor-pointer rounded-xl transition-colors group m-1 relative h-12 overflow-hidden"
+                                                                            >
+                                                                                <div 
+                                                                                    className="flex-1 h-full flex items-center px-4"
+                                                                                    onClick={() => {
+                                                                                        form.setValue("account_id", account.id, { shouldValidate: true });
+                                                                                        setOpenAccount(false);
+                                                                                        setSearchQuery("");
+                                                                                    }}
                                                                                 >
-                                                                                    <div 
-                                                                                        className="flex-1 h-full flex items-center px-4"
-                                                                                        onClick={() => {
-                                                                                            form.setValue("account_id", account.id, { shouldValidate: true });
-                                                                                            setOpenAccount(false);
-                                                                                            setSearchQuery("");
-                                                                                        }}
-                                                                                    >
-                                                                                        <span className="font-bold text-slate-700 group-hover:text-orange-700 transition-colors uppercase tracking-tight">{account.name}</span>
-                                                                                    </div>
+                                                                                    <span className="font-bold text-slate-700 group-hover:text-orange-700 transition-colors uppercase tracking-tight">
+                                                                                        {account.name.replace(/ \(Non Mandi Expense\)/ig, "")}
+                                                                                    </span>
                                                                                 </div>
-                                                                            ))}
-                                                                    </>
+                                                                            </div>
+                                                                        );
+
+                                                                        return (
+                                                                            <>
+                                                                                {nonMandi.length > 0 && (
+                                                                                    <div className="mb-2">
+                                                                                        <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 sticky top-0 z-10 backdrop-blur-sm">Non Mandi Expenses</div>
+                                                                                        {nonMandi.map(renderItem)}
+                                                                                    </div>
+                                                                                )}
+                                                                                {mandi.length > 0 && (
+                                                                                    <div>
+                                                                                        <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 sticky top-0 z-10 backdrop-blur-sm">Mandi Expenses</div>
+                                                                                        {mandi.map(renderItem)}
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        );
+                                                                    })()
                                                                 )}
                                                             </div>
                                                         </div>

@@ -2365,9 +2365,17 @@ def get_accounts(account_type: str = None, sub_type: str = None) -> list:
     
     if (account_type or "").title() == "Expense":
         dummy = [
-            {"id": "paid_on_behalf_farmers", "name": "Paid on behalf of farmers (Non mandi expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
-            {"id": "paid_on_behalf_buyers", "name": "Paid on behalf of Buyers (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0}
+            {"id": "non_mandi_paid_on_behalf_buyers", "name": "Paid on behalf of Buyers (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
+            {"id": "non_mandi_paid_on_behalf_farmers", "name": "Paid on behalf of farmers (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
+            {"id": "non_mandi_transport_expense", "name": "Transport expense (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
+            {"id": "non_mandi_hamali_expense", "name": "Hamali expense (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
+            {"id": "non_mandi_loading_expense", "name": "Loading expense (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
+            {"id": "non_mandi_others", "name": "Others (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0}
         ]
+        # Remove any existing real accounts with these names to prevent duplicates
+        dummy_names = [d["name"] for d in dummy]
+        accounts = [a for a in accounts if a.get("name") not in dummy_names]
+        
         accounts = dummy + accounts
         
     return accounts
@@ -3512,8 +3520,19 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             expense_acc = p_expense_account or p_party_id
             
             # --- INTERCEPT NON-MANDI EXPENSES ---
-            if expense_acc in ["paid_on_behalf_farmers", "paid_on_behalf_buyers"]:
-                acc_name = "Paid on behalf of farmers (Non mandi expense)" if expense_acc == "paid_on_behalf_farmers" else "Paid on behalf of Buyers (Non Mandi Expense)"
+            if expense_acc and (expense_acc.startswith("non_mandi_") or expense_acc in ["paid_on_behalf_farmers", "paid_on_behalf_buyers"]):
+                mapping = {
+                    "non_mandi_paid_on_behalf_buyers": "Paid on behalf of Buyers (Non Mandi Expense)",
+                    "non_mandi_paid_on_behalf_farmers": "Paid on behalf of farmers (Non Mandi Expense)",
+                    "non_mandi_transport_expense": "Transport expense (Non Mandi Expense)",
+                    "non_mandi_hamali_expense": "Hamali expense (Non Mandi Expense)",
+                    "non_mandi_loading_expense": "Loading expense (Non Mandi Expense)",
+                    "non_mandi_others": "Others (Non Mandi Expense)",
+                    # Legacy support
+                    "paid_on_behalf_buyers": "Paid on behalf of Buyers (Non Mandi Expense)",
+                    "paid_on_behalf_farmers": "Paid on behalf of farmers (Non Mandi Expense)"
+                }
+                acc_name = mapping.get(expense_acc, "Other Non Mandi Expense")
                 real_acc = frappe.db.get_value("Account", {"account_name": acc_name, "company": company}, "name")
                 
                 if not real_acc:
