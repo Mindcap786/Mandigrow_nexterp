@@ -98,9 +98,9 @@ export default function AboutPage() {
                         <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm flex flex-col gap-3">
                             <Building2 className="w-6 h-6 text-emerald-600" />
                             <h3 className="font-black text-gray-900">Headquarters</h3>
-                            <p className="text-gray-600 text-sm font-medium">
-                                MINDT Private Limited<br/>
-                                Hyderabad, Telangana, India
+                            <p className="text-gray-700 text-sm">
+                                MINDT Private Limited<br />
+                                Rayachoti, Annamayya District
                             </p>
                         </div>
                         <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm flex flex-col gap-3">

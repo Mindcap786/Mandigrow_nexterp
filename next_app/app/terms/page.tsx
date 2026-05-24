@@ -224,7 +224,7 @@ export default function TermsPage() {
                     <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-0">
                         <p className="text-gray-800 font-bold mb-1">MandiGrow (MINDT Private Limited)</p>
                         <p className="text-gray-700 text-sm">
-                            Headquarters: Hyderabad, Telangana, India<br />
+                            Headquarters: Rayachoti, Annamayya District<br />
                             Legal: <a href="mailto:legal@mandigrow.com" className="text-emerald-700 font-bold">legal@mandigrow.com</a><br />
                             Billing: <a href="mailto:billing@mandigrow.com" className="text-emerald-700 font-bold">billing@mandigrow.com</a><br />
                             Support: <a href="mailto:support@mandigrow.com" className="text-emerald-700 font-bold">support@mandigrow.com</a>
