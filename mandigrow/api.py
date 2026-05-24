@@ -3545,7 +3545,7 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                     doc.account_name = acc_name
                     doc.parent_account = parent_acc
                     doc.company = company
-                    doc.account_type = "Receivable"
+                    # Do not set account_type to Receivable/Payable to avoid requiring Party in Journal Entries
                     doc.insert(ignore_permissions=True)
                     real_acc = doc.name
                 
