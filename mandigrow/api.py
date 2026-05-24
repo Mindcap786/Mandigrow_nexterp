@@ -60,6 +60,21 @@ def _org_filter(doctype: str, org_id: str) -> dict:
         return {"organization_id": org_id}
     return {}
 
+def _enforce_ownership(doc):
+    """Security helper to prevent IDOR on single document fetches."""
+    org_id = _get_user_org()
+    if not org_id: return
+    
+    doc_org = getattr(doc, "organization_id", None)
+    if doc_org and doc_org != org_id:
+        frappe.throw("Data isolation error: Access denied to this record.", frappe.PermissionError)
+        
+    doc_comp = getattr(doc, "company", None)
+    if doc_comp:
+        company = _get_user_company()
+        if company and doc_comp != company:
+            frappe.throw("Data isolation error: Access denied to this company record.", frappe.PermissionError)
+
 
 def _map_voucher_type(vtype, is_debit):
     """Map ERPNext voucher type to Day Book transaction_type."""
@@ -287,14 +302,14 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
     # ── 3. Fetch Mandi Arrivals for the day (for lot enrichment) ─────────
     arrivals = frappe.get_all(
         "Mandi Arrival",
-        filters={"arrival_date": date},
+        filters={"arrival_date": date, "company": company},
         fields=["name", "arrival_date", "party_id", "contact_bill_no", "creation"],
     )
 
     # ── 4. Fetch Mandi Sales for the day ──────────────────────────────────
     sales = frappe.get_all(
         "Mandi Sale",
-        filters={"saledate": date},
+        filters={"saledate": date, "company": company},
         fields=["name", "buyerid", "totalamount", "amountreceived", "bookno"],
     )
 
@@ -348,7 +363,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         # Fetch lots for this arrival
         lots = frappe.get_all(
             "Mandi Lot",
-            filters={"parent": arr["name"]},
+            filters={"parent": arr["name"], "company": company},
             fields=_lot_query_fields(
                 ["name", "lot_code", "qty", "unit", "supplier_rate",
                  "commission_percent", "packing_cost", "loading_cost",
@@ -395,7 +410,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         # Get sale items
         sale_items = frappe.get_all(
             "Mandi Sale Item",
-            filters={"parent": sale["name"]},
+            filters={"parent": sale["name"], "company": company},
             fields=["item_id", "qty", "rate", "amount"],
         )
         if sale_items:
@@ -2924,6 +2939,7 @@ def get_purchase_bill_details(lot_id: str) -> dict:
 
         # Fetch the Mandi Arrival doc
         arrival_doc = frappe.get_doc("Mandi Arrival", parent_name)
+        _enforce_ownership(arrival_doc)
         if arrival_doc.organization_id != _get_user_org():
             frappe.throw("Access Denied", frappe.PermissionError)
 
@@ -3026,6 +3042,7 @@ def repair_arrival_financials(arrival_id):
         frappe.throw("Not permitted")
         
     doc = frappe.get_doc("Mandi Arrival", arrival_id)
+    _enforce_ownership(doc)
     # Tenant guard
     from mandigrow.mandigrow.logic.tenancy import enforce_org_match
     enforce_org_match(doc)
@@ -3050,6 +3067,7 @@ def repair_arrival_financials(arrival_id):
     for je_name in old_je_names:
         try:
             je_doc = frappe.get_doc("Journal Entry", je_name)
+            _enforce_ownership(je_doc)
             if je_doc.docstatus == 1:
                 je_doc.cancel()
         except Exception:
@@ -3077,6 +3095,7 @@ def update_purchase_bill(arrival_id: str, data: str) -> dict:
             data = json.loads(data)
 
         doc = frappe.get_doc("Mandi Arrival", arrival_id)
+        _enforce_ownership(doc)
         # Tenant guard
         from mandigrow.mandigrow.logic.tenancy import enforce_org_match
         enforce_org_match(doc)
@@ -3146,6 +3165,7 @@ def get_arrival_detail(arrival_id: str = None) -> dict:
 
     try:
         doc = frappe.get_doc("Mandi Arrival", arrival_id)
+        _enforce_ownership(doc)
     except frappe.DoesNotExistError:
         return {"arrival": None, "lots": []}
 
@@ -3216,6 +3236,7 @@ def update_lot(lot_id: str, data=None) -> dict:
         enforce_org_match_by_name("Mandi Arrival", parent_name)
 
         doc = frappe.get_doc("Mandi Arrival", parent_name)
+        _enforce_ownership(doc)
         
         for item in doc.items:
             if item.name == lot_id:
@@ -4374,7 +4395,7 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
     """Creates a new Mandi Contact and optional opening balance."""
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     doc = frappe.get_doc({
         "doctype": "Mandi Contact",
         "full_name": full_name,
@@ -4589,7 +4610,7 @@ def update_gate_entry_status(id: str, status: str) -> dict:
 @frappe.whitelist(allow_guest=False)
 def get_mandi_settings(org_id: str = None) -> dict:
     """Returns the settings for a specific organization."""
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     org_info = _get_org_info(org_id)
     
     # Map organization profile fields to settings payload
@@ -4685,7 +4706,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     Returns all master data needed for forms (contacts, commodities, units, settings).
     Supports filtering contacts by type (e.g. for Arrivals vs Sales).
     """
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     if org_id and "ORG" in org_id and "-" not in org_id:
         org_id = f"ORG-{org_id.replace('ORG', '')}"
     # Build contact WHERE clause manually to avoid frappe.get_all alias conflict.
@@ -4972,7 +4993,7 @@ def get_bank_accounts(org_id: str = None) -> list:
 
     Returns is_default and current GL balance for all accounts.
     """
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     company = _get_user_company()
 
     has_desc = frappe.db.has_column("Account", "description")
@@ -5465,7 +5486,8 @@ def process_sale_return(payload: dict) -> dict:
         frappe.throw(_("Sale ID and items are required for return."))
 
     sale = frappe.get_doc("Mandi Sale", sale_id)
-    company = frappe.db.get_value("Mandi Organization", org_id, "erp_company") or get_default_company()
+    _enforce_ownership(sale)
+    company = _get_user_company()
     cost_center = _get_cost_center(company)
     
     total_refund = sum(flt(i.get("qty", 0)) * flt(i.get("rate", 0)) for i in return_items)
@@ -5545,7 +5567,7 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
     Paginated sales list with stats — replaces 4 parallel Supabase queries from Sales PageClient.
     Returns: {sales, total_count, total_revenue, debtors_count, creditors_count}
     """
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     page = int(page or 1)
     page_size = int(page_size or 20)
 
@@ -6404,7 +6426,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
 def get_contacts_page(org_id: str = None, contact_type: str = None, search: str = None,
                       page: int = 1, page_size: int = 50) -> dict:
     """Paginated contacts list for the Contacts page."""
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     page = int(page or 1)
     page_size = int(page_size or 50)
 
@@ -6484,7 +6506,7 @@ def search_contacts(query: str = None, contact_type: str = None, org_id: str = N
     """Search contacts by name — used for autocomplete dropdowns."""
     if not query:
         return []
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     filters = [["full_name", "!=", "Walk-in Buyer"]]
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         filters.append(["organization_id", "=", org_id])
@@ -6719,7 +6741,7 @@ def get_stock_summary(org_id: str = None) -> dict:
     """
     from datetime import datetime, date
 
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     
     # Filter lots by checking parent Mandi Arrival's organization_id
     valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
@@ -6854,6 +6876,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
 
     try:
         doc = frappe.get_doc("Mandi Sale", sale_id)
+        _enforce_ownership(doc)
         if doc.organization_id != _get_user_org():
             frappe.throw("Access Denied", frappe.PermissionError)
         buyer_name = ""
@@ -7123,7 +7146,7 @@ def delete_contact(contact_id: str = None) -> dict:
 @frappe.whitelist(allow_guest=False)
 def get_salary_status(org_id: str = None) -> dict:
     """Get salary payment status for current month."""
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     if not org_id:
         return {"paid_amounts": {}, "salary_account_id": None}
 
@@ -7385,7 +7408,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
     Returns all master data needed by the Sales form in one call.
     Replaces 7 parallel Supabase queries.
     """
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     if not org_id:
         return {}
 
@@ -7895,7 +7918,7 @@ def get_arrivals_history(org_id: str = None, page: int = 1, limit: int = 20, dat
     summary built from the first Mandi Lot row so the list can render
     the item/qty/rate at a glance.
     """
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     if not org_id:
         return {"records": [], "total_count": 0}
 
@@ -8027,7 +8050,7 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
     farmer + item info. Grouping + balance rollups are done server-side so the
     UI can just render.
     """
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     if not org_id:
         return {"bills": [], "groupedSuppliers": []}
 
@@ -8301,7 +8324,7 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
 @frappe.whitelist(allow_guest=False)
 def export_arrivals_csv(org_id: str = None, date_from: str = None, date_to: str = None) -> list:
     """Export arrivals data for CSV download."""
-    org_id = org_id or _get_user_org()
+    org_id = _get_user_org()
     if not org_id:
         return []
 
@@ -8851,6 +8874,7 @@ def get_session_detail(session_id: str = None) -> dict:
 
     try:
         arrival = frappe.get_doc("Mandi Arrival", session_id)
+        _enforce_ownership(arrival)
     except frappe.DoesNotExistError:
         return {"arrivals": [], "sale": None}
 
@@ -9334,7 +9358,7 @@ def get_buyer_receivables(org_id: str = None) -> list:
     Returns list of buyers with their real-time net balance from GL Entry.
     """
     try:
-        org_id = org_id or _get_user_org()
+        org_id = _get_user_org()
         # Resolve company from the specific org_id passed
         company = frappe.db.get_value("Mandi Organization", org_id, "erp_company") if org_id else _get_user_company()
         
@@ -10168,6 +10192,7 @@ def repair_erp_integrity() -> dict:
         for a in arrivals:
             if not frappe.db.exists("GL Entry", {"voucher_no": a.name}):
                 doc = frappe.get_doc("Mandi Arrival", a.name)
+                _enforce_ownership(doc)
                 doc.on_submit()
                 reposted_arrivals += 1
         
@@ -10177,6 +10202,7 @@ def repair_erp_integrity() -> dict:
         for s in sales:
             if not frappe.db.exists("GL Entry", {"voucher_no": s.name}):
                 doc = frappe.get_doc("Mandi Sale", s.name)
+                _enforce_ownership(doc)
                 doc.on_submit()
                 reposted_sales += 1
 
@@ -10238,6 +10264,7 @@ def backfill_gl_entries() -> dict:
             
             # Recalculate expenses
             doc_data = frappe.get_doc("Mandi Arrival", a["name"])
+            _enforce_ownership(doc_data)
             sum_lot_costs = sum(flt(l.packing_cost) + flt(l.loading_cost) + flt(l.farmer_charges) for l in doc_data.items)
             arrival_costs = flt(doc_data.hire_charges) + flt(doc_data.hamali_expenses) + flt(doc_data.other_expenses)
             total_expenses = sum_lot_costs + arrival_costs
@@ -10258,6 +10285,7 @@ def backfill_gl_entries() -> dict:
 
         try:
             doc = frappe.get_doc("Mandi Arrival", a["name"])
+            _enforce_ownership(doc)
             on_arrival_submit(doc)
             ok_arrivals.append(a["name"])
         except Exception as exc:
@@ -10278,6 +10306,7 @@ def backfill_gl_entries() -> dict:
             continue
         try:
             doc = frappe.get_doc("Mandi Sale", s["name"])
+            _enforce_ownership(doc)
             on_sale_submit(doc)
             ok_sales.append(s["name"])
         except Exception as exc:
@@ -10701,7 +10730,7 @@ def repair_all_settlements(org_id: str = None):
     Force-reconciles all sales and arrivals with their ledger balances via FIFO.
     """
     try:
-        org_id = org_id or _get_user_org()
+        org_id = _get_user_org()
         
         # 1. Repair all Buyers
         buyers = frappe.get_all("Mandi Contact", 
@@ -10732,7 +10761,7 @@ def repair_all_settlements(org_id: str = None):
 def repair_single_party_settlement(contact_id: str, org_id: str = None):
     """Reconciles a single party's bills with their ledger balance via FIFO + Linkage."""
     try:
-        org_id = org_id or _get_user_org()
+        org_id = _get_user_org()
         company = frappe.db.get_value("Mandi Organization", org_id, "erp_company")
         if not company: return False
         
@@ -13610,6 +13639,7 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
     try:
         # ── 1. Validate Arrival ─────────────────────────────────────────────
         arrival = frappe.get_doc("Mandi Arrival", arrival_name)
+        _enforce_ownership(arrival)
 
         if arrival.organization_id and arrival.organization_id != org_id:
             frappe.throw("Access denied: This arrival does not belong to your organization.")
@@ -15305,6 +15335,7 @@ def repair_direct_arrivals():
     count = 0
     for arr in arrivals:
         doc = frappe.get_doc("Mandi Arrival", arr.name)
+        _enforce_ownership(doc)
         doc._recompute_summary()
         frappe.db.set_value("Mandi Arrival", doc.name, {
             "total_realized": doc.total_realized,
