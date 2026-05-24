@@ -5812,11 +5812,22 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     # ── Sale-level charge recoveries (pass-through: collected from buyer,
     #    paid out to laborers / govt — net zero on Mandi P&L) ─────────────────
     total_sale_recoveries = 0.0
+    total_market_fee = 0.0
+    total_nirashrit = 0.0
+    total_misc_fee = 0.0
     for s in sales:
+        m_fee = flt(s.get("marketfee"))
+        n_fee = flt(s.get("nirashrit"))
+        misc_fee = flt(s.get("miscfee"))
+        
+        total_market_fee += m_fee
+        total_nirashrit += n_fee
+        total_misc_fee += misc_fee
+        
         total_sale_recoveries += (
-            flt(s.get("marketfee"))
-            + flt(s.get("nirashrit"))
-            + flt(s.get("miscfee"))
+            m_fee
+            + n_fee
+            + misc_fee
             + flt(s.get("loadingcharges"))
             + flt(s.get("unloadingcharges"))
             + flt(s.get("otherexpenses"))
@@ -6394,6 +6405,9 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         "totalSettlementIncome": round(total_settlement_income, 2),
         "totalBusinessExpenses": round(total_business_expenses, 2),
         "totalSaleRecoveries":   round(total_sale_recoveries, 2), # Informational: charges collected from buyers
+        "totalMarketFee":        round(total_market_fee, 2),
+        "totalNirashrit":        round(total_nirashrit, 2),
+        "totalMiscFee":          round(total_misc_fee, 2),
         "totalProfit":           round(total_profit, 2),
         "margin":                round(net_margin, 2)
     }
