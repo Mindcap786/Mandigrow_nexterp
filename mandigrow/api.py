@@ -5835,10 +5835,12 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         for i in frappe.get_all("Item", filters={"name": ["in", item_ids]}, fields=["name", "item_name"]):
             item_map[i.name] = i.item_name
 
-    # ── Pre-calculate Sale goods totals for discount proration ────────────────
+    # ── Pre-calculate Sale goods totals for discount proration (excluding crates) ─
     sale_map = {s.name: s for s in sales}
     sale_goods_totals = {}
     for si in sale_items:
+        if si.item_id and si.item_id.startswith("CRATE-"):
+            continue
         sale_goods_totals[si.parent] = sale_goods_totals.get(si.parent, 0.0) + float(si.amount or 0)
 
     # ── Main aggregation loop ─────────────────────────────────────────────────
