@@ -6216,16 +6216,14 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         company = company if 'company' in dir() else _get_user_company()
         if company:
             writeoff_accs = frappe.get_all("Account",
-                filters={"company": company, "is_group": 0, "root_type": "Expense",
-                         "account_name": ["like", "%Discount Allowed%"]},
+                filters={"company": company, "is_group": 0, "root_type": "Expense"},
+                or_filters=[
+                    {"account_name": ["like", "%Discount Allowed%"]},
+                    {"account_name": ["like", "%Bad Debt%"]},
+                    {"account_name": ["like", "%Discount%"]}
+                ],
                 fields=["name"], ignore_permissions=True
             )
-            if not writeoff_accs:
-                writeoff_accs = frappe.get_all("Account",
-                    filters={"company": company, "is_group": 0, "root_type": "Expense",
-                             "account_name": ["like", "%Bad Debt%"]},
-                    fields=["name"], ignore_permissions=True
-                )
             if writeoff_accs:
                 wo_names = [a.name for a in writeoff_accs]
                 wo_placeholders = ", ".join(["%s"] * len(wo_names))
@@ -6259,8 +6257,12 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         company = company if 'company' in dir() else _get_user_company()
         if company:
             income_accs = frappe.get_all("Account",
-                filters={"company": company, "is_group": 0, "root_type": "Income",
-                         "account_name": ["like", "%Discount Received%"]},
+                filters={"company": company, "is_group": 0, "root_type": "Income"},
+                or_filters=[
+                    {"account_name": ["like", "%Discount Received%"]},
+                    {"account_name": ["like", "%Settlement%"]},
+                    {"account_name": ["like", "%Discount%"]}
+                ],
                 fields=["name"], ignore_permissions=True
             )
             if income_accs:
