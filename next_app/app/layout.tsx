@@ -144,55 +144,6 @@ export default function RootLayout({
                 {/* Preconnect to Google Fonts for Indic / Urdu script support */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                {/* Organization schema */}
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            '@context': 'https://schema.org',
-                            '@type': 'Organization',
-                            name: 'MandiGrow',
-                            url: 'https://www.mandigrow.com',
-                            logo: 'https://www.mandigrow.com/logo.png',
-                            contactPoint: {
-                                '@type': 'ContactPoint',
-                                contactType: 'Sales',
-                                areaServed: 'IN',
-                                availableLanguage: ['Hindi', 'Telugu', 'Tamil', 'Kannada', 'Malayalam', 'Urdu', 'English'],
-                            },
-                        }),
-                    }}
-                />
-
-
-                {/* SoftwareApplication schema for SEO — see ARCHITECTURE.md / SEO pack */}
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            '@context': 'https://schema.org',
-                            '@type': 'SoftwareApplication',
-                            name: 'MandiGrow',
-                            applicationCategory: 'BusinessApplication',
-                            operatingSystem: 'Android, Web',
-                            offers: {
-                                '@type': 'Offer',
-                                price: '0',
-                                priceCurrency: 'INR',
-                                description: 'Free trial available',
-                            },
-                            description:
-                                "MandiGrow is India's #1 mandi ERP software for commission agents, fruit and vegetable traders, and warehouse managers. Auto commission, GST billing, mandi khata, APMC compliance.",
-                            url: 'https://www.mandigrow.com',
-                            screenshot: 'https://www.mandigrow.com/og-image.png',
-                            aggregateRating: {
-                                '@type': 'AggregateRating',
-                                ratingValue: '4.8',
-                                reviewCount: '48',
-                            },
-                        }),
-                    }}
-                />
                 {/* Fallback theme-color for older iOS that don't read viewport.themeColor above */}
                 <meta name="theme-color" content="#050510" />
 
@@ -215,17 +166,72 @@ export default function RootLayout({
                                                 {
                                                     "@type": "SoftwareApplication",
                                                     "name": "MandiGrow",
+                                                    "description": "India's #1 mandi ERP software for commission agents, fruit and vegetable traders, and warehouse managers. Auto commission, GST billing, mandi khata, APMC compliance.",
+                                                    "url": "https://www.mandigrow.com",
+                                                    "image": "https://www.mandigrow.com/og-image.png",
+                                                    "screenshot": "https://www.mandigrow.com/og-image.png",
+                                                    "brand": {
+                                                        "@type": "Brand",
+                                                        "name": "MandiGrow"
+                                                    },
                                                     "operatingSystem": "Web, iOS, Android",
                                                     "applicationCategory": "BusinessApplication",
                                                     "aggregateRating": {
                                                         "@type": "AggregateRating",
                                                         "ratingValue": "4.9",
-                                                        "ratingCount": "184"
+                                                        "ratingCount": "184",
+                                                        "reviewCount": "184"
+                                                    },
+                                                    "review": {
+                                                        "@type": "Review",
+                                                        "reviewRating": {
+                                                            "@type": "Rating",
+                                                            "ratingValue": "5",
+                                                            "bestRating": "5"
+                                                        },
+                                                        "author": {
+                                                            "@type": "Person",
+                                                            "name": "Rajesh Kumar"
+                                                        }
                                                     },
                                                     "offers": {
                                                         "@type": "Offer",
-                                                        "price": "500",
-                                                        "priceCurrency": "INR"
+                                                        "price": "833",
+                                                        "priceCurrency": "INR",
+                                                        "availability": "https://schema.org/InStock",
+                                                        "url": "https://www.mandigrow.com/subscribe",
+                                                        "shippingDetails": {
+                                                            "@type": "OfferShippingDetails",
+                                                            "shippingRate": {
+                                                                "@type": "MonetaryAmount",
+                                                                "value": "0",
+                                                                "currency": "INR"
+                                                            },
+                                                            "shippingDestination": {
+                                                                "@type": "DefinedRegion",
+                                                                "addressCountry": "IN"
+                                                            },
+                                                            "deliveryTime": {
+                                                                "@type": "ShippingDeliveryTime",
+                                                                "handlingTime": {
+                                                                    "@type": "QuantitativeValue",
+                                                                    "minValue": 0,
+                                                                    "maxValue": 0,
+                                                                    "unitCode": "d"
+                                                                },
+                                                                "transitTime": {
+                                                                    "@type": "QuantitativeValue",
+                                                                    "minValue": 0,
+                                                                    "maxValue": 0,
+                                                                    "unitCode": "d"
+                                                                }
+                                                            }
+                                                        },
+                                                        "hasMerchantReturnPolicy": {
+                                                            "@type": "MerchantReturnPolicy",
+                                                            "applicableCountry": "IN",
+                                                            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
+                                                        }
                                                     }
                                                 },
                                                 {

@@ -1622,7 +1622,7 @@ def provision_team_member(
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
 
     # ── Normalize role to a valid Frappe role_type value ─────────────────────
-    VALID_ROLE_TYPES = {"super_admin", "admin", "manager", "clerk"}
+    VALID_ROLE_TYPES = {"super_admin", "platform_admin", "finance_admin", "support_admin", "operations_admin", "read_only", "admin", "manager", "clerk"}
     ROLE_MAP = {
         "member": "clerk", "staff": "clerk", "employee": "clerk",
         "user": "clerk", "viewer": "clerk", "salesman": "clerk",
