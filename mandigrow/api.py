@@ -6215,39 +6215,27 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     try:
         company = company if 'company' in dir() else _get_user_company()
         if company:
-            writeoff_accs = frappe.get_all("Account",
-                filters={"company": company, "is_group": 0, "root_type": "Expense"},
-                or_filters=[
-                    {"account_name": ["like", "%Discount Allowed%"]},
-                    {"account_name": ["like", "%Bad Debt%"]},
-                    {"account_name": ["like", "%Discount%"]}
-                ],
-                fields=["name"], ignore_permissions=True
-            )
-            if writeoff_accs:
-                wo_names = [a.name for a in writeoff_accs]
-                wo_placeholders = ", ".join(["%s"] * len(wo_names))
-                wo_date_cond = ""
-                wo_date_params: list = []
-                if date_from and date_to:
-                    wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s"
-                    wo_date_params = [date_from, date_to]
-                elif date_from:
-                    wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) >= %s"
-                    wo_date_params = [date_from]
-                elif date_to:
-                    wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) <= %s"
-                    wo_date_params = [date_to]
-                rows_wo = frappe.db.sql(f"""
-                    SELECT gl.debit
-                    FROM `tabGL Entry` gl
-                    LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
-                    WHERE gl.is_cancelled = 0
-                      AND gl.company = %s
-                      AND gl.account IN ({wo_placeholders})
-                      {wo_date_cond}
-                """, [company] + wo_names + wo_date_params, as_dict=True)
-                total_writeoff = sum(flt(r.debit) for r in rows_wo)
+            wo_date_cond = ""
+            wo_date_params: list = []
+            if date_from and date_to:
+                wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s"
+                wo_date_params = [date_from, date_to]
+            elif date_from:
+                wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) >= %s"
+                wo_date_params = [date_from]
+            elif date_to:
+                wo_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) <= %s"
+                wo_date_params = [date_to]
+            rows_wo = frappe.db.sql(f"""
+                SELECT gl.debit
+                FROM `tabGL Entry` gl
+                LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+                WHERE gl.is_cancelled = 0
+                  AND gl.company = %s
+                  AND gl.remarks LIKE 'Write-off / Settlement — %%'
+                  {wo_date_cond}
+            """, [company] + wo_date_params, as_dict=True)
+            total_writeoff = sum(flt(r.debit) for r in rows_wo)
     except Exception:
         pass
 
@@ -6256,39 +6244,28 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     try:
         company = company if 'company' in dir() else _get_user_company()
         if company:
-            income_accs = frappe.get_all("Account",
-                filters={"company": company, "is_group": 0, "root_type": "Income"},
-                or_filters=[
-                    {"account_name": ["like", "%Discount Received%"]},
-                    {"account_name": ["like", "%Settlement%"]},
-                    {"account_name": ["like", "%Discount%"]}
-                ],
-                fields=["name"], ignore_permissions=True
-            )
-            if income_accs:
-                inc_names = [a.name for a in income_accs]
-                inc_placeholders = ", ".join(["%s"] * len(inc_names))
-                inc_date_cond = ""
-                inc_date_params: list = []
-                if date_from and date_to:
-                    inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s"
-                    inc_date_params = [date_from, date_to]
-                elif date_from:
-                    inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) >= %s"
-                    inc_date_params = [date_from]
-                elif date_to:
-                    inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) <= %s"
-                    inc_date_params = [date_to]
-                rows_inc = frappe.db.sql(f"""
-                    SELECT gl.credit
-                    FROM `tabGL Entry` gl
-                    LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
-                    WHERE gl.is_cancelled = 0
-                      AND gl.company = %s
-                      AND gl.account IN ({inc_placeholders})
-                      {inc_date_cond}
-                """, [company] + inc_names + inc_date_params, as_dict=True)
-                total_settlement_income = sum(flt(r.credit) for r in rows_inc)
+            inc_date_cond = ""
+            inc_date_params: list = []
+            if date_from and date_to:
+                inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s"
+                inc_date_params = [date_from, date_to]
+            elif date_from:
+                inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) >= %s"
+                inc_date_params = [date_from]
+            elif date_to:
+                inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) <= %s"
+                inc_date_params = [date_to]
+            
+            rows_inc = frappe.db.sql(f"""
+                SELECT gl.credit
+                FROM `tabGL Entry` gl
+                LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+                WHERE gl.is_cancelled = 0
+                  AND gl.company = %s
+                  AND gl.remarks LIKE 'Settlement Income:%%'
+                  {inc_date_cond}
+            """, [company] + inc_date_params, as_dict=True)
+            total_settlement_income = sum(flt(r.credit) for r in rows_inc)
     except Exception:
         pass
 
@@ -6316,7 +6293,6 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 fields=["name", "account_name"], ignore_permissions=True
             )
             stock_loss_names   = {a.name for a in loss_accs}
-            writeoff_acc_names = {a.name for a in writeoff_accs} if writeoff_accs else set()
             # ── Exclude keywords ──────────────────────────────────────────
             # Purchase-side (already in Unit Cost / COGS):
             #   packing, loading, hamali, transport, freight, hire, farmer
@@ -6338,13 +6314,12 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 "unloading",
                 # Clearing accounts (not real opex)
                 "expense recovery",
-                # Write-offs (counted separately in totalWriteoff)
+                # Write-offs
                 "discount", "bad debt",
             ]
             business_exp_accs  = [
                 a.name for a in expense_accs
                 if a.name not in stock_loss_names
-                and a.name not in writeoff_acc_names
                 and not any(kw in (a.account_name or "").lower() for kw in exclude_keywords)
             ]
             if business_exp_accs:
@@ -6377,6 +6352,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                     WHERE gl.is_cancelled = 0
                       AND gl.company = %s
                       AND gl.account IN ({acc_placeholders})
+                      AND gl.remarks NOT LIKE 'Write-off / Settlement — %%'
                       {date_condition}
                 """, [company] + business_exp_accs + date_params_be, as_dict=True)
 
