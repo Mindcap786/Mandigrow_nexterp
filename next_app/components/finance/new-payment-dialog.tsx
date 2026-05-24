@@ -480,7 +480,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel className="uppercase text-[10px] font-bold tracking-widest text-slate-700">{partyLabel}</FormLabel>
-                                            <Popover
+                                            <Popover modal={true}
                                                 open={openParty}
                                                 onOpenChange={(op) => {
                                                     setOpenParty(op)
@@ -929,7 +929,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                             render={({ field }) => (
                                                 <FormItem className="col-span-2">
                                                     <FormLabel className="uppercase text-[9px] font-black text-slate-500 tracking-widest">Expected Clearing Date</FormLabel>
-                                                    <Popover>
+                                                    <Popover modal={true}>
                                                         <PopoverTrigger asChild>
                                                             <FormControl>
                                                                 <Button variant="outline" className="w-full h-9 bg-white border-slate-300 text-left font-bold text-xs">
@@ -956,7 +956,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel className="uppercase text-[10px] font-bold tracking-widest text-slate-700">{getLabel('payment_date', 'Date')}</FormLabel>
-                                            <Popover>
+                                            <Popover modal={true}>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
                                                         <Button

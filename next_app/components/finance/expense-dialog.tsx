@@ -404,6 +404,7 @@ export function ExpenseDialog({
                                             <FormItem className="flex flex-col">
                                                 <FormLabel className="uppercase text-[10px] font-black tracking-widest text-slate-500">{getLabel('account_id', 'Expense Category')}</FormLabel>
                                                 <Popover
+                                                    modal={true}
                                                     open={openAccount}
                                                     onOpenChange={(op) => {
                                                         setOpenAccount(op);
@@ -668,7 +669,7 @@ export function ExpenseDialog({
                                             render={({ field }) => (
                                                 <FormItem className="col-span-2">
                                                     <FormLabel className="uppercase text-[9px] font-black text-orange-500/60 tracking-widest">Expected Clearing Date</FormLabel>
-                                                    <Popover>
+                                                    <Popover modal={true}>
                                                         <PopoverTrigger asChild>
                                                             <FormControl>
                                                                 <Button variant="outline" className="w-full h-11 bg-white border-orange-100 text-left font-bold text-xs rounded-xl">
@@ -696,7 +697,7 @@ export function ExpenseDialog({
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
                                                 <FormLabel className="uppercase text-[10px] font-black tracking-widest text-slate-500">{getLabel('payment_date', 'Expense Date')}</FormLabel>
-                                                <Popover>
+                                                <Popover modal={true}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
                                                             <Button
