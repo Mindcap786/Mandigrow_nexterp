@@ -5886,12 +5886,16 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         total_cost       += cogs
         total_commission += commission
 
+        sale_doc = sale_map.get(si.parent)
+        sale_creation = str(sale_doc.creation) if sale_doc else "1970-01-01 00:00:00"
+
         if si.lot_id not in stats_map:
             item_name = item_map.get(lot.item_id, lot.item_id or "Unknown")
             stats_map[si.lot_id] = {
                 "id":           si.lot_id,
                 "lot_code":     lot.lot_code,
-                "date":         next((s.saledate for s in sales if s.name == si.parent), ""),
+                "date":         sale_doc.saledate if sale_doc else "",
+                "latest_creation": sale_creation,
                 "item":         item_name,
                 "arrival_type": arrival_type,
                 "lot":          {"commodity": {"name": item_name}},
@@ -5902,6 +5906,10 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                 "commission":   0,
                 "profit":       0
             }
+        else:
+            # Update latest_creation if this sale is newer
+            if sale_creation > stats_map[si.lot_id].get("latest_creation", ""):
+                stats_map[si.lot_id]["latest_creation"] = sale_creation
 
         entry = stats_map[si.lot_id]
         entry["qty"]        += qty
@@ -5942,6 +5950,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                     "id": stats_id,
                     "lot_code": f"Crates (Sale)",
                     "date": sale_doc.saledate,
+                    "latest_creation": str(sale_doc.creation),
                     "item": crate.name,
                     "arrival_type": "Crate Sale",
                     "lot": {"commodity": {"name": crate.crate_name}},
@@ -5953,6 +5962,8 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
                     "profit": prof
                 }
             else:
+                if str(sale_doc.creation) > stats_map[stats_id].get("latest_creation", ""):
+                    stats_map[stats_id]["latest_creation"] = str(sale_doc.creation)
                 stats_map[stats_id]["qty"] += qty
                 stats_map[stats_id]["revenue"] += rev
                 stats_map[stats_id]["cost"] += cost
@@ -6037,8 +6048,8 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         data["saleRate"] = data["revenue"] / data["qty"] if data["qty"] > 0 else 0
         data["margin"]   = (data["profit"] / data["revenue"] * 100) if data["revenue"] > 0 else 0
         pl_items.append(data)
-    # Sort by date (newest first), then commodities before crates
-    pl_items.sort(key=lambda x: (str(x["date"]), not str(x.get("id", "")).startswith("CRATE-")), reverse=True)
+    # Sort by date (newest first), then by the exact creation time of the sale
+    pl_items.sort(key=lambda x: (str(x["date"]), str(x.get("latest_creation", ""))), reverse=True)
 
     # ── Trading Loss indicator (informational) ────────────────────────────────
     total_trading_loss = 0.0
