@@ -176,7 +176,7 @@ export default function BillingCheckout() {
 
         try {
             // Step 1: Create order on backend
-            const callbackBaseUrl = `${window.location.origin}/settings/billing/payment-callback`;
+            const callbackBaseUrl = `${window.location.origin}/api/paytm-callback`;
             const orderRes: PaytmOrderResult = await callApi('mandigrow.api.create_paytm_order', {
                 plan_name: plan.plan_name || plan.name,
                 billing_cycle: cycle,
