@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { callApi } from "@/lib/frappeClient";
  // proxy fallback
-import { Loader2, TrendingUp, TrendingDown, RefreshCcw, Calendar as CalendarIcon, DollarSign, PieChart, ArrowUpRight, Filter, Zap, Activity, Info, Download, MessageCircle, Apple } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, RefreshCcw, Calendar as CalendarIcon, DollarSign, PieChart, ArrowUpRight, Filter, Zap, Activity, Info, Download, MessageCircle, Apple, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
@@ -33,6 +33,7 @@ export default function ProfitLossPage() {
     const [dateSheetOpen, setDateSheetOpen] = useState(false);
     const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const availableFruits = useMemo(() => {
         if (!rawSalesData) return [];
@@ -500,7 +501,11 @@ export default function ProfitLossPage() {
 
                         {/* Transaction Detail Table */}
                         {(() => {
-                            const allItems = stats?.items || [];
+                            const filteredItems = (stats?.items || []).filter((item: any) => 
+                                (item.item && item.item.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                                (item.lot_code && item.lot_code.toLowerCase().includes(searchQuery.toLowerCase()))
+                            );
+                            const allItems = filteredItems;
                             const totalPages = Math.ceil(allItems.length / PAGE_SIZE);
                             const cappedPage = Math.min(currentPage, MAX_FREE_PAGES);
                             const pageItems = allItems.slice((cappedPage - 1) * PAGE_SIZE, cappedPage * PAGE_SIZE);
@@ -518,9 +523,24 @@ export default function ProfitLossPage() {
                                                 {hasMoreBeyondLimit && <span className="ml-2 text-amber-500 text-[8px] md:text-[10px]">· Export for full data</span>}
                                             </p>
                                         </div>
-                                        <Button onClick={downloadCSV} variant="outline" className="w-full md:w-auto border-slate-200 text-slate-500 hover:text-black hover:bg-white h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] shadow-sm">
-                                            <Download className="w-3.5 h-3.5 mr-2" /> Export Full Report
-                                        </Button>
+                                        <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+                                            <div className="relative w-full md:w-64">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Search item or lot..." 
+                                                    value={searchQuery}
+                                                    onChange={(e) => {
+                                                        setSearchQuery(e.target.value);
+                                                        setCurrentPage(1);
+                                                    }}
+                                                    className="w-full pl-9 pr-4 h-10 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl text-xs font-bold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-sm"
+                                                />
+                                            </div>
+                                            <Button onClick={downloadCSV} variant="outline" className="hidden md:flex border-slate-200 text-slate-500 hover:text-black hover:bg-white h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] shadow-sm shrink-0">
+                                                <Download className="w-3.5 h-3.5 mr-2" /> Export Full Report
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     {/* Desktop Table */}

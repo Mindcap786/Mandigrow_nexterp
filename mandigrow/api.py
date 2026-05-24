@@ -6037,8 +6037,8 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         data["saleRate"] = data["revenue"] / data["qty"] if data["qty"] > 0 else 0
         data["margin"]   = (data["profit"] / data["revenue"] * 100) if data["revenue"] > 0 else 0
         pl_items.append(data)
-
-    pl_items.sort(key=lambda x: str(x["date"]), reverse=True)
+    # Sort by date (newest first), then commodities before crates
+    pl_items.sort(key=lambda x: (str(x["date"]), not str(x.get("id", "")).startswith("CRATE-")), reverse=True)
 
     # ── Trading Loss indicator (informational) ────────────────────────────────
     total_trading_loss = 0.0
