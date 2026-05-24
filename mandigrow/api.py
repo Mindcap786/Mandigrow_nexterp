@@ -1617,7 +1617,8 @@ def provision_team_member(
 
     admin_org = organization_id if (is_super_admin() and organization_id) else _get_user_org()
 
-    if not admin_org:
+    is_creating_super_admin = (role == "super_admin" or role == "Super Admin (Full Access)")
+    if not admin_org and not (is_super_admin() and is_creating_super_admin):
         frappe.throw(_("Unauthorized: You must be linked to an organization to add team members."))
 
     # ── Normalize role to a valid Frappe role_type value ─────────────────────
@@ -1639,7 +1640,7 @@ def provision_team_member(
     })
     if not is_super_admin():
         enforce_active_subscription(admin_org)
-    if not _is_existing_org_user:
+    if not _is_existing_org_user and admin_org:
         # Only count seat against limit for genuinely new users
         enforce_seat_limit(admin_org)
 
@@ -1654,7 +1655,7 @@ def provision_team_member(
             )
 
     # ── Email uniqueness check ────────────────────────────────────────────────
-    if frappe.db.exists("User", {"email": email, "mandi_organization": ["!=", admin_org]}):
+    if admin_org and frappe.db.exists("User", {"email": email, "mandi_organization": ["!=", admin_org]}):
         frappe.throw(
             _("An account with email '{0}' already exists in another organization.").format(email),
             frappe.DuplicateEntryError
@@ -1674,7 +1675,8 @@ def provision_team_member(
 
         # User exists in THIS org — update and link
         if not user.mandi_organization:
-            user.mandi_organization = admin_org
+            if admin_org:
+                user.mandi_organization = admin_org
             user.role_type = normalized_role
             user.enabled = 1
             if username:
