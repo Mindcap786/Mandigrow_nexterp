@@ -155,7 +155,8 @@ export default function PrivacyPolicyPage() {
                     </p>
                     <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-6">
                         <p className="text-gray-800 font-bold mb-1">Grievance Officer</p>
-                        <p className="text-gray-700 text-sm">MandiGrow<br />
+                        <p className="text-gray-700 text-sm">MandiGrow (MINDT Private Limited)<br />
+                            Headquarters: Hyderabad, Telangana, India<br />
                             Email: <a href="mailto:privacy@mandigrow.com" className="text-emerald-700 font-bold">privacy@mandigrow.com</a><br />
                             Support: <a href="mailto:support@mandigrow.com" className="text-emerald-700 font-bold">support@mandigrow.com</a><br />
                             Response time: within 15 days of receipt of a valid request.
