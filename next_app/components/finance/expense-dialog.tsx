@@ -94,6 +94,7 @@ export function ExpenseDialog({
     const [defaultBankId, setDefaultBankId] = useState<string | null>(null);
     const [loadingBanks, setLoadingBanks] = useState(false);
     const [isPersonal, setIsPersonal] = useState(false); // ← NEW: Personal Withdrawal (Drawings)
+    const [mandiToggle, setMandiToggle] = useState<'mandi' | 'non_mandi'>('mandi');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -431,7 +432,27 @@ export function ExpenseDialog({
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-[400px] p-0 bg-white border-slate-200 z-[200] rounded-2xl shadow-2xl pointer-events-auto" align="start">
                                                         <div className="flex flex-col bg-white rounded-2xl overflow-hidden">
-                                                            <div className="p-3 bg-slate-50 border-b border-slate-100">
+                                                            <div className="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-3">
+                                                                <div className="bg-slate-200/50 p-1 rounded-xl flex">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.preventDefault(); setMandiToggle('mandi'); }}
+                                                                        className={`flex-1 py-2 text-[10px] font-black tracking-widest rounded-lg transition-all ${
+                                                                            mandiToggle === 'mandi' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'
+                                                                        }`}
+                                                                    >
+                                                                        MANDI EXPENSES
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.preventDefault(); setMandiToggle('non_mandi'); }}
+                                                                        className={`flex-1 py-2 text-[10px] font-black tracking-widest rounded-lg transition-all ${
+                                                                            mandiToggle === 'non_mandi' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'
+                                                                        }`}
+                                                                    >
+                                                                        NON MANDI
+                                                                    </button>
+                                                                </div>
                                                                 <Input
                                                                     placeholder="Search category..."
                                                                     className="bg-white border-slate-200 text-black focus-visible:ring-2 focus-visible:ring-orange-500/20 placeholder:text-slate-400 font-bold rounded-lg"
@@ -457,6 +478,8 @@ export function ExpenseDialog({
                                                                         const nonMandi = filtered.filter(a => (a.name || "").toLowerCase().includes('(non mandi'));
                                                                         const mandi = filtered.filter(a => !(a.name || "").toLowerCase().includes('(non mandi'));
 
+                                                                        const listToRender = mandiToggle === 'mandi' ? mandi : nonMandi;
+
                                                                         const renderItem = (account: any) => (
                                                                             <div
                                                                                 key={account.id}
@@ -479,16 +502,9 @@ export function ExpenseDialog({
 
                                                                         return (
                                                                             <>
-                                                                                {nonMandi.length > 0 && (
-                                                                                    <div className="mb-2">
-                                                                                        <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 sticky top-0 z-10 backdrop-blur-sm">Non Mandi Expenses</div>
-                                                                                        {nonMandi.map(renderItem)}
-                                                                                    </div>
-                                                                                )}
-                                                                                {mandi.length > 0 && (
-                                                                                    <div>
-                                                                                        <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 sticky top-0 z-10 backdrop-blur-sm">Mandi Expenses</div>
-                                                                                        {mandi.map(renderItem)}
+                                                                                {listToRender.length > 0 ? listToRender.map(renderItem) : (
+                                                                                    <div className="p-8 text-center text-xs text-slate-400 uppercase tracking-widest font-black opacity-50">
+                                                                                        No categories found
                                                                                     </div>
                                                                                 )}
                                                                             </>
