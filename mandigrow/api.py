@@ -2362,6 +2362,14 @@ def get_accounts(account_type: str = None, sub_type: str = None) -> list:
         filters.append(["account_type", "=", (sub_type or "").title()])
         
     accounts = frappe.get_list("Account", filters=filters, fields=["name as id", "account_name as name", "account_type", "root_type", "is_group"], ignore_permissions=True)
+    
+    if (account_type or "").title() == "Expense":
+        dummy = [
+            {"id": "paid_on_behalf_farmers", "name": "Paid on behalf of farmers (Non mandi expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0},
+            {"id": "paid_on_behalf_buyers", "name": "Paid on behalf of Buyers (Non Mandi Expense)", "account_type": "Expense", "root_type": "Expense", "is_group": 0}
+        ]
+        accounts = dummy + accounts
+        
     return accounts
 
 @frappe.whitelist(allow_guest=False)
@@ -3502,6 +3510,29 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         elif v_type == "expense":
             # Resolve: prefer explicitly passed account; fall back to General Expenses
             expense_acc = p_expense_account or p_party_id
+            
+            # --- INTERCEPT NON-MANDI EXPENSES ---
+            if expense_acc in ["paid_on_behalf_farmers", "paid_on_behalf_buyers"]:
+                acc_name = "Paid on behalf of farmers (Non mandi expense)" if expense_acc == "paid_on_behalf_farmers" else "Paid on behalf of Buyers (Non Mandi Expense)"
+                real_acc = frappe.db.get_value("Account", {"account_name": acc_name, "company": company}, "name")
+                
+                if not real_acc:
+                    parent_acc = (
+                        frappe.db.get_value("Account", {"account_name": "Loans and Advances (Assets)", "company": company}, "name") or
+                        frappe.db.get_value("Account", {"account_name": "Current Assets", "company": company}, "name") or
+                        frappe.db.get_value("Account", {"root_type": "Asset", "is_group": 1, "company": company}, "name")
+                    )
+                    doc = frappe.new_doc("Account")
+                    doc.account_name = acc_name
+                    doc.parent_account = parent_acc
+                    doc.company = company
+                    doc.account_type = "Receivable"
+                    doc.insert(ignore_permissions=True)
+                    real_acc = doc.name
+                
+                expense_acc = real_acc
+            # --- END INTERCEPT ---
+            
             if not (expense_acc and frappe.db.exists("Account", expense_acc)):
                 expense_acc = (
                     frappe.db.get_value("Account", {"account_name": "General Expenses", "company": company}, "name")
