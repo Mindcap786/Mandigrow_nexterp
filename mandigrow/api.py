@@ -1767,8 +1767,7 @@ def get_team_members() -> list:
             filters = {
                 "role_type": ["in", ["super_admin", "platform_admin", "finance_admin", "support_admin", "operations_admin", "read_only"]],
                 "enabled": 1,
-                "name": ["not in", excluded],
-                "mandi_organization": ["in", ["", None]]
+                "name": ["not in", excluded]
             }
         else:
             return []
