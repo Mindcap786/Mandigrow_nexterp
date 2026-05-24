@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
         path === '/sitemap.xml' ||
         path === '/opengraph-image' ||
         // SEO marketing pages — must be reachable without auth
+        path === '/about' ||
         path === '/faq' ||
         path === '/privacy' ||
         path === '/terms' ||
