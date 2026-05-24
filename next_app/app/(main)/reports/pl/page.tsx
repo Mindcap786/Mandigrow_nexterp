@@ -467,6 +467,15 @@ export default function ProfitLossPage() {
                                             <div className="font-black text-violet-600 text-lg">₹{(stats?.totalWriteoff || 0).toLocaleString()}</div>
                                         </div>
                                     )}
+                                    {/* Settlement Income: supplier balance forgiven */}
+                                    {(stats?.totalSettlementIncome || 0) > 0 && (
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1">
+                                                <TrendingUp className="w-3 h-3" /> Plus: Settlement Income
+                                            </p>
+                                            <div className="font-black text-blue-600 text-lg">₹{(stats?.totalSettlementIncome || 0).toLocaleString()}</div>
+                                        </div>
+                                    )}
                                     {/* Business Expenses: rent, fuel, salaries, etc. */}
                                     {(stats?.totalBusinessExpenses || 0) > 0 && (
                                         <div className="flex justify-between items-baseline">

@@ -6170,6 +6170,43 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     except Exception:
         pass
 
+    # ── Settlement Income (GL-based, supplier write-offs: Discount Received) ────
+    total_settlement_income = 0.0
+    try:
+        company = company if 'company' in dir() else _get_user_company()
+        if company:
+            income_accs = frappe.get_all("Account",
+                filters={"company": company, "is_group": 0, "root_type": "Income",
+                         "account_name": ["like", "%Discount Received%"]},
+                fields=["name"], ignore_permissions=True
+            )
+            if income_accs:
+                inc_names = [a.name for a in income_accs]
+                inc_placeholders = ", ".join(["%s"] * len(inc_names))
+                inc_date_cond = ""
+                inc_date_params: list = []
+                if date_from and date_to:
+                    inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) BETWEEN %s AND %s"
+                    inc_date_params = [date_from, date_to]
+                elif date_from:
+                    inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) >= %s"
+                    inc_date_params = [date_from]
+                elif date_to:
+                    inc_date_cond = "AND COALESCE(je.clearance_date, gl.posting_date) <= %s"
+                    inc_date_params = [date_to]
+                rows_inc = frappe.db.sql(f"""
+                    SELECT gl.credit
+                    FROM `tabGL Entry` gl
+                    LEFT JOIN `tabJournal Entry` je ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
+                    WHERE gl.is_cancelled = 0
+                      AND gl.company = %s
+                      AND gl.account IN ({inc_placeholders})
+                      {inc_date_cond}
+                """, [company] + inc_names + inc_date_params, as_dict=True)
+                total_settlement_income = sum(flt(r.credit) for r in rows_inc)
+    except Exception:
+        pass
+
     # ── Business Expenses (GL-based, Mandi's own opex: rent, salaries…) ──────
     # The following expense categories are EXCLUDED because they are either:
     #   (a) Already embedded in COGS via the Unit Cost model (purchase-side:
@@ -6280,7 +6317,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     # They show what was collected from buyers as pass-through charges.
     # The corresponding payouts are already excluded from Business Expenses
     # via the exclude_keywords filter, so the net effect is zero.
-    total_profit = (total_revenue - total_cost + total_commission
+    total_profit = (total_revenue - total_cost + total_commission + total_settlement_income
                     - total_stock_loss - total_writeoff - total_business_expenses)
     net_margin   = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
 
@@ -6293,6 +6330,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         "totalTradingLoss":      round(total_trading_loss, 2),
         "totalStockLoss":        round(total_stock_loss, 2),
         "totalWriteoff":         round(total_writeoff, 2),        # Write-off / Settlements line
+        "totalSettlementIncome": round(total_settlement_income, 2),
         "totalBusinessExpenses": round(total_business_expenses, 2),
         "totalSaleRecoveries":   round(total_sale_recoveries, 2), # Informational: charges collected from buyers
         "totalProfit":           round(total_profit, 2),
