@@ -1758,19 +1758,30 @@ def get_team_members() -> list:
     """
     from mandigrow.mandigrow.logic.tenancy import is_super_admin, PLATFORM_ADMIN_EMAILS
     org_id = _get_user_org()
-    if not org_id:
-        return []
 
     # Build the exclusion list: Administrator + all platform owner accounts
     excluded = list(PLATFORM_ADMIN_EMAILS) + ["Administrator"]
 
-    try:
-        members = frappe.get_all("User",
-            filters={
-                "mandi_organization": org_id,
+    if not org_id:
+        if is_super_admin():
+            filters = {
+                "role_type": ["in", ["super_admin", "platform_admin", "finance_admin", "support_admin", "operations_admin", "read_only"]],
                 "enabled": 1,
                 "name": ["not in", excluded],
-            },
+                "mandi_organization": ["in", ["", None]]
+            }
+        else:
+            return []
+    else:
+        filters = {
+            "mandi_organization": org_id,
+            "enabled": 1,
+            "name": ["not in", excluded],
+        }
+
+    try:
+        members = frappe.get_all("User",
+            filters=filters,
             fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
             order_by="creation desc"
         )
@@ -1792,11 +1803,7 @@ def get_team_members() -> list:
             frappe.db.commit()
             # Retry
             return frappe.get_all("User",
-                filters={
-                    "mandi_organization": org_id,
-                    "enabled": 1,
-                    "name": ["not in", excluded],
-                },
+                filters=filters,
                 fields=["name as id", "full_name", "email", "role_type as role", "creation", "username", "rbac_matrix"],
                 order_by="creation desc"
             )

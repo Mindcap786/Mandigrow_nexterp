@@ -53,9 +53,15 @@ PLATFORM_ADMIN_EMAILS = frozenset([
 # ── Core helpers ───────────────────────────────────────────────────────────────
 
 def is_super_admin(user=None):
-    """True for the Frappe Administrator account or any platform owner email."""
+    """True for the Frappe Administrator account, any platform owner email, or any user with role_type='super_admin'."""
     user = user or frappe.session.user
-    return user == "Administrator" or user in PLATFORM_ADMIN_EMAILS
+    if user == "Administrator" or user in PLATFORM_ADMIN_EMAILS:
+        return True
+    
+    try:
+        return frappe.get_cached_value("User", user, "role_type") == "super_admin"
+    except Exception:
+        return False
 
 
 def get_current_org_or_none():
