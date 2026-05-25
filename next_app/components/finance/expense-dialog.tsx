@@ -473,6 +473,14 @@ export function ExpenseDialog({
                                                                     (() => {
                                                                         const filtered = expenseAccounts
                                                                             .filter(a => (a.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()))
+                                                                            // Safely hide operations/3rd-party expenses from this manual day-to-day expense dialog
+                                                                            .filter(a => {
+                                                                                const lowerName = (a.name || "").toLowerCase();
+                                                                                return !lowerName.includes('hamali') && 
+                                                                                       !lowerName.includes('loading') && 
+                                                                                       !lowerName.includes('transport') && 
+                                                                                       !lowerName.includes('behalf of');
+                                                                            })
                                                                             .sort((a, b) => a.name.localeCompare(b.name));
                                                                             
                                                                         const nonMandi = filtered.filter(a => (a.name || "").toLowerCase().includes('(non mandi'));
