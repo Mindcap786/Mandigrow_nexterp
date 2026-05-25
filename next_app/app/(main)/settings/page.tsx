@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Save, Loader2, Building2, Percent, Receipt, MapPin, ShieldCheck, UserPlus, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import { Save, Loader2, Building2, Percent, Receipt, MapPin, ShieldCheck, UserPlus, AlertTriangle, CheckCircle2, ChevronRight, MonitorSmartphone } from "lucide-react";
 
 import { callApi } from "@/lib/frappeClient";
  // proxy fallback
@@ -331,6 +331,11 @@ export default function Settings() {
                         {/* Navigation links */}
                         <NativeSectionLabel className="px-4 pt-2">Team & Permissions</NativeSectionLabel>
                         <div className="px-4 space-y-2">
+                            <NativeCard>
+                                <Link href="/settings/hardware">
+                                    {(NativeCard as any).Row({ icon: <MonitorSmartphone className="w-4 h-4 text-indigo-600" />, label: "Device Hardware", showChevron: true })}
+                                </Link>
+                            </NativeCard>
                             {can("nav.employees") && (
                                 <NativeCard>
                                     <Link href="/settings/team">
@@ -385,6 +390,9 @@ export default function Settings() {
                             <p className="text-slate-500 font-bold mt-1">{t("settings.subtitle") || "Configure global rates, team permissions, and financial security."}</p>
                         </div>
                         <div className="flex gap-4 flex-wrap">
+                            <Button asChild variant="outline" className="bg-white border-slate-200 text-black hover:bg-slate-50 rounded-xl h-12 font-bold shadow-sm">
+                                <Link href="/settings/hardware"><MonitorSmartphone className="w-4 h-4 mr-2 text-indigo-600" /> Device Hardware</Link>
+                            </Button>
                             {can("nav.employees") && <Button asChild variant="outline" className="bg-white border-slate-200 text-black hover:bg-slate-50 rounded-xl h-12 font-bold shadow-sm"><Link href="/settings/team"><UserPlus className="w-4 h-4 mr-2 text-blue-600" /> {t("nav.team_access")}</Link></Button>}
                             {can("nav.field_governance") && <Button asChild variant="outline" className="bg-white border-slate-200 text-black hover:bg-slate-50 rounded-xl h-12 font-bold shadow-sm"><Link href="/settings/fields"><ShieldCheck className="w-4 h-4 mr-2 text-emerald-600" /> {t("nav.field_governance")}</Link></Button>}
                         </div>

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { CalendarIcon, Camera, Plus, Trash2, Loader2, Package, ShieldAlert, Settings, Info, Check, ChevronsUpDown, Search, Landmark, Zap, Wallet, CalendarClock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Camera, Plus, Trash2, Loader2, Package, ShieldAlert, Settings, Info, Check, ChevronsUpDown, Search, Landmark, Zap, Wallet, CalendarClock, CheckCircle2, AlertTriangle, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,6 +50,8 @@ import { useState, useEffect, useRef } from "react";
 import { callApi } from "@/lib/frappeClient";
 import { useEnterToTab } from "@/hooks/use-enter-to-tab";
 import LotQRSlip, { LotQRData, generateQRString } from "./lot-qr-slip";
+import { BatchWeighingDialog } from "./batch-weighing-dialog";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -165,6 +167,7 @@ export default function ArrivalsEntryForm() {
         type: 'success'
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [batchDialogIndex, setBatchDialogIndex] = useState<number | null>(null);
     
     const { isVisible, isMandatory, getLabel, getDefaultValue } = useFieldGovernance(
         arrivalType === 'direct' ? 'arrivals_direct' :
@@ -1349,7 +1352,10 @@ export default function ArrivalsEntryForm() {
                                                             name={`items.${index}.qty`}
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel className="text-[9px] font-bold text-slate-700 uppercase tracking-wide mb-0.5 block">Quantity</FormLabel>
+                                                                    <div className="flex items-center justify-between mb-0.5">
+                                                                        <FormLabel className="text-[9px] font-bold text-slate-700 uppercase tracking-wide block">Quantity</FormLabel>
+                                                                        <button type="button" onClick={() => setBatchDialogIndex(index)} className="text-[8px] font-black text-indigo-600 hover:underline uppercase tracking-widest flex items-center gap-1"><Scale className="w-3 h-3" /> Batch Weigh</button>
+                                                                    </div>
                                                                     <FormControl>
                                                                         <Input type="number" {...field} className="bg-white border border-slate-300 h-9 text-xs text-slate-900 font-bold rounded-lg text-center" />
                                                                     </FormControl>
@@ -2117,6 +2123,25 @@ export default function ArrivalsEntryForm() {
                     </div>
                 </DialogContent>
             </Dialog>
+            {batchDialogIndex !== null && (
+                <ErrorBoundary>
+                    <BatchWeighingDialog
+                        open={batchDialogIndex !== null}
+                        onOpenChange={(open) => !open && setBatchDialogIndex(null)}
+                        unit={form.watch(`items.${batchDialogIndex}.unit`) || 'Units'}
+                        onApply={(totalWeight, count) => {
+                            const unit = form.watch(`items.${batchDialogIndex}.unit`)?.toLowerCase();
+                            if (unit === 'kg' || unit === 'kgs' || unit === 'kilogram') {
+                                form.setValue(`items.${batchDialogIndex}.qty`, Number(totalWeight.toFixed(2)));
+                                form.setValue(`items.${batchDialogIndex}.unit_weight`, 1);
+                            } else {
+                                form.setValue(`items.${batchDialogIndex}.qty`, count);
+                                form.setValue(`items.${batchDialogIndex}.unit_weight`, Number((totalWeight / count).toFixed(2)));
+                            }
+                        }}
+                    />
+                </ErrorBoundary>
+            )}
         </Form>
     );
 }

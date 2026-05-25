@@ -343,13 +343,37 @@ export default function Sales() {
                                                                 <p className="text-sm font-bold text-[#1A1A2E] tabular-nums">
                                                                     ₹{Number(sale.total_amount_inc_tax || sale.total_amount || 0).toLocaleString()}
                                                                 </p>
-                                                                <span
-                                                                    className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                                                                    style={{ backgroundColor: badge.bg, color: badge.text }}
-                                                                >
-                                                                    <Icon className="w-2.5 h-2.5" />
-                                                                    {badge.label}
-                                                                </span>
+                                                                {(() => {
+                                                                    const grandTotal = Number(sale.total_amount_inc_tax || sale.total_amount || 0);
+                                                                    const totalPaid = Math.max(Number(sale.paid_amount || 0), Number(sale.amount_received || 0));
+                                                                    const dbStatus = (sale.payment_status || "").toLowerCase();
+                                                                    const activeCheques = sale.vouchers?.filter((v: any) => v.payment_mode === 'cheque' && !v.is_cleared && v.cheque_status !== 'Cancelled' && v.cheque_status !== 'v_cancelled') || [];
+                                                                    const isPendingCheque = activeCheques.length > 0;
+                                                                    const isMathFullyPaid = (totalPaid >= (grandTotal - 1) && grandTotal > 0);
+                                                                    
+                                                                    const isFullPaid = !isPendingCheque && (dbStatus === 'paid' || isMathFullyPaid);
+                                                                    const isPartiallyPaid = !isFullPaid && !isPendingCheque && (dbStatus === 'partial' || dbStatus === 'partly paid' || (totalPaid > 0 && totalPaid < (grandTotal - 1)));
+                                                                    const isOverdue = !isFullPaid && !isPendingCheque && sale.due_date && new Date(sale.due_date) < new Date() && dbStatus !== 'paid';
+
+                                                                    const computedStatus = isPendingCheque ? "cheque" : isFullPaid ? "paid" : isPartiallyPaid ? "partial" : isOverdue ? "overdue" : "pending";
+
+                                                                    let badgeBg, badgeText, badgeLabel, BadgeIcon;
+                                                                    if (computedStatus === "cheque") { badgeBg = "#FFEDD5"; badgeText = "#C2410C"; badgeLabel = "Pending Cheque"; BadgeIcon = Clock; }
+                                                                    else if (computedStatus === "paid") { badgeBg = "#DCFCE7"; badgeText = "#16A34A"; badgeLabel = "Paid"; BadgeIcon = CheckCircle2; }
+                                                                    else if (computedStatus === "partial") { badgeBg = "#FEF3C7"; badgeText = "#D97706"; badgeLabel = "Partial"; BadgeIcon = Clock; }
+                                                                    else if (computedStatus === "overdue") { badgeBg = "#FEE2E2"; badgeText = "#DC2626"; badgeLabel = "Overdue"; BadgeIcon = AlertCircle; }
+                                                                    else { badgeBg = "#FEF3C7"; badgeText = "#D97706"; badgeLabel = "Pending"; BadgeIcon = Clock; }
+
+                                                                    return (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                                                            style={{ backgroundColor: badgeBg, color: badgeText }}
+                                                                        >
+                                                                            <BadgeIcon className="w-2.5 h-2.5" />
+                                                                            {badgeLabel}
+                                                                        </span>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </div>

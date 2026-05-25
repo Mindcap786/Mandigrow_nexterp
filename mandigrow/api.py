@@ -16691,18 +16691,18 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
     Returns a summary of all third-party expenses paid by the Mandi 
     on behalf of buyers and farmers/suppliers.
     """
-    company = _get_user_company()
+    org_id = _get_user_org()
     
     sale_date_cond = ""
     sale_date_params = []
     if date_from and date_to:
-        sale_date_cond = "AND posting_date BETWEEN %s AND %s"
+        sale_date_cond = "AND saledate BETWEEN %s AND %s"
         sale_date_params = [date_from, date_to]
     elif date_from:
-        sale_date_cond = "AND posting_date >= %s"
+        sale_date_cond = "AND saledate >= %s"
         sale_date_params = [date_from]
     elif date_to:
-        sale_date_cond = "AND posting_date <= %s"
+        sale_date_cond = "AND saledate <= %s"
         sale_date_params = [date_to]
 
     arr_date_cond = ""
@@ -16724,8 +16724,8 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
             SUM(unloadingcharges) as unloading,
             SUM(otherexpenses) as misc_other
         FROM `tabMandi Sale`
-        WHERE docstatus = 1 AND company = %s {sale_date_cond}
-    """, [company] + sale_date_params, as_dict=True)
+        WHERE docstatus = 1 AND organization_id = %s {sale_date_cond}
+    """, [org_id] + sale_date_params, as_dict=True)
     
     sales_totals = sales_res[0] if sales_res else {}
     buyer_loading = flt(sales_totals.get("loading"))
@@ -16740,8 +16740,8 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
             SUM(other_expenses) as other,
             SUM(trip_other_expenses) as trip_other
         FROM `tabMandi Arrival`
-        WHERE docstatus = 1 AND arrival_type = 'Commission' AND company = %s {arr_date_cond}
-    """, [company] + arr_date_params, as_dict=True)
+        WHERE docstatus = 1 AND arrival_type = 'Commission' AND organization_id = %s {arr_date_cond}
+    """, [org_id] + arr_date_params, as_dict=True)
     
     arr_totals = arr_res[0] if arr_res else {}
     supplier_freight = flt(arr_totals.get("freight"))
@@ -16755,8 +16755,8 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
             SUM(l.farmer_charges) as farmer_charges
         FROM `tabMandi Lot` l
         JOIN `tabMandi Arrival` a ON l.parent = a.name
-        WHERE a.docstatus = 1 AND a.arrival_type = 'Commission' AND a.company = %s {arr_date_cond}
-    """, [company] + arr_date_params, as_dict=True)
+        WHERE a.docstatus = 1 AND a.arrival_type = 'Commission' AND a.organization_id = %s {arr_date_cond}
+    """, [org_id] + arr_date_params, as_dict=True)
 
     lot_totals = lot_res[0] if lot_res else {}
     supplier_packing = flt(lot_totals.get("packing"))

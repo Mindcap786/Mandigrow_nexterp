@@ -168,7 +168,7 @@ export default function PurchaseBillInvoice({
             />
 
             {/* ───── Header ───── */}
-            <div className="grid grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
                 {/* Left: Identity */}
                 <div className="flex items-start gap-4 min-w-0 print:w-1/3">
                     {organization?.logo_url ? (
@@ -229,7 +229,7 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Parties & Bill Details ───── */}
-            <div className="py-2 grid grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:flex print:w-full print:justify-between">
                 {/* Left: Purchased From */}
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Purchased From</p>
@@ -272,7 +272,7 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Items Table ───── */}
-            <div className="relative z-10">
+            <div className="relative z-10 overflow-x-auto">
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b-2 border-black">
@@ -328,7 +328,7 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Settlement Breakdown ───── */}
-            <div className="mt-6 grid grid-cols-2 gap-8 items-start relative z-10">
+            <div className="mt-6 flex flex-col md:grid md:grid-cols-2 gap-8 items-start relative z-10">
 
                 {/* Left Side: Transport & Payment Info */}
                 <div className="space-y-4">

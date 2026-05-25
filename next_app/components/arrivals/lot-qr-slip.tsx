@@ -1,9 +1,9 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, X, QrCode, Package, User, Calendar, Hash } from "lucide-react";
+import { Printer, X, QrCode, Package, User, Calendar, Hash, Tag } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -85,37 +85,62 @@ function SingleLotSlip({ lot }: { lot: LotQRData }) {
 
 export default function LotQRSlip({ lots, open, onClose }: LotQRSlipProps) {
     const printRef = useRef<HTMLDivElement>(null);
+    const [printMode, setPrintMode] = useState<'normal' | 'labels'>('normal');
 
-    const handlePrint = () => {
-        const printContents = printRef.current?.innerHTML ?? "";
-        const win = window.open("", "_blank", "width=700,height=900");
-        if (!win) return;
-        win.document.write(`
-            <html>
-            <head>
-                <title>Arrival QR Slips</title>
-                <style>
-                    * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #fff; padding: 16px; }
-                    .print-container { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-                    @media print {
-                        body { background: transparent; padding: 0; }
-                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-                        .lot-qr-slip { page-break-inside: avoid; margin-bottom: 16px; width: 380px !important; }
-                    }
-                </style>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body>
-                <div class="print-container">
-                    ${printContents}
-                </div>
-            </body>
-            </html>
-        `);
-        win.document.close();
-        win.focus();
-        setTimeout(() => { win.print(); win.close(); }, 1500); // Wait for Tailwind to load
+    const handlePrint = (mode: 'normal' | 'labels') => {
+        setPrintMode(mode);
+        setTimeout(() => {
+            const printContents = printRef.current?.innerHTML ?? "";
+            const win = window.open("", "_blank", "width=700,height=900");
+            if (!win) {
+                setPrintMode('normal');
+                return;
+            }
+
+            const style = mode === 'labels' ? `
+                @page { size: 2in 1in; margin: 0; }
+                body { margin: 0; padding: 0; background: #fff; }
+                .small-label { width: 2in; height: 1in; page-break-after: always; padding: 0.05in; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; overflow: hidden; }
+                .small-label svg { width: 0.8in !important; height: 0.8in !important; }
+                .label-details { font-family: sans-serif; font-size: 8px; flex: 1; margin-left: 4px; font-weight: bold; line-height: 1.2; display: flex; flex-direction: column; justify-content: center; }
+                .label-title { font-size: 10px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 1in; }
+                .label-party { font-size: 8px; color: #555; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 1in; }
+                .label-code { font-size: 12px; font-weight: 900; margin-top: 2px; }
+            ` : `
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #fff; padding: 16px; }
+                .print-container { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+                .lot-qr-slip { page-break-inside: avoid; margin-bottom: 16px; width: 380px !important; }
+            `;
+
+            win.document.write(`
+                <html>
+                <head>
+                    <title>Arrival QR</title>
+                    <style>
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        @media print {
+                            body { background: transparent; padding: 0; }
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+                        }
+                        ${style}
+                    </style>
+                    ${mode === 'normal' ? '<script src="https://cdn.tailwindcss.com"></script>' : ''}
+                </head>
+                <body>
+                    <div class="print-container">
+                        ${printContents}
+                    </div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+            win.focus();
+            setTimeout(() => { 
+                win.print(); 
+                win.close(); 
+                setPrintMode('normal'); 
+            }, mode === 'normal' ? 1500 : 500);
+        }, 50);
     };
 
     if (!open) return null;
@@ -134,17 +159,39 @@ export default function LotQRSlip({ lots, open, onClose }: LotQRSlipProps) {
                                 <p className="text-xs text-gray-500 font-bold">{lots.length} Lot{lots.length !== 1 ? "s" : ""} • Scan in POS to sell</p>
                             </div>
                         </div>
-                        <Button onClick={handlePrint} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-9">
-                            <Printer className="w-4 h-4" />
-                            Print All
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button onClick={() => handlePrint('labels')} variant="outline" className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl h-9">
+                                <Tag className="w-4 h-4" />
+                                Print Crate Labels
+                            </Button>
+                            <Button onClick={() => handlePrint('normal')} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-9">
+                                <Printer className="w-4 h-4" />
+                                Print Slips
+                            </Button>
+                        </div>
                     </div>
                 </DialogHeader>
 
                 <div ref={printRef} className="space-y-4 pt-2">
-                    {lots.map(lot => (
-                        <SingleLotSlip key={lot.lotId} lot={lot} />
-                    ))}
+                    {printMode === 'normal' ? (
+                        lots.map(lot => (
+                            <SingleLotSlip key={lot.lotId} lot={lot} />
+                        ))
+                    ) : (
+                        lots.map(lot => {
+                            const copies = Math.max(1, parseInt(String(lot.qty)) || 1);
+                            return Array.from({ length: copies }).map((_, i) => (
+                                <div key={`${lot.lotId}-${i}`} className="small-label">
+                                    <QRCodeSVG value={generateQRString(lot)} size={80} level="L" includeMargin={false} />
+                                    <div className="label-details">
+                                        <div className="label-title">{lot.itemName}</div>
+                                        <div className="label-party">{lot.partyName || 'Direct'}</div>
+                                        <div className="label-code">{lot.qrNumber}</div>
+                                    </div>
+                                </div>
+                            ));
+                        })
+                    )}
                 </div>
 
                 <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">

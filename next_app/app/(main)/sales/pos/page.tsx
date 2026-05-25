@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { callApi } from '@/lib/frappeClient'
 import { useAuth } from '@/components/auth/auth-provider'
-import { Search, ShoppingCart, Trash2, Zap, Wallet, Banknote, CreditCard, ChevronRight, Barcode, Plus, Minus, CheckCircle, Printer, X, Package, User, FileText, Landmark, CalendarIcon, ArrowLeft, Loader2, AlertTriangle, Tag } from 'lucide-react'
+import { Search, ShoppingCart, Trash2, Zap, Wallet, Banknote, CreditCard, ChevronRight, Barcode, Plus, Minus, CheckCircle, Printer, X, Package, User, FileText, Landmark, CalendarIcon, ArrowLeft, Loader2, AlertTriangle, Tag, Usb } from 'lucide-react'
 import { useLanguage } from '@/components/i18n/language-provider'
 import { QRCodeSVG } from 'qrcode.react'
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner'
+import { useWebSerial } from '@/hooks/use-web-serial'
 import { toast, Toaster } from 'sonner'
 import { getIntelligentVisual } from '@/lib/utils/commodity-mapping'
 import { formatCommodityName } from '@/lib/utils/commodity-utils'
@@ -78,6 +80,32 @@ const toRpcPaymentMode = (paymentMode: 'Cash' | 'Credit' | 'UPI/Bank' | 'Cheque'
 export default function POSPage() {
     const { profile } = useAuth()
     const { language } = useLanguage()
+    
+    // Hardware Integrations
+    const [hwScaleEnabled, setHwScaleEnabled] = useState(false)
+    const [hwScannerEnabled, setHwScannerEnabled] = useState(false)
+
+    useEffect(() => {
+        setHwScaleEnabled(localStorage.getItem('mg_hw_scale_enabled') === 'true')
+        setHwScannerEnabled(localStorage.getItem('mg_hw_scanner_enabled') === 'true')
+    }, [])
+
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            if (hwScannerEnabled && barcode) {
+                setSearch(barcode)
+            }
+        }
+    })
+
+    const { isConnected, rawWeight, requestConnection, disconnect } = useWebSerial({
+        onWeightParsed: (weight) => {
+            if (scanResult) {
+                setScanResult(prev => prev ? { ...prev, qty: weight } : null)
+            }
+        }
+    })
+
     const orgId = profile?.organization_id
     const cachedPos = orgId ? cacheGet<any>('pos_masters', orgId) : null
     const [items, setItems] = useState<POSItem[]>(cachedPos?.items || [])
@@ -844,21 +872,36 @@ export default function POSPage() {
             </Dialog>
 
             <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden print:hidden">
-                <div className="relative mb-6">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        <Barcode className="w-5 h-5 text-indigo-500" />
-                        <span className="h-4 w-px bg-slate-200"></span>
-                        <Search className="w-4 h-4 text-slate-400" />
+                <div className="mb-6 flex gap-3">
+                    <div className="relative flex-1">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                            <Barcode className="w-5 h-5 text-indigo-500" />
+                            <span className="h-4 w-px bg-slate-200"></span>
+                            <Search className="w-4 h-4 text-slate-400" />
+                        </div>
+                        <input
+                            ref={barcodeRef}
+                            autoFocus
+                            placeholder={hwScannerEnabled ? "Scanner Active. Scan Barcode or Search (Alt+S)..." : "Scan Barcode or Search Item (Alt+S)..."}
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-16 pr-6 py-4 bg-white border-2 border-slate-300 rounded-2xl text-xl font-bold text-black placeholder:text-slate-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all outline-none shadow-sm"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-blue-50 px-2 py-1 rounded text-[10px] font-black text-blue-600 border border-blue-100 uppercase tracking-widest">Live Sync</div>
                     </div>
-                    <input
-                        ref={barcodeRef}
-                        autoFocus
-                        placeholder="Scan Barcode or Search Item (Alt+S)..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-16 pr-6 py-4 bg-white border-2 border-slate-300 rounded-2xl text-xl font-bold text-black placeholder:text-slate-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all outline-none shadow-sm"
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-blue-50 px-2 py-1 rounded text-[10px] font-black text-blue-600 border border-blue-100 uppercase tracking-widest">Live Sync</div>
+                    {hwScaleEnabled && (
+                        <Button
+                            variant="outline"
+                            className={cn("h-[64px] rounded-2xl px-6 font-black border-2 transition-all shadow-sm flex-shrink-0", isConnected ? "border-indigo-600 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-slate-300 text-slate-600 bg-white hover:bg-slate-50")}
+                            onClick={() => {
+                                if (isConnected) disconnect();
+                                else requestConnection();
+                            }}
+                        >
+                            <Usb className="w-5 h-5 mr-2" />
+                            {isConnected ? (rawWeight ? `${rawWeight}` : "Connected") : "Connect Scale"}
+                        </Button>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
