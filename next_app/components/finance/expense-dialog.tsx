@@ -477,9 +477,7 @@ export function ExpenseDialog({
                                                                             .filter(a => {
                                                                                 const lowerName = (a.name || "").toLowerCase();
                                                                                 return !lowerName.includes('hamali') && 
-                                                                                       !lowerName.includes('loading') && 
-                                                                                       !lowerName.includes('transport') && 
-                                                                                       !lowerName.includes('behalf of');
+                                                                                       !lowerName.includes('loading');
                                                                             })
                                                                             .sort((a, b) => a.name.localeCompare(b.name));
                                                                             
