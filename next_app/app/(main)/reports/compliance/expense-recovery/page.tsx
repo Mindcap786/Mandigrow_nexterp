@@ -35,8 +35,8 @@ export default function ExpenseRecoveryReport() {
                 date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
                 date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
             });
-            if (res && res.message) {
-                setStats(res.message);
+            if (res) {
+                setStats(res);
             }
         } catch (error) {
             console.error("Failed to load expense report", error);
