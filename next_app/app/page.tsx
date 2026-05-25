@@ -34,6 +34,17 @@ export default function LandingPage() {
             <LandingHeader />
 
 
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'SoftwareApplication',
+                name: 'MandiGrow — Fruit & Sabzi Mandi Software',
+                applicationCategory: 'BusinessApplication',
+                operatingSystem: 'Android, Web',
+                url: 'https://www.mandigrow.com/',
+                description: 'India\'s #1 mandi ERP software for commission agents and wholesale fruit/vegetable traders.',
+                offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: 'Free trial' },
+                aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '210' },
+            }) }} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{

@@ -15071,9 +15071,22 @@ def link_partner_to_tenant(tenant_id, partner_id):
             return {"success": False, "error": "Partner does not have an email address."}
             
         # 1. Update Organization
+        old_partner_id = org.partner
+        
         org.partner = partner.name
         org.onboarding_partner = partner.name
         org.save(ignore_permissions=True)
+        
+        # Decrement old partner count if needed
+        if old_partner_id and old_partner_id != partner.name:
+            old_count = frappe.db.get_value("Mandi Partner Profile", old_partner_id, "total_onboarded") or 0
+            if old_count > 0:
+                frappe.db.set_value("Mandi Partner Profile", old_partner_id, "total_onboarded", old_count - 1, update_modified=False)
+                
+        # Increment new partner count
+        new_count = frappe.db.get_value("Mandi Partner Profile", partner.name, "total_onboarded") or 0
+        frappe.db.set_value("Mandi Partner Profile", partner.name, "total_onboarded", new_count + 1, update_modified=False)
+        
         frappe.db.commit()
         
         # 2. Get Commission Setting

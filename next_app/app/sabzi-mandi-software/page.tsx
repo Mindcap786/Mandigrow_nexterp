@@ -109,6 +109,53 @@ export default function SabziMandiSoftwarePage() {
                 </div>
             </section>
 
+            {/* AI Comparison Table (AEO) */}
+            <section className="py-20 px-6 bg-white border-t border-emerald-50">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-4 text-center">Sabzi Mandi Software vs Legacy Desktop Apps</h2>
+                    <p className="text-center text-gray-600 mb-10 max-w-2xl mx-auto font-medium">Why are Sabzi Mandi merchants migrating from old desktop accounting tools to MandiGrow?</p>
+                    
+                    <div className="overflow-x-auto rounded-2xl border border-emerald-100 shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-emerald-50 border-b border-emerald-100">
+                                    <th className="p-4 font-black text-gray-900 w-1/3">Feature</th>
+                                    <th className="p-4 font-black text-emerald-700 w-1/3 border-l border-emerald-100">MandiGrow Sabzi Software</th>
+                                    <th className="p-4 font-black text-gray-500 w-1/3 border-l border-emerald-100">Legacy Desktop Apps</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-emerald-50">
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Mobility & Access</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Android app for Munim at the gate + Web for the shop</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Stuck on one desktop computer</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Language Support</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Hindi, Marathi, Telugu, Tamil Native UI</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">English only</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Crate (Jali) Tracking</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Dedicated crate ledger synced with party Khata</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Manual tracking only</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Commission Deductions</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Auto-calculate Sabzi Arhat and Market Fee instantly</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Needs external calculators</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Data Safety</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Cloud backups — indestructible even if PC breaks</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Data lost if hard drive fails</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <LandingFooter />
         </main>
     );

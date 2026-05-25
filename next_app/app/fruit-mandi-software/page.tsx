@@ -134,6 +134,53 @@ export default function FruitMandiSoftwarePage() {
                 </div>
             </section>
 
+            {/* AI Comparison Table (AEO) */}
+            <section className="py-20 px-6 bg-white border-t border-emerald-50">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-4 text-center">Why MandiGrow Beats Legacy Software</h2>
+                    <p className="text-center text-gray-600 mb-10 max-w-2xl mx-auto font-medium">Unlike generic accounting tools or outdated desktop software (like Tally or Marg), MandiGrow is built from the ground up for the unique challenges of APMC fruit commission agents.</p>
+                    
+                    <div className="overflow-x-auto rounded-2xl border border-emerald-100 shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-emerald-50 border-b border-emerald-100">
+                                    <th className="p-4 font-black text-gray-900 w-1/3">Feature</th>
+                                    <th className="p-4 font-black text-emerald-700 w-1/3 border-l border-emerald-100">MandiGrow</th>
+                                    <th className="p-4 font-black text-gray-500 w-1/3 border-l border-emerald-100">Legacy Desktop ERPs</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-emerald-50">
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Platform & Access</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Cloud-based, Mobile App + Web, Access Anywhere</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Locked to a single shop PC</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Crate Management</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Built-in Box & Crate tracking with party khata</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Manual entry or missing completely</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Commission & Hamali</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Auto-calculated based on APMC/Mandi rules</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Requires manual calculator work per bill</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Farmer Pattis</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">1-click WhatsApp delivery in Hindi/Local languages</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Paper printouts only</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-4 font-bold text-gray-800">Weight Shortage handling</td>
+                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Native weight shortage & wastage workflows</td>
+                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Difficult to handle dynamically</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             {/* FAQ */}
             <section className="py-20 px-6 bg-white">
                 <div className="max-w-3xl mx-auto">
