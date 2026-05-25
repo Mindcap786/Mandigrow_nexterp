@@ -518,7 +518,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                             </Button>
                                                     </FormControl>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-[300px] p-0 bg-white border-slate-300 z-[200] shadow-xl rounded-xl">
+                                                <PopoverContent className="w-[300px] p-0 bg-white border-slate-300 z-[9999] shadow-xl rounded-xl">
                                                     <div className="flex flex-col bg-white rounded-xl">
                                                         <div className="p-3 border-b border-slate-100">
                                                             <Input
@@ -742,7 +742,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                             <SelectTrigger className="bg-white border-blue-200 h-10 text-black font-bold text-sm shadow-sm">
                                                 <SelectValue placeholder="Select bank account..." />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white z-[200]">
+                                            <SelectContent className="bg-white z-[9999]">
                                                 {bankAccounts.map(b => {
                                                     const meta = b.description?.startsWith('{') ? JSON.parse(b.description) : {}
                                                     return (
@@ -944,7 +944,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                                 </Button>
                                                             </FormControl>
                                                         </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0 z-[250]">
+                                                        <PopoverContent className="w-auto p-0 z-[9999]">
                                                             <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className="bg-white" />
                                                         </PopoverContent>
                                                     </Popover>

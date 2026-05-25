@@ -82,6 +82,7 @@ def get_subscription_state(org_id: str) -> dict:
         "max_users": 2,
         "current_user_count": 0,
         "seats_remaining": 2,
+        "compliance_status": "Compliant",
     }
 
     if not org_id or org_id == "HQ":
@@ -223,6 +224,7 @@ def get_subscription_state(org_id: str) -> dict:
         "max_users": max_users,
         "current_user_count": current_user_count,
         "seats_remaining": max(0, max_users - current_user_count),
+        "compliance_status": getattr(org, "compliance_status", "Compliant") if org else "Compliant",
     }
 
 

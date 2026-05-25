@@ -430,7 +430,7 @@ export function ExpenseDialog({
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-[400px] p-0 bg-white border-slate-200 z-[200] rounded-2xl shadow-2xl pointer-events-auto" align="start">
+                                                    <PopoverContent className="w-[400px] p-0 bg-white border-slate-200 z-[9999] rounded-2xl shadow-2xl pointer-events-auto" align="start">
                                                         <div className="flex flex-col bg-white rounded-2xl overflow-hidden">
                                                             <div className="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-3">
                                                                 <div className="bg-slate-200/50 p-1 rounded-xl flex">
@@ -634,7 +634,7 @@ export function ExpenseDialog({
                                                         <SelectValue placeholder="Select bank..." />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="bg-white border-slate-200 text-black rounded-xl z-[300]">
+                                                <SelectContent className="bg-white border-slate-200 text-black rounded-xl z-[9999]">
                                                     {bankAccounts.map(b => (
                                                         <SelectItem key={b.id} value={b.id} className="font-bold py-2.5">
                                                             {b.name}{b.is_default ? ' ⭐' : ''}
@@ -723,7 +723,7 @@ export function ExpenseDialog({
                                                                 </Button>
                                                             </FormControl>
                                                         </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0 z-[250] bg-white border-slate-200 shadow-2xl rounded-2xl overflow-hidden" align="center">
+                                                        <PopoverContent className="w-auto p-0 z-[9999] bg-white border-slate-200 shadow-2xl rounded-2xl overflow-hidden" align="center">
                                                             <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className="bg-white" />
                                                         </PopoverContent>
                                                     </Popover>
@@ -761,7 +761,7 @@ export function ExpenseDialog({
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0 bg-white border-slate-200 shadow-2xl rounded-2xl z-[250]" align="start">
+                                                    <PopoverContent className="w-auto p-0 bg-white border-slate-200 shadow-2xl rounded-2xl z-[9999]" align="start">
                                                         <Calendar
                                                             mode="single"
                                                             selected={field.value}

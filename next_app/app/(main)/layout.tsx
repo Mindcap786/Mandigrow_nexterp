@@ -8,6 +8,7 @@ import { SystemAlerts } from '@/components/layout/system-alerts'
 import { PlatformPrintBranding } from '@/components/layout/platform-print-branding'
 import { SubscriptionExpiryWarning } from '@/components/layout/subscription-expiry-warning'
 import { SubscriptionStatusBanner } from '@/components/subscription/SubscriptionStatusBanner'
+import { ComplianceBanner } from '@/components/subscription/ComplianceBanner'
 import { SupportHelpdeskWidget } from '@/components/layout/support-helpdesk-widget'
 import { NativeTopBar } from '@/components/mobile/NativeTopBar'
 import { FAB } from '@/components/mobile/FAB'
@@ -65,6 +66,9 @@ export default function MainLayout({
 
                     {/* Subscription Status Banner — shows for trial, past_due, grace, locked, cancelled */}
                     <SubscriptionStatusBanner />
+                    
+                    {/* Compliance Banner for Plan User Limits */}
+                    <ComplianceBanner />
 
                     {/* System-level alerts (subscription expired, etc.) */}
                     <SystemAlerts />
@@ -129,6 +133,7 @@ export default function MainLayout({
                     style={{ '--sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
                 >
                     <SubscriptionStatusBanner />
+                    <ComplianceBanner />
 
                     <SystemAlerts />
 

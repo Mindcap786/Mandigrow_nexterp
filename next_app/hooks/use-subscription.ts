@@ -23,6 +23,7 @@ export interface SubscriptionState {
   currentPeriodEnd: string | null;
   gracePeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  complianceStatus: string;
   features: {
     advanced_reports: boolean;
     multi_location: boolean;
@@ -83,7 +84,8 @@ export function useSubscription(): SubscriptionState {
     const isAdminSuspended = rawStatus === 'admin_suspended' || rawStatus === 'suspended';
     const isAdminGifted = rawStatus === 'admin_gifted';
 
-    const isWriteAllowed = WRITE_ALLOWED_STATUSES.has(rawStatus);
+    const complianceStatus = sub?.compliance_status || 'Compliant';
+    const isWriteAllowed = WRITE_ALLOWED_STATUSES.has(rawStatus) && complianceStatus !== 'Over_Limit_Restricted';
     const isFullyBlocked = FULLY_BLOCKED_STATUSES.has(rawStatus);
 
     // Determine banner urgency
@@ -158,6 +160,7 @@ export function useSubscription(): SubscriptionState {
       allowedMenus,
       shouldShowBanner,
       bannerUrgency,
+      complianceStatus: sub?.compliance_status || 'Compliant',
     };
   }, [profile]);
 }

@@ -138,6 +138,7 @@ permission_query_conditions = {
 }
 
 has_permission = {
+	"*": "mandigrow.mandigrow.logic.compliance.check_tenant_compliance",
 	"Mandi Arrival": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
 	"Mandi Contact": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
 	"Mandi Gate Entry": "mandigrow.mandigrow.logic.tenancy.check_has_permission",
@@ -191,7 +192,8 @@ doc_events = {
 
 scheduler_events = {
 	"daily": [
-		"mandigrow.mandigrow.tasks.daily"
+		"mandigrow.mandigrow.tasks.daily",
+		"mandigrow.mandigrow.logic.compliance.check_all_organizations_compliance"
 	],
 }
 

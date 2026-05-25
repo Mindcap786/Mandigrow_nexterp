@@ -17,6 +17,7 @@
   "crate_ageing_days",
   "column_break_sub1",
   "status",
+  "compliance_status",
   "is_active",
   "last_status_change",
   "dates_section",
@@ -102,6 +103,14 @@
    "fieldtype": "Select",
    "label": "Status",
    "options": "trial\nactive\ngrace_period\nsuspended\nexpired\nlocked",
+   "in_list_view": 1
+  },
+  {
+   "default": "Compliant",
+   "fieldname": "compliance_status",
+   "fieldtype": "Select",
+   "label": "Compliance Status",
+   "options": "Compliant\nOver_Limit_Grace\nOver_Limit_Restricted",
    "in_list_view": 1
   },
   {

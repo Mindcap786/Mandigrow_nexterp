@@ -889,6 +889,7 @@ def get_full_user_context(p_user_id: str = None) -> dict:
                 "current_user_count": sub_state["current_user_count"],
                 "seats_remaining": sub_state["seats_remaining"],
                 "billing_cycle": sub_state["billing_cycle"],
+                "compliance_status": sub_state["compliance_status"],
             }
         except Exception:
             # Fallback — subscription_guard not yet available (pre-migration)
@@ -1870,6 +1871,8 @@ def update_team_member(user_id: str, settings: dict) -> dict:
             emp_doc.user_id = ""
             emp_doc.save(ignore_permissions=True)
         frappe.db.commit()
+        from mandigrow.mandigrow.logic.compliance import trigger_compliance_check
+        trigger_compliance_check(user.mandi_organization)
         return {"status": "success", "message": "User access revoked and employee record unlinked."}
 
     # ── Standard field updates ────────────────────────────────────────────────
