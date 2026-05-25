@@ -5859,6 +5859,67 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             + flt(s.get("otherexpenses"))
         )
 
+    # ── Arrival-level charge recoveries (from commission suppliers) ───────────
+    # These are expenses (loading, packing, transport, hamali, etc.) that the 
+    # Mandi pays to 3rd parties but recovers by deducting them from the farmer's payout.
+    # Therefore, they act as "pass-through" collections just like buyer-side loading charges.
+    arr_date_cond = ""
+    arr_date_params = []
+    if date_from and date_to:
+        arr_date_cond = "AND arrival_date BETWEEN %s AND %s"
+        arr_date_params = [date_from, date_to]
+    elif date_from:
+        arr_date_cond = "AND arrival_date >= %s"
+        arr_date_params = [date_from]
+    elif date_to:
+        arr_date_cond = "AND arrival_date <= %s"
+        arr_date_params = [date_to]
+
+    # Trip-level expenses
+    arr_sel = ["SUM(hire_charges) as hire_charges", "SUM(hamali_expenses) as hamali", "SUM(other_expenses) as other"]
+    if _col_exists("Mandi Arrival", "trip_loading_amount"): arr_sel.append("SUM(trip_loading_amount) as trip_loading")
+    if _col_exists("Mandi Arrival", "trip_other_expenses"): arr_sel.append("SUM(trip_other_expenses) as trip_other")
+    
+    arr_res = frappe.db.sql(f"""
+        SELECT {', '.join(arr_sel)}
+        FROM `tabMandi Arrival`
+        WHERE docstatus = 1 AND arrival_type IN ('commission', 'commission_supplier') AND organization_id = %s {arr_date_cond}
+    """, [org_id] + arr_date_params, as_dict=True)
+    
+    arr_totals = arr_res[0] if arr_res else {}
+    trip_recoveries = (
+        flt(arr_totals.get("hire_charges")) +
+        flt(arr_totals.get("hamali")) +
+        flt(arr_totals.get("other")) +
+        flt(arr_totals.get("trip_loading", 0)) +
+        flt(arr_totals.get("trip_other", 0))
+    )
+
+    # Lot-level expenses
+    lot_sel = []
+    if _col_exists("Mandi Lot", "packing_cost"): lot_sel.append("SUM(l.packing_cost) as packing")
+    if _col_exists("Mandi Lot", "loading_cost"): lot_sel.append("SUM(l.loading_cost) as lot_loading")
+    if _col_exists("Mandi Lot", "farmer_charges"): lot_sel.append("SUM(l.farmer_charges) as farmer_charges")
+    if _col_exists("Mandi Lot", "other_cut"): lot_sel.append("SUM(l.other_cut) as other_cut")
+    
+    lot_recoveries = 0.0
+    if lot_sel:
+        lot_res = frappe.db.sql(f"""
+            SELECT {', '.join(lot_sel)}
+            FROM `tabMandi Lot` l
+            JOIN `tabMandi Arrival` a ON l.parent = a.name
+            WHERE a.docstatus = 1 AND a.arrival_type IN ('commission', 'commission_supplier') AND a.organization_id = %s {arr_date_cond}
+        """, [org_id] + arr_date_params, as_dict=True)
+        lot_totals = lot_res[0] if lot_res else {}
+        lot_recoveries = (
+            flt(lot_totals.get("packing", 0)) +
+            flt(lot_totals.get("lot_loading", 0)) +
+            flt(lot_totals.get("farmer_charges", 0)) +
+            flt(lot_totals.get("other_cut", 0))
+        )
+        
+    total_sale_recoveries += (trip_recoveries + lot_recoveries)
+
     sale_items = frappe.get_all("Mandi Sale Item",
         filters={"parent": ["in", sale_ids]},
         fields=["parent", "lot_id", "qty", "rate", "amount", "item_id"],
