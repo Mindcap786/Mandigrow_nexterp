@@ -4088,6 +4088,12 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
 
         org_id = p_organization_id or _get_user_org()
         
+        base_fields = ["name", "net_payable_farmer as totalamount", "advance", "status"]
+        if _col_exists("Mandi Arrival", "paid_amount"):
+            base_fields.append("paid_amount as amountreceived")
+        else:
+            base_fields.append("advance as amountreceived")
+
         # Get all unpaid or partially paid arrivals for this farmer/supplier, oldest first
         arrivals = frappe.get_all("Mandi Arrival",
             filters={
@@ -4096,7 +4102,7 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
                 "status": ["in", ["Pending", "Partial", "Unpaid"]],
                 "docstatus": 1
             },
-            fields=["name", "net_payable_farmer as totalamount", "paid_amount as amountreceived", "advance", "status"],
+            fields=base_fields,
             order_by="arrival_date asc, creation asc"
         )
 
@@ -4110,20 +4116,20 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
             
             if due <= 0.01:
                 if arr.status != "Paid":
-                    frappe.db.set_value("Mandi Arrival", arr.name, {"status": "Paid", "paid_amount": total}, update_modified=False)
+                    upd = {"status": "Paid"}
+                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total
+                    frappe.db.set_value("Mandi Arrival", arr.name, upd, update_modified=False)
                 continue
             
             if remaining >= due:
-                frappe.db.set_value("Mandi Arrival", arr.name, {
-                    "paid_amount": total,
-                    "status": "Paid"
-                }, update_modified=False)
+                upd = {"status": "Paid"}
+                if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total
+                frappe.db.set_value("Mandi Arrival", arr.name, upd, update_modified=False)
                 remaining -= due
             else:
-                frappe.db.set_value("Mandi Arrival", arr.name, {
-                    "paid_amount": received + remaining,
-                    "status": "Partial"
-                }, update_modified=False)
+                upd = {"status": "Partial"}
+                if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = received + remaining
+                frappe.db.set_value("Mandi Arrival", arr.name, upd, update_modified=False)
                 remaining = 0
                 
         frappe.db.commit()
@@ -8074,14 +8080,18 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
     elif date_to:
         arrival_filters["creation"] = ["<=", date_to]
 
+    base_fields = [
+        "name", "party_id", "arrival_date", "arrival_type", "reference_no",
+        "contact_bill_no", "storage_location", "hire_charges",
+        "hamali_expenses", "other_expenses", "advance", 
+        "advance_payment_mode", "status", "creation", "net_payable_farmer",
+    ]
+    if _col_exists("Mandi Arrival", "paid_amount"):
+        base_fields.append("paid_amount")
+
     arrivals = frappe.get_all("Mandi Arrival",
         filters=arrival_filters,
-        fields=[
-            "name", "party_id", "arrival_date", "arrival_type", "reference_no",
-            "contact_bill_no", "storage_location", "hire_charges",
-            "hamali_expenses", "other_expenses", "advance", "paid_amount",
-            "advance_payment_mode", "status", "creation", "net_payable_farmer",
-        ],
+        fields=base_fields,
         order_by="creation desc",
         limit_page_length=5000,
         ignore_permissions=True,
@@ -10881,11 +10891,17 @@ def repair_single_party_settlement(contact_id: str, org_id: str = None):
                     fifo_pool -= take
 
                 if total_paid >= (total - 0.01):
-                    frappe.db.set_value("Mandi Arrival", a.name, {"paid_amount": total, "status": "Paid"}, update_modified=False)
+                    upd = {"status": "Paid"}
+                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total
+                    frappe.db.set_value("Mandi Arrival", a.name, upd, update_modified=False)
                 elif total_paid > 0.01:
-                    frappe.db.set_value("Mandi Arrival", a.name, {"paid_amount": total_paid, "status": "Partial"}, update_modified=False)
+                    upd = {"status": "Partial"}
+                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total_paid
+                    frappe.db.set_value("Mandi Arrival", a.name, upd, update_modified=False)
                 else:
-                    frappe.db.set_value("Mandi Arrival", a.name, {"paid_amount": 0, "status": "Pending"}, update_modified=False)
+                    upd = {"status": "Pending"}
+                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = 0
+                    frappe.db.set_value("Mandi Arrival", a.name, upd, update_modified=False)
         
         frappe.db.commit()
         return True
