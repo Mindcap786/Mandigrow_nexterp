@@ -58,6 +58,7 @@ export function NativeMenuApp() {
                 { icon: Zap,           label: "Finance Overview",    sub: "Balances & ledgers",        href: "/finance",                    color: "#1A6B3C" },
                 { icon: ReceiptIcon,   label: "P&L Report",          sub: "Profit & Loss analysis",    href: "/reports/pl",                 color: "#16A34A" },
                 { icon: ShoppingCart,  label: "Balance Sheet",       sub: "Assets & liabilities",      href: "/reports/balance-sheet",      color: "#2563EB" },
+                { icon: Truck,         label: "3rd-Party Expenses",  sub: "Supplier & buyer payouts",  href: "/reports/expense-recovery",   color: "#0284C7" },
                 { icon: IndianRupee,   label: "GST Report",          sub: "Tax calculations",          href: "/reports/gst",                color: "#DC2626" },
                 { icon: Store,         label: "Margin Report",       sub: "Commodity wise margins",    href: "/reports/margins",            color: "#7C3AED" },
                 { icon: Truck,         label: "Stock Report",        sub: "Inventory analysis",        href: "/reports/stock",              color: "#D97706" },
