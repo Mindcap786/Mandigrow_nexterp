@@ -20,6 +20,7 @@ const NAVIGATION = [
     { name: 'Billing (Patti)', href: '/dashboard/billing', icon: Receipt },
     { name: 'Inventory', href: '/dashboard/inventory', icon: PackageSearch },
     { name: 'Market Info', href: '/dashboard/market', icon: Store },
+    { name: '3rd-Party Expenses', href: '/reports/expense-recovery', icon: Receipt },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 

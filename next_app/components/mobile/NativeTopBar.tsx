@@ -54,6 +54,7 @@ const ROUTE_TITLES: Record<string, string> = {
     "/finance/patti/new":       "nav.patti_voucher",
     "/receipts":                "nav.receipts",
     "/reports/pl":              "nav.trading_pl",
+    "/reports/expense-recovery": "nav.third_party_expenses",
     "/reports/daybook":         "nav.day_book",
     "/reports/gst":             "nav.gst_compliance",
     "/reports/balance-sheet":   "nav.balance_sheet",
