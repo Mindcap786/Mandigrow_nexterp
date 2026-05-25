@@ -17,7 +17,7 @@ import { CapacitorProvider } from '@/components/capacitor/capacitor-provider'
 import { NativeAuthGuard } from '@/components/capacitor/native-auth-guard'
 import { FeatureFlagsProvider } from '@/components/providers/FeatureFlagsProvider'
 // ─────────────────────────────────────────────────────────────────────────────
-import { Analytics } from '@vercel/analytics/react'
+import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'] })
