@@ -169,7 +169,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     {saleLotNo && (
                         <div className="flex justify-end gap-2 items-center">
                             <span className="text-gray-400 font-bold uppercase">Lot No:</span>
-                            <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest">{saleLotNo}</span>
+                            <span className="font-black text-[13px] tracking-widest">{saleLotNo}</span>
                         </div>
                     )}
                     {saleVehicleNo && (

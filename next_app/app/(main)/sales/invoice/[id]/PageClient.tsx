@@ -156,7 +156,7 @@ export default function SaleInvoicePage() {
 
                     /* Step 3: pull the invoice to the top-left corner so it fills the page */
                     #invoice-print {
-                        position: fixed !important;
+                        position: absolute !important;
                         left: 0 !important;
                         top: 0 !important;
                         width: 100% !important;
@@ -165,6 +165,15 @@ export default function SaleInvoicePage() {
                         box-shadow: none !important;
                         border: none !important;
                         background: white !important;
+                    }
+
+                    /* Reset heights to prevent blank trailing pages */
+                    html, body, #__next, .min-h-screen {
+                        height: auto !important;
+                        min-height: 0 !important;
+                        overflow: visible !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
                     }
 
                     /* Remove page margins so the invoice fills the sheet */
