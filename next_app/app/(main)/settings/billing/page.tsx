@@ -13,11 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
 const PLAN_COLORS: Record<string, string> = {
-    starter: "bg-slate-100 text-slate-700 border-slate-200",
-    basic: "bg-slate-100 text-slate-700 border-slate-200",
-    standard: "bg-blue-50 text-blue-700 border-blue-100",
-    professional: "bg-purple-50 text-purple-700 border-purple-100",
-    enterprise: "bg-purple-50 text-purple-700 border-purple-100",
+    starter: "bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800 border-slate-200 shadow-xl shadow-slate-200/50",
+    basic: "bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800 border-slate-200 shadow-xl shadow-slate-200/50",
+    standard: "bg-gradient-to-br from-blue-50 to-indigo-100 text-indigo-950 border-indigo-200 shadow-xl shadow-indigo-200/50",
+    professional: "bg-gradient-to-br from-fuchsia-50 to-purple-100 text-purple-950 border-purple-200 shadow-xl shadow-purple-200/50",
+    enterprise: "bg-gradient-to-br from-slate-900 to-black text-white border-slate-800 shadow-2xl shadow-black/50",
 };
 
 const PLAN_ICONS: Record<string, any> = {
@@ -81,7 +81,6 @@ export default function SaasBillingPage() {
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [plans, setPlans] = useState<Plan[]>([]);
     const [invoices, setInvoices] = useState<SaasInvoice[]>([]);
-    const [usage, setUsage] = useState<UsageStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [plansError, setPlansError] = useState<string | null>(null);
     const { toast } = useToast();
@@ -114,7 +113,6 @@ export default function SaasBillingPage() {
                 admin_assigned_by: subResult?.subscription?.admin_assigned_by ?? undefined,
             };
             setSubscription(subData);
-            setUsage({ lots: 0, sales: 0, payments: 0, storageGb: 0 });
             setInvoices([]);
 
         } catch (err) {
@@ -183,14 +181,14 @@ export default function SaasBillingPage() {
 
     return (
         <ProtectedRoute requiredPermission="manage_settings">
-            <div className="min-h-screen bg-[#F0F2F5] pb-20">
-                <div className="bg-white border-b border-slate-200 px-8 py-5 shadow-sm">
+            <div className="min-h-screen bg-slate-50 pb-20 font-sans selection:bg-indigo-500/30">
+                <div className="bg-white/70 backdrop-blur-2xl border-b border-slate-200/60 px-8 py-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] sticky top-0 z-50 transition-all">
                     <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
                         <div className="flex-1">
-                            <h1 className="text-xl md:text-3xl font-[1000] tracking-tighter text-slate-800 uppercase leading-tight">Subscription & Billing</h1>
-                            <p className="text-slate-400 font-bold text-xs md:text-sm mt-0.5">Manage your MandiGrow plan</p>
+                            <h1 className="text-2xl md:text-4xl font-[1000] tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 uppercase leading-tight">Subscription & Billing</h1>
+                            <p className="text-slate-500 font-bold text-xs md:text-sm mt-1 uppercase tracking-widest">Manage your MandiGrow plan</p>
                         </div>
-                        <Button onClick={fetchAll} variant="outline" size="icon" className="rounded-xl">
+                        <Button onClick={fetchAll} variant="outline" size="icon" className="rounded-2xl h-12 w-12 border-slate-200 hover:bg-slate-100 hover:scale-105 transition-all shadow-sm">
                             <RefreshCw className="w-4 h-4" />
                         </Button>
                     </div>
@@ -199,18 +197,19 @@ export default function SaasBillingPage() {
                 <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
                     {/* Current Plan Banner */}
                     <div className={cn(
-                        "rounded-[20px] md:rounded-[32px] border p-5 md:p-8 relative overflow-hidden",
-                        currentPlan ? PLAN_COLORS[currentPlan.name] : "bg-slate-50 border-slate-200"
+                        "rounded-[32px] md:rounded-[40px] border p-8 md:p-12 relative overflow-hidden transition-all duration-500 hover:shadow-2xl",
+                        currentPlan ? PLAN_COLORS[currentPlan.name] : "bg-gradient-to-b from-slate-50 to-white border-slate-200 shadow-sm"
                     )}>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-current rounded-full opacity-5 -mr-20 -mt-20" />
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-current rounded-full opacity-10 blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-80 h-80 bg-current rounded-full opacity-[0.03] blur-3xl -ml-20 -mb-20 pointer-events-none" />
                         <div className="flex flex-col md:flex-row items-start justify-between relative z-10 gap-6 md:gap-0">
                             <div className="w-full">
-                                <div className="flex flex-wrap items-center gap-3 mb-2">
+                                <div className="flex flex-wrap items-center gap-4 mb-4">
                                     {currentPlan && (() => {
                                         const Icon = PLAN_ICONS[currentPlan.name] || Zap;
                                         return <Icon className="w-6 h-6 md:w-8 md:h-8" />;
                                     })()}
-                                    <h2 className="text-2xl md:text-3xl font-[1000] tracking-tighter uppercase">
+                                    <h2 className="text-3xl md:text-5xl font-[1000] tracking-tighter uppercase leading-none drop-shadow-sm">
                                         {isCustomPlan && <span className="text-sm font-bold opacity-50 mr-2 normal-case">Custom:</span>}
                                         {currentPlanDisplayName}
                                     </h2>
@@ -246,8 +245,8 @@ export default function SaasBillingPage() {
                                     )}
                                 </div>
                             </div>
-                            <div className="text-left md:text-right w-full md:w-auto">
-                                <div className="text-3xl md:text-4xl font-[1000] tracking-tighter">
+                            <div className="text-left md:text-right w-full md:w-auto mt-6 md:mt-0">
+                                <div className="text-4xl md:text-6xl font-[1000] tracking-tighter drop-shadow-sm">
                                     ₹{(currentPlan?.price_monthly || 0).toLocaleString()}
                                     <span className="text-sm md:text-base font-bold opacity-40">/mo</span>
                                 </div>
@@ -258,33 +257,18 @@ export default function SaasBillingPage() {
                         </div>
 
                         {/* Feature pills */}
-                        <div className="flex flex-wrap gap-2 mt-6 relative z-10">
+                        <div className="flex flex-wrap gap-3 mt-8 relative z-10">
                             {Object.entries(currentPlan?.features || {})
                                 .filter(([_, v]) => v !== false && v !== null && v !== 0)
                                 .map(([k, v]) => (
-                                <span key={k} className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-current/10 border border-current/20">
+                                <span key={k} className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-current/5 border border-current/10 backdrop-blur-md shadow-sm">
                                     {k.replace(/_/g, " ")}{typeof v !== 'boolean' ? `: ${v}` : ''}
                                 </span>
                             ))}
                         </div>
                     </div>
 
-                    {/* Usage Stats */}
-                    {usage && (
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            {[
-                                { label: "Tenant Usage", icon: Database, val: `${usage.storageGb} GB`, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
-                            ].map(({ label, icon: Icon, val, color, bg }) => (
-                                <div key={label} className={`${bg} rounded-[28px] border p-7 shadow-sm`}>
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <Icon className={`w-5 h-5 ${color}`} />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
-                                    </div>
-                                    <div className={`text-4xl font-black tracking-tighter ${color}`}>{val}</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    {/* Usage Stats Removed */}
 
                     {/* Plan Comparison */}
                     <div>
@@ -343,8 +327,8 @@ export default function SaasBillingPage() {
 
                                 return (
                                     <div key={plan.id} className={cn(
-                                        "rounded-[28px] border shadow-sm p-6 space-y-4 relative transition-all",
-                                        isCurrent && !isCustomPlan ? "ring-2 ring-purple-500 border-purple-200 bg-purple-50" : "bg-white border-slate-200 hover:border-slate-300"
+                                        "rounded-[32px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 space-y-6 relative transition-all duration-500 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 group",
+                                        isCurrent && !isCustomPlan ? "ring-4 ring-indigo-500/20 border-indigo-300 bg-gradient-to-b from-indigo-50/50 to-white" : "bg-white border-slate-200/80 hover:border-slate-300"
                                     )}>
                                         {isCurrent && !isCustomPlan && (
                                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
@@ -374,10 +358,10 @@ export default function SaasBillingPage() {
                                         </div>
                                         <Button
                                             disabled={isCurrent && status === 'active' || isLoading}
-                                            className={cn("w-full rounded-xl font-black text-xs uppercase tracking-widest h-10",
-                                                btnConfig.variant === 'purple' ? "bg-purple-600/10 text-purple-600 hover:bg-purple-600/20" :
+                                            className={cn("w-full rounded-2xl font-black text-xs uppercase tracking-widest h-12 transition-all duration-300",
+                                                btnConfig.variant === 'purple' ? "bg-indigo-600/10 text-indigo-700 hover:bg-indigo-600 hover:text-white" :
                                                 btnConfig.variant === 'muted' ? "bg-slate-100 text-slate-500 hover:bg-slate-200" :
-                                                "bg-slate-900 text-white hover:bg-slate-800"
+                                                "bg-slate-900 text-white hover:bg-black hover:shadow-lg hover:shadow-black/20"
                                             )}
                                             onClick={() => btnConfig.action && btnConfig.action()}
                                         >
