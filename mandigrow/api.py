@@ -411,7 +411,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         # Get sale items
         sale_items = frappe.get_all(
             "Mandi Sale Item",
-            filters={"parent": sale["name"], "company": company},
+            filters={"parent": sale["name"]},
             fields=["item_id", "qty", "rate", "amount"],
         )
         if sale_items:
