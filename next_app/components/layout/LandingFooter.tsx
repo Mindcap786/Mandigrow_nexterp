@@ -24,6 +24,7 @@ const FOOTER_COLUMNS = [
             { label: 'Crate Tracking',     href: '/mandi-crate-management-software' },
             { label: 'Farmer Payments',    href: '/farmer-payment-management' },
             { label: 'Best Mandi Software in India', href: '/best-mandi-software-in-india' },
+            { label: 'Hardware Integration', href: '/weighbridge-barcode-integration-mandi-software' },
         ],
     },
     {

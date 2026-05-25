@@ -73,6 +73,15 @@ const FEATURES = [
             'Barcode and QR code support for lot identification. Real-time lot status: pending auction, sold, partially sold, returned. Wastage recording per lot.',
     },
     {
+        id: 'hardware-integration',
+        icon: '⚖️',
+        title: 'Hardware Integrations (Scale & Barcode)',
+        description:
+            'Connect electronic weighbridges directly to the browser via Web Serial API to capture live weights. Use global barcode scanning for instant lot selection.',
+        detail:
+            'Eliminates manual entry errors at the gate and POS. No extra drivers needed for supported scales. Instantly speed up high-volume transactions.',
+    },
+    {
         id: 'daybook',
         icon: '📊',
         title: 'Daily Daybook & Profit Report',
@@ -333,6 +342,7 @@ export default function FeaturesPage() {
                                 {[
                                     ['Auto commission & hamali', '❌ Manual entry', '✅ Auto on every sale'],
                                     ['Lot & crate tracking', '❌ Not supported', '✅ Built-in'],
+                                    ['Hardware Integration', '❌ No native support', '✅ Direct Web Serial & Barcode'],
                                     ['APMC levy reporting', '❌ Manual workaround', '✅ Auto computed'],
                                     ['Farmer patti (WhatsApp)', '❌ Requires export', '✅ One tap share'],
                                     ['Regional languages', '⚠️ Limited', '✅ 7 languages'],
