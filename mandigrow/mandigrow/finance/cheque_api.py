@@ -21,13 +21,25 @@ def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: 
     """Get cheques from ALL transaction sources — Arrivals, Sales, POS, Quick Purchase."""
     org_id = org_id or _get_user_org()
     
-    # Build date-range filter on cheque_date (or posting_date as fallback)
+    # Build date-range filter.
+    # A cheque is "relevant" to the period if its cheque_date falls in range
+    # OR its clearance_date falls in range (e.g. old cheque cleared this month).
+    # This prevents cleared cheques from disappearing when filtering by period.
     date_conditions = ""
     date_params = []
-    if date_from:
+    if date_from and date_to:
+        # Match if cheque_date OR clearance_date is within the window
+        date_conditions += """ AND (
+            COALESCE(je.cheque_date, je.posting_date) BETWEEN %s AND %s
+            OR (je.clearance_date IS NOT NULL AND je.clearance_date BETWEEN %s AND %s)
+        )"""
+        d_from = frappe.utils.getdate(date_from)
+        d_to   = frappe.utils.getdate(date_to)
+        date_params.extend([d_from, d_to, d_from, d_to])
+    elif date_from:
         date_conditions += " AND COALESCE(je.cheque_date, je.posting_date) >= %s"
         date_params.append(frappe.utils.getdate(date_from))
-    if date_to:
+    elif date_to:
         date_conditions += " AND COALESCE(je.cheque_date, je.posting_date) <= %s"
         date_params.append(frappe.utils.getdate(date_to))
 
