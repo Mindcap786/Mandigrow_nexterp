@@ -10856,17 +10856,17 @@ def repair_single_party_settlement(contact_id: str, org_id: str = None):
                 total = float(a.net_payable_farmer or 0)
                 # A. Linked Paid (Submitted)
                 linked_paid = frappe.db.sql("""
-                    SELECT SUM(debit - credit) FROM `tabGL Entry`
+                    SELECT SUM(debit) FROM `tabGL Entry`
                     WHERE is_cancelled = 0 AND party IN %s 
-                    AND against_voucher = %s
+                    AND against_voucher = %s AND debit > 0
                 """, (tuple(party_list), a.name))[0][0] or 0
                 
                 # B. Linked Transit (Unsubmitted)
                 linked_transit = frappe.db.sql("""
-                    SELECT SUM(debit - credit) FROM `tabJournal Entry Account` sea
+                    SELECT SUM(debit) FROM `tabJournal Entry Account` sea
                     JOIN `tabJournal Entry` se ON sea.parent = se.name
                     WHERE se.docstatus = 0 AND sea.party IN %s
-                    AND sea.reference_name = %s
+                    AND sea.reference_name = %s AND sea.debit > 0
                 """, (tuple(party_list), a.name))[0][0] or 0
                 
                 total_paid = float(linked_paid) + float(linked_transit)
@@ -16750,37 +16750,59 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
     buyer_other = flt(sales_totals.get("misc_other"))
 
     # 2. Arrival Side Expenses (Trip Level)
+    # Fields from screenshot: LOADING (trip_loading_amount), ADVANCE (advance_amount),
+    # OTHER (other_expenses), HIRE CHARGES (hire_charges), HAMALI (hamali_expenses)
     arr_res = frappe.db.sql(f"""
         SELECT 
-            SUM(hire_charges) as freight,
+            SUM(hire_charges) as hire_charges,
+            SUM(trip_loading_amount) as trip_loading,
             SUM(hamali_expenses) as hamali,
             SUM(other_expenses) as other,
             SUM(trip_other_expenses) as trip_other
         FROM `tabMandi Arrival`
-        WHERE docstatus = 1 AND arrival_type = 'Commission' AND organization_id = %s {arr_date_cond}
+        WHERE docstatus = 1 AND arrival_type IN ('commission', 'commission_supplier') AND organization_id = %s {arr_date_cond}
     """, [org_id] + arr_date_params, as_dict=True)
     
     arr_totals = arr_res[0] if arr_res else {}
-    supplier_freight = flt(arr_totals.get("freight"))
+    # Freight = hire charges (vehicle rent/transport)
+    supplier_freight = flt(arr_totals.get("hire_charges"))
+    # Hamali = unloading labour at arrival point
     supplier_hamali = flt(arr_totals.get("hamali"))
+    # Trip Loading = loading charges paid at farm/origin
+    supplier_trip_loading = flt(arr_totals.get("trip_loading"))
+    # Other misc trip expenses
     supplier_other_trip = flt(arr_totals.get("other")) + flt(arr_totals.get("trip_other"))
 
     # 3. Arrival Side Expenses (Lot Level)
+    # Fields: packing_cost, loading_cost (per-lot loading), farmer_charges, other_cut
     lot_res = frappe.db.sql(f"""
         SELECT 
             SUM(l.packing_cost) as packing,
-            SUM(l.farmer_charges) as farmer_charges
+            SUM(l.loading_cost) as lot_loading,
+            SUM(l.farmer_charges) as farmer_charges,
+            SUM(l.other_cut) as other_cut
         FROM `tabMandi Lot` l
         JOIN `tabMandi Arrival` a ON l.parent = a.name
-        WHERE a.docstatus = 1 AND a.arrival_type = 'Commission' AND a.organization_id = %s {arr_date_cond}
+        WHERE a.docstatus = 1 AND a.arrival_type IN ('commission', 'commission_supplier') AND a.organization_id = %s {arr_date_cond}
     """, [org_id] + arr_date_params, as_dict=True)
 
     lot_totals = lot_res[0] if lot_res else {}
     supplier_packing = flt(lot_totals.get("packing"))
+    supplier_lot_loading = flt(lot_totals.get("lot_loading"))
     supplier_farmer_charges = flt(lot_totals.get("farmer_charges"))
+    supplier_other_cut = flt(lot_totals.get("other_cut"))
 
     total_buyer_expenses = buyer_loading + buyer_unloading + buyer_other
-    total_supplier_expenses = supplier_freight + supplier_hamali + supplier_other_trip + supplier_packing + supplier_farmer_charges
+    total_supplier_expenses = (
+        supplier_freight
+        + supplier_hamali
+        + supplier_trip_loading
+        + supplier_other_trip
+        + supplier_packing
+        + supplier_lot_loading
+        + supplier_farmer_charges
+        + supplier_other_cut
+    )
 
     return {
         "buyer": {
@@ -16790,11 +16812,16 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
             "total": round(total_buyer_expenses, 2)
         },
         "supplier": {
-            "freight": round(supplier_freight, 2),
-            "hamali": round(supplier_hamali, 2),
-            "packing": round(supplier_packing, 2),
-            "farmerCharges": round(supplier_farmer_charges, 2),
-            "other": round(supplier_other_trip, 2),
+            # Trip-level expenses (paid by mandi for transport/labour)
+            "freight": round(supplier_freight, 2),           # hire_charges (vehicle rent)
+            "hamali": round(supplier_hamali, 2),             # hamali_expenses (unloading labour)
+            "tripLoading": round(supplier_trip_loading, 2),  # trip_loading_amount (loading at origin)
+            "other": round(supplier_other_trip, 2),          # other_expenses + trip_other_expenses
+            # Lot-level expenses (deducted from farmer payout)
+            "packing": round(supplier_packing, 2),           # packing_cost per lot
+            "lotLoading": round(supplier_lot_loading, 2),    # loading_cost per lot
+            "farmerCharges": round(supplier_farmer_charges, 2), # farmer_charges per lot
+            "otherCut": round(supplier_other_cut, 2),        # other_cut per lot
             "total": round(total_supplier_expenses, 2)
         },
         "grandTotal": round(total_buyer_expenses + total_supplier_expenses, 2)

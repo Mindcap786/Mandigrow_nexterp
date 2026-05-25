@@ -217,7 +217,10 @@ export default function ExpenseRecoveryReport() {
                                     <p className="text-xs font-semibold text-slate-500 leading-relaxed -mt-2">
                                         Deducted from farmer payout & paid to transporters/laborers.
                                     </p>
-                                    <div className="space-y-4">
+
+                                    {/* Trip-level expenses */}
+                                    <div className="space-y-3">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-1">Trip Level</p>
                                         <div className="flex justify-between items-baseline">
                                             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Freight / Hire Charges</p>
                                             <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.freight || 0).toLocaleString()}</div>
@@ -227,23 +230,41 @@ export default function ExpenseRecoveryReport() {
                                             <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.hamali || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="flex justify-between items-baseline">
+                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Trip Loading Charges</p>
+                                            <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.tripLoading || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Other Trip Expenses</p>
+                                            <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.other || 0).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Lot-level expenses */}
+                                    <div className="space-y-3">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-1">Lot Level</p>
+                                        <div className="flex justify-between items-baseline">
                                             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Packing Cost</p>
                                             <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.packing || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Lot Loading Cost</p>
+                                            <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.lotLoading || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="flex justify-between items-baseline">
                                             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Farmer Charges</p>
                                             <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.farmerCharges || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="flex justify-between items-baseline">
-                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Other Trip Expenses</p>
-                                            <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.other || 0).toLocaleString()}</div>
+                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Other Cut (Lot)</p>
+                                            <div className="font-black text-slate-700 text-xl">₹{(stats?.supplier?.otherCut || 0).toLocaleString()}</div>
                                         </div>
-                                        <div className="h-px w-full bg-slate-100 my-4" />
-                                        <div className="flex justify-between items-baseline pt-1">
-                                            <p className="text-[12px] font-black text-emerald-600 uppercase tracking-widest">Supplier Total</p>
-                                            <div className="font-[1000] text-2xl tracking-tighter text-emerald-700">
-                                                ₹{(stats?.supplier?.total || 0).toLocaleString()}
-                                            </div>
+                                    </div>
+
+                                    <div className="h-px w-full bg-slate-100" />
+                                    <div className="flex justify-between items-baseline pt-1">
+                                        <p className="text-[12px] font-black text-emerald-600 uppercase tracking-widest">Supplier Total</p>
+                                        <div className="font-[1000] text-2xl tracking-tighter text-emerald-700">
+                                            ₹{(stats?.supplier?.total || 0).toLocaleString()}
                                         </div>
                                     </div>
                                 </div>
