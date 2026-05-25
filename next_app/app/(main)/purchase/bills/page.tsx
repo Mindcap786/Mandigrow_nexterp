@@ -487,7 +487,7 @@ export default function PurchaseBillsPage() {
                 preLoadedContacts={allContacts}
                 onSuccess={() => {
                     setPaymentInitialValues(null);
-                    fetchBills();
+                    fetchBills(true);
                 }}
             />
         </div>

@@ -16,7 +16,7 @@ export default function ExpenseRecoveryReport() {
     const { profile, loading: authLoading } = useAuth();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [dateRange, setDateRange] = useState({
+    const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
         from: subDays(new Date(), 30),
         to: new Date(),
     });
@@ -49,7 +49,7 @@ export default function ExpenseRecoveryReport() {
         if (!authLoading) {
             fetchReport();
         }
-    }, [authLoading, dateRange.from, dateRange.to]);
+    }, [authLoading, dateRange]);
 
     const handlePresetSelect = (preset: 'today' | 'yesterday' | '7days' | '30days' | 'thisMonth') => {
         const today = new Date();

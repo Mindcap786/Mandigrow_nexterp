@@ -369,7 +369,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                     await callApi('mandigrow.api.settle_supplier_payment', {
                         p_organization_id: profile?.organization_id,
                         p_contact_id:      values.party_id,
-                        p_payment_amount:  values.amount,
+                        p_payment_amount:  (values.amount || 0) + (values.discount || 0),
                         p_payment_id:      voucherId,
                     });
                 } catch (fifoErr: any) {
@@ -597,6 +597,8 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                         // Receipt mode: mandi is COLLECTING → outstanding from buyer = To Collect (green)
                                                         (!isReceipt && (currentBalance < 0 || (currentBalance > 0 && !!initialValues?.currentBalance)))
                                                             ? "bg-rose-50 text-rose-600 border border-rose-100"
+                                                        : (!isReceipt && currentBalance > 0)
+                                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                                         : (isReceipt && currentBalance > 0)
                                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                                         : currentBalance === 0
@@ -609,10 +611,12 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                             {currentBalance === 0
                                                                 ? "Settled"
                                                                 : !isReceipt
-                                                                    ? `To Pay (Cr) : ${formatCurrency(Math.abs(currentBalance || 0))}`
-                                                                    : currentBalance > 0
+                                                                    ? (currentBalance < 0 
+                                                                        ? `To Pay (Cr) : ${formatCurrency(Math.abs(currentBalance || 0))}` 
+                                                                        : `Advance (Dr) : ${formatCurrency(Math.abs(currentBalance || 0))}`)
+                                                                    : (currentBalance > 0
                                                                         ? `To Collect (Dr) : ${formatCurrency(Math.abs(currentBalance || 0))}`
-                                                                        : `To Pay (Cr) : ${formatCurrency(Math.abs(currentBalance || 0))}`
+                                                                        : `To Pay (Cr) : ${formatCurrency(Math.abs(currentBalance || 0))}`)
                                                             }
                                                         </span>
                                                     </div>

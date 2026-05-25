@@ -3722,6 +3722,17 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         elif je.voucher_type == "Bank Entry" and not is_cheque:
             je.db_set("clearance_date", posting_date)
 
+        # ── 7. Auto-settle oldest bills (FIFO) ──────────────────────────────
+        total_settlement = amount + discount
+        if total_settlement > 0 and p_party_id:
+            try:
+                if v_type == "receipt":
+                    settle_buyer_receipt(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
+                elif v_type == "payment":
+                    settle_supplier_payment(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
+            except Exception as set_err:
+                frappe.log_error(f"Auto-settlement failed: {str(set_err)}")
+
         return {
             "success": True,
             "voucher_id": je.name,
@@ -4035,7 +4046,10 @@ def settle_buyer_receipt(p_organization_id: str = None, p_contact_id: str = None
             received = float(sale.amountreceived or 0)
             due = max(0, total - received)
             
-            if due <= 0.01: continue # Already paid effectively
+            if due <= 0.01:
+                if sale.status != "Paid":
+                    frappe.db.set_value("Mandi Sale", sale.name, {"status": "Paid", "amountreceived": total}, update_modified=False)
+                continue
             
             if remaining >= due:
                 # Fully clear this bill
@@ -4077,7 +4091,7 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
                 "status": ["in", ["Pending", "Partial", "Unpaid"]],
                 "docstatus": 1
             },
-            fields=["name", "net_payable_farmer as totalamount", "amount_paid as amountreceived", "status"],
+            fields=["name", "net_payable_farmer as totalamount", "paid_amount as amountreceived", "advance", "status"],
             order_by="arrival_date asc, creation asc"
         )
 
@@ -4086,20 +4100,23 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
             if remaining <= 0: break
             
             total = float(arr.totalamount or 0)
-            received = float(arr.amountreceived or 0)
+            received = float(arr.amountreceived or arr.advance or 0)
             due = max(0, total - received)
             
-            if due <= 0.01: continue
+            if due <= 0.01:
+                if arr.status != "Paid":
+                    frappe.db.set_value("Mandi Arrival", arr.name, {"status": "Paid", "paid_amount": total}, update_modified=False)
+                continue
             
             if remaining >= due:
                 frappe.db.set_value("Mandi Arrival", arr.name, {
-                    "amount_paid": total,
+                    "paid_amount": total,
                     "status": "Paid"
                 }, update_modified=False)
                 remaining -= due
             else:
                 frappe.db.set_value("Mandi Arrival", arr.name, {
-                    "amount_paid": received + remaining,
+                    "paid_amount": received + remaining,
                     "status": "Partial"
                 }, update_modified=False)
                 remaining = 0
@@ -8057,7 +8074,7 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
         fields=[
             "name", "party_id", "arrival_date", "arrival_type", "reference_no",
             "contact_bill_no", "storage_location", "hire_charges",
-            "hamali_expenses", "other_expenses", "advance",
+            "hamali_expenses", "other_expenses", "advance", "paid_amount",
             "advance_payment_mode", "status", "creation", "net_payable_farmer",
         ],
         order_by="creation desc",

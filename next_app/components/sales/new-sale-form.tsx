@@ -1943,13 +1943,13 @@ function NewSaleForm() {
 
                 {/* Improved Confirmation Dialog */}
                 <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-                    <DialogContent className="max-w-3xl bg-white rounded-[2rem] border-2 border-slate-200 shadow-2xl overflow-hidden p-0">
+                    <DialogContent className="max-w-3xl bg-white rounded-[2rem] border-2 border-slate-200 shadow-2xl overflow-hidden p-0 max-h-[90dvh] flex flex-col">
                         <DialogHeader className="p-8 pb-4 bg-slate-50 border-b border-slate-100">
                             <DialogTitle className="text-2xl font-[1000] tracking-tighter text-slate-900 uppercase italic">Confirm Sale Transaction</DialogTitle>
                             <DialogDescription className="text-slate-500 font-bold text-xs uppercase tracking-widest">Please verify invoice details before posting to ledger</DialogDescription>
                         </DialogHeader>
                         
-                        <div className="p-8 space-y-8 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                        <div className="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
                             {(() => {
                                 const watchItems = pendingValues?.sale_items || [];
                                 const safeItems = Array.isArray(watchItems) ? watchItems : [];

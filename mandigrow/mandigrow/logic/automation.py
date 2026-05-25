@@ -41,7 +41,7 @@ def _auto_settle_party(party_type, party_name, company):
         filters = {"customer": party_name}
     elif party_type == "Supplier":
         filters = {"supplier": party_name}
-    
+    else:
         return
 
     contact = frappe.db.get_value("Mandi Contact", filters, ["name", "organization_id"], as_dict=True)
@@ -50,17 +50,8 @@ def _auto_settle_party(party_type, party_name, company):
 
     # 2. Get real balance to settle
     # We use the full balance to ensure the bill statuses are accurate
-    if party_type == "Customer":
-        # Sum all GL entries for this buyer to find how much "credit" they have vs their bills
-        # Actually, simpler: find total paid (all credits) and total billed (all debits)
-        # But wait, settle_buyer_receipt already handles FIFO from a given amount.
-        # To truly "sync", we should use the logic from repair_all_settlements.
-        from mandigrow.api import repair_single_party_settlement
-        repair_single_party_settlement(contact.name, contact.organization_id)
-    
-        # Same for suppliers
-        from mandigrow.api import repair_single_party_settlement
-        repair_single_party_settlement(contact.name, contact.organization_id)
+    from mandigrow.api import repair_single_party_settlement
+    repair_single_party_settlement(contact.name, contact.organization_id)
 
 
 

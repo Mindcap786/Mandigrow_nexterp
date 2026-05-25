@@ -60,6 +60,10 @@ export default function GSTReportsPage() {
         b2cCount: 0
     });
 
+    const [b2bPage, setB2bPage] = useState(1);
+    const [b2cPage, setB2cPage] = useState(1);
+    const recordsPerPage = 20;
+
     useEffect(() => {
         if (profile?.organization_id) {
             fetchGstData();
@@ -262,6 +266,15 @@ export default function GSTReportsPage() {
         String(s.buyer_gstin || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const b2bSalesList = filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin);
+    const b2cSalesList = filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin);
+
+    const b2bTotalPages = Math.max(1, Math.ceil(b2bSalesList.length / recordsPerPage));
+    const b2cTotalPages = Math.max(1, Math.ceil(b2cSalesList.length / recordsPerPage));
+
+    const currentB2bSales = b2bSalesList.slice((b2bPage - 1) * recordsPerPage, b2bPage * recordsPerPage);
+    const currentB2cSales = b2cSalesList.slice((b2cPage - 1) * recordsPerPage, b2cPage * recordsPerPage);
+
     return (
         <div className="p-6 md:p-10 space-y-8 pb-32">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -388,7 +401,11 @@ export default function GSTReportsPage() {
                             <Input 
                                 placeholder="Filter by Party / GSTIN / Invoice..." 
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setB2bPage(1);
+                                    setB2cPage(1);
+                                }}
                                 className="pl-12 h-14 bg-slate-50 border-none rounded-2xl focus-visible:ring-2 focus-visible:ring-indigo-500 font-medium" 
                             />
                         </div>
@@ -408,7 +425,7 @@ export default function GSTReportsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).length === 0 ? (
+                                    {b2bSalesList.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center py-20">
                                                 <div className="flex flex-col items-center gap-3">
@@ -420,7 +437,7 @@ export default function GSTReportsPage() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).map((sale) => (
+                                        currentB2bSales.map((sale) => (
                                             <TableRow key={sale.id} className="hover:bg-indigo-50/30 transition-colors border-slate-50">
                                                 <TableCell className="font-bold text-slate-900 pl-6 uppercase">{sale.buyer_gstin || sale.contact?.gstin}</TableCell>
                                                 <TableCell className="font-bold text-slate-700">{sale.contact?.name}</TableCell>
@@ -443,19 +460,26 @@ export default function GSTReportsPage() {
                                             </TableRow>
                                         ))
                                     )}
-                                    {filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).length > 0 && (
+                                    {b2bSalesList.length > 0 && (
                                         <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-200">
                                             <TableCell colSpan={4} className="text-right font-black text-slate-900 uppercase tracking-widest text-[10px] pr-6">Total</TableCell>
                                             <TableCell className="text-right font-black text-slate-900 text-lg">
-                                                ₹{filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).reduce((sum, s) => sum + Number(s.total_amount || 0), 0).toLocaleString('en-IN')}
+                                                ₹{b2bSalesList.reduce((sum, s) => sum + Number(s.total_amount || 0), 0).toLocaleString('en-IN')}
                                             </TableCell>
-                                            <TableCell className="text-right pr-6 font-black text-indigo-700 text-lg">
-                                                ₹{filteredSales.filter(s => s.buyer_gstin || s.contact?.gstin).reduce((sum, s) => sum + (Number(s.igst_amount || 0) + Number(s.cgst_amount || 0) + Number(s.sgst_amount || 0)), 0).toLocaleString('en-IN')}
+                                            <TableCell className="text-right font-black text-slate-900 text-lg pr-6">
+                                                ₹{b2bSalesList.reduce((sum, s) => sum + Number(s.igst_amount || 0) + Number(s.cgst_amount || 0) + Number(s.sgst_amount || 0), 0).toLocaleString('en-IN')}
                                             </TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
                             </Table>
+                            {b2bTotalPages > 1 && (
+                                <div className="flex justify-end items-center gap-4 mt-6">
+                                    <Button variant="outline" size="sm" onClick={() => setB2bPage(p => Math.max(1, p - 1))} disabled={b2bPage === 1}>Previous</Button>
+                                    <span className="text-xs font-bold text-slate-500">Page {b2bPage} of {b2bTotalPages}</span>
+                                    <Button variant="outline" size="sm" onClick={() => setB2bPage(p => Math.min(b2bTotalPages, p + 1))} disabled={b2bPage === b2bTotalPages}>Next</Button>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 
@@ -472,32 +496,52 @@ export default function GSTReportsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).map((sale) => (
-                                        <TableRow key={sale.id} className="hover:bg-emerald-50/30 transition-colors border-slate-50">
-                                            <TableCell className="pl-6">
-                                                <Badge className="bg-emerald-50 text-emerald-700 font-black uppercase text-[9px] border-none">CONSUMER</Badge>
-                                            </TableCell>
-                                            <TableCell className="font-bold text-slate-700">{sale.contact?.name || "Cash Customer"}</TableCell>
-                                            <TableCell className="font-black text-xs text-slate-900">{sale.bill_no}</TableCell>
-                                            <TableCell className="text-right font-black text-slate-900">₹{Number(sale.total_amount).toLocaleString('en-IN')}</TableCell>
-                                            <TableCell className="text-right pr-6 font-bold text-emerald-600">
-                                                ₹{(Number(sale.igst_amount || 0) + Number(sale.cgst_amount || 0) + Number(sale.sgst_amount || 0)).toLocaleString('en-IN')}
+                                    {b2cSalesList.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-20">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
+                                                        <FileText className="w-8 h-8 text-slate-300" />
+                                                    </div>
+                                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No B2C Records Found</p>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
-                                    {filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).length > 0 && (
+                                    ) : (
+                                        currentB2cSales.map((sale) => (
+                                            <TableRow key={sale.id} className="hover:bg-emerald-50/30 transition-colors border-slate-50">
+                                                <TableCell className="pl-6">
+                                                    <Badge className="bg-emerald-50 text-emerald-700 font-black uppercase text-[9px] border-none">CONSUMER</Badge>
+                                                </TableCell>
+                                                <TableCell className="font-bold text-slate-700">{sale.contact?.name || "Cash Customer"}</TableCell>
+                                                <TableCell className="font-black text-xs text-slate-900">{sale.bill_no}</TableCell>
+                                                <TableCell className="text-right font-black text-slate-900">₹{Number(sale.total_amount).toLocaleString('en-IN')}</TableCell>
+                                                <TableCell className="text-right pr-6 font-bold text-emerald-600">
+                                                    ₹{(Number(sale.igst_amount || 0) + Number(sale.cgst_amount || 0) + Number(sale.sgst_amount || 0)).toLocaleString('en-IN')}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                    {b2cSalesList.length > 0 && (
                                         <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-200">
                                             <TableCell colSpan={3} className="text-right font-black text-slate-900 uppercase tracking-widest text-[10px] pr-6">Total</TableCell>
                                             <TableCell className="text-right font-black text-slate-900 text-lg">
-                                                ₹{filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).reduce((sum, s) => sum + Number(s.total_amount || 0), 0).toLocaleString('en-IN')}
+                                                ₹{b2cSalesList.reduce((sum, s) => sum + Number(s.total_amount || 0), 0).toLocaleString('en-IN')}
                                             </TableCell>
-                                            <TableCell className="text-right pr-6 font-black text-emerald-700 text-lg">
-                                                ₹{filteredSales.filter(s => !s.buyer_gstin && !s.contact?.gstin).reduce((sum, s) => sum + (Number(s.igst_amount || 0) + Number(s.cgst_amount || 0) + Number(s.sgst_amount || 0)), 0).toLocaleString('en-IN')}
+                                            <TableCell className="text-right font-black text-slate-900 text-lg pr-6">
+                                                ₹{b2cSalesList.reduce((sum, s) => sum + Number(s.igst_amount || 0) + Number(s.cgst_amount || 0) + Number(s.sgst_amount || 0), 0).toLocaleString('en-IN')}
                                             </TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
                             </Table>
+                            {b2cTotalPages > 1 && (
+                                <div className="flex justify-end items-center gap-4 mt-6">
+                                    <Button variant="outline" size="sm" onClick={() => setB2cPage(p => Math.max(1, p - 1))} disabled={b2cPage === 1}>Previous</Button>
+                                    <span className="text-xs font-bold text-slate-500">Page {b2cPage} of {b2cTotalPages}</span>
+                                    <Button variant="outline" size="sm" onClick={() => setB2cPage(p => Math.min(b2cTotalPages, p + 1))} disabled={b2cPage === b2cTotalPages}>Next</Button>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 

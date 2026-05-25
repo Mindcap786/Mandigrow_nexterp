@@ -181,6 +181,19 @@ export function PaymentDialog({ type, onSuccess, children }: PaymentDialogProps)
 
             if (res.error) throw new Error(res.error);
 
+            if (type === 'payment') {
+                try {
+                    await callApi('mandigrow.api.settle_supplier_payment', {
+                        p_organization_id: profile.organization_id,
+                        p_contact_id: values.contact_id,
+                        p_payment_amount: values.amount,
+                        p_payment_id: res.voucher_id || res.name
+                    });
+                } catch (e: any) {
+                    console.warn('[FIFO] Settlement error (non-fatal):', e.message);
+                }
+            }
+
             toast({
                 title: type === 'receipt' ? "Receipt Created" : "Payment Successful",
                 description: `Successfully ${type === 'receipt' ? 'received' : 'paid'} ₹${values.amount}`,
@@ -321,7 +334,7 @@ export function PaymentDialog({ type, onSuccess, children }: PaymentDialogProps)
                                                 <span>Current Balance</span>
                                                 <span>
                                                     {currentBalance < 0 ? `To Pay (Cr) : ₹ ${Math.abs(currentBalance).toLocaleString('en-IN')}` :
-                                                        currentBalance > 0 ? `To Receive (Dr) : ₹ ${currentBalance.toLocaleString('en-IN')}` :
+                                                        currentBalance > 0 ? (type === 'receipt' ? `To Receive (Dr) : ₹ ${currentBalance.toLocaleString('en-IN')}` : `Advance (Dr) : ₹ ${currentBalance.toLocaleString('en-IN')}`) :
                                                             "Settled : ₹ 0"}
                                                 </span>
                                             </div>
