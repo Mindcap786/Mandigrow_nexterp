@@ -64,8 +64,6 @@ export const NAV_ITEMS: MenuItem[] = [
             { tKey: 'nav.follow_ups', href: ROUTES.FOLLOW_UPS, icon: MessageCircle },
             { tKey: 'nav.cheque_mgmt', href: ROUTES.FINANCE_RECONCILIATION, icon: CreditCard },
             { tKey: 'nav.gst_compliance', href: ROUTES.REPORT_GST, icon: ShieldCheck },
-            { tKey: 'nav.buyer_collections', href: ROUTES.REPORT_BUYER_COLLECTIONS, icon: Wallet },
-            { tKey: 'nav.expense_recovery', href: ROUTES.REPORT_EXPENSE_RECOVERY, icon: Receipt },
             { tKey: 'nav.balance_sheet', href: ROUTES.REPORT_BALANCE_SHEET, icon: Scale },
         ]
     },

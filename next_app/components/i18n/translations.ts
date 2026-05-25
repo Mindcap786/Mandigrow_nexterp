@@ -28,7 +28,7 @@ export const translations = {
             finance: "Finance",
             finance_overview: "Finance Overview",
             cheque_mgmt: "Cheque Management",
-            gst_compliance: "GST Compliance",
+            gst_compliance: "Compliance",
             master_data: "Master Data",
             customers_vendors: "Customers & Vendors",
             banks: "Banks",

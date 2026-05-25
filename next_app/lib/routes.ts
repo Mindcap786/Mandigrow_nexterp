@@ -82,14 +82,14 @@ export const ROUTES = {
   REPORT_DAYBOOK:     '/reports/daybook',
   REPORT_PL:          '/reports/pl',
   REPORT_BALANCE_SHEET: '/reports/balance-sheet',
-  REPORT_GST:         '/reports/gst',
+  REPORT_GST:         '/reports/compliance/gst',
   REPORT_LEDGER:      '/reports/ledger',
   REPORT_MARGINS:     '/reports/margins',
   REPORT_STOCK:       '/reports/stock',
   REPORT_PRICE_FORECAST: '/reports/price-forecast',
   TRADING_PL:         '/reports/pl',
-  REPORT_BUYER_COLLECTIONS: '/reports/buyer-collections',
-  REPORT_EXPENSE_RECOVERY: '/reports/expense-recovery',
+  REPORT_BUYER_COLLECTIONS: '/reports/compliance/buyer-collections',
+  REPORT_EXPENSE_RECOVERY: '/reports/compliance/expense-recovery',
 
   // ── Contacts / People ────────────────────────────────────
   CONTACTS:           '/contacts',
