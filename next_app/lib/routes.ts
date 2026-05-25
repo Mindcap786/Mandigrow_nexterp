@@ -88,6 +88,8 @@ export const ROUTES = {
   REPORT_STOCK:       '/reports/stock',
   REPORT_PRICE_FORECAST: '/reports/price-forecast',
   TRADING_PL:         '/reports/pl',
+  REPORT_BUYER_COLLECTIONS: '/reports/buyer-collections',
+  REPORT_EXPENSE_RECOVERY: '/reports/expense-recovery',
 
   // ── Contacts / People ────────────────────────────────────
   CONTACTS:           '/contacts',

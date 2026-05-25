@@ -117,7 +117,7 @@ export default function ExpenseRecoveryReport() {
                             {displayDate}
                         </div>
                     </Button>
-                    <BottomSheet isOpen={dateSheetOpen} onClose={() => setDateSheetOpen(false)} title="Select Date Range" snapPoints={[85, 100]}>
+                    <BottomSheet open={dateSheetOpen} onClose={() => setDateSheetOpen(false)} title="Select Date Range" snap="auto">
                         <DatePickerContent />
                     </BottomSheet>
                 </>

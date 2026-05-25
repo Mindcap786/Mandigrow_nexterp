@@ -300,16 +300,17 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
 
     # ── 2. Build contact map (party ID → Human Name) ─────────────────────
     # ── 3. Fetch Mandi Arrivals for the day (for lot enrichment) ─────────
+    org_filter_val = org_id or _get_user_org()
     arrivals = frappe.get_all(
         "Mandi Arrival",
-        filters={"arrival_date": date, "company": company},
+        filters={"arrival_date": date, "organization_id": org_filter_val},
         fields=["name", "arrival_date", "party_id", "contact_bill_no", "creation"],
     )
 
     # ── 4. Fetch Mandi Sales for the day ──────────────────────────────────
     sales = frappe.get_all(
         "Mandi Sale",
-        filters={"saledate": date, "company": company},
+        filters={"saledate": date, "organization_id": org_filter_val},
         fields=["name", "buyerid", "totalamount", "amountreceived", "bookno"],
     )
 
@@ -363,7 +364,7 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
         # Fetch lots for this arrival
         lots = frappe.get_all(
             "Mandi Lot",
-            filters={"parent": arr["name"], "company": company},
+            filters={"parent": arr["name"]},
             fields=_lot_query_fields(
                 ["name", "lot_code", "qty", "unit", "supplier_rate",
                  "commission_percent", "packing_cost", "loading_cost",
@@ -5647,15 +5648,12 @@ def get_sales_list(org_id: str = None, page: int = 1, page_size: int = 20,
         s["total_amount"] = invoice_total
         total_revenue += invoice_total
         
-        # Unified FIFO ledger sync for status and accurate balances.
-        # Using _get_ledger_summary with as_of_date (date_to) ensures that
-        # if the user filters by date, they see the status AS OF that date.
-        as_of = date_to or today()
-        ledger_summary = _get_ledger_summary("Mandi Sale", s.get("id"), invoice_total, as_of_date=as_of, due_date=s.get("due_date"), party_id=bid)
-        s["payment_status"] = ledger_summary["status"]
-        s["amount_received"] = ledger_summary["paid"]
-        s["balance"] = ledger_summary["balance"]
-        s["pending_cheque_amount"] = ledger_summary.get("pending_cheque", 0)
+        # Read direct fields updated by repair_single_party_settlement
+        # This resolves the discrepancy where unlinked payments weren't mapping to the UI list
+        s["payment_status"] = s.get("status") or "Pending"
+        s["amount_received"] = float(s.get("amount_received") or 0)
+        s["balance"] = max(0.0, invoice_total - s["amount_received"])
+        s["pending_cheque_amount"] = 0  # Assuming it's tracked separately or handled in repair hook
 
     # Debtors/Creditors count from party balances
     debtors_count = 0
@@ -8136,13 +8134,22 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
             g = float(lot.get("supplier_rate") or 0) * float(lot.get("qty") or 0)
         arrival_gross_total[aid] = arrival_gross_total.get(aid, 0.0) + g
 
-    # ── Pass 2: one ledger summary per arrival (against the arrival total) ──
+    # ── Pass 2: Map pre-calculated status and paid amounts ──
+    # The repair_single_party_settlement hook runs on every save and payment,
+    # correctly maintaining FIFO allocated paid amounts directly on the document.
     arrival_summary_cache: dict = {}
     for aid, total_goods in arrival_gross_total.items():
-        # Use net_payable_farmer as the true accounting total (amount owed before advance)
         arrival_doc = arrival_by_name[aid]
         accounting_total = flt(arrival_doc.get("net_payable_farmer") or 0)
-        arrival_summary_cache[aid] = _get_ledger_summary("Mandi Arrival", aid, accounting_total)
+        # Fallback to Advance if paid_amount is somehow missing but advance was captured
+        paid = flt(arrival_doc.get("paid_amount") or arrival_doc.get("advance") or 0)
+        balance = max(0.0, accounting_total - paid)
+        arrival_summary_cache[aid] = {
+            "status": arrival_doc.get("status") or "Pending",
+            "paid": paid,
+            "balance": balance,
+            "total": accounting_total
+        }
 
     bills = []
     for lot in lot_rows:

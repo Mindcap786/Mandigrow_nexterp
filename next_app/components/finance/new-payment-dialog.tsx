@@ -355,6 +355,8 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                 p_cheque_status:   values.payment_mode === 'cheque' ? (instantClear ? 'Cleared' : 'Pending') : null,
                 p_discount:        values.discount || 0,
                 p_invoice_id:      invoiceId || null,
+                p_arrival_id:      arrivalId || null,
+                p_lot_id:          lotId || null,
                 p_bank_account_id: (values.payment_mode === 'bank' || values.payment_mode === 'cheque') ? (selectedBankId || defaultBankId) : null
             });
 
@@ -480,7 +482,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel className="uppercase text-[10px] font-bold tracking-widest text-slate-700">{partyLabel}</FormLabel>
-                                            <Popover modal={true}
+                                            <Popover 
                                                 open={openParty}
                                                 onOpenChange={(op) => {
                                                     setOpenParty(op)

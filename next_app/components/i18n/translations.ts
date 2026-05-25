@@ -63,7 +63,9 @@ export const translations = {
             field_manager: "Field Manager",
             field_governance: "Field Governance",
             mandi_commission: "Purchase + Sale",
-            quick_actions: "Quick Actions"
+            quick_actions: "Quick Actions",
+            buyer_collections: "Buyer Collections",
+            expense_recovery: "3rd-Party Expenses"
         },
         actions: {
             new_sale: "New Sale",
