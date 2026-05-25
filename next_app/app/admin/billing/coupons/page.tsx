@@ -355,7 +355,7 @@ export default function AdminCouponsPage() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     <Switch 
                                                         checked={c.is_active} 
-                                                        onCheckedChange={() => toggleActive(c.id, c.is_active)}
+                                                        onCheckedChange={() => toggleActive(c.name || c.id, c.is_active)}
                                                         disabled={actionLoading}
                                                     />
                                                     <div className="w-px h-6 bg-slate-200 mx-2" />
@@ -372,7 +372,7 @@ export default function AdminCouponsPage() {
                                                         variant="ghost" 
                                                         size="sm" 
                                                         className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 h-10 w-10 rounded-2xl group-hover:text-red-400 transition-all"
-                                                        onClick={() => deleteCoupon(c.id)}
+                                                        onClick={() => deleteCoupon(c.name || c.id)}
                                                         disabled={actionLoading}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
