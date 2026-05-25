@@ -520,8 +520,8 @@ export function QuickPurchaseForm() {
                 className="space-y-8 pb-32"
             >
                 {/* Header Section */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-[32px] border border-white p-8 shadow-xl shadow-purple-500/5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <FormField
                             control={form.control}
                             name="arrival_date"
@@ -534,7 +534,7 @@ export function QuickPurchaseForm() {
                                                 <Button
                                                     variant={"outline"}
                                                     className={cn(
-                                                        "h-14 pl-4 text-left font-black text-xl bg-indigo-50/50 border-none rounded-2xl hover:bg-indigo-100/50 transition-all",
+                                                        "h-10 pl-3 text-left font-medium text-sm bg-white border-slate-200 rounded-md hover:bg-slate-50 transition-colors w-full",
                                                         !field.value && "text-muted-foreground"
                                                     )}
                                                 >
@@ -584,7 +584,7 @@ export function QuickPurchaseForm() {
                                             }, 50);
                                         }}
                                         placeholder="Select party..."
-                                        className="h-14 bg-indigo-50/50 border-none rounded-2xl text-xl font-black"
+                                        className="h-10 bg-white border border-slate-200 rounded-md text-sm font-medium w-full"
                                         error={!!form.formState.errors.supplier_id}
                                     />
                                     <FormMessage />
@@ -600,13 +600,13 @@ export function QuickPurchaseForm() {
                                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Storage Location</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="h-14 bg-indigo-50/50 border-none rounded-2xl text-xl font-black shadow-sm">
+                                            <SelectTrigger className="h-10 bg-white border border-slate-200 rounded-md text-sm font-medium w-full shadow-sm">
                                                 <SelectValue placeholder="Select Location" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="rounded-2xl border-none shadow-xl">
                                             {masterLocations.map(loc => (
-                                                <SelectItem key={loc.id} value={loc.name} className="font-bold py-3 uppercase tracking-tighter">
+                                                <SelectItem key={loc.id} value={loc.name} className="font-medium py-2">
                                                     {loc.name}
                                                 </SelectItem>
                                             ))}
@@ -700,11 +700,11 @@ export function QuickPurchaseForm() {
                 {/* Line Items */}
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-4 mt-12">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 p-2 rounded-xl shadow-lg shadow-indigo-500/30">
-                                <Tag className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-2">
+                            <div className="bg-slate-100 p-2 rounded-lg">
+                                <Tag className="w-5 h-5 text-slate-600" />
                             </div>
-                            <h2 className="text-2xl font-black tracking-tight text-slate-900">Line Items</h2>
+                            <h2 className="text-xl font-bold text-slate-900">Line Items</h2>
                         </div>
                         <Button
                             type="button"
@@ -721,7 +721,7 @@ export function QuickPurchaseForm() {
                                 other_cut: '',
                                 less_units: '',
                             })}
-                            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 rounded-2xl h-12 px-6 font-black tracking-widest text-[10px] shadow-xl shadow-indigo-500/30 uppercase flex items-center gap-2 group transition-all"
+                            className="bg-indigo-600 text-white hover:bg-indigo-700 rounded-md h-10 px-4 font-semibold text-sm shadow-sm flex items-center gap-2 transition-colors"
                         >
                             <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
                             Add Line Item
@@ -736,20 +736,20 @@ export function QuickPurchaseForm() {
                             return (
                                 <div
                                     key={field.id}
-                                    className="group bg-white/70 backdrop-blur-md rounded-[40px] border border-white p-8 shadow-xl shadow-indigo-500/5 hover:shadow-2xl hover:shadow-purple-500/20 hover:bg-white/90 transition-all duration-500 relative overflow-hidden"
+                                    className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm relative"
                                 >
-                                    <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-blue-500 transition-colors" />
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-slate-200 rounded-l-xl" />
 
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                                         {/* Row Header */}
                                         <div className="md:col-span-12 flex items-center justify-between border-b border-slate-50 pb-4 mb-2">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-8 h-8 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center font-black text-[10px]">
+                                                <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center font-bold text-xs">
                                                     {index + 1}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Line Item</div>
-                                                    <div className="text-sm font-black text-slate-900 uppercase tracking-tight">
+                                                    <div className="text-xs font-semibold text-slate-500 uppercase">Line Item</div>
+                                                    <div className="text-sm font-bold text-slate-900">
                                                         {(() => {
                                                             const item = masterCommodities.find(i => i.id === row.item_id);
                                                             const baseName = item?.name || "Pick Item";

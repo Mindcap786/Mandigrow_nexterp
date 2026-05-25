@@ -31,7 +31,7 @@ export default function ExpenseRecoveryReport() {
     const fetchReport = async () => {
         setLoading(true);
         try {
-            const res = await callApi("mandigrow.mandigrow.api.get_expense_recovery_report", {
+            const res = await callApi("mandigrow.api.get_expense_recovery_report", {
                 date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
                 date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
             });
