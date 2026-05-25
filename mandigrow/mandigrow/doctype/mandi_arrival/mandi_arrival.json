@@ -5,7 +5,6 @@
  "creation": "2026-04-24 14:41:08.932593",
  "doctype": "DocType",
  "editable_grid": 1,
- "is_submittable": 1,
  "engine": "InnoDB",
  "field_order": [
   "arrival_date",
@@ -227,17 +226,18 @@
    "read_only": 1
   },
   {
+   "default": "Pending",
    "fieldname": "commission_settlement_status",
    "fieldtype": "Select",
    "label": "Settlement Status",
-   "options": "Pending\nReady\nSettled",
-   "default": "Pending"
+   "options": "Pending\nReady\nSettled"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-04-24 15:47:43.697043",
+ "modified": "2026-05-23 20:17:25.087637",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Arrival",

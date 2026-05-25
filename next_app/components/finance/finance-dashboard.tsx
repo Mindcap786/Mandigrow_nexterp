@@ -521,7 +521,10 @@ export default function FinancialDashboard() {
                                 {['all', 'buyer', 'supplier', 'farmer'].map((filter) => (
                                     <button
                                         key={filter}
-                                        onClick={() => setFilterType(filter as any)}
+                                        onClick={() => {
+                                            setFilterType(filter as any)
+                                            setSubFilter('all')
+                                        }}
                                         className={cn(
                                             "px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
                                             filterType === filter

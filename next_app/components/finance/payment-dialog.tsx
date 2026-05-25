@@ -123,7 +123,7 @@ export function PaymentDialog({ type, onSuccess, children }: PaymentDialogProps)
         try {
             const res = await callApi('frappe.client.get_list', {
                 doctype: 'Mandi Contact',
-                fields: ['name as id', 'contact_name as name', 'contact_type as type'],
+                fields: ['name as id', 'full_name as name', 'contact_type as type'],
                 limit: 1000
             });
             
