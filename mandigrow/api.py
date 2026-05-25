@@ -2110,7 +2110,7 @@ def get_available_stock(commodity_id: str = None, org_id: str = None) -> list:
 
 
 @frappe.whitelist(allow_guest=False)
-def get_contacts(org_id: str = None, contact_type: str = None) -> list:
+def get_contacts(org_id: str = None, contact_type: str = None) -> dict:
     """
     Returns Mandi Contacts for the Arrivals/Sales master data.
     Used by useArrivalsMasterData and similar hooks.
