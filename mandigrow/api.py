@@ -3730,17 +3730,6 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         elif je.voucher_type == "Bank Entry" and not is_cheque:
             je.db_set("clearance_date", posting_date)
 
-        # ── 7. Auto-settle oldest bills (FIFO) ──────────────────────────────
-        total_settlement = amount + discount
-        if total_settlement > 0 and p_party_id:
-            try:
-                if v_type == "receipt":
-                    settle_buyer_receipt(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
-                elif v_type == "payment":
-                    settle_supplier_payment(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
-            except Exception as set_err:
-                frappe.log_error(f"Auto-settlement failed: {str(set_err)}")
-
         return {
             "success": True,
             "voucher_id": je.name,
@@ -8237,8 +8226,10 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
     for aid, total_goods in arrival_gross_total.items():
         arrival_doc = arrival_by_name[aid]
         accounting_total = flt(arrival_doc.get("net_payable_farmer") or 0)
-        # Fallback to Advance if paid_amount is somehow missing but advance was captured
-        paid = flt(arrival_doc.get("paid_amount") or arrival_doc.get("advance") or 0)
+        # Fallback to Advance if paid_amount is missing (not initialized)
+        paid_val = arrival_doc.get("paid_amount")
+        paid = flt(paid_val) if paid_val is not None else flt(arrival_doc.get("advance") or 0)
+        
         balance = max(0.0, accounting_total - paid)
         arrival_summary_cache[aid] = {
             "status": arrival_doc.get("status") or "Pending",
