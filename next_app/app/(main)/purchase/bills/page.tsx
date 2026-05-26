@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { callApi } from "@/lib/frappeClient";
-import { Loader2, TrendingDown, CheckCircle2, Clock, Filter, Receipt, Search, Info, Calendar as CalendarIcon, X, ArrowRight } from "lucide-react";
+import { Loader2, TrendingDown, CheckCircle2, Clock, Filter, Receipt, Search, Info, Calendar as CalendarIcon, X, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, isSameDay } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,13 @@ export default function PurchaseBillsPage() {
     const [error, setError] = useState<string | null>(null);
     // Incrementing this triggers SupplierInwardsDialog to re-fetch its live GL balance
     const [dialogRefreshTrigger, setDialogRefreshTrigger] = useState(0);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, filter, dateRange]);
 
     // Master contacts (Mandi Contact, org-scoped) — needed by NewPaymentDialog
     // so the settlement dialog renders the supplier name (not "Unknown
@@ -137,6 +144,12 @@ export default function PurchaseBillsPage() {
             return supplier.name.toLowerCase().includes(q) || 
                    (supplier.city || '').toLowerCase().includes(q);
         });
+
+    const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
+    const paginatedSuppliers = filteredSuppliers.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] text-black p-4 md:p-8 pb-40 space-y-6 md:space-y-8 animate-in fade-in relative overflow-hidden">
@@ -319,7 +332,7 @@ export default function PurchaseBillsPage() {
                         {filteredSuppliers.length === 0 && (
                             <div className="text-center py-20 text-slate-400 font-bold bg-white rounded-2xl border border-dashed border-slate-200 uppercase tracking-widest text-xs">No records found.</div>
                         )}
-                        {filteredSuppliers
+                        {paginatedSuppliers
                             .map((supplier) => {
                                 const ledgerBal = supplier.balance;
                                 const inwardCount = new Set(supplier.lots.map((l: any) => l.arrival_id).filter(Boolean)).size;
@@ -432,6 +445,32 @@ export default function PurchaseBillsPage() {
                                     </div>
                                 )
                             })}
+
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-4 bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-slate-200">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="h-10 px-4 text-xs font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl"
+                                >
+                                    <ChevronLeft className="w-4 h-4 mr-1" />
+                                    Prev
+                                </Button>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="h-10 px-4 text-xs font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl"
+                                >
+                                    Next
+                                    <ChevronRight className="w-4 h-4 ml-1" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
