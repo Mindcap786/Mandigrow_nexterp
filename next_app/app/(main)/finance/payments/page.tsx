@@ -26,14 +26,33 @@ export default function PaymentsPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     
-    // Auto-open Expense Dialog if requested via URL
+    // Auto-open Dialogs if requested via URL
     const [isExpenseOpen, setIsExpenseOpen] = useState(false);
+    const [receiptModeOpen, setReceiptModeOpen] = useState(false);
+    const [receiptInitialValues, setReceiptInitialValues] = useState<any>(null);
+
     useEffect(() => {
-        if (searchParams.get('mode') === 'expense') {
+        const mode = searchParams.get('mode');
+        if (mode === 'expense') {
             setIsExpenseOpen(true);
             // Clear param to avoid re-opening on page refresh
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.delete('mode');
+            router.replace(`/finance/payments${newParams.toString() ? '?' + newParams.toString() : ''}`);
+        } else if (mode === 'receipt') {
+            setReceiptInitialValues({
+                party_id: searchParams.get('party_id') || undefined,
+                amount: searchParams.get('amount') ? Number(searchParams.get('amount')) : undefined,
+                remarks: searchParams.get('remarks') || undefined,
+                invoice_id: searchParams.get('invoice_id') || undefined,
+            });
+            setReceiptModeOpen(true);
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.delete('mode');
+            newParams.delete('party_id');
+            newParams.delete('amount');
+            newParams.delete('remarks');
+            newParams.delete('invoice_id');
             router.replace(`/finance/payments${newParams.toString() ? '?' + newParams.toString() : ''}`);
         }
     }, [searchParams, router]);
@@ -214,7 +233,7 @@ export default function PaymentsPage() {
             {/* ACTION CENTER - PREMIUM CARDS */}
             <div className="flex overflow-x-auto md:grid md:grid-cols-3 gap-4 md:gap-6 pb-4 md:pb-0 snap-x hide-scrollbar">
                 {/* Receive Money */}
-                <NewPaymentDialog mode="receipt" onSuccess={fetchTransactions} preLoadedContacts={allContacts}>
+                <NewPaymentDialog mode="receipt" onSuccess={fetchTransactions} preLoadedContacts={allContacts} defaultOpen={receiptModeOpen} onOpenChange={setReceiptModeOpen} initialValues={receiptInitialValues}>
                     <button className="min-w-[280px] md:min-w-0 shrink-0 snap-center group relative w-full h-40 md:h-48 rounded-[32px] bg-gradient-to-br from-green-500 to-green-700 p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 shadow-lg">
                         <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:opacity-30 transition-opacity">
                             <ArrowDownLeft className="h-24 w-24 md:h-32 md:w-32 text-white" />

@@ -7189,6 +7189,15 @@ def update_contact(contact_id: str = None, **kwargs) -> dict:
         if hasattr(doc, key):
             setattr(doc, key, val)
     doc.save(ignore_permissions=True)
+    
+    # Sync name changes to the underlying ERPNext ledger records
+    if "full_name" in kwargs:
+        new_name = kwargs["full_name"]
+        if doc.supplier and frappe.db.exists("Supplier", doc.supplier):
+            frappe.db.set_value("Supplier", doc.supplier, "supplier_name", new_name, update_modified=False)
+        if doc.customer and frappe.db.exists("Customer", doc.customer):
+            frappe.db.set_value("Customer", doc.customer, "customer_name", new_name, update_modified=False)
+            
     frappe.db.commit()
     return {"name": doc.name, "status": "updated"}
 
@@ -7205,6 +7214,28 @@ def delete_contact(contact_id: str = None) -> dict:
         frappe.throw("Contact ID required")
     from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Contact", contact_id)
+    
+    contact = frappe.get_doc("Mandi Contact", contact_id)
+    if contact.supplier:
+        balance = frappe.db.sql("""
+            SELECT SUM(debit - credit)
+            FROM `tabGL Entry`
+            WHERE party_type='Supplier' AND party=%s AND is_cancelled=0
+        """, (contact.supplier,))
+        bal_val = balance[0][0] if balance and balance[0][0] else 0
+        if round(float(bal_val), 2) != 0.0:
+            frappe.throw("Cannot delete contact. They have an outstanding balance. Please clear the balance first.")
+            
+    if contact.customer:
+        balance = frappe.db.sql("""
+            SELECT SUM(debit - credit)
+            FROM `tabGL Entry`
+            WHERE party_type='Customer' AND party=%s AND is_cancelled=0
+        """, (contact.customer,))
+        bal_val = balance[0][0] if balance and balance[0][0] else 0
+        if round(float(bal_val), 2) != 0.0:
+            frappe.throw("Cannot delete contact. They have an outstanding balance. Please clear the balance first.")
+
     frappe.delete_doc("Mandi Contact", contact_id, ignore_permissions=True, force=True)
     frappe.db.commit()
     return {"status": "deleted"}

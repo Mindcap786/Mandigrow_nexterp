@@ -127,9 +127,9 @@ export default function ContactsPage() {
             await callApi('mandigrow.api.delete_contact', { contact_id: id });
             toast.success(`Contact ${name} deleted successfully.`)
             fetchContacts()
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error deleting contact:", error)
-            toast.error(`Failed to delete ${name}.`)
+            toast.error(error?.message || `Failed to delete ${name}.`)
         }
         setIsUpdating(null)
     }

@@ -21,6 +21,7 @@ import { callApi } from "@/lib/frappeClient";
 import DownloadInvoiceButton from "@/components/billing/download-invoice-button";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { NewPaymentDialog } from "@/components/finance/new-payment-dialog";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { cn } from "@/lib/utils";
@@ -28,13 +29,10 @@ import ShareInvoiceWhatsApp from "@/components/billing/share-invoice-whatsapp";
 
 export default function SalesTable({ data, isLoading }: { data: any[], isLoading: boolean }) {
     const { t } = useLanguage();
+    const router = useRouter();
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
-
-    // Payment Dialog State
-    const [paymentOpen, setPaymentOpen] = useState(false);
-    const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
 
     const handleRecordPayment = async (row: any) => {
         if (!row) return;
@@ -54,13 +52,9 @@ export default function SalesTable({ data, isLoading }: { data: any[], isLoading
             console.error("Failed to fetch invoice balance", e);
         }
 
-        setSelectedInvoice({
-            party_id: row.buyer_id || row.contact?.id,
-            amount: pendingAmount,
-            remarks: `Payment for Invoice #${displayBillNo}`,
-            invoice_id: row.id
-        });
-        setPaymentOpen(true);
+        const partyId = row.buyer_id || row.contact?.id;
+        const remarks = encodeURIComponent(`Payment for Invoice #${displayBillNo}`);
+        router.push(`/finance/payments?mode=receipt&party_id=${partyId}&amount=${pendingAmount}&remarks=${remarks}&invoice_id=${row.id}`);
     };
 
     // Data is filtered by parent
@@ -81,15 +75,6 @@ export default function SalesTable({ data, isLoading }: { data: any[], isLoading
 
     return (
         <div className="space-y-4">
-            {/* Payment Modal */}
-            <NewPaymentDialog
-                defaultOpen={paymentOpen}
-                onOpenChange={setPaymentOpen}
-                initialValues={selectedInvoice}
-                onSuccess={() => { }} // Could refresh data here if needed
-                mode="receipt"
-            />
-
             {/* Premium Table */}
             <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-xl">
                 <table className="premium-table w-full">

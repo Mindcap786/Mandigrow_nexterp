@@ -143,18 +143,24 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
         try {
             setLoadingState("Synchronizing...")
             
-            const payload = {
+            const payload: any = {
                 full_name: data.name,
                 contact_type: data.type,
                 phone: data.phone,
                 city: data.city,
                 address: data.address,
                 internal_id: data.internal_id?.trim() || null,
-                opening_balance: data.openingBalance || 0,
-                balance_type: data.balanceType
             }
 
-            const res: any = await callApi('mandigrow.api.create_contact', payload);
+            let res: any;
+            if (initialData?.id) {
+                payload.contact_id = initialData.id;
+                res = await callApi('mandigrow.api.update_contact', payload);
+            } else {
+                payload.opening_balance = data.openingBalance || 0;
+                payload.balance_type = data.balanceType;
+                res = await callApi('mandigrow.api.create_contact', payload);
+            }
             
             if (res.error) throw new Error(res.error);
 
@@ -207,8 +213,9 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                                     onValueChange={(val: any) => form.setValue("type", val)}
                                     defaultValue={defaultType}
                                     required={isMandatory('type')}
+                                    disabled={!!initialData?.id}
                                 >
-                                    <SelectTrigger className="w-full bg-white border-slate-300 text-black font-bold h-12 rounded-xl focus:ring-blue-500 shadow-sm">
+                                    <SelectTrigger className="w-full bg-white border-slate-300 text-black font-bold h-12 rounded-xl focus:ring-blue-500 shadow-sm disabled:opacity-50">
                                         <SelectValue placeholder={getLabel('type', 'Select type')} />
                                     </SelectTrigger>
                                     <SelectContent className="bg-white border-slate-300 text-black rounded-xl shadow-lg">
