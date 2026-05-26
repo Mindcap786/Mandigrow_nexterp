@@ -1,216 +1,179 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LandingFooter } from '@/components/layout/LandingFooter';
-import { LandingHeader } from '@/components/layout/LandingHeader';
-import { CheckCircle2, ArrowRight, Package, BarChart3, FileText, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Fruit Mandi Software India | Best APMC ERP for Azadpur, Vashi & Bowenpally',
-    description: 'India\'s #1 fruit mandi software. Track box weights, auto-calculate commission, manage wastage, and handle digital khata for fruit commission agents across APMC markets like Azadpur, Vashi, and Bowenpally.',
+    title: 'Fruit Mandi Software India — Fruit Billing & Commission Software | MandiGrow',
+    description:
+        'MandiGrow is India\'s best fruit mandi software. Manage fruit boxes, crates, lots, auto commission, and party khata for fruit traders and commission agents.',
     keywords: [
+        'fruit mandi software India',
         'fruit mandi software',
-        'fruit mandi billing software',
-        'apple trader software',
-        'mango mandi software',
+        'fruit billing software',
+        'apple mandi software',
+        'mango billing software',
         'fruit commission agent software',
-        'APMC fruit software',
-        'mandi erp for fruits',
-        'fruit wholesale billing',
-        'Azadpur mandi fruit software',
-        'Vashi APMC billing software',
-        'Bowenpally fruit market ERP',
-        'Ghazipur mandi khata',
-        'Okhla fruit mandi billing',
-        'Maharashtra APMC software',
-        'Delhi fruit market software',
+        'fruit wholesale software',
     ],
     alternates: { canonical: 'https://www.mandigrow.com/fruit-mandi-software' },
     openGraph: {
-        title: 'Fruit Mandi Software India | Top APMC ERP — MandiGrow',
-        description: 'Manage box-wise inventory, farmer pattis, APMC cess, and buyer outstanding with India\'s fastest fruit mandi software for Azadpur, Vashi, and local markets.',
+        title: 'Fruit Mandi Software India — Fruit Billing & Khata | MandiGrow',
+        description:
+            'Advanced billing, crate management, and khata for fruit mandi operators. Built for Indian fruit wholesale trade.',
         url: 'https://www.mandigrow.com/fruit-mandi-software',
         type: 'website',
     },
 };
 
-const FAQS = [
+const FAQ = [
     {
-        q: 'What makes fruit mandi software different from regular billing software?',
-        a: 'Fruit mandi trade operates on boxes, crates, and varying weights (e.g., Apple boxes vs Mango crates). A standard billing software cannot handle weight shortage, wastage, and dynamic lot pricing. MandiGrow is built to handle all these native mandi workflows.',
+        q: 'Why do I need a specific fruit mandi software?',
+        a: 'Fruit wholesale involves selling by the box, tracking empty plastic crates (jalis), and calculating per-box commission and hamali. Standard accounting software cannot handle crate inventory or per-lot auction billing effectively. A dedicated fruit mandi software automates all of this.',
     },
     {
-        q: 'Can it auto-calculate my commission and hamali?',
-        a: 'Yes. MandiGrow automatically calculates your Arhtiya commission, hamali, palledari, and APMC cess the moment you generate a sale bill, instantly posting the net amount to the farmer\'s digital khata.',
+        q: 'Can this software manage empty crates (jalis) given to farmers?',
+        a: 'Yes! MandiGrow tracks the issue and receipt of empty plastic crates. You always know exactly how many crates are outstanding with each farmer or buyer, directly visible on their khata ledger.',
     },
     {
-        q: 'Is this software available in Hindi and regional languages?',
-        a: 'Yes. MandiGrow natively supports Hindi, Marathi, Telugu, Tamil, Kannada, Malayalam, and Urdu. You can print farmer pattis and buyer bills in the language of your choice.',
+        q: 'Does it support billing for apples, mangoes, and seasonal fruits?',
+        a: 'Absolutely. Whether you are in the apple belts of Himachal, the mango markets of Maharashtra, or dealing in mixed seasonal fruits, the software adapts to your packaging units (boxes, crates, or quintals).',
     },
     {
-        q: 'Can I track empty crates and boxes?',
-        a: 'Absolutely. MandiGrow has a built-in crate ledger that tracks issued and returned crates for every buyer and farmer, preventing thousands of rupees in crate leakage.',
+        q: 'Can I generate buyer bills and farmer pattis on my mobile?',
+        a: 'Yes. MandiGrow provides a dedicated Android app. You can enter arrivals, conduct auctions, and generate WhatsApp-ready pattis directly from your phone while standing in the mandi.',
     },
-];
-
-const FEATURES = [
-    { icon: <Package className="w-6 h-6 text-emerald-600" />, title: 'Box & Weight Billing', desc: 'Bill by the box, carton, or kilogram. Instantly manage weight shortages and varying box sizes.' },
-    { icon: <BarChart3 className="w-6 h-6 text-emerald-600" />, title: 'Auto Commission Calculation', desc: 'Set your commission rules once. Every sale automatically calculates Arhat, Market Fee, and Hamali.' },
-    { icon: <FileText className="w-6 h-6 text-emerald-600" />, title: 'Instant Farmer Pattis', desc: 'Generate complete settlement statements for farmers in seconds, ready to be printed or WhatsApped in Hindi.' },
-    { icon: <Shield className="w-6 h-6 text-emerald-600" />, title: 'Digital Party Khata', desc: 'Real-time ledger for farmers and buyers. Track advance payments and outstanding dues with zero calculation errors.' },
+    {
+        q: 'How does the software handle commission and mandi tax?',
+        a: 'You simply set your commission percentage (e.g., 6% or 8%) and mandi tax rules once. During billing, the software automatically deducts the exact amount from the farmer\'s patti and adds it to your earnings.',
+    },
 ];
 
 export default function FruitMandiSoftwarePage() {
-    const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'SoftwareApplication',
-        name: 'MandiGrow — Fruit Mandi Software',
-        applicationCategory: 'BusinessApplication',
-        operatingSystem: 'Android, Web',
-        url: 'https://www.mandigrow.com/fruit-mandi-software',
-        description: 'India\'s #1 fruit mandi ERP software for commission agents and wholesale fruit traders.',
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: 'Free trial' },
-        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '62' },
-    };
-
-    const faqSchema = {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: FAQS.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-    };
-
     return (
-        <main className="min-h-screen bg-[#f7fbf3] text-gray-900">
-            <LandingHeader />
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+        <main className="min-h-screen bg-[#fefbf6] text-gray-900">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'FAQPage',
+                        mainEntity: FAQ.map((f) => ({
+                            '@type': 'Question',
+                            name: f.q,
+                            acceptedAnswer: { '@type': 'Answer', text: f.a },
+                        })),
+                    }),
+                }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'BreadcrumbList',
+                        itemListElement: [
+                            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.mandigrow.com' },
+                            {
+                                '@type': 'ListItem',
+                                position: 2,
+                                name: 'Fruit Mandi Software',
+                                item: 'https://www.mandigrow.com/fruit-mandi-software',
+                            },
+                        ],
+                    }),
+                }}
+            />
 
-            {/* Hero */}
-            <section className="pt-32 pb-20 px-6 bg-gradient-to-b from-[#dce7c8] to-[#f7fbf3]">
-                <div className="max-w-5xl mx-auto text-center">
-                    <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border border-emerald-200 mb-8">
-                        🍎 Fruit Mandi Software
-                    </div>
-                    <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gray-900 mb-6 leading-tight">
-                        India's #1 Fruit Mandi Software<br />
-                        <span className="text-emerald-700">for APMC Commission Agents</span>
-                    </h1>
-                    <p className="text-xl text-gray-700 font-medium max-w-3xl mx-auto mb-10 leading-relaxed">
-                        Stop losing money on weight calculation errors and empty crates. Automate your fruit wholesale business with India's most powerful mandi ERP. Trusted by top traders in <strong>Azadpur Mandi, Vashi APMC, Bowenpally, Ghazipur, and Okhla</strong>. Handle Apple, Mango, Banana, and Citrus workflows with ease.
+            <section className="max-w-5xl mx-auto px-6 pt-24 pb-16">
+                <p className="text-orange-700 font-black uppercase tracking-widest text-xs mb-4">
+                    Fruit Wholesale Software · India
+                </p>
+                <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
+                    Fruit Mandi Software for Indian Traders
+                </h1>
+                <p className="text-xl text-gray-700 max-w-3xl mb-8">
+                    MandiGrow is India's most advanced fruit mandi software. Designed specifically for fruit commission agents and traders who need to manage fast-moving lots, crate inventory, complex per-box commissions, and real-time party khata.
+                </p>
+                <div className="flex gap-4 flex-wrap">
+                    <Link
+                        href="/subscribe"
+                        className="px-8 py-4 bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:bg-orange-700 transition"
+                    >
+                        Start Free Trial →
+                    </Link>
+                    <Link
+                        href="/login"
+                        className="px-8 py-4 bg-white text-orange-800 font-black rounded-2xl border border-orange-200 hover:bg-orange-50 transition"
+                    >
+                        Book a Demo
+                    </Link>
+                </div>
+            </section>
+
+            <section className="max-w-5xl mx-auto px-6 py-16 border-t border-orange-100">
+                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-6">
+                    Master Your Fruit Wholesale Operations
+                </h2>
+                <div className="prose prose-lg text-gray-700 max-w-none">
+                    <p>
+                        Running a fruit mandi operation requires precision. Fruit is highly perishable, and auction prices fluctuate by the minute. Your software needs to keep up. That's why fruit traders across the country are upgrading to specialized <strong>fruit mandi software</strong>.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link href="/login?mode=signup" className="bg-emerald-700 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg">
-                            Start Free Trial <ArrowRight className="w-5 h-5" />
-                        </Link>
-                        <Link href="/contact" className="px-10 py-4 rounded-full border-2 border-emerald-400 text-emerald-800 font-bold text-lg hover:bg-white/60 transition-all flex items-center justify-center">
-                            Talk to Us →
-                        </Link>
+                    <p>
+                        With MandiGrow, you get real-time <Link href="/mandi-khata-software" className="text-orange-600 font-bold hover:underline">Mandi Khata software</Link> features integrated directly into your billing flow. This means when an auction finishes, the farmer's ledger, the buyer's outstanding balance, and your commission accounts update instantly.
+                    </p>
+                    <p>
+                        Beyond standard accounting, our system excels at what fruit traders need most: managing plastic crates (jalis). Crate loss eats into your margins. MandiGrow tracks exactly how many crates are issued and returned per party.
+                    </p>
+                </div>
+            </section>
+
+            <section className="max-w-5xl mx-auto px-6 py-16 border-t border-orange-100">
+                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
+                    Why Fruit Commission Agents Choose MandiGrow
+                </h2>
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="p-6 bg-white border border-orange-100 rounded-3xl shadow-sm">
+                        <h3 className="text-xl font-black mb-2">Crate & Box Tracking</h3>
+                        <p className="text-gray-600">Track plastic crates issued to farmers and buyers. Prevent inventory loss.</p>
                     </div>
-                    <div className="flex flex-wrap justify-center gap-4 mt-8 text-sm font-bold text-gray-600">
-                        {['Free Training', '₹0 Setup Cost', 'Hindi Support', 'Mobile App', 'GST Ready'].map(b => (
-                            <div key={b} className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-emerald-100 shadow-sm">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />{b}
-                            </div>
-                        ))}
+                    <div className="p-6 bg-white border border-orange-100 rounded-3xl shadow-sm">
+                        <h3 className="text-xl font-black mb-2">Per-Box Commission</h3>
+                        <p className="text-gray-600">Calculate commission, hamali, and market cess per box or as a percentage instantly.</p>
+                    </div>
+                    <div className="p-6 bg-white border border-orange-100 rounded-3xl shadow-sm">
+                        <h3 className="text-xl font-black mb-2">Live Ledger Sync</h3>
+                        <p className="text-gray-600">Reconcile payments faster. See who owes you money with live <Link href="/commission-agent-software" className="text-orange-600 hover:underline">commission agent ledgers</Link>.</p>
                     </div>
                 </div>
             </section>
 
-            {/* Features */}
-            <section className="py-20 px-6 bg-white">
-                <div className="max-w-5xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-4 text-center">Built for Local Fruit Markets & APMCs</h2>
-                    <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto font-medium">From Delhi's Azadpur to Mumbai's Vashi and Hyderabad's Bowenpally, MandiGrow handles regional APMC cess rules, local languages, and complex box-weight math effortlessly.</p>
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {FEATURES.map(f => (
-                            <div key={f.title} className="bg-[#f7fbf3] border border-emerald-100 rounded-2xl p-6 flex gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">{f.icon}</div>
-                                <div>
-                                    <h3 className="font-black text-lg text-gray-900 mb-1">{f.title}</h3>
-                                    <p className="text-gray-600 font-medium leading-relaxed">{f.desc}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            <section className="max-w-5xl mx-auto px-6 py-16 border-t border-orange-100">
+                <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-10">
+                    Fruit Mandi Software — Frequently Asked Questions
+                </h2>
+                <div className="space-y-6">
+                    {FAQ.map((f) => (
+                        <div key={f.q}>
+                            <h3 className="text-lg font-black mb-2">{f.q}</h3>
+                            <p className="text-gray-700">{f.a}</p>
+                        </div>
+                    ))}
                 </div>
             </section>
 
-            {/* AI Comparison Table (AEO) */}
-            <section className="py-20 px-6 bg-white border-t border-emerald-50">
-                <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-4 text-center">Why MandiGrow Beats Legacy Software</h2>
-                    <p className="text-center text-gray-600 mb-10 max-w-2xl mx-auto font-medium">Unlike generic accounting tools or outdated desktop software (like Tally or Marg), MandiGrow is built from the ground up for the unique challenges of APMC fruit commission agents.</p>
-                    
-                    <div className="overflow-x-auto rounded-2xl border border-emerald-100 shadow-sm">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-emerald-50 border-b border-emerald-100">
-                                    <th className="p-4 font-black text-gray-900 w-1/3">Feature</th>
-                                    <th className="p-4 font-black text-emerald-700 w-1/3 border-l border-emerald-100">MandiGrow</th>
-                                    <th className="p-4 font-black text-gray-500 w-1/3 border-l border-emerald-100">Legacy Desktop ERPs</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-emerald-50">
-                                <tr>
-                                    <td className="p-4 font-bold text-gray-800">Platform & Access</td>
-                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Cloud-based, Mobile App + Web, Access Anywhere</td>
-                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Locked to a single shop PC</td>
-                                </tr>
-                                <tr>
-                                    <td className="p-4 font-bold text-gray-800">Crate Management</td>
-                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Built-in Box & Crate tracking with party khata</td>
-                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Manual entry or missing completely</td>
-                                </tr>
-                                <tr>
-                                    <td className="p-4 font-bold text-gray-800">Commission & Hamali</td>
-                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Auto-calculated based on APMC/Mandi rules</td>
-                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Requires manual calculator work per bill</td>
-                                </tr>
-                                <tr>
-                                    <td className="p-4 font-bold text-gray-800">Farmer Pattis</td>
-                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">1-click WhatsApp delivery in Hindi/Local languages</td>
-                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Paper printouts only</td>
-                                </tr>
-                                <tr>
-                                    <td className="p-4 font-bold text-gray-800">Weight Shortage handling</td>
-                                    <td className="p-4 text-emerald-700 font-medium border-l border-emerald-50">Native weight shortage & wastage workflows</td>
-                                    <td className="p-4 text-gray-500 border-l border-emerald-50">Difficult to handle dynamically</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <section className="max-w-5xl mx-auto px-6 py-20 text-center">
+                <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-6">
+                    Ready to modernize your fruit mandi?
+                </h2>
+                <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
+                    Take control of your billing, crates, and commission with the best software in India. Or check out our <Link href="/sabzi-mandi-software" className="text-orange-600 font-bold hover:underline">sabzi mandi software</Link> features.
+                </p>
+                <Link
+                    href="/subscribe"
+                    className="inline-block px-10 py-5 bg-orange-600 text-white font-black rounded-2xl shadow-xl hover:bg-orange-700 transition text-lg"
+                >
+                    Get Started Free →
+                </Link>
             </section>
-
-            {/* FAQ */}
-            <section className="py-20 px-6 bg-white">
-                <div className="max-w-3xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-10 text-center">Frequently Asked Questions</h2>
-                    <div className="space-y-6">
-                        {FAQS.map(f => (
-                            <div key={f.q} className="border border-emerald-100 rounded-2xl p-6 bg-[#f7fbf3]">
-                                <h3 className="font-black text-lg text-gray-900 mb-2">{f.q}</h3>
-                                <p className="text-gray-700 font-medium leading-relaxed">{f.a}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-            {/* SEO Topical Authority Links */}
-            <section className="py-16 px-6 bg-[#0d1f14] text-white">
-                <div className="max-w-5xl mx-auto text-center">
-                    <h2 className="text-2xl md:text-3xl font-black mb-8">Explore the MandiGrow Ecosystem</h2>
-                    <div className="flex flex-wrap justify-center gap-4">
-                        <Link href="/apple-mandi-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Apple Mandi Billing</Link>
-                        <Link href="/mango-mandi-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Mango Commission Agent App</Link>
-                        <Link href="/sabji-mandi-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Sabji Mandi ERP</Link>
-                        <Link href="/mandi-crate-management-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Crate Tracking Ledger</Link>
-                        <Link href="/digital-mandi-khata-software" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Digital Farmer Khata</Link>
-                        <Link href="/best-mandi-software-in-india" className="px-5 py-2.5 rounded-full bg-emerald-900/50 border border-emerald-800 hover:bg-emerald-800 transition font-medium text-sm">Why We Are #1 in India</Link>
-                    </div>
-                </div>
-            </section>
-
-            <LandingFooter />
         </main>
     );
 }
