@@ -395,10 +395,7 @@ export default function PurchaseBillsPage() {
                                                 </div>
                                                 {supplier.totalNetPayable > AMOUNT_EPSILON && (
                                                     <div className="mt-2">
-                                                        <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                                                            <span>Paid ₹{Math.round(supplier.totalPaid || 0).toLocaleString()}</span>
-                                                            <span>Total ₹{Math.round(supplier.totalNetPayable).toLocaleString()}</span>
-                                                        </div>
+
                                                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                             <div 
                                                                 className={cn(
