@@ -527,6 +527,22 @@ export function CrateTypesView() {
                             />
                         </div>
                         <div>
+                            <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Purchase Rate (₹/crate) *</Label>
+                            <Input
+                                type="number"
+                                placeholder="e.g. 50"
+                                value={stockForm.purchase_rate}
+                                onChange={e => setStockForm(f => ({ ...f, purchase_rate: e.target.value }))}
+                                className="mt-1.5 h-11 rounded-xl border-slate-200 font-bold"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">The cost price you paid per crate. Used for loss valuation in P&L.</p>
+                            {stockForm.qty && stockForm.purchase_rate && (
+                                <p className="text-xs font-bold text-emerald-700 mt-1">
+                                    Total Stock Value: ₹{(parseInt(stockForm.qty || '0') * parseFloat(stockForm.purchase_rate || '0')).toLocaleString('en-IN')}
+                                </p>
+                            )}
+                        </div>
+                        <div>
                             <Label className="text-xs font-black uppercase text-slate-600 tracking-widest">Notes (optional)</Label>
                             <Input
                                 placeholder="e.g. Purchased from XYZ supplier"
@@ -565,10 +581,36 @@ export function CrateTypesView() {
                                 <option value="">Select Crate Type</option>
                                 {crateTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
+                            {lossForm.crate_type && (() => {
+                                const ct = crateTypes.find(c => c.id === lossForm.crate_type)
+                                if (ct && ct.purchase_rate === 0) {
+                                    return (
+                                        <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <span className="text-amber-500 text-sm mt-0.5">⚠</span>
+                                            <p className="text-xs text-amber-700">
+                                                <strong>Purchase rate is ₹0</strong> for this crate type. Loss will be recorded at ₹0 value.
+                                                Edit the crate type to set a purchase rate for accurate P&amp;L tracking.
+                                            </p>
+                                        </div>
+                                    )
+                                }
+                                return null
+                            })()}
                         </div>
                         <div className="space-y-2">
                             <Label>Lost Quantity</Label>
                             <Input type="number" placeholder="0" value={lossForm.qty} onChange={e => setLossForm({ ...lossForm, qty: e.target.value })} />
+                            {lossForm.qty && lossForm.crate_type && (() => {
+                                const ct = crateTypes.find(c => c.id === lossForm.crate_type)
+                                const qty = parseFloat(lossForm.qty || '0')
+                                const rate = ct?.purchase_rate || 0
+                                const lossValue = qty * rate
+                                return (
+                                    <p className={`text-xs font-bold ${rate === 0 ? 'text-slate-500' : 'text-red-700'}`}>
+                                        Loss Value: ₹{lossValue.toLocaleString('en-IN')} ({qty} × ₹{rate}/crate)
+                                    </p>
+                                )
+                            })()}
                             <p className="text-xs text-slate-500">This will reduce your available stock and record a loss in Trading P&L.</p>
                         </div>
                         <div className="space-y-2">
