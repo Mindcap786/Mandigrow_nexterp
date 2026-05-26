@@ -190,7 +190,7 @@ export function QuickPurchaseForm() {
         error: masterError,
         gstEnabled,
         refetch: refetchMasterData
-    } = useArrivalsMasterData(profile?.organization_id)
+    } = useArrivalsMasterData(profile?.organization_id, ['farmer', 'supplier'])
 
     const form = useForm<QuickPurchaseFormValues>({
         resolver: zodResolver(formSchema) as any,

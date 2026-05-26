@@ -85,7 +85,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
         contacts: masterContacts, 
         commodities: masterCommodities, 
         storageLocations: masterLocations 
-    } = useArrivalsMasterData(profile?.organization_id);
+    } = useArrivalsMasterData(profile?.organization_id, ['farmer', 'supplier']);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,

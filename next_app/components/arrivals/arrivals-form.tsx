@@ -154,7 +154,7 @@ export default function ArrivalsEntryForm() {
         loading: masterLoading,
         error: masterError,
         refetch: refetchMaster
-    } = useArrivalsMasterData(profile?.organization_id);
+    } = useArrivalsMasterData(profile?.organization_id, ['farmer', 'supplier']);
 
     const { createArrival, isCreating } = useArrivals();
 
