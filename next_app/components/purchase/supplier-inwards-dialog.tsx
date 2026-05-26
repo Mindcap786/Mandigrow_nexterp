@@ -84,7 +84,12 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
         lastFetchedId.current = supplier.id;
     }, [isOpen, supplier?.id, refreshTrigger]);
 
-    // Effective balance: prefer live GL data, fallback to prop while loading
+    // ── Displayed Pending Total ─────────────────────────────────────────────
+    // Sum the pendingAmount from the currently DATE-FILTERED groups.
+    // This is the ONLY correct number: it matches what the bill rows display.
+    // Using get_party_outstanding (all-time GL) was wrong — it showed the
+    // lifetime total (e.g. ₹7,810) instead of the filtered remaining (₹10).
+    // effectiveBalance is kept for the legacy liveBalance fallback path.
     const effectiveBalance = liveBalance !== null ? liveBalance : supplier?.balance ?? 0;
 
     useEffect(() => {
@@ -281,6 +286,13 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
         });
     }, [supplier, dateRange, inwardSearch]);
 
+    // Sum the pending amounts from currently displayed (date-filtered) groups.
+    // This is the header balance — it matches the bill rows exactly.
+    const displayedPendingTotal = filteredAndGroupedInvoices.reduce(
+        (sum, g: any) => sum + (g.paymentStatus !== 'paid' ? (g.pendingAmount || 0) : 0),
+        0
+    );
+
     if (!supplier) return null;
 
     return (
@@ -356,26 +368,20 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                 </div>
                                 <div className={cn(
                                     "h-7 px-3 rounded-full border flex items-center gap-2 shadow-sm transition-all bg-white shrink-0",
-                                    effectiveBalance > AMOUNT_EPSILON ? "border-rose-100 bg-rose-50/30" : effectiveBalance < -AMOUNT_EPSILON ? "border-emerald-100 bg-emerald-50/30" : "border-slate-200 bg-slate-50"
+                                    displayedPendingTotal > AMOUNT_EPSILON ? "border-rose-100 bg-rose-50/30" : "border-slate-200 bg-slate-50"
                                 )}>
-                                    {balanceLoading ? (
-                                        <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
-                                    ) : (
-                                        <>
-                                            <span className={cn(
-                                                "text-[8px] font-black uppercase tracking-widest",
-                                                effectiveBalance > AMOUNT_EPSILON ? "text-rose-600" : effectiveBalance < -AMOUNT_EPSILON ? "text-emerald-600" : "text-slate-500"
-                                            )}>
-                                                {effectiveBalance > AMOUNT_EPSILON ? 'To Pay:' : effectiveBalance < -AMOUNT_EPSILON ? 'Advance:' : 'Settled:'}
-                                            </span>
-                                            <span className={cn(
-                                                "text-[10px] font-black font-mono",
-                                                effectiveBalance > AMOUNT_EPSILON ? "text-rose-700" : effectiveBalance < -AMOUNT_EPSILON ? "text-emerald-700" : "text-slate-600"
-                                            )}>
-                                                ₹{Math.abs(Math.round(effectiveBalance)).toLocaleString()}
-                                            </span>
-                                        </>
-                                    )}
+                                    <span className={cn(
+                                        "text-[8px] font-black uppercase tracking-widest",
+                                        displayedPendingTotal > AMOUNT_EPSILON ? "text-rose-600" : "text-slate-500"
+                                    )}>
+                                        {displayedPendingTotal > AMOUNT_EPSILON ? 'To Pay:' : 'Settled:'}
+                                    </span>
+                                    <span className={cn(
+                                        "text-[10px] font-black font-mono",
+                                        displayedPendingTotal > AMOUNT_EPSILON ? "text-rose-700" : "text-slate-600"
+                                    )}>
+                                        ₹{Math.round(displayedPendingTotal).toLocaleString()}
+                                    </span>
                                 </div>
                             </div>
                         </div>
