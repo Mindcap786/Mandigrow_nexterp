@@ -181,18 +181,7 @@ export function PaymentDialog({ type, onSuccess, children }: PaymentDialogProps)
 
             if (res.error) throw new Error(res.error);
 
-            if (type === 'payment') {
-                try {
-                    await callApi('mandigrow.api.settle_supplier_payment', {
-                        p_organization_id: profile.organization_id,
-                        p_contact_id: values.contact_id,
-                        p_payment_amount: values.amount,
-                        p_payment_id: res.voucher_id || res.name
-                    });
-                } catch (e: any) {
-                    console.warn('[FIFO] Settlement error (non-fatal):', e.message);
-                }
-            }
+
 
             toast({
                 title: type === 'receipt' ? "Receipt Created" : "Payment Successful",

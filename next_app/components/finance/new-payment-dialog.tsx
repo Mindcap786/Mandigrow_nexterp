@@ -363,20 +363,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
             if (res.error) throw new Error(res.error);
             const voucherId = res.voucher_id;
 
-            // ── AUTOMATIC FIFO SETTLEMENT ──────────────────
-            if (!isReceipt && !invoiceId) {
-                try {
-                    await callApi('mandigrow.api.settle_supplier_payment', {
-                        p_organization_id: profile?.organization_id,
-                        p_contact_id:      values.party_id,
-                        p_payment_amount:  (values.amount || 0) + (values.discount || 0),
-                        p_payment_id:      voucherId,
-                    });
-                } catch (fifoErr: any) {
-                    console.warn('[FIFO] Settlement error (non-fatal):', fifoErr.message);
-                }
-            }
-            // ──────────────────────────────────────────────────
+
 
             toast({ title: isReceipt ? "Receipt Recorded" : "Payment Recorded", description: "Voucher created successfully." });
             setOpen(false);
