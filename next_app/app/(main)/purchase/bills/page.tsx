@@ -14,7 +14,7 @@ import { SupplierInwardsDialog } from "@/components/purchase/supplier-inwards-di
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateRange } from "react-day-picker";
-import { cacheGet, cacheSet } from "@/lib/data-cache";
+import { cacheGet, cacheSet, cacheClearPrefix } from "@/lib/data-cache";
 
 const AMOUNT_EPSILON = 0.01;
 const DATE_FORMAT = 'yyyy-MM-dd';
@@ -42,6 +42,8 @@ export default function PurchaseBillsPage() {
         to: new Date(),
     });
     const [error, setError] = useState<string | null>(null);
+    // Incrementing this triggers SupplierInwardsDialog to re-fetch its live GL balance
+    const [dialogRefreshTrigger, setDialogRefreshTrigger] = useState(0);
 
     // Master contacts (Mandi Contact, org-scoped) — needed by NewPaymentDialog
     // so the settlement dialog renders the supplier name (not "Unknown
@@ -476,6 +478,7 @@ export default function PurchaseBillsPage() {
                         arrival_id: arrivalId
                     });
                 }}
+                refreshTrigger={dialogRefreshTrigger}
             />
 
             <NewPaymentDialog
@@ -486,6 +489,13 @@ export default function PurchaseBillsPage() {
                 initialValues={paymentInitialValues || undefined}
                 preLoadedContacts={allContacts}
                 onSuccess={() => {
+                    // Clear ALL purchase_bills cache entries so the supplier card
+                    // shows fresh GL-based balances immediately (not stale cache).
+                    if (profile?.organization_id) {
+                        cacheClearPrefix('purchase_bills_', profile.organization_id);
+                    }
+                    // Trigger live balance re-fetch in the SupplierInwardsDialog header
+                    setDialogRefreshTrigger(t => t + 1);
                     setPaymentInitialValues(null);
                     fetchBills(true);
                 }}

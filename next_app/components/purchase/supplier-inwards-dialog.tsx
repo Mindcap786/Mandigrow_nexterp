@@ -1,14 +1,13 @@
 "use client";
 
 import { supabase } from '@/lib/supabaseClient'; // No-op stub — all calls return null
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Info, Edit, CreditCard, ChevronDown, ChevronRight, ShieldCheck, Box, X, Calendar as CalendarIcon, Search, Filter, FileText, MapPin, Truck } from "lucide-react";
+import { Info, Edit, CreditCard, ChevronDown, ChevronRight, ShieldCheck, Box, X, Calendar as CalendarIcon, Search, Filter, FileText, MapPin, Truck, Loader2 } from "lucide-react";
 import { callApi } from "@/lib/frappeClient";
- // proxy fallback
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -34,9 +33,11 @@ interface SupplierInwardsDialogProps {
     onClose: () => void;
     onEditLot: (lotId: string, isLocked?: boolean) => void;
     onPay: (partyId: string, amount: number, lotCode: string, arrivalId: string) => void;
+    /** Increment this to trigger a live balance re-fetch while the dialog is open (e.g. after payment). */
+    refreshTrigger?: number;
 }
 
-export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, onClose, onEditLot, onPay }: SupplierInwardsDialogProps) {
+export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, onClose, onEditLot, onPay, refreshTrigger = 0 }: SupplierInwardsDialogProps) {
     const router = useRouter();
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
     const [inwardSearch, setInwardSearch] = useState("");
@@ -47,6 +48,44 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
     });
     const [relocatingLot, setRelocatingLot] = useState<string | null>(null);
     const [storageLocations, setStorageLocations] = useState<any[]>([]);
+
+    // ── Live Balance: fetched directly from the GL when dialog opens ──────────
+    // Replaces the stale `supplier.balance` prop which comes from cached API data.
+    // get_party_outstanding is the single source of truth (signed GL balance).
+    const [liveBalance, setLiveBalance] = useState<number | null>(null);
+    const [balanceLoading, setBalanceLoading] = useState(false);
+    const lastFetchedId = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!isOpen || !supplier?.id) {
+            setLiveBalance(null);
+            return;
+        }
+        // Only refetch when supplier changes OR dialog re-opens
+        const fetchLiveBalance = async () => {
+            setBalanceLoading(true);
+            try {
+                const res: any = await callApi('mandigrow.api.get_party_outstanding', {
+                    contact_id: supplier.id,
+                });
+                // signed_balance: positive = party owes mandi (asset), negative = mandi owes party (liability=To Pay)
+                // We want "To Pay" to be positive for the UI, so we negate it.
+                const signed = Number(res?.signed_balance ?? 0);
+                setLiveBalance(-signed); // positive → mandi owes → To Pay; negative → advance
+            } catch (e) {
+                console.error('Failed to fetch live balance:', e);
+                // Fallback to prop value so we always show something
+                setLiveBalance(supplier.balance);
+            } finally {
+                setBalanceLoading(false);
+            }
+        };
+        fetchLiveBalance();
+        lastFetchedId.current = supplier.id;
+    }, [isOpen, supplier?.id, refreshTrigger]);
+
+    // Effective balance: prefer live GL data, fallback to prop while loading
+    const effectiveBalance = liveBalance !== null ? liveBalance : supplier?.balance ?? 0;
 
     useEffect(() => {
         const fetchLocations = async () => {
@@ -317,20 +356,26 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                 </div>
                                 <div className={cn(
                                     "h-7 px-3 rounded-full border flex items-center gap-2 shadow-sm transition-all bg-white shrink-0",
-                                    supplier.balance > 0 ? "border-rose-100 bg-rose-50/30" : supplier.balance < 0 ? "border-emerald-100 bg-emerald-50/30" : "border-slate-200 bg-slate-50"
+                                    effectiveBalance > AMOUNT_EPSILON ? "border-rose-100 bg-rose-50/30" : effectiveBalance < -AMOUNT_EPSILON ? "border-emerald-100 bg-emerald-50/30" : "border-slate-200 bg-slate-50"
                                 )}>
-                                    <span className={cn(
-                                        "text-[8px] font-black uppercase tracking-widest",
-                                        supplier.balance > 0 ? "text-rose-600" : supplier.balance < 0 ? "text-emerald-600" : "text-slate-500"
-                                    )}>
-                                        {supplier.balance > 0 ? 'To Pay:' : supplier.balance < 0 ? 'Advance:' : 'Settled:'}
-                                    </span>
-                                    <span className={cn(
-                                        "text-[10px] font-black font-mono",
-                                        supplier.balance > 0 ? "text-rose-700" : supplier.balance < 0 ? "text-emerald-700" : "text-slate-600"
-                                    )}>
-                                        ₹{Math.abs(Math.round(supplier.balance)).toLocaleString()}
-                                    </span>
+                                    {balanceLoading ? (
+                                        <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+                                    ) : (
+                                        <>
+                                            <span className={cn(
+                                                "text-[8px] font-black uppercase tracking-widest",
+                                                effectiveBalance > AMOUNT_EPSILON ? "text-rose-600" : effectiveBalance < -AMOUNT_EPSILON ? "text-emerald-600" : "text-slate-500"
+                                            )}>
+                                                {effectiveBalance > AMOUNT_EPSILON ? 'To Pay:' : effectiveBalance < -AMOUNT_EPSILON ? 'Advance:' : 'Settled:'}
+                                            </span>
+                                            <span className={cn(
+                                                "text-[10px] font-black font-mono",
+                                                effectiveBalance > AMOUNT_EPSILON ? "text-rose-700" : effectiveBalance < -AMOUNT_EPSILON ? "text-emerald-700" : "text-slate-600"
+                                            )}>
+                                                ₹{Math.abs(Math.round(effectiveBalance)).toLocaleString()}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
