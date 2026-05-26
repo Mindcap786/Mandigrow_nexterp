@@ -35,7 +35,7 @@ export default function PurchaseBillsPage() {
     const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
     const [selectedBillLocked, setSelectedBillLocked] = useState<boolean>(false);
     const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);
-    const [paymentInitialValues, setPaymentInitialValues] = useState<{ party_id: string, amount: number, currentBalance?: number, remarks: string, invoice_id?: string, lot_id?: string, arrival_id?: string } | null>(null);
+    const [paymentInitialValues, setPaymentInitialValues] = useState<{ party_id: string, partyName?: string, amount: number, remarks: string, invoice_id?: string, lot_id?: string, arrival_id?: string } | null>(null);
     const [allContacts, setAllContacts] = useState<any[]>(_orgId ? (cacheGet<any[]>('contacts_master', _orgId) || []) : []);
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: subDays(new Date(), 30),
@@ -417,8 +417,9 @@ export default function PurchaseBillsPage() {
                                                         e.stopPropagation();
                                                         setPaymentInitialValues({
                                                             party_id: supplier.id,
+                                                            partyName: supplier.name,
                                                             amount: Math.abs(ledgerBal),
-                                                            currentBalance: Math.abs(ledgerBal),
+                                                            // NOTE: no currentBalance — dialog fetches live GL via get_ledger_statement
                                                             remarks: `Settlement for inwards`
                                                         });
                                                     }}
@@ -472,8 +473,9 @@ export default function PurchaseBillsPage() {
                 onPay={(partyId, amount, lotCode, arrivalId) => {
                     setPaymentInitialValues({
                         party_id: partyId,
+                        partyName: groupedSuppliers.find(g => g.id === partyId)?.name,
                         amount: amount,
-                        currentBalance: Math.abs(groupedSuppliers.find(g => g.id === partyId)?.balance || 0),
+                        // NOTE: no currentBalance — dialog fetches live GL via get_ledger_statement
                         remarks: `Payment Purchase #Inward ${lotCode}`,
                         arrival_id: arrivalId
                     });

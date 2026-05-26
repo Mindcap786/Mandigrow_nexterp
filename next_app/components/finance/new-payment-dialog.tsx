@@ -63,7 +63,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
     onSuccess?: () => void,
     defaultOpen?: boolean,
     onOpenChange?: (open: boolean) => void,
-    initialValues?: { party_id?: string, amount?: number, remarks?: string, invoice_id?: string, lot_id?: string, arrival_id?: string, currentBalance?: number },
+    initialValues?: { party_id?: string, partyName?: string, amount?: number, remarks?: string, invoice_id?: string, lot_id?: string, arrival_id?: string },
     mode?: 'payment' | 'receipt',
     children?: React.ReactNode,
     preLoadedContacts?: any[]
@@ -126,22 +126,19 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
     });
 
 
-    // Fetch Balance when Party Selected
+    // Fetch Balance when Party Selected — always from live GL (get_ledger_statement).
+    // We deliberately do NOT short-circuit with initialValues.currentBalance:
+    // that value comes from stale cached page data and has the wrong sign convention.
     const selectedPartyId = form.watch('party_id');
     useEffect(() => {
         if (selectedPartyId && profile?.organization_id) {
-            // First let's check if we have a manually injected isolated balance 
-            if (open && initialValues && 'currentBalance' in initialValues && selectedPartyId === initialValues.party_id) {
-                setCurrentBalance(initialValues.currentBalance as number);
-            } else {
-                fetchPartyBalance(selectedPartyId);
-            }
+            fetchPartyBalance(selectedPartyId);
             if (invoiceId) fetchInvoiceBalance(invoiceId);
         } else {
             setCurrentBalance(null);
             setInvoiceBalance(null);
         }
-    }, [selectedPartyId, profile, invoiceId, open, initialValues]);
+    }, [selectedPartyId, profile, invoiceId, open]);
 
     const fetchInvoiceBalance = async (inv_id: string) => {
         if (!inv_id) return;
@@ -412,7 +409,9 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                             <div className="flex justify-between items-center">
                                 <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{isReceipt ? "From" : "To"}</span>
                                 <span className="font-black text-black text-md">
-                                    {contacts.find(c => c.id === pendingValues.party_id)?.name || "Unknown"}
+                                    {contacts.find(c => c.id === pendingValues.party_id)?.name
+                                        || initialValues?.partyName
+                                        || "Unknown"}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center bg-white p-1 rounded-lg border border-slate-100">
@@ -489,7 +488,9 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                             )}
                                                         >
                                                                 {field.value
-                                                                    ? (contacts.find((p) => p.id === field.value)?.name || (loadingContacts ? "Loading..." : field.value))
+                                                                    ? (contacts.find((p) => p.id === field.value)?.name
+                                                                        || initialValues?.partyName   // ← immediate fallback: no contacts-load race
+                                                                        || (loadingContacts ? "Loading..." : field.value))
                                                                     : `Select ${isReceipt ? 'Buyer' : 'Party'}`}
                                                                 <ArrowUpRight className={cn(
                                                                     "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-300",
