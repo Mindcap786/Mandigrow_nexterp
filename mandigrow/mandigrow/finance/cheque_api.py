@@ -173,6 +173,10 @@ def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
         if frappe.db.exists("Payment Entry", voucher_no):
             clearance_date = clearance_date or today()
             frappe.db.set_value("Payment Entry", voucher_no, "clearance_date", clearance_date, update_modified=True)
+            pe = frappe.get_doc("Payment Entry", voucher_no)
+            from mandigrow.mandigrow.logic.automation import _auto_settle_party
+            if pe.party_type in ("Customer", "Supplier") and pe.party:
+                _auto_settle_party(pe.party_type, pe.party, pe.company)
             frappe.db.commit()
             return {"status": "success", "message": f"Cheque {voucher_no} cleared"}
         frappe.throw(f"Voucher {voucher_no} not found")
@@ -188,16 +192,15 @@ def mark_cheque_cleared(voucher_no: str, clearance_date: str = None) -> dict:
         
     doc.db_set("clearance_date", clearance_date, update_modified=True)
     
-    # Update parent status
-    match = re.search(r'(?:\[|\b)((?:SALE|MSL|ARR|MAR)-[A-Z0-9]+-\d{4}-\d+|(?:SALE|MSL|ARR|MAR)-\d+)', doc.user_remark or "")
-    if match:
-        avno = match.group(1)
-        avtype = "Mandi Sale" if avno.startswith("SALE") or avno.startswith("MSL") else "Mandi Arrival"
-        if frappe.db.exists(avtype, avno):
-            parent_doc = frappe.get_doc(avtype, avno)
-            amt = flt(parent_doc.totalamount) if avtype == "Mandi Sale" else flt(parent_doc.net_payable_farmer)
-            summary = _get_ledger_summary(avtype, avno, amt, due_date=getattr(parent_doc, "duedate", None))
-            frappe.db.set_value(avtype, avno, "status", summary.get("status", "pending").title())
+    # Automatically reconcile any affected party ledgers so paid amounts update instantly
+    from mandigrow.mandigrow.logic.automation import _auto_settle_party
+    parties_processed = set()
+    for acc in doc.accounts:
+        if acc.party_type in ("Customer", "Supplier") and acc.party:
+            key = (acc.party_type, acc.party)
+            if key not in parties_processed:
+                _auto_settle_party(acc.party_type, acc.party, doc.company)
+                parties_processed.add(key)
             
     frappe.db.commit()
     return {"status": "success", "message": f"Cheque {voucher_no} cleared"}
@@ -224,16 +227,15 @@ def cancel_cheque_voucher(voucher_no: str) -> dict:
     doc.flags.ignore_permissions = True
     doc.cancel()
     
-    # Recalculate parent status
-    match = re.search(r'(?:\[|\b)((?:SALE|MSL|ARR|MAR)-[A-Z0-9]+-\d{4}-\d+|(?:SALE|MSL|ARR|MAR)-\d+)', doc.user_remark or "")
-    if match:
-        avno = match.group(1)
-        avtype = "Mandi Sale" if avno.startswith("SALE") or avno.startswith("MSL") else "Mandi Arrival"
-        if frappe.db.exists(avtype, avno):
-            parent_doc = frappe.get_doc(avtype, avno)
-            amt = flt(parent_doc.totalamount) if avtype == "Mandi Sale" else flt(parent_doc.net_payable_farmer)
-            summary = _get_ledger_summary(avtype, avno, amt, due_date=getattr(parent_doc, "duedate", None))
-            frappe.db.set_value(avtype, avno, "status", summary.get("status", "pending").title())
+    # Automatically reconcile any affected party ledgers so paid amounts update instantly
+    from mandigrow.mandigrow.logic.automation import _auto_settle_party
+    parties_processed = set()
+    for acc in doc.accounts:
+        if acc.party_type in ("Customer", "Supplier") and acc.party:
+            key = (acc.party_type, acc.party)
+            if key not in parties_processed:
+                _auto_settle_party(acc.party_type, acc.party, doc.company)
+                parties_processed.add(key)
 
     frappe.db.commit()
     return {"status": "cancelled", "voucher_no": voucher_no, "success": True}
