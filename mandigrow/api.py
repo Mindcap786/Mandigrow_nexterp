@@ -7958,7 +7958,7 @@ def _get_party_outstanding(contact_id, as_of_date=None):
                ON gl.voucher_no = je.name AND gl.voucher_type = 'Journal Entry'
         WHERE ({where})
           AND gl.is_cancelled = 0
-          AND gl.posting_date <= %s
+          AND COALESCE(je.clearance_date, gl.posting_date) <= %s
     """, tuple(params[:-1]), as_dict=True)
 
     signed = flt(res[0].signed if res else 0, 2)
@@ -8259,32 +8259,14 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
         if arrival_date is not None and not isinstance(arrival_date, str):
             arrival_date = arrival_date.isoformat()
 
-        # Apportion arrival-level paid/balance to this lot by gross share.
+        # Apportion arrival-level paid/balance/total to this lot by gross share.
         arrival_total_gross = arrival_gross_total.get(arrival_id, 0.0)
         arrival_summary = arrival_summary_cache.get(arrival_id, {"paid": 0, "balance": 0, "total": 0, "status": "pending"})
         share = (gross_value / arrival_total_gross) if arrival_total_gross > 0 else 0
         lot_paid    = flt(float(arrival_summary["paid"])    * share, 2)
         lot_balance = flt(float(arrival_summary["balance"]) * share, 2)
         lot_status  = arrival_summary["status"]  # arrival-level status applies to all its lots
-
-        # For DIRECT purchases: Mandi bears all transport/trip expenses.
-        # These are ADDED to the payable (Mandi pays farmer the goods value + reimburses itself).
-        # For COMMISSION purchases: expenses are deducted from what the farmer receives.
-        # This mirrors the invoice template logic.
-        arrival_type_str = (arrival.get("arrival_type") or "direct").lower()
-        trip_expenses = (
-            float(arrival.get("hire_charges") or 0)
-            + float(arrival.get("hamali_expenses") or 0)
-            + float(arrival.get("other_expenses") or 0)
-        )
-        if arrival_type_str == "direct":
-            lot_trip_share = trip_expenses  # single lot: full trip cost; multi-lot: prorated below
-            # Prorate by this lot's share of the arrival's gross value
-            if arrival_total_gross > 0:
-                lot_trip_share = flt(gross_value / arrival_total_gross * trip_expenses, 2)
-            lot_net_payable = flt(gross_value + lot_trip_share, 2)
-        else:
-            lot_net_payable = flt(gross_value, 2)
+        lot_net_payable = flt(float(arrival_summary["total"]) * share, 2)
 
         bills.append({
             "id": lot.get("name"),
@@ -8355,6 +8337,7 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
                 "totalPurchaseValue": 0.0,
                 "totalPaid": 0.0,
                 "totalNetPayable": 0.0,
+                "inwardCount": 0,
                 "balance": 0.0,
                 "latestDate": bill.get("created_at"),
             }
@@ -8369,6 +8352,11 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
         group["totalPurchaseValue"] += float(bill.get("net_payable") or 0)
         group["totalPaid"] += float(bill.get("paid_amount") or 0)
         group["balance"] += float(bill.get("balance_due") or 0)
+        
+        arrival_id = bill.get("arrival_id")
+        if arrival_id and arrival_id not in arrival_processed:
+            group["inwardCount"] += 1
+            arrival_processed.add(arrival_id)
         
         # Track latest date for sorting
         created_at = bill.get("created_at") or ""
