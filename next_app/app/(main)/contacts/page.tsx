@@ -34,7 +34,7 @@ export default function ContactsPage() {
     const [locationFilter, setLocationFilter] = useState("all")
     const [statusFilter, setStatusFilter] = useState("all")
     const [isUpdating, setIsUpdating] = useState<string | null>(null)
-    const [contactToDelete, setContactToDelete] = useState<{ id: string, name: string } | null>(null)
+    const [contactToDelete, setContactToDelete] = useState<{ id: string, name: string, error?: string } | null>(null)
     const [resetConfirm, setResetConfirm] = useState<{ id: string, name: string, type: string } | null>(null)
     const [resetSuccess, setResetSuccess] = useState<{ name: string, count: number } | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
@@ -127,9 +127,12 @@ export default function ContactsPage() {
             await callApi('mandigrow.api.delete_contact', { contact_id: id });
             toast.success(`Contact ${name} deleted successfully.`)
             fetchContacts()
+            setContactToDelete(null)
         } catch (error: any) {
             console.error("Error deleting contact:", error)
-            toast.error(error?.message || `Failed to delete ${name}.`)
+            const msg = error?.message || `Failed to delete ${name}.`
+            toast.error(msg)
+            setContactToDelete(prev => prev ? { ...prev, error: msg } : null)
         }
         setIsUpdating(null)
     }
@@ -412,7 +415,6 @@ export default function ContactsPage() {
                     onConfirm={() => {
                         if (contactToDelete) {
                             deleteContact(contactToDelete.id, contactToDelete.name)
-                            setContactToDelete(null)
                         }
                     }}
                     loading={isUpdating === contactToDelete?.id}
@@ -561,9 +563,18 @@ export default function ContactsPage() {
                         <DialogTitle className="text-xl font-black text-slate-900">Delete Contact</DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium pt-2">Are you sure you want to remove <span className="font-bold text-slate-900">"{contactToDelete?.name}"</span> from your network?<br /><br />Their historical invoices and financial records will be preserved for your accounting.</DialogDescription>
                     </DialogHeader>
+                    
+                    {contactToDelete?.error && (
+                        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-bold border border-red-200">
+                            {contactToDelete.error}
+                        </div>
+                    )}
+                    
                     <DialogFooter className="mt-6 flex gap-3 sm:justify-end">
                         <Button variant="outline" onClick={() => setContactToDelete(null)} className="font-bold">Cancel</Button>
-                        <Button className="bg-red-500 hover:bg-red-600 text-white font-bold" onClick={() => { if (contactToDelete) { deleteContact(contactToDelete.id, contactToDelete.name); setContactToDelete(null) } }}>Delete Contact</Button>
+                        <Button className="bg-red-500 hover:bg-red-600 text-white font-bold" onClick={() => { if (contactToDelete) { deleteContact(contactToDelete.id, contactToDelete.name) } }} disabled={isUpdating === contactToDelete?.id}>
+                            {isUpdating === contactToDelete?.id ? "Deleting..." : "Delete Contact"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
