@@ -47,7 +47,12 @@ function parseServerMessages(raw: any): string[] {
         return arr.map((s: any) => {
             try {
                 const inner = typeof s === 'string' ? JSON.parse(s) : s;
-                return inner?.message || String(s);
+                let msg = inner?.message || String(s);
+                // Clean up HTML if Frappe sends HTML errors
+                if (typeof msg === 'string') {
+                    msg = msg.replace(/<[^>]*>?/gm, '').trim();
+                }
+                return msg;
             } catch {
                 return String(s);
             }
@@ -55,6 +60,17 @@ function parseServerMessages(raw: any): string[] {
     } catch {
         return [];
     }
+}
+
+function extractErrorMessage(json: any, res: Response, msgs: string[]): string {
+    if (msgs.length > 0) return msgs.join(' | ');
+    if (json?.message) {
+        if (typeof json.message === 'string') return json.message;
+        if (json.message.error) return String(json.message.error);
+        try { return JSON.stringify(json.message); } catch { /* ignore */ }
+    }
+    if (json?.exception) return String(json.exception);
+    return `HTTP ${res.status} ${res.statusText}`;
 }
 
 function readCookie(name: string): string | undefined {
@@ -103,12 +119,21 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
 
     if (!res.ok) {
         const msgs = parseServerMessages(json);
-        const message = msgs[0] || json?.message || json?.exception || `HTTP ${res.status} ${res.statusText}`;
+        const message = extractErrorMessage(json, res, msgs);
         throw new FrappeError(message, {
             exc_type: json?.exc_type,
             server_messages: msgs,
             status: res.status,
             raw: json,
+        });
+    }
+
+    // Even if res.ok is true, some endpoints return { message: { success: false, error: "..." } }
+    if (json?.message && typeof json.message === 'object' && json.message.success === false) {
+        const errorMsg = json.message.error || "Server transaction failed";
+        throw new FrappeError(errorMsg, {
+            status: 200,
+            raw: json
         });
     }
 

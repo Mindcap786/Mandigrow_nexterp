@@ -108,7 +108,9 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
 
     // 2. Fetch from Frappe API endpoints
     try {
-      const res: any = await callApi('mandigrow.api.get_master_data');
+      const res: any = await callApi('mandigrow.api.get_master_data', {
+        contact_type: 'farmer,supplier'
+      });
       
       if (res) {
         const data = res;

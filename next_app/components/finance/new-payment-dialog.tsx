@@ -59,11 +59,22 @@ const formSchema = z.object({
     path: ["amount"],
 });
 
+export interface InitialPaymentValues {
+  party_id?: string;
+  partyName?: string;
+  amount?: number;
+  remarks?: string;
+  invoice_id?: string;
+  lot_id?: string;
+  arrival_id?: string;
+  currentBalance?: number;
+}
+
 export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initialValues, mode = 'payment', children, preLoadedContacts = [] }: {
     onSuccess?: () => void,
     defaultOpen?: boolean,
     onOpenChange?: (open: boolean) => void,
-    initialValues?: { party_id?: string, partyName?: string, amount?: number, remarks?: string, invoice_id?: string, lot_id?: string, arrival_id?: string },
+    initialValues?: InitialPaymentValues,
     mode?: 'payment' | 'receipt',
     children?: React.ReactNode,
     preLoadedContacts?: any[]

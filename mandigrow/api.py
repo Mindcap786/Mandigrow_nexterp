@@ -16469,13 +16469,14 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
                     
                     # 1. Restore inventory for the ACTUAL returned crates
                     if actual_return > 0:
+                        real_purchase_rate = float(frappe.db.get_value("Mandi Crate Type", row.crate_type, "purchase_rate") or 0)
                         frappe.get_doc({
                             "doctype": "Mandi Crate Inventory Entry",
                             "entry_date": frappe.utils.today(),
                             "crate_type": row.crate_type,
                             "quantity": actual_return,
-                            "purchase_rate": row.rate or 0,
-                            "total_value": actual_return * (row.rate or 0),
+                            "purchase_rate": real_purchase_rate,
+                            "total_value": actual_return * real_purchase_rate,
                             "organization_id": org_id,
                             "notes": f"Returned from {doc.party_name} (Issue: {doc.name})",
                         }).insert(ignore_permissions=True)
@@ -16483,14 +16484,15 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
                     # 2. For the LOST crates, we simulate receiving them back, then immediately writing them off
                     #    This ensures the issue is closed, inventory is NOT inflated, and P&L records the loss.
                     if actual_loss > 0:
+                        real_purchase_rate = float(frappe.db.get_value("Mandi Crate Type", row.crate_type, "purchase_rate") or 0)
                         # Dummy receive to offset the subsequent loss deduction
                         frappe.get_doc({
                             "doctype": "Mandi Crate Inventory Entry",
                             "entry_date": frappe.utils.today(),
                             "crate_type": row.crate_type,
                             "quantity": actual_loss,
-                            "purchase_rate": row.rate or 0,
-                            "total_value": actual_loss * (row.rate or 0),
+                            "purchase_rate": real_purchase_rate,
+                            "total_value": actual_loss * real_purchase_rate,
                             "organization_id": org_id,
                             "notes": f"System Return for Loss Offset (Issue: {doc.name})",
                         }).insert(ignore_permissions=True)
@@ -16501,8 +16503,8 @@ def receive_crates(issue_id: str, received_items: str) -> dict:
                             "entry_date": frappe.utils.today(),
                             "crate_type": row.crate_type,
                             "quantity": -actual_loss,
-                            "purchase_rate": row.rate or 0,
-                            "total_value": -actual_loss * (row.rate or 0),
+                            "purchase_rate": real_purchase_rate,
+                            "total_value": -actual_loss * real_purchase_rate,
                             "organization_id": org_id,
                             "notes": f"Loss: {loss_notes} (Issue: {doc.name})"
                         }).insert(ignore_permissions=True)
@@ -16801,7 +16803,7 @@ def report_crate_loss(crate_type: str, qty: float, notes: str = None):
         frappe.throw("Quantity must be greater than zero.")
         
     stock_map = _get_crate_stock_balance(org_id, crate_type)
-    current_available = stock_map.get(crate_type, {}).get("available", 0)
+    current_available = stock_map.get("available", 0)
     
     if float(qty) > current_available:
         frappe.throw(f"Cannot report loss of {qty}. Only {current_available} crates available.")

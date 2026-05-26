@@ -88,7 +88,7 @@ export const NEW_POSTS: BlogPost[] = [
         date: "2026-05-05",
         readTime: "6 min read",
         category: "Compliance",
-        seoKeywords: ["J-Form", "Punjab Mandi", "Haryana Mandi", "MSP", "Kacha Arhtiya"]
+        seoKeywords: ["J-Form", "I-Form", "Punjab Mandi", "Haryana APMC", "Farmer settlement", "Mandi compliance"]
     },
     {
         slug: 'best-fruit-mandi-software-india-2026',
