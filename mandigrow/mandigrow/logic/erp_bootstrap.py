@@ -355,14 +355,29 @@ def ensure_supplier_for_contact(contact_id, company=None):
 
     # Prefix the supplier name with organization_id to ensure absolute isolation
     if org_id:
-        supplier_name = f"{supplier_name} ({org_id})"
+        base_name = f"{supplier_name} ({org_id})"
     else:
         abbr = frappe.db.get_value("Company", company, "abbr") or "MG"
-        supplier_name = f"{supplier_name} ({abbr})"
+        base_name = f"{supplier_name} ({abbr})"
+
+    # Prevent merging of ledgers for contacts with the exact same name
+    supplier_name = f"{base_name[:100]} - {contact_id}"
 
     supplier = frappe.db.get_value("Supplier", {"supplier_name": supplier_name}, "name")
     if not supplier and frappe.db.exists("Supplier", supplier_name):
         supplier = supplier_name
+        
+    # Backward compatibility: check old naming scheme if new unique one doesn't exist
+    if not supplier:
+        old_supplier = frappe.db.get_value("Supplier", {"supplier_name": base_name}, "name")
+        if not old_supplier and frappe.db.exists("Supplier", base_name):
+            old_supplier = base_name
+        
+        # Only adopt the old supplier if NO OTHER contact is already linked to it
+        if old_supplier:
+            other_owner = frappe.db.get_value("Mandi Contact", {"supplier": old_supplier, "name": ["!=", contact_id]}, "name")
+            if not other_owner:
+                supplier = old_supplier
 
     if not supplier:
         supplier_data = {
@@ -406,14 +421,29 @@ def ensure_customer_for_contact(contact_id, company=None):
 
     # Prefix the customer name with organization_id to ensure absolute isolation
     if org_id:
-        customer_name = f"{customer_name} ({org_id})"
+        base_name = f"{customer_name} ({org_id})"
     else:
         abbr = frappe.db.get_value("Company", company, "abbr") or "MG"
-        customer_name = f"{customer_name} ({abbr})"
+        base_name = f"{customer_name} ({abbr})"
+
+    # Prevent merging of ledgers for contacts with the exact same name
+    customer_name = f"{base_name[:100]} - {contact_id}"
 
     customer = frappe.db.get_value("Customer", {"customer_name": customer_name}, "name")
     if not customer and frappe.db.exists("Customer", customer_name):
         customer = customer_name
+        
+    # Backward compatibility: check old naming scheme if new unique one doesn't exist
+    if not customer:
+        old_customer = frappe.db.get_value("Customer", {"customer_name": base_name}, "name")
+        if not old_customer and frappe.db.exists("Customer", base_name):
+            old_customer = base_name
+        
+        # Only adopt the old customer if NO OTHER contact is already linked to it
+        if old_customer:
+            other_owner = frappe.db.get_value("Mandi Contact", {"customer": old_customer, "name": ["!=", contact_id]}, "name")
+            if not other_owner:
+                customer = old_customer
 
     if not customer:
         customer_data = {
