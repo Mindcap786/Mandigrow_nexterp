@@ -87,6 +87,8 @@ export const NEW_POSTS: BlogPost[] = [
         author: "MandiGrow Legal Team",
         date: "2026-05-05",
         readTime: "6 min read",
+        category: "Compliance",
+        seoKeywords: ["J-Form", "Punjab Mandi", "Haryana Mandi", "MSP", "Kacha Arhtiya"]
     },
     {
         slug: 'best-fruit-mandi-software-india-2026',

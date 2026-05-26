@@ -180,7 +180,7 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
             const lotAdjustedValue = Math.max(0, baseValue - otherCut);
             grouped[key].totalAdjustedValue += lotAdjustedValue;
             
-            const itemTotal = calculateLotGrossValue(lot);
+            const itemTotal = Number(lot.net_payable || 0);
 
             const isLotSold = (lot.current_qty !== undefined && lot.current_qty <= 0);
             if (!isLotSold) grouped[key].isFullySold = false;
@@ -196,11 +196,10 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
         });
 
         const finalGroups = Object.values(grouped).map((group: any) => {
-            const groupGross = calculateArrivalGrossValue(group.items, group);
             return {
                 ...group,
-                totalAmount: groupGross,
-                totalGrossAmount: groupGross
+                totalAmount: group.totalAmount,
+                totalGrossAmount: group.totalAmount
             };
         }).filter(group => {
             if (!inwardSearch) return true;

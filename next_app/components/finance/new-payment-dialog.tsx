@@ -583,7 +583,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                                     <div className={`text-[9px] font-bold px-2 py-1 rounded-lg flex justify-between items-center ${
                                                         // Payment mode: mandi is PAYING out → any outstanding = To Pay (red)
                                                         // Receipt mode: mandi is COLLECTING → outstanding from buyer = To Collect (green)
-                                                        (!isReceipt && (currentBalance < 0 || (currentBalance > 0 && !!initialValues?.currentBalance)))
+                                                        (!isReceipt && currentBalance < 0)
                                                             ? "bg-rose-50 text-rose-600 border border-rose-100"
                                                         : (!isReceipt && currentBalance > 0)
                                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
