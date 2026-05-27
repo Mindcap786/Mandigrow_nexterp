@@ -90,31 +90,34 @@ export default function LandingPage() {
             </div>
 
             {/* Hero Section */}
-            <main className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-12 text-center lg:text-left">
+            <main className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
                 {/* Background Glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-                <div className="relative z-10 flex-1 max-w-3xl">
+                {/* Left Content */}
+                <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
                         <span className="flex h-2 w-2 relative">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
                         </span>
-                        {t('auth.enterprise_live')}
+                        Enterprise-Grade Mandi Software
                     </div>
 
-                    <HeroTitle 
-                        text={t('auth.hero_title')} 
-                        className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter" 
-                    />
+                    <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tighter">
+                        <span className="text-gray-900 block">India's Best Mandi ERP Software</span>
+                        <span className="text-emerald-700 block mt-2">for Commission Agents & Traders.</span>
+                    </h1>
 
-                    <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto lg:mx-0 mb-10 font-medium leading-relaxed">
-                        {t('auth.hero_description')}
+                    <p className="text-lg md:text-xl text-gray-700 max-w-2xl mb-10 font-medium leading-relaxed">
+                        Auto commission, GST billing, mandi khata, and APMC compliance — 
+                        works on Android at the mandi gate and desktop in your office. 
+                        Available in Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 relative z-10 w-full sm:w-auto">
-                        <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
-                            {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5" />
+                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-8">
+                        <Link href="/login?mode=signup" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
+                            Start Free Trial <ArrowRight className="w-5 h-5" />
                         </Link>
                         {playstoreLink && (
                             <a href={playstoreLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-2">
@@ -122,22 +125,60 @@ export default function LandingPage() {
                             </a>
                         )}
                         <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
-                            {t('auth.have_account')}
+                            Already have an account? Sign in.
                         </Link>
+                    </div>
+
+                    {/* Trust Bar */}
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 text-sm font-bold text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-yellow-500 text-lg leading-none">★</span> 
+                            Trusted by 200+ mandis
+                        </div>
+                        <div className="hidden sm:block w-1 h-1 bg-emerald-300 rounded-full"></div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-500 text-lg leading-none">✓</span> 
+                            No credit card required
+                        </div>
+                        <div className="hidden md:block w-1 h-1 bg-emerald-300 rounded-full"></div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-700 text-lg leading-none">📱</span> 
+                            Works on Android & Web
+                        </div>
                     </div>
                 </div>
 
-                {/* Right Column - Slider */}
-                <div className="relative z-10 w-full lg:w-1/2 aspect-square lg:aspect-[4/3] rounded-[32px] overflow-hidden shadow-[0_20px_50px_-12px_rgba(4,120,87,0.15)]">
-                    <HeroSlider />
-                </div>
+                {/* Right Content - Screenshot */}
+                <div className="flex-1 w-full max-w-[520px] relative z-10 mt-12 lg:mt-0 perspective-1000">
+                    <div className="hero-screenshot w-full aspect-[4/3] bg-white rounded-2xl border border-emerald-200 shadow-[0_30px_60px_-15px_rgba(4,120,87,0.3)] flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-white overflow-hidden transition-all duration-700 hover:transform-none"
+                         style={{ transform: 'perspective(1000px) rotateY(-12deg) rotateX(4deg) translateZ(0)', transformStyle: 'preserve-3d' }}>
+                        
+                        {/* Mockup Header */}
+                        <div className="w-full h-12 bg-gray-50 border-b border-emerald-100 flex items-center px-4 gap-2">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                            </div>
+                            <div className="mx-auto w-1/2 h-5 bg-white border border-gray-200 rounded text-[10px] text-gray-400 flex items-center justify-center font-mono">
+                                mandigrow.com/dashboard
+                            </div>
+                        </div>
 
-                {/* Floating Fruits */}
-                <div className="absolute -left-12 -bottom-20 w-56 h-56 z-30 pointer-events-none hidden xl:block">
-                    <img src="/assets/fruits/pomegranate.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
-                </div>
-                <div className="absolute -right-8 -bottom-16 w-48 h-48 z-30 pointer-events-none hidden xl:block">
-                    <img src="/assets/fruits/mango.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
+                        {/* Mockup Body Image */}
+                        <div className="flex-1 w-full relative overflow-hidden bg-slate-900 border-t border-emerald-100">
+                            {/* The user will place the dashboard screenshot here */}
+                            <img 
+                                src="/dashboard-screenshot.png" 
+                                alt="MandiGrow Command Center Dashboard" 
+                                className="absolute inset-0 w-full h-full object-cover object-top origin-top"
+                            />
+                            {/* Subtle inner shadow for depth inside the browser window */}
+                            <div className="absolute inset-0 shadow-[inset_0_4px_20px_rgba(0,0,0,0.05)] pointer-events-none" />
+                        </div>
+                    </div>
+                    {/* Decorative Blob Behind Image */}
+                    <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-400/20 to-transparent rounded-3xl blur-2xl -z-10 transform translate-x-4 translate-y-4"></div>
                 </div>
             </main>
 
