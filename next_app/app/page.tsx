@@ -12,6 +12,8 @@ import { callApi } from '@/lib/frappeClient'
 import { useEffect } from 'react'
 import { LandingFooter } from '@/components/layout/LandingFooter'
 
+import { HeroSlider } from '@/components/landing/HeroSlider'
+
 export default function LandingPage() {
     const { t } = useLanguage();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -55,7 +57,6 @@ export default function LandingPage() {
 
             {/* Global Header */}
             <div className="fixed top-0 w-full z-50 flex flex-col">
-                {/* Dynamic Promotional Banner */}
                 {/* Dynamic Promotional Banner (Static for now since Client component) */}
                 <div className="bg-emerald-900 text-emerald-50 text-[10px] sm:text-xs font-bold text-center py-2 px-4 flex items-center justify-center gap-2 tracking-wide w-full border-b border-emerald-800/50 shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
@@ -89,39 +90,54 @@ export default function LandingPage() {
             </div>
 
             {/* Hero Section */}
-            <main className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+            <main className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-12 text-center lg:text-left">
                 {/* Background Glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
-                    <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                    </span>
-                    {t('auth.enterprise_live')}
+                <div className="relative z-10 flex-1 max-w-3xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-white/50 text-[10px] sm:text-xs font-bold text-emerald-800 mb-8 backdrop-blur-sm shadow-sm">
+                        <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                        </span>
+                        {t('auth.enterprise_live')}
+                    </div>
+
+                    <HeroTitle 
+                        text={t('auth.hero_title')} 
+                        className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black mb-6 leading-[1.05] tracking-tighter" 
+                    />
+
+                    <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto lg:mx-0 mb-10 font-medium leading-relaxed">
+                        {t('auth.hero_description')}
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 relative z-10 w-full sm:w-auto">
+                        <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
+                            {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5" />
+                        </Link>
+                        {playstoreLink && (
+                            <a href={playstoreLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-2">
+                               📱 Android App
+                            </a>
+                        )}
+                        <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
+                            {t('auth.have_account')}
+                        </Link>
+                    </div>
                 </div>
 
-                <HeroTitle 
-                    text={t('auth.hero_title')} 
-                    className="text-6xl md:text-8xl mb-8 leading-[1] max-w-5xl" 
-                />
+                {/* Right Column - Slider */}
+                <div className="relative z-10 w-full lg:w-1/2 aspect-square lg:aspect-[4/3] rounded-[32px] overflow-hidden shadow-[0_20px_50px_-12px_rgba(4,120,87,0.15)]">
+                    <HeroSlider />
+                </div>
 
-                <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mb-12 font-medium leading-relaxed">
-                    {t('auth.hero_description')}
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 w-full sm:w-auto">
-                    <Link href="/subscribe" className="w-full sm:w-auto bg-emerald-700 text-white px-8 py-4 rounded-full font-black text-lg hover:bg-emerald-800 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(4,120,87,0.4)]">
-                        {t('nav.subscription_billing')} <ArrowRight className="w-5 h-5" />
-                    </Link>
-                    {playstoreLink && (
-                        <a href={playstoreLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-2">
-                           📱 Android App
-                        </a>
-                    )}
-                    <Link href="/login" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg text-emerald-800 border border-emerald-300 hover:border-emerald-500 hover:bg-white/50 transition-all flex items-center justify-center">
-                        {t('auth.have_account')}
-                    </Link>
+                {/* Floating Fruits */}
+                <div className="absolute -left-12 -bottom-20 w-56 h-56 z-30 pointer-events-none hidden xl:block">
+                    <img src="/assets/fruits/pomegranate.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
+                </div>
+                <div className="absolute -right-8 -bottom-16 w-48 h-48 z-30 pointer-events-none hidden xl:block">
+                    <img src="/assets/fruits/mango.png" alt="Fruits" className="w-full h-full object-contain filter drop-shadow-xl" />
                 </div>
             </main>
 
@@ -255,6 +271,69 @@ export default function LandingPage() {
                                     ))}
                                 </div>
                              </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SEO Local Mandi & Commodity Links Hub */}
+            <section className="py-16 px-6 bg-[#0a2313] text-emerald-50 border-t border-[#123920]">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-10">
+                        <h2 className="text-2xl font-black mb-2">India's Top Mandi Software by Location & Commodity</h2>
+                        <p className="text-emerald-400 text-sm font-medium">Find specialized billing, ERP, and khata solutions tailored for your local APMC market.</p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-6 gap-x-4 text-xs font-medium text-emerald-200">
+                        {/* Column 1: Top Commodities */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">By Commodity</h3>
+                            <Link href="/fruit-mandi-software" className="hover:text-white transition">Fruit Mandi Software</Link>
+                            <Link href="/sabji-mandi-software" className="hover:text-white transition">Sabji Mandi Software</Link>
+                            <Link href="/anaj-mandi-erp-software" className="hover:text-white transition">Anaj Mandi ERP Software</Link>
+                            <Link href="/sabji-crate-management-app" className="hover:text-white transition">Sabji Crate Management App</Link>
+                            <Link href="/apple-mandi-software" className="hover:text-white transition">Apple Trader Software</Link>
+                            <Link href="/mango-mandi-software" className="hover:text-white transition">Mango Commission Agent Software</Link>
+                            <Link href="/onion-potato-mandi-software" className="hover:text-white transition">Onion & Potato Billing Software</Link>
+                            <Link href="/tomato-mandi-software" className="hover:text-white transition">Tomato APMC Software</Link>
+                        </div>
+                        {/* Column 2: Local Mandis */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Top Mandis</h3>
+                            <Link href="/azadpur-mandi-software" className="hover:text-white transition">Azadpur Mandi Software (Delhi)</Link>
+                            <Link href="/vashi-mandi-software" className="hover:text-white transition">Vashi APMC Software (Mumbai)</Link>
+                            <Link href="/bowenpally-mandi-software" className="hover:text-white transition">Bowenpally Mandi Software (HYD)</Link>
+                            <Link href="/ghazipur-mandi-software" className="hover:text-white transition">Ghazipur Sabzi Mandi Software</Link>
+                            <Link href="/okhla-mandi-software" className="hover:text-white transition">Okhla Mandi ERP</Link>
+                            <Link href="/yeshwanthpur-mandi-software" className="hover:text-white transition">Yeshwanthpur APMC Software</Link>
+                        </div>
+                        {/* Column 3: By State */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">By State</h3>
+                            <Link href="/mandi-software-maharashtra" className="hover:text-white transition">APMC Software Maharashtra</Link>
+                            <Link href="/mandi-software-telangana" className="hover:text-white transition">Mandi Software Telangana</Link>
+                            <Link href="/mandi-software-andhra-pradesh" className="hover:text-white transition">Mandi Software Andhra Pradesh</Link>
+                            <Link href="/mandi-software-karnataka" className="hover:text-white transition">Mandi ERP Karnataka</Link>
+                            <Link href="/mandi-software-punjab" className="hover:text-white transition">Arhtiya Software Punjab</Link>
+                            <Link href="/mandi-software-uttar-pradesh" className="hover:text-white transition">Sabji Mandi Software UP</Link>
+                        </div>
+                        {/* Column 4: Core Solutions */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Core Solutions</h3>
+                            <Link href="/mandi-khata-software" className="hover:text-white transition">Digital Mandi Khata App</Link>
+                            <Link href="/mandi-billing-software" className="hover:text-white transition">Mandi Billing Software</Link>
+                            <Link href="/mandi-crate-management-software" className="hover:text-white transition">Mandi Crate Tracking Software</Link>
+                            <Link href="/commission-agent-software" className="hover:text-white transition">Commission Agent Software</Link>
+                            <Link href="/farmer-payment-management" className="hover:text-white transition">Farmer Payment Management</Link>
+                            <Link href="/gst-mandi-compliance" className="hover:text-white transition">GST Mandi Compliance</Link>
+                            <Link href="/apmc-gate-pass-software" className="hover:text-white transition">APMC Gate Pass Software</Link>
+                        </div>
+                        {/* Column 5: Comparisons */}
+                        <div className="flex flex-col gap-2">
+                            <h3 className="font-black text-white text-sm mb-2 uppercase tracking-wider text-emerald-400">Comparisons</h3>
+                            <Link href="/tally-vs-mandigrow" className="hover:text-white transition">Tally vs MandiGrow</Link>
+                            <Link href="/vyapar-vs-mandigrow" className="hover:text-white transition">Vyapar vs MandiGrow</Link>
+                            <Link href="/marg-erp-vs-mandigrow" className="hover:text-white transition">Marg ERP vs MandiGrow</Link>
+                            <Link href="/zoho-vs-mandigrow" className="hover:text-white transition">Zoho Books vs MandiGrow</Link>
                         </div>
                     </div>
                 </div>
