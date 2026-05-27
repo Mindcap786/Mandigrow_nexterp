@@ -5914,7 +5914,7 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
 
     sale_items = frappe.get_all("Mandi Sale Item",
         filters={"parent": ["in", sale_ids]},
-        fields=["parent", "lot_id", "qty", "rate", "amount", "item_id"],
+        fields=["parent", "lot_id", "qty", "returned_qty", "rate", "amount", "item_id"],
         ignore_permissions=True
     )
 
@@ -6003,7 +6003,10 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
     for si in sale_items:
         if si.item_id and si.item_id.startswith("CRATE-"):
             continue
-        sale_goods_totals[si.parent] = sale_goods_totals.get(si.parent, 0.0) + float(si.amount or 0)
+        si_qty = float(si.qty or 0)
+        si_ret = float(si.get("returned_qty") or 0)
+        si_net = max(0.0, si_qty - si_ret)
+        sale_goods_totals[si.parent] = sale_goods_totals.get(si.parent, 0.0) + (si_net * float(si.rate or 0))
 
     # ── Main aggregation loop ─────────────────────────────────────────────────
     stats_map        = {}
@@ -6017,7 +6020,13 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
             continue
 
         qty          = float(si.qty or 0)
-        base_revenue = float(si.amount or 0)
+        returned_qty = float(si.get("returned_qty") or 0)
+        net_qty      = max(0.0, qty - returned_qty)
+        
+        if net_qty <= 0:
+            continue
+            
+        base_revenue = net_qty * float(si.rate or 0)
         
         # ── Discount Proration ────────────────────────────────────────────────
         sale         = sale_map.get(si.parent)
@@ -6028,10 +6037,10 @@ def get_trading_pl(date_from: str = None, date_to: str = None) -> dict:
         # ──────────────────────────────────────────────────────────────────────
 
         unit_cost    = lot_unit_cost.get(lot.name, 0.0)
-        cogs         = unit_cost * qty          # Cost of Goods Sold (unit-cost based)
+        cogs         = unit_cost * net_qty          # Cost of Goods Sold (unit-cost based)
         arrival_type = lot_arv_type.get(lot.name, "direct")
         initial_qty  = float(lot.initial_qty or 1)
-        pro_rata     = qty / initial_qty if initial_qty > 0 else 0.0
+        pro_rata     = net_qty / initial_qty if initial_qty > 0 else 0.0
 
         # Commission income: only for non-direct arrivals, pro-rated by sold qty
         if arrival_type.lower() != "direct":
