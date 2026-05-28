@@ -189,6 +189,7 @@ export function MandiCommissionForm() {
                 itemName: item?.name || "",
                 internalCode: item?.internal_id || "",
                 unit: item?.default_unit || globalUnit,
+                gstRate: item?.gst_rate || 0,
             }) as Partial<MandiSessionFarmerRow>);
         },
         [commodities, globalUnit]
@@ -256,10 +257,12 @@ export function MandiCommissionForm() {
         const derivedSaleRate = totalNetQty > 0 ? parseFloat((totalNetAmount / totalNetQty).toFixed(2)) : 0;
         
         let buyerPayable = 0;
+        let taxTotals: any = null;
+        
         if (buyerId) {
             const buyerStateCode = buyers.find(b => b.id === buyerId)?.state_code;
-            const taxTotals = calculateSaleTotals({
-                items: [{ amount: totalNetAmount }], // Pass the taxable total
+            taxTotals = calculateSaleTotals({
+                items: validFarmers.map(f => ({ amount: f.netAmount, gst_rate: f.gstRate })),
                 taxSettings: settings || {},
                 orgStateCode: settings?.state_code,
                 buyerStateCode: buyerStateCode,
@@ -288,6 +291,10 @@ export function MandiCommissionForm() {
             totalNetQty,
             saleRate: derivedSaleRate,
             buyerPayable,
+            gstTotal: taxTotals ? taxTotals.gstTotal : 0,
+            cgstAmount: taxTotals ? taxTotals.cgstAmount : 0,
+            sgstAmount: taxTotals ? taxTotals.sgstAmount : 0,
+            igstAmount: taxTotals ? taxTotals.igstAmount : 0,
             crateItems: (cratesEnabled && crateCart.length > 0) ? crateCart : [],
         };
 

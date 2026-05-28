@@ -38,6 +38,7 @@ export interface MandiSessionFarmerRow {
     netPayable: number;
     netQty: number;
     internalCode?: string;
+    gstRate?: number;
     _lastEdited?: "lessPercent" | "lessUnits";
 }
 
@@ -55,6 +56,10 @@ export interface MandiSessionInput {
     totalNetQty: number;
     saleRate: number;
     buyerPayable: number;
+    gstTotal: number;
+    cgstAmount: number;
+    sgstAmount: number;
+    igstAmount: number;
     crateItems?: any[];
 }
 
@@ -133,6 +138,10 @@ export function useMandiSession() {
                     buyer_loading_charges: input.buyerLoadingCharges,
                     buyer_packing_charges: input.buyerPackingCharges,
                     buyer_payable: input.buyerPayable,
+                    gst_total: input.gstTotal,
+                    cgst_amount: input.cgstAmount,
+                    sgst_amount: input.sgstAmount,
+                    igst_amount: input.igstAmount,
                     crate_items: input.crateItems || [],
                     farmers: input.farmers.map((f, idx) => ({
                         sort_order: idx,
@@ -154,6 +163,7 @@ export function useMandiSession() {
                         commission_amount: f.commissionAmount,
                         net_payable: f.netPayable,
                         net_qty: f.netQty,
+                        gst_rate: f.gstRate || 0,
                     })),
                 });
 

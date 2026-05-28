@@ -61,11 +61,7 @@ export function calculateSaleItemTaxBreakdown({
         };
     }
 
-    const effectiveGstRate = taxSettings.gst_enabled
-        ? (isIgst
-            ? toNumber(taxSettings.igst_percent)
-            : toNumber(taxSettings.cgst_percent) + toNumber(taxSettings.sgst_percent))
-        : toNumber(gstRate);
+    const effectiveGstRate = taxSettings.gst_enabled ? toNumber(gstRate) : 0;
 
     const gstRaw = taxableAmount * (effectiveGstRate / 100);
     const cgstRaw = isIgst ? 0 : gstRaw / 2;

@@ -527,26 +527,22 @@ export default function POSPage() {
     // Calculate Final Taxable Amount after Discount
     const taxableSubTotal = Math.max(0, subTotal - discountAmount)
 
-    // Per-item GST (only if global GST NOT enabled)
-    const perItemGstTotal = taxSettings.gst_enabled ? 0 : cart.reduce((s, c) => {
-        // If per-item, we should ideally distribute discount, but for POS simplicity
-        // we'll apply it proportional to subtotal if it's a global discount.
-        // However, standard Mandi practice is to apply global discount to taxable base.
+    // Per-item GST (calculated if GST is enabled)
+    const rawGstTotal = !taxSettings.gst_enabled ? 0 : cart.reduce((s, c) => {
         const itemSubtotal = c.price * c.qty;
         const itemRatio = subTotal > 0 ? (itemSubtotal / subTotal) : 0;
         const itemDiscount = discountAmount * itemRatio;
         const itemTaxable = Math.max(0, itemSubtotal - itemDiscount);
-        return s + (itemTaxable * (c.item.gst_rate / 100));
-    }, 0)
+        const rate = Number(c.item.gst_rate) || 0;
+        return s + (itemTaxable * (rate / 100));
+    }, 0);
     
-    // Global GST from settings
-    const globalGstAmount = taxSettings.gst_enabled
-        ? (taxSettings.gst_type === 'inter'
-            ? Math.round((taxableSubTotal * taxSettings.igst_percent) / 100)
-            : Math.round((taxableSubTotal * (taxSettings.cgst_percent + taxSettings.sgst_percent)) / 100))
-        : 0
+    const gstTotal = Math.round(rawGstTotal);
     
-    const gstTotal = taxSettings.gst_enabled ? globalGstAmount : perItemGstTotal
+    // Split GST based on Intra/Inter state
+    const cgstAmount = taxSettings.gst_enabled && taxSettings.gst_type === 'intra' ? Math.round(gstTotal / 2) : 0;
+    const sgstAmount = taxSettings.gst_enabled && taxSettings.gst_type === 'intra' ? Math.round(gstTotal / 2) : 0;
+    const igstAmount = taxSettings.gst_enabled && taxSettings.gst_type === 'inter' ? gstTotal : 0;
     
     // Market charges from settings (auto-applied on taxable base)
     const marketFeeAmount = taxSettings.market_fee_percent;
@@ -621,9 +617,9 @@ export default function POSPage() {
                 nirashrit: nirashritAmount,
                 misc_fee: miscFeeAmount,
                 gst_total: gstTotal,
-                cgst_amount: taxSettings.gst_type === 'intra' && taxSettings.gst_enabled ? Math.round((taxableSubTotal * taxSettings.cgst_percent) / 100) : 0,
-                sgst_amount: taxSettings.gst_type === 'intra' && taxSettings.gst_enabled ? Math.round((taxableSubTotal * taxSettings.sgst_percent) / 100) : 0,
-                igst_amount: taxSettings.gst_type === 'inter' && taxSettings.gst_enabled ? globalGstAmount : 0,
+                cgst_amount: cgstAmount,
+                sgst_amount: sgstAmount,
+                igst_amount: igstAmount,
                 additional_charges: additionalCharges,
                 bank_account_id: selectedAccountId || null,
                 cheque_no: paymentMode === 'Cheque' ? chequeDetails.no : null,

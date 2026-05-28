@@ -8923,19 +8923,10 @@ def commit_mandi_session(**kwargs) -> dict:
             nirashrit = round(taxable_val * (float(org_settings.get("nirashrit_percent") or 0) / 100), 2)
             misc_fee = round(taxable_val * (float(org_settings.get("misc_fee_percent") or 0) / 100), 2)
             
-            gst_total = 0
-            cgst_amount = 0
-            sgst_amount = 0
-            igst_amount = 0
-            if int(org_settings.get("gst_enabled") or 0):
-                gst_type = org_settings.get("gst_type") or "intra"
-                if gst_type == "inter":
-                    igst_amount = round(taxable_val * (float(org_settings.get("igst_percent") or 0) / 100), 2)
-                    gst_total = igst_amount
-                else:
-                    cgst_amount = round(taxable_val * (float(org_settings.get("cgst_percent") or 0) / 100), 2)
-                    sgst_amount = round(taxable_val * (float(org_settings.get("sgst_percent") or 0) / 100), 2)
-                    gst_total = cgst_amount + sgst_amount
+            gst_total = float(kwargs.get("gst_total") or 0)
+            cgst_amount = float(kwargs.get("cgst_amount") or 0)
+            sgst_amount = float(kwargs.get("sgst_amount") or 0)
+            igst_amount = float(kwargs.get("igst_amount") or 0)
                     
             sale.marketfee = market_fee
             sale.nirashrit = nirashrit
