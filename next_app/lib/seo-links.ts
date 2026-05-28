@@ -4,6 +4,7 @@ export const FOOTER_COLUMNS = [
         links: [
             { label: 'Features',           href: '/features' },
             { label: 'Pricing',            href: '/pricing' },
+            { label: 'HSN & GST Finder',   href: '/hsn-gst-rates-mandi-commodities' },
             { label: 'Blog',               href: '/blog' },
             { label: 'Mandi Billing',      href: '/mandi-billing' },
             { label: 'Mandi ERP',          href: '/mandi-erp-software' },
