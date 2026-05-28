@@ -4412,7 +4412,9 @@ def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
     return {"exists": False}
 
 @frappe.whitelist(allow_guest=False)
-def create_contact(full_name: str, contact_type: str, phone: str = None, city: str = None, address: str = None, internal_id: str = None, opening_balance: float = 0, balance_type: str = 'receivable', org_id: str = None) -> dict:
+def create_contact(full_name: str, contact_type: str, phone: str = None, city: str = None, address: str = None, internal_id: str = None, opening_balance: float = 0, balance_type: str = 'receivable', org_id: str = None,
+    gstin: str = None, pan_number: str = None, state: str = None, pincode: str = None,
+    billing_address_line1: str = None, billing_address_line2: str = None) -> dict:
     """Creates a new Mandi Contact and optional opening balance."""
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
@@ -4426,7 +4428,14 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
         "address": address,
         "internal_id": internal_id,
         "organization_id": org_id,
-        "status": "active"
+        "status": "active",
+        # GST & Compliance fields
+        "gstin": (gstin or "").strip().upper() or None,
+        "pan_number": (pan_number or "").strip().upper() or None,
+        "state": state,
+        "pincode": pincode,
+        "billing_address_line1": billing_address_line1,
+        "billing_address_line2": billing_address_line2,
     })
     doc.insert(ignore_permissions=True)
     
@@ -9585,6 +9594,21 @@ def create_commodity(**kwargs) -> dict:
                 })
             except Exception:
                 pass
+
+        # Ensure gst_rate custom field exists on Item
+        if not frappe.db.exists("Custom Field", "Item-gst_rate"):
+            try:
+                from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+                create_custom_field("Item", {
+                    "fieldname": "gst_rate",
+                    "label": "GST Rate (%)",
+                    "fieldtype": "Percent",
+                    "default": "0",
+                    "insert_after": "critical_age_days",
+                    "description": "Per-item GST rate. Overrides org-wide setting in all Sales."
+                })
+            except Exception:
+                pass
                 
         custom_attrs = kwargs.get("custom_attributes") or {}
         if isinstance(custom_attrs, str):
@@ -9672,6 +9696,10 @@ def create_commodity(**kwargs) -> dict:
         # If internal_id is provided, we still store it, but item_code is the primary identity
         internal_id = kwargs.get("internal_id") or kwargs.get("sku_code") or item_code
 
+        # Parse HSN and GST from kwargs
+        hsn_code = (kwargs.get("hsn_code") or "").strip()
+        gst_rate_val = flt(kwargs.get("gst_rate") or 0)
+        
         doc_data = {
             "doctype": "Item",
             "item_code": item_code,
@@ -9685,7 +9713,10 @@ def create_commodity(**kwargs) -> dict:
             "critical_age_days": kwargs.get("critical_age_days") or 14,
             "standard_rate": kwargs.get("sale_price") or 0,
             "is_stock_item": 1,
-            "disabled": 0
+            "disabled": 0,
+            # GST Compliance fields
+            "gst_rate": gst_rate_val,
+            "customs_tariff_number": hsn_code or None,
         }
         
         # Only set local_name if it was explicitly provided (to avoid clearing it accidentally)
@@ -9923,12 +9954,32 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 _update_lot_stock_fields(lot.name, initial_qty, current_qty, status)
             
             rate = float(item.get("rate", 0))
+            item_id = item.get("item_id") or _get_default_item()
+            
+            # ── Per-item GST & HSN ────────────────────────────────────────────
+            # Priority 1: value explicitly sent from frontend (e.g. user overrode it)
+            item_gst_rate = flt(item.get("gst_rate"))
+            item_hsn = item.get("hsn_code") or ""
+            
+            # Priority 2: read from Item master if not sent
+            if not item_gst_rate and item_id:
+                item_gst_rate = flt(frappe.db.get_value("Item", item_id, "gst_rate") or 0)
+            if not item_hsn and item_id:
+                item_hsn = frappe.db.get_value("Item", item_id, "customs_tariff_number") or ""
+            
+            base_amount = float(item.get("amount") or (qty * rate))
+            line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
+            # ─────────────────────────────────────────────────────────────────
+            
             doc.append("items", {
-                "item_id": item.get("item_id") or _get_default_item(),
+                "item_id": item_id,
                 "lot_id": lot_id or "",
                 "qty": qty,
                 "rate": rate,
-                "amount": float(item.get("amount") or (qty * rate))
+                "amount": base_amount,
+                "gst_rate": item_gst_rate,
+                "gst_amount": line_gst_amount,
+                "hsn_code": item_hsn,
             })
             
         # ── CRATE ITEMS: sold alongside commodities ───────────────────────

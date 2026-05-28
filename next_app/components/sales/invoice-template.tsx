@@ -156,8 +156,15 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Billed To</p>
                     <h3 className="text-2xl font-black tracking-tight">{sale.contact?.name || 'Walk-in Buyer'}</h3>
-                    <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">{sale.contact?.city || 'Local'}</p>
-                    {sale.contact?.gstin && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">GSTIN: {sale.contact.gstin}</p>}
+                    {sale.contact?.billing_address_line1 && <p className="text-gray-700 font-bold text-xs">{sale.contact.billing_address_line1}</p>}
+                    {sale.contact?.billing_address_line2 && <p className="text-gray-700 font-bold text-xs">{sale.contact.billing_address_line2}</p>}
+                    <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">
+                        {sale.contact?.city || 'Local'}
+                        {sale.contact?.state && `, ${sale.contact.state}`}
+                        {sale.contact?.pincode && ` - ${sale.contact.pincode}`}
+                    </p>
+                    {sale.contact?.gstin && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">GSTIN: <span className="text-gray-800">{sale.contact.gstin}</span></p>}
+                    {sale.contact?.pan_number && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">PAN: {sale.contact.pan_number}</p>}
                 </div>
 
                     {/* Right: Invoice Details */}
@@ -217,6 +224,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     <thead>
                         <tr className="border-b-2 border-black">
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">Item / Lot</th>
+                            <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">HSN</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-center">Qty</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Rate</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Amount</th>
@@ -235,6 +243,9 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                             Lot: {item.lot?.lot_code || item.lot_no}
                                         </p>
                                     )}
+                                </td>
+                                <td className="py-0.5 text-left font-mono text-xs font-bold text-gray-600">
+                                    {item.hsn_code || '-'}
                                 </td>
                                 <td className="py-0.5 text-center font-bold text-sm tracking-tighter relative group/adj">
                                     {item.qty || 0} <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{item.unit || 'Unit'}</span>

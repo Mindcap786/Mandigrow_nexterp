@@ -36,6 +36,13 @@ const contactSchema = z.object({
     phone: z.string().optional().or(z.literal("")),
     city: z.string().optional(),
     address: z.string().optional(),
+    // GST & Compliance
+    gstin: z.string().max(15).optional().or(z.literal("")),
+    pan_number: z.string().max(10).optional().or(z.literal("")),
+    state: z.string().optional(),
+    pincode: z.string().max(6).optional().or(z.literal("")),
+    billing_address_line1: z.string().optional(),
+    billing_address_line2: z.string().optional(),
     openingBalance: z.coerce.number().optional().default(0),
     balanceType: z.enum(["receivable", "payable"]).default("receivable")
 })
@@ -70,6 +77,12 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
             phone: initialData?.phone || "",
             city: initialData?.city || "",
             address: initialData?.address || "",
+            gstin: initialData?.gstin || "",
+            pan_number: initialData?.pan_number || "",
+            state: initialData?.state || "",
+            pincode: initialData?.pincode || "",
+            billing_address_line1: initialData?.billing_address_line1 || "",
+            billing_address_line2: initialData?.billing_address_line2 || "",
             openingBalance: 0,
             balanceType: "receivable"
         }
@@ -85,6 +98,12 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                 phone: initialData?.phone || "",
                 city: initialData?.city || "",
                 address: initialData?.address || "",
+                gstin: initialData?.gstin || "",
+                pan_number: initialData?.pan_number || "",
+                state: initialData?.state || "",
+                pincode: initialData?.pincode || "",
+                billing_address_line1: initialData?.billing_address_line1 || "",
+                billing_address_line2: initialData?.billing_address_line2 || "",
                 openingBalance: 0,
                 balanceType: "receivable"
             })
@@ -150,6 +169,13 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                 city: data.city,
                 address: data.address,
                 internal_id: data.internal_id?.trim() || null,
+                // GST & Billing Address
+                gstin: (data.gstin || "").trim().toUpperCase() || null,
+                pan_number: (data.pan_number || "").trim().toUpperCase() || null,
+                state: data.state || null,
+                pincode: data.pincode || null,
+                billing_address_line1: data.billing_address_line1 || null,
+                billing_address_line2: data.billing_address_line2 || null,
             }
 
             let res: any;
@@ -286,7 +312,84 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                             )}
                         </div>
 
-                        {/* Opening Balance Section (Only for NEW contacts) */}
+                        {/* GST & Billing Address — Collapsible */}
+                        <div className="space-y-4 pt-4 border-t border-slate-100">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">GST & Billing Details</p>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase">Optional</span>
+                            </div>
+
+                            {/* GSTIN + PAN */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">GSTIN</Label>
+                                    <Input
+                                        id="gstin"
+                                        placeholder="22AAAAA0000A1Z5"
+                                        maxLength={15}
+                                        className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-mono font-bold transition-all placeholder:text-slate-400 text-xs uppercase"
+                                        {...form.register("gstin")}
+                                        onChange={(e) => form.setValue("gstin", e.target.value.toUpperCase())}
+                                    />
+                                    <p className="text-[9px] text-slate-400 font-medium">Required for B2B invoice classification</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">PAN Number</Label>
+                                    <Input
+                                        id="pan_number"
+                                        placeholder="ABCDE1234F"
+                                        maxLength={10}
+                                        className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-mono font-bold transition-all placeholder:text-slate-400 text-xs uppercase"
+                                        {...form.register("pan_number")}
+                                        onChange={(e) => form.setValue("pan_number", e.target.value.toUpperCase())}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* State + PIN */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">State</Label>
+                                    <Input
+                                        id="state"
+                                        placeholder="e.g. Maharashtra"
+                                        className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-bold transition-all placeholder:text-slate-400"
+                                        {...form.register("state")}
+                                    />
+                                    <p className="text-[9px] text-slate-400 font-medium">For IGST vs CGST/SGST determination</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">PIN Code</Label>
+                                    <Input
+                                        id="pincode"
+                                        placeholder="400001"
+                                        maxLength={6}
+                                        className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-mono font-bold transition-all placeholder:text-slate-400"
+                                        {...form.register("pincode")}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Billing Address Lines */}
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">Billing Address Line 1</Label>
+                                <Input
+                                    id="billing_address_line1"
+                                    placeholder="Street / House No / Building Name"
+                                    className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-bold transition-all placeholder:text-slate-400"
+                                    {...form.register("billing_address_line1")}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">Billing Address Line 2</Label>
+                                <Input
+                                    id="billing_address_line2"
+                                    placeholder="Area / Landmark / Taluka"
+                                    className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-bold transition-all placeholder:text-slate-400"
+                                    {...form.register("billing_address_line2")}
+                                />
+                            </div>
+                        </div>
                         {!initialData?.id && (
                             <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-600">Opening Balance (Optional)</Label>

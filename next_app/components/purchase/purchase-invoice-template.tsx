@@ -234,7 +234,15 @@ export default function PurchaseBillInvoice({
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Purchased From</p>
                     <h3 className="text-2xl font-black tracking-tight">{farmerName}</h3>
-                    <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">{farmerCity || 'Local'}</p>
+                    {(lot.farmer?.billing_address_line1 || lot.contact?.billing_address_line1) && <p className="text-gray-700 font-bold text-xs">{lot.farmer?.billing_address_line1 || lot.contact?.billing_address_line1}</p>}
+                    {(lot.farmer?.billing_address_line2 || lot.contact?.billing_address_line2) && <p className="text-gray-700 font-bold text-xs">{lot.farmer?.billing_address_line2 || lot.contact?.billing_address_line2}</p>}
+                    <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">
+                        {farmerCity || 'Local'}
+                        {(lot.farmer?.state || lot.contact?.state) && `, ${lot.farmer?.state || lot.contact?.state}`}
+                        {(lot.farmer?.pincode || lot.contact?.pincode) && ` - ${lot.farmer?.pincode || lot.contact?.pincode}`}
+                    </p>
+                    {(lot.farmer?.gstin || lot.contact?.gstin) && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">GSTIN: <span className="text-gray-800">{lot.farmer?.gstin || lot.contact?.gstin}</span></p>}
+                    {(lot.farmer?.pan_number || lot.contact?.pan_number) && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">PAN: {lot.farmer?.pan_number || lot.contact?.pan_number}</p>}
                     <p className="text-[9px] font-black uppercase text-purple-600 tracking-widest mt-1 bg-purple-50 inline-block px-2 py-0.5 rounded">
                         {arrivalTypeLabel}
                     </p>
@@ -277,6 +285,7 @@ export default function PurchaseBillInvoice({
                     <thead>
                         <tr className="border-b-2 border-black">
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">Item Details</th>
+                            <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">HSN</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-center">Quantity</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Rate</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Amount</th>
@@ -310,6 +319,9 @@ export default function PurchaseBillInvoice({
                                                 Lot: {l.lot_code}
                                             </p>
                                         )}
+                                    </td>
+                                    <td className="py-2 text-left font-mono text-xs font-bold text-gray-600">
+                                        {l.item?.hsn_code || lot.item?.hsn_code || l.item?.customs_tariff_number || lot.item?.customs_tariff_number || '-'}
                                     </td>
                                     <td className="py-2 text-center font-bold text-sm tracking-tighter">
                                         {Math.round(lGrossQty * 100) / 100} <span className="text-[11px] text-gray-500 font-bold ml-0.5 uppercase tracking-tight">{l.unit || unit}</span>

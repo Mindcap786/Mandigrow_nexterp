@@ -140,6 +140,8 @@ export default function ItemsPage() {
                                 <TableHead className="text-slate-500 font-black uppercase tracking-wider text-[10px]">Grade</TableHead>
                                 <TableHead className="text-slate-500 font-black uppercase tracking-wider text-[10px]">Local Name</TableHead>
                                 <TableHead className="text-slate-500 font-black uppercase tracking-wider text-[10px]">Unit</TableHead>
+                                <TableHead className="text-slate-500 font-black uppercase tracking-wider text-[10px] w-20">HSN</TableHead>
+                                <TableHead className="text-slate-500 font-black uppercase tracking-wider text-[10px] w-16">GST %</TableHead>
                                 <TableHead className="text-slate-500 font-black uppercase tracking-wider text-[10px] w-28 text-right">Internal ID</TableHead>
                                 <TableHead className="w-[100px]"></TableHead>
                             </TableRow>
@@ -194,6 +196,16 @@ export default function ItemsPage() {
                                         <TableCell>
                                             <span className="px-2 py-1 rounded-md bg-white border border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-600">
                                                 {item.default_unit}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-mono text-[10px] font-black text-slate-500">
+                                                {item.hsn_code || item.customs_tariff_number || '-'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-mono text-[10px] font-black text-slate-500">
+                                                {item.gst_rate ? `${item.gst_rate}%` : '-'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right font-mono text-[10px] font-black text-slate-400 group-hover:text-blue-600 transition-colors uppercase tracking-widest">

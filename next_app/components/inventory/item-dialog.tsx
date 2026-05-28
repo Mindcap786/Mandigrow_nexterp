@@ -67,13 +67,55 @@ const itemSchema = z.object({
     average_cost: z.number().min(0).optional(),
     min_stock_level: z.number().min(0).optional(),
     barcode: z.string().optional(),
-    gst_rate: z.number().min(0).optional(),
+    gst_rate: z.number().min(0).max(28).optional(),
+    hsn_code: z.string().max(8).optional(),
     tracking_type: z.string().optional(),
     custom_attributes: z.record(z.string(), z.string()).optional(),
     internal_id: z.string().optional().or(z.literal("")),
     variety: z.string().optional(),
     grade: z.string().optional(),
 })
+
+// GST & HSN auto-fill lookup — India Mandi commodities
+const HSN_LOOKUP: Record<string, { hsn: string; gst: number }> = {
+    // Fresh Fruits (Chapter 08) — 0% GST (Exempt)
+    "apple": { hsn: "0808", gst: 0 }, "mango": { hsn: "0809", gst: 0 },
+    "banana": { hsn: "0803", gst: 0 }, "orange": { hsn: "0805", gst: 0 },
+    "grapes": { hsn: "0806", gst: 0 }, "pomegranate": { hsn: "0810", gst: 0 },
+    "papaya": { hsn: "0807", gst: 0 }, "watermelon": { hsn: "0807", gst: 0 },
+    "guava": { hsn: "0804", gst: 0 }, "pineapple": { hsn: "0804", gst: 0 },
+    "pear": { hsn: "0808", gst: 0 }, "plum": { hsn: "0809", gst: 0 },
+    "lemon": { hsn: "0805", gst: 0 }, "lime": { hsn: "0805", gst: 0 },
+    "coconut": { hsn: "0801", gst: 0 }, "jackfruit": { hsn: "0810", gst: 0 },
+    "litchi": { hsn: "0810", gst: 0 }, "chiku": { hsn: "0810", gst: 0 },
+    // Fresh Vegetables / Sabji (Chapter 07) — 0% GST
+    "onion": { hsn: "0703", gst: 0 }, "potato": { hsn: "0701", gst: 0 },
+    "tomato": { hsn: "0702", gst: 0 }, "garlic": { hsn: "0703", gst: 0 },
+    "cauliflower": { hsn: "0704", gst: 0 }, "cabbage": { hsn: "0704", gst: 0 },
+    "brinjal": { hsn: "0709", gst: 0 }, "ladyfinger": { hsn: "0709", gst: 0 },
+    "okra": { hsn: "0709", gst: 0 }, "capsicum": { hsn: "0709", gst: 0 },
+    "ginger": { hsn: "0910", gst: 0 }, "spinach": { hsn: "0709", gst: 0 },
+    "carrot": { hsn: "0706", gst: 0 }, "peas": { hsn: "0708", gst: 0 },
+    "beans": { hsn: "0708", gst: 0 }, "cucumber": { hsn: "0707", gst: 0 },
+    "bitter gourd": { hsn: "0709", gst: 0 }, "bottle gourd": { hsn: "0709", gst: 0 },
+    "ridge gourd": { hsn: "0709", gst: 0 }, "drumstick": { hsn: "0709", gst: 0 },
+    "radish": { hsn: "0706", gst: 0 }, "beetroot": { hsn: "0706", gst: 0 },
+    "sweet potato": { hsn: "0714", gst: 0 },
+    // Anaj / Cereals (Chapter 10) — 0% loose, 5% branded
+    "wheat": { hsn: "1001", gst: 0 }, "rice": { hsn: "1006", gst: 0 },
+    "maize": { hsn: "1005", gst: 0 }, "bajra": { hsn: "1008", gst: 0 },
+    "jowar": { hsn: "1007", gst: 0 }, "barley": { hsn: "1003", gst: 0 },
+    "corn": { hsn: "1005", gst: 0 }, "sorghum": { hsn: "1007", gst: 0 },
+    // Pulses (Chapter 07) — 0% GST
+    "dal": { hsn: "0713", gst: 0 }, "moong": { hsn: "0713", gst: 0 },
+    "chana": { hsn: "0713", gst: 0 }, "urad": { hsn: "0713", gst: 0 },
+    "arhar": { hsn: "0713", gst: 0 }, "toor": { hsn: "0713", gst: 0 },
+    // Dry Fruits — 5% GST
+    "cashew": { hsn: "0801", gst: 5 }, "raisin": { hsn: "0806", gst: 5 },
+    "almond": { hsn: "0802", gst: 5 }, "walnut": { hsn: "0802", gst: 5 },
+    "pistachio": { hsn: "0802", gst: 5 }, "dates": { hsn: "0804", gst: 5 },
+    "fig": { hsn: "0804", gst: 5 },
+}
 
 type ItemFormValues = z.infer<typeof itemSchema>
 
@@ -189,6 +231,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             min_stock_level: initialItem?.min_stock_level || 0,
             barcode: initialItem?.barcode || "",
             gst_rate: initialItem?.gst_rate || 0,
+            hsn_code: initialItem?.hsn_code || initialItem?.customs_tariff_number || "",
             tracking_type: initialItem?.tracking_type || "none",
             custom_attributes: initialItem?.custom_attributes || {},
             internal_id: initialItem?.internal_id || "",
@@ -260,6 +303,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 min_stock_level: initialItem?.min_stock_level || 0,
                 barcode: initialItem?.barcode || "",
                 gst_rate: initialItem?.gst_rate || 0,
+                hsn_code: initialItem?.hsn_code || initialItem?.customs_tariff_number || "",
                 tracking_type: initialItem?.tracking_type || "none",
                 ...sanitized,
                 variety,
@@ -307,6 +351,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             const res = await callApi('mandigrow.api.create_commodity', {
                 ...data,
                 id: initialItem?.id,
+                hsn_code: data.hsn_code || "",
+                gst_rate: data.gst_rate || 0,
                 shelf_life_days: data.shelf_life_days,
                 internal_id: data.internal_id?.trim() || null,
                 custom_attributes: finalAttrs
@@ -409,6 +455,11 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                         if (item.local_name) {
                                                                             form.setValue("local_name", item.local_name)
                                                                         }
+                                                                        const lookupKey = item.name.toLowerCase();
+                                                                        if (HSN_LOOKUP[lookupKey]) {
+                                                                            form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
+                                                                            form.setValue("gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                        }
                                                                         setOpenCombobox(false)
                                                                     }}
                                                                     onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -416,6 +467,11 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                         form.setValue("name", item.name)
                                                                         if (item.local_name) {
                                                                             form.setValue("local_name", item.local_name)
+                                                                        }
+                                                                        const lookupKey = item.name.toLowerCase();
+                                                                        if (HSN_LOOKUP[lookupKey]) {
+                                                                            form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
+                                                                            form.setValue("gst_rate", HSN_LOOKUP[lookupKey].gst);
                                                                         }
                                                                         setOpenCombobox(false)
                                                                     }}
@@ -520,6 +576,34 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                             >
                                                 <QrCode className="w-4 h-4" />
                                             </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* HSN and GST Rate */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">HSN Code</Label>
+                                        <Input
+                                            placeholder="e.g. 0804"
+                                            maxLength={8}
+                                            className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all font-mono"
+                                            {...form.register("hsn_code")}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">GST Rate (%)</Label>
+                                        <div className="relative">
+                                            <Input
+                                                type="number"
+                                                placeholder="0"
+                                                min={0}
+                                                max={28}
+                                                step="0.01"
+                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all pl-10 font-mono"
+                                                {...form.register("gst_rate", { valueAsNumber: true })}
+                                            />
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
                                         </div>
                                     </div>
                                 </div>

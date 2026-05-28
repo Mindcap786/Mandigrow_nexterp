@@ -16,6 +16,14 @@
   "credit_days",
   "crate_deposit_mode",
   "organization_id",
+  "sb_gst_compliance",
+  "gstin",
+  "pan_number",
+  "state",
+  "pincode",
+  "col_break_gst1",
+  "billing_address_line1",
+  "billing_address_line2",
   "sb_erpnext",
   "supplier",
   "customer"
@@ -80,6 +88,54 @@
    "label": "Organization ID"
   },
   {
+   "fieldname": "sb_gst_compliance",
+   "fieldtype": "Section Break",
+   "label": "GST & Compliance Details",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "gstin",
+   "fieldtype": "Data",
+   "label": "GSTIN",
+   "length": 15,
+   "description": "15-digit GST Identification Number. Required for B2B invoices."
+  },
+  {
+   "fieldname": "pan_number",
+   "fieldtype": "Data",
+   "label": "PAN Number",
+   "length": 10,
+   "description": "Permanent Account Number (10 characters)."
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "State",
+   "description": "State for Place of Supply determination (IGST vs CGST/SGST)."
+  },
+  {
+   "fieldname": "pincode",
+   "fieldtype": "Data",
+   "label": "PIN Code",
+   "length": 6
+  },
+  {
+   "fieldname": "col_break_gst1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "billing_address_line1",
+   "fieldtype": "Data",
+   "label": "Billing Address Line 1",
+   "description": "Street / House No / Building Name"
+  },
+  {
+   "fieldname": "billing_address_line2",
+   "fieldtype": "Data",
+   "label": "Billing Address Line 2",
+   "description": "Area / Landmark / Taluka"
+  },
+  {
    "fieldname": "sb_erpnext",
    "fieldtype": "Section Break",
    "label": "ERPNext Integration"
@@ -102,7 +158,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-24 14:41:08.343918",
+ "modified": "2026-05-28 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Contact",
