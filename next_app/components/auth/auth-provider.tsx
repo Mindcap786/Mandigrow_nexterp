@@ -286,6 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname?.includes('-vs-mandigrow') ||
                          pathname?.includes('-hindi') ||
                          pathname?.includes('gst-mandi-compliance') ||
+                         pathname?.includes('hsn-gst-rates') ||
                          pathname?.startsWith('/public') ||
                          pathname?.startsWith('/auth/callback') ||
                          pathname === '/signup' ||
