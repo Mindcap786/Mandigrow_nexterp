@@ -9718,6 +9718,14 @@ def create_commodity(**kwargs) -> dict:
         hsn_code = (kwargs.get("hsn_code") or "").strip()
         gst_rate_val = flt(kwargs.get("gst_rate") or 0)
         
+        # Ensure Customs Tariff Number (HSN) exists in the database
+        if hsn_code and not frappe.db.exists("Customs Tariff Number", hsn_code):
+            frappe.get_doc({
+                "doctype": "Customs Tariff Number",
+                "tariff_number": hsn_code,
+                "description": "Auto-created from MandiGrow"
+            }).insert(ignore_permissions=True)
+        
         doc_data = {
             "doctype": "Item",
             "item_code": item_code,
