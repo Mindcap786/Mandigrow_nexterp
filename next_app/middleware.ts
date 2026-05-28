@@ -51,6 +51,7 @@ export async function middleware(request: NextRequest) {
         path.includes('-management') ||
         path.includes('-vs-mandigrow') ||
         path.includes('gst-mandi-compliance') ||
+        path.includes('hsn-gst-rates') ||
         path.startsWith('/locales') ||
         path.startsWith('/public') ||
         path.startsWith('/icons') ||
