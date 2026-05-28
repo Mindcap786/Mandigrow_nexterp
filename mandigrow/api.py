@@ -2159,7 +2159,8 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> dict:
     where_sql = " AND ".join(where_parts) if where_parts else "1=1"
 
     contacts_raw = frappe.db.sql(f"""
-        SELECT name AS id, full_name AS display_name, contact_type, phone, city
+        SELECT name AS id, full_name AS display_name, contact_type, phone, city, 
+               gstin, pan_number, state, pincode, billing_address_line1, billing_address_line2
         FROM `tabMandi Contact`
         WHERE {where_sql}
         ORDER BY full_name ASC
@@ -2172,6 +2173,12 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> dict:
         "contact_type": c.get("contact_type") or "",
         "phone": c.get("phone") or "",
         "city": c.get("city") or "",
+        "gstin": c.get("gstin") or "",
+        "pan_number": c.get("pan_number") or "",
+        "state": c.get("state") or "",
+        "pincode": c.get("pincode") or "",
+        "billing_address_line1": c.get("billing_address_line1") or "",
+        "billing_address_line2": c.get("billing_address_line2") or "",
     } for c in contacts_raw]
 
     # Return BOTH `records` and `contacts` keys + `total_count` so every
@@ -2200,6 +2207,10 @@ def get_commodities() -> list:
         "standard_rate as sale_price",
         "shelf_life_in_days as shelf_life_days",
     ]
+    if frappe.db.has_column("Item", "gst_rate"):
+        item_fields.append("gst_rate")
+    if frappe.db.has_column("Item", "customs_tariff_number"):
+        item_fields.append("customs_tariff_number as hsn_code")
     if frappe.db.has_column("Item", "internal_id"):
         item_fields.append("internal_id")
     if frappe.db.has_column("Item", "custom_attributes"):
@@ -6544,7 +6555,8 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
     offset = (page - 1) * page_size
 
     contacts_raw = frappe.db.sql(f"""
-        SELECT name AS id, full_name AS display_name, contact_type, phone, city, address, internal_id
+        SELECT name AS id, full_name AS display_name, contact_type, phone, city, address, internal_id,
+               gstin, pan_number, state, pincode, billing_address_line1, billing_address_line2
         FROM `tabMandi Contact`
         WHERE {where_sql}
         ORDER BY full_name ASC
@@ -6559,6 +6571,12 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
         "city": c.get("city") or "",
         "address": c.get("address") or "",
         "internal_id": c.get("internal_id") or "",
+        "gstin": c.get("gstin") or "",
+        "pan_number": c.get("pan_number") or "",
+        "state": c.get("state") or "",
+        "pincode": c.get("pincode") or "",
+        "billing_address_line1": c.get("billing_address_line1") or "",
+        "billing_address_line2": c.get("billing_address_line2") or "",
     } for c in contacts_raw]
 
     if contacts and _is_crate_tracking_enabled(org_id):
