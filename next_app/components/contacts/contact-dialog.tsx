@@ -218,7 +218,7 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[450px] bg-white border-slate-300 text-black rounded-[32px] overflow-hidden shadow-2xl p-0">
+            <DialogContent className="sm:max-w-[450px] bg-white border-slate-300 text-black rounded-[32px] overflow-hidden shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
                 <div className="bg-slate-50 p-8 pb-4 border-b border-slate-100">
                     <DialogHeader>
                         <DialogTitle className="text-3xl font-[1000] italic tracking-tighter text-black uppercase">
