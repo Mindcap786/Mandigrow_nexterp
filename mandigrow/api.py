@@ -9824,7 +9824,23 @@ def create_commodity(**kwargs) -> dict:
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "create_commodity Failed")
-        return {"success": False, "error": str(e)}
+        
+        err_msg = str(e)
+        if hasattr(frappe, "message_log") and frappe.message_log:
+            import json
+            msgs = []
+            for m in frappe.message_log:
+                try:
+                    parsed = json.loads(m) if isinstance(m, str) else m
+                    msg = parsed.get("message", str(parsed)) if isinstance(parsed, dict) else str(parsed)
+                    msgs.append(msg)
+                except:
+                    msgs.append(str(m))
+            extracted = " | ".join(filter(None, msgs))
+            if extracted:
+                err_msg = extracted
+                
+        return {"success": False, "error": err_msg or "Unknown server error"}
     finally:
         frappe.flags.ignore_permissions = old_ignore
 
