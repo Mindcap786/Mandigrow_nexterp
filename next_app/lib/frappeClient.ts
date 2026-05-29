@@ -137,6 +137,34 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
         });
     }
 
+    // Even on 200 OK, Frappe can include _server_messages with raise_exception: 1.
+    // This happens when our API returns { success: true } but a side-effect (e.g. stock entry)
+    // threw a frappe.throw() that got packed into _server_messages instead of the exception chain.
+    const serverMsgsOnOk = parseServerMessages(json);
+    if (serverMsgsOnOk.length > 0) {
+        // Check if any message has raise_exception flag
+        const hasFatalMsg = (() => {
+            try {
+                const src = json?._server_messages;
+                const outer = typeof src === 'string' ? JSON.parse(src) : src;
+                const arr = Array.isArray(outer) ? outer : [outer];
+                return arr.some((s: any) => {
+                    try {
+                        const inner = typeof s === 'string' ? JSON.parse(s) : s;
+                        return inner?.raise_exception === 1 || inner?.raise_exception === true;
+                    } catch { return false; }
+                });
+            } catch { return false; }
+        })();
+        if (hasFatalMsg) {
+            throw new FrappeError(serverMsgsOnOk.join(' | '), {
+                status: 200,
+                server_messages: serverMsgsOnOk,
+                raw: json,
+            });
+        }
+    }
+
     return json as T;
 }
 

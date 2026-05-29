@@ -9826,21 +9826,29 @@ def create_commodity(**kwargs) -> dict:
                 supplier_id = supp_doc.name
             
             # Create Mandi Arrival internally
-            confirm_arrival_transaction(
-                org_id=org_id,
-                party_id=supplier_id,
-                arrival_type="direct",
-                is_opening_balance=True,
-                storage_location=storage_location,
-                items=[{
-                    "item_id": doc.name,
-                    "qty": opening_stock,
-                    "supplier_rate": purchase_price,
-                    "unit": unit,
-                    "lot_code": f"OB-{item_code}",
-                    "purchase_gst_rate": 0,
-                }]
-            )
+            # Wrap in try/except: if stock creation fails, delete the item we just created
+            # so we don't leave a partial item with no opening stock.
+            try:
+                confirm_arrival_transaction(
+                    org_id=org_id,
+                    party_id=supplier_id,
+                    arrival_type="direct",
+                    is_opening_balance=True,
+                    storage_location=storage_location,
+                    items=[{
+                        "item_id": doc.name,
+                        "qty": opening_stock,
+                        "supplier_rate": purchase_price if purchase_price > 0 else 1,  # Frappe stock needs non-zero valuation; use 1 as placeholder
+                        "unit": unit,
+                        "lot_code": f"OB-{item_code}",
+                        "purchase_gst_rate": 0,
+                    }]
+                )
+            except Exception as stock_err:
+                # Roll back everything so user sees a proper error
+                frappe.db.rollback()
+                frappe.log_error(frappe.get_traceback(), "create_commodity: Opening Stock creation failed")
+                return {"success": False, "error": f"Item was created but Opening Stock failed: {str(stock_err)}. Please try again or set opening stock to 0 and add it later."}
             
         frappe.db.commit()
         return {"success": True, "id": doc.name, "name": doc.item_name}
@@ -10368,7 +10376,8 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         # Direct Purchase means Mandi OWNS the goods — the liability is fixed
         # at arrival time, so a rate MUST be provided.
         arrival_type_input = (payload.get("arrival_type") or "direct").strip().lower()
-        if arrival_type_input == "direct":
+        is_opening_balance = bool(payload.get("is_opening_balance"))
+        if arrival_type_input == "direct" and not is_opening_balance:
             for idx_check, item_check in enumerate(items):
                 rate_val = float(item_check.get("supplier_rate") or item_check.get("rate") or 0)
                 if rate_val <= 0:
