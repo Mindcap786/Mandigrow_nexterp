@@ -9802,7 +9802,8 @@ def create_commodity(**kwargs) -> dict:
             # Check if opening balance lot already exists to prevent duplicates on edit
             existing_ob_lot = frappe.db.get_value("Mandi Lot", {"item_id": doc.name, "lot_code": f"OB-{item_code}"}, "name")
             if not existing_ob_lot:
-                # Enforce at least one storage location exists for the opening stock to sit in
+                # BUG FIX: ALL variables (storage_location, purchase_price, supplier_id)
+                # must be inside this block — they're only needed for new OB creation.
                 storage_location = frappe.db.get_value(
                     "Mandi Storage Location",
                     {"organization_id": org_id, "is_active": 1},
@@ -9811,44 +9812,45 @@ def create_commodity(**kwargs) -> dict:
                 if not storage_location:
                     frappe.throw("Please add at least one Storage Location from Field Governance to store Opening Stock.")
 
-            purchase_price = flt(kwargs.get("purchase_price") or 0)
-            
-            # Find or create internal supplier for Opening Balance
-            supplier_id = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "supplier", "full_name": "Opening Balance"})
-            if not supplier_id:
-                supp_doc = frappe.get_doc({
-                    "doctype": "Mandi Contact",
-                    "full_name": "Opening Balance",
-                    "contact_type": "supplier",
-                    "organization_id": org_id,
-                    "phone": "0000000000"
-                }).insert(ignore_permissions=True)
-                supplier_id = supp_doc.name
-            
-            # Create Mandi Arrival internally
-            # Wrap in try/except: if stock creation fails, delete the item we just created
-            # so we don't leave a partial item with no opening stock.
-            try:
-                confirm_arrival_transaction(
-                    org_id=org_id,
-                    party_id=supplier_id,
-                    arrival_type="direct",
-                    is_opening_balance=True,
-                    storage_location=storage_location,
-                    items=[{
-                        "item_id": doc.name,
-                        "qty": opening_stock,
-                        "supplier_rate": purchase_price if purchase_price > 0 else 1,  # Frappe stock needs non-zero valuation; use 1 as placeholder
-                        "unit": unit,
-                        "lot_code": f"OB-{item_code}",
-                        "purchase_gst_rate": 0,
-                    }]
-                )
-            except Exception as stock_err:
-                # Roll back everything so user sees a proper error
-                frappe.db.rollback()
-                frappe.log_error(frappe.get_traceback(), "create_commodity: Opening Stock creation failed")
-                return {"success": False, "error": f"Item was created but Opening Stock failed: {str(stock_err)}. Please try again or set opening stock to 0 and add it later."}
+                purchase_price = flt(kwargs.get("purchase_price") or 0)
+
+                # Find or create internal supplier for Opening Balance
+                supplier_id = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "supplier", "full_name": "Opening Balance"})
+                if not supplier_id:
+                    supp_doc = frappe.get_doc({
+                        "doctype": "Mandi Contact",
+                        "full_name": "Opening Balance",
+                        "contact_type": "supplier",
+                        "organization_id": org_id,
+                        "phone": "0000000000"
+                    }).insert(ignore_permissions=True)
+                    supplier_id = supp_doc.name
+
+                # Create Mandi Arrival internally.
+                # is_opening_balance=True bypasses the mandatory rate check.
+                # We use valuation_rate=1 as placeholder if price is 0 (Frappe
+                # stock ledger requires non-zero valuation; this is internal only).
+                try:
+                    confirm_arrival_transaction(
+                        org_id=org_id,
+                        party_id=supplier_id,
+                        arrival_type="direct",
+                        is_opening_balance=True,
+                        storage_location=storage_location,
+                        items=[{
+                            "item_id": doc.name,
+                            "qty": opening_stock,
+                            "supplier_rate": purchase_price if purchase_price > 0 else 1,
+                            "unit": unit,
+                            "lot_code": f"OB-{item_code}",
+                            "purchase_gst_rate": 0,
+                        }]
+                    )
+                except Exception as stock_err:
+                    # Rollback everything — item NOT saved, clean state for user to retry.
+                    frappe.db.rollback()
+                    frappe.log_error(frappe.get_traceback(), "create_commodity: Opening Stock creation failed")
+                    return {"success": False, "error": f"Opening Stock could not be created: {str(stock_err)}. Item was not saved. Please retry or set opening stock to 0 and update later."}
             
         frappe.db.commit()
         return {"success": True, "id": doc.name, "name": doc.item_name}
