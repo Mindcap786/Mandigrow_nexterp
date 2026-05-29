@@ -795,11 +795,11 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                         type="number"
                                         placeholder="0.00"
                                         className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                        disabled={!!initialItem}
+                                        disabled={false}
                                         {...form.register("opening_stock", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                                     />
                                     <p className="text-[9px] text-gray-500 font-medium pl-1">
-                                        {initialItem ? "Opening stock cannot be modified after creation. Use stock entry instead." : "Initial stock available in your Mandi."}
+                                        {initialItem ? "If opening stock hasn't been logged yet, you can add it here." : "Initial stock available in your Mandi."}
                                     </p>
                                 </div>
                             </TabsContent>
