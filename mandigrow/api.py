@@ -9731,9 +9731,6 @@ def create_commodity(**kwargs) -> dict:
             "sale_gst_type": kwargs.get("sale_gst_type") or "Exclusive",
             "purchase_gst_rate": flt(kwargs.get("purchase_gst_rate")),
             "purchase_gst_type": kwargs.get("purchase_gst_type") or "Exclusive",
-            "opening_stock": flt(kwargs.get("opening_stock")),
-            "standard_rate": flt(kwargs.get("purchase_price") or 0),
-            "valuation_rate": flt(kwargs.get("purchase_price") or 0),
             "customs_tariff_number": hsn_code or None,
         }
         
