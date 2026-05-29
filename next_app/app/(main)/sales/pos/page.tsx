@@ -936,11 +936,7 @@ export default function POSPage() {
                                         {item.name}
                                         {language !== 'en' && item.local_name && <span className="block text-[10px] font-bold text-slate-500 mt-1">({item.local_name})</span>}
                                     </div>
-                                    {item.sku_code && (
-                                        <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-1.5 py-0.5 rounded-full mb-1">
-                                            {item.sku_code}
-                                        </div>
-                                    )}
+
                                     {item.custom_attributes && Object.keys(item.custom_attributes).length > 0 && (
                                         <div className="text-[8px] font-black text-slate-500 uppercase tracking-tighter mb-1 line-clamp-1">
                                             {Object.entries(item.custom_attributes)
@@ -1061,7 +1057,6 @@ export default function POSPage() {
                                         {c.item.name} 
                                         {language !== 'en' && c.item.local_name && <span className="text-[10px] text-slate-500 font-bold ml-1">({c.item.local_name})</span>}
                                         <span className="text-[10px] text-slate-400 font-bold ml-1">({c.item.unit})</span>
-                                        {c.item.sku_code && <span className="text-[8px] text-indigo-500 bg-indigo-50 px-1 py-0.5 rounded-md font-black tracking-widest">{c.item.sku_code}</span>}
                                     </div>
 
                                     {/* Detailed Chips Row */}
