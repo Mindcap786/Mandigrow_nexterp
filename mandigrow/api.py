@@ -6886,6 +6886,26 @@ def get_stock_summary(org_id: str = None) -> dict:
         ):
             party_map[c["name"]] = c.get("full_name") or c["name"]
 
+    # Storage locations are stored as hash IDs in the database.
+    # We need to map them to their human-readable location_name.
+    storage_loc_ids = set()
+    for lot in lots:
+        if lot.get("storage_location"):
+            storage_loc_ids.add(lot["storage_location"])
+    for a in arrival_map.values():
+        if a.get("storage_location"):
+            storage_loc_ids.add(a["storage_location"])
+
+    storage_loc_map = {}
+    if storage_loc_ids:
+        for loc in frappe.get_all(
+            "Mandi Storage Location",
+            filters={"name": ["in", list(storage_loc_ids)]},
+            fields=["name", "location_name"],
+            ignore_permissions=True,
+        ):
+            storage_loc_map[loc["name"]] = loc.get("location_name") or loc["name"]
+
     today_date = date.today()
 
     # Group by item
@@ -6922,7 +6942,9 @@ def get_stock_summary(org_id: str = None) -> dict:
             arrival_date = arrival_date.isoformat()
 
         # Storage location: prefer lot-level, fall back to arrival-level.
-        storage_location = lot.get("storage_location") or arrival.get("storage_location") or ""
+        # Then map the hash ID to the human-readable name.
+        storage_location_id = lot.get("storage_location") or arrival.get("storage_location") or ""
+        storage_location_name = storage_loc_map.get(storage_location_id) or storage_location_id
 
         lot["qty"] = current_qty
         lot["pct_remaining"] = pct_remaining
@@ -6931,7 +6953,7 @@ def get_stock_summary(org_id: str = None) -> dict:
         lot["arrival_date"] = arrival_date
         lot["party_id"] = arrival.get("party_id")
         lot["party_name"] = party_map.get(arrival.get("party_id")) if arrival.get("party_id") else None
-        lot["storage_location"] = storage_location
+        lot["storage_location"] = storage_location_name
         lot["arrival_type"] = arrival.get("arrival_type") or "direct"
         lot["created_at"] = creation_iso
 
