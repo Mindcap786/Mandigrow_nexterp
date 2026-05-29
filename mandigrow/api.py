@@ -2209,6 +2209,8 @@ def get_commodities() -> list:
     ]
     if frappe.db.has_column("Item", "gst_rate"):
         item_fields.append("gst_rate")
+    if frappe.db.has_column("Item", "sale_gst_rate"):
+        item_fields.extend(["sale_gst_rate", "sale_gst_type", "purchase_gst_rate", "purchase_gst_type"])
     if frappe.db.has_column("Item", "customs_tariff_number"):
         item_fields.append("customs_tariff_number as hsn_code")
     if frappe.db.has_column("Item", "internal_id"):
