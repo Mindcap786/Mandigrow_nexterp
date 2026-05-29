@@ -110,6 +110,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
     const [lotId, setLotId] = useState<string | null>(null);
     const [arrivalId, setArrivalId] = useState<string | null>(null);
     const [instantClear, setInstantClear] = useState(false);  // ← cheque cleared immediately
+    const [autoAllocate, setAutoAllocate] = useState(true);
 
     // Bank account management
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -365,7 +366,8 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                 p_invoice_id:      invoiceId || null,
                 p_arrival_id:      arrivalId || null,
                 p_lot_id:          lotId || null,
-                p_bank_account_id: (values.payment_mode === 'bank' || values.payment_mode === 'cheque') ? (selectedBankId || defaultBankId) : null
+                p_bank_account_id: (values.payment_mode === 'bank' || values.payment_mode === 'cheque') ? (selectedBankId || defaultBankId) : null,
+                p_auto_allocate:   autoAllocate && !invoiceId && !arrivalId // Only auto-allocate if not linking a specific bill
             });
 
             if (res.error) throw new Error(res.error);
@@ -1013,6 +1015,23 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
                                         </FormItem>
                                     )}
                                 />
+                            )}
+
+                            {(!invoiceId && !arrivalId) && (
+                                <div className="flex flex-row items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 mt-4">
+                                    <div className="space-y-0.5">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-800">
+                                            Auto-Allocate to Invoices
+                                        </div>
+                                        <div className="text-[9px] font-medium text-slate-500">
+                                            Automatically splits this amount across oldest pending bills (FIFO).
+                                        </div>
+                                    </div>
+                                    <Switch
+                                        checked={autoAllocate}
+                                        onCheckedChange={setAutoAllocate}
+                                    />
+                                </div>
                             )}
 
                             <Button type="submit" disabled={isSubmitting} className={`w-full h-12 text-white font-black text-lg mt-4 rounded-xl shadow-md ${buttonBg}`}>

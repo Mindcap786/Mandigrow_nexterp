@@ -3291,7 +3291,7 @@ def update_lot(lot_id: str, data=None) -> dict:
         return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
-def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amount: float = None, p_voucher_type: str = None,
+def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amount: float = None, p_auto_allocate: bool = False, p_voucher_type: str = None,
                    p_payment_mode: str = None, p_date: str = None, p_remarks: str = None, p_cheque_no: str = None,
                    p_cheque_date: str = None, p_bank_name: str = None, p_expense_account: str = None,
                    p_cheque_status: str = None, p_invoice_id: str = None, p_arrival_id: str = None,
@@ -3740,6 +3740,18 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             je.db_set("clearance_date", cheque_norm or date_norm)
         elif je.voucher_type == "Bank Entry" and not is_cheque:
             je.db_set("clearance_date", posting_date)
+
+        # ── 7. Optional Auto-settle oldest bills (FIFO) ─────────────────────
+        if p_auto_allocate:
+            total_settlement = amount + discount
+            if total_settlement > 0 and p_party_id and not against_vtype:
+                try:
+                    if v_type == "receipt":
+                        settle_buyer_receipt(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
+                    elif v_type == "payment":
+                        settle_supplier_payment(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
+                except Exception as set_err:
+                    frappe.log_error(f"Auto-settlement failed: {str(set_err)}")
 
         return {
             "success": True,
