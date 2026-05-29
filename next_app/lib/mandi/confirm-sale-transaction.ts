@@ -31,6 +31,7 @@ type ConfirmSaleTransactionParams = {
     buyerGstin?: string | null;
     isIgst?: boolean;
     vehicleNumber?: string | null;
+    transportName?: string | null;
     bookNo?: string | null;
     lotNo?: string | null;
     narration?: string | null;
@@ -88,6 +89,7 @@ export async function confirmSaleTransactionWithFallback(
         p_buyer_gstin: params.buyerGstin,
         p_is_igst: params.isIgst || false,
         p_vehicle_number: params.vehicleNumber,
+        p_transport_name: params.transportName,
         p_book_no: params.bookNo,
         p_lot_no: params.lotNo,
         p_narration: params.narration,

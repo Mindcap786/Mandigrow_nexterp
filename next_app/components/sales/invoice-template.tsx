@@ -155,15 +155,18 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 {/* Left: Billed To */}
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Billed To</p>
-                    <h3 className="text-2xl font-black tracking-tight">{sale.contact?.name || 'Walk-in Buyer'}</h3>
-                    {sale.contact?.billing_address_line1 && <p className="text-gray-700 font-bold text-xs">{sale.contact.billing_address_line1}</p>}
+                    <h3 className="text-2xl font-black tracking-tight">{sale.contact?.name || sale.buyer_name || 'Walk-in Buyer'}</h3>
+                    {sale.buyer_phone && <p className="text-gray-600 font-bold text-xs tracking-wider">Ph: {sale.buyer_phone}</p>}
+                    {(sale.contact?.billing_address_line1 || sale.buyer_address) && <p className="text-gray-700 font-bold text-xs mt-0.5">{sale.contact?.billing_address_line1 || sale.buyer_address}</p>}
                     {sale.contact?.billing_address_line2 && <p className="text-gray-700 font-bold text-xs">{sale.contact.billing_address_line2}</p>}
-                    <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">
-                        {sale.contact?.city || 'Local'}
-                        {sale.contact?.state && `, ${sale.contact.state}`}
-                        {sale.contact?.pincode && ` - ${sale.contact.pincode}`}
-                    </p>
-                    {sale.contact?.gstin && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">GSTIN: <span className="text-gray-800">{sale.contact.gstin}</span></p>}
+                    {(sale.contact?.city || sale.buyer_city) && (
+                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest">
+                            {sale.contact?.city || sale.buyer_city || 'Local'}
+                            {sale.contact?.state && `, ${sale.contact.state}`}
+                            {sale.contact?.pincode && ` - ${sale.contact.pincode}`}
+                        </p>
+                    )}
+                    {(sale.contact?.gstin || sale.buyer_gstin) && <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">GSTIN: <span className="text-gray-800">{sale.contact?.gstin || sale.buyer_gstin}</span></p>}
                     {sale.contact?.pan_number && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">PAN: {sale.contact.pan_number}</p>}
                 </div>
 
@@ -183,6 +186,12 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         <div className="flex justify-end gap-2 items-center mt-1">
                             <span className="text-gray-400 font-bold uppercase">Vehicle No:</span>
                             <span className="font-black text-white bg-slate-900 px-2 py-0.5 rounded text-[13px] tracking-widest uppercase">{saleVehicleNo}</span>
+                        </div>
+                    )}
+                    {sale.transport_name && (
+                        <div className="flex justify-end gap-2 items-center mt-1">
+                            <span className="text-gray-400 font-bold uppercase">Transport:</span>
+                            <span className="font-black text-[13px] tracking-widest uppercase">{sale.transport_name}</span>
                         </div>
                     )}
                     <div className="flex justify-end gap-2 mt-1">
@@ -227,6 +236,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">HSN</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-center">Qty</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Rate</th>
+                            <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">GST</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Amount</th>
                             <th className="py-2 w-10 no-print"></th>
                         </tr>
@@ -274,6 +284,14 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                         }
                                         return null;
                                     })()}
+                                </td>
+                                <td className="py-0.5 text-right font-bold text-sm tracking-tighter">
+                                    {Number(item.gst_rate) > 0 ? (
+                                        <div className="flex flex-col items-end leading-tight mt-0.5">
+                                            <span className="text-xs text-gray-700">{item.gst_rate}%</span>
+                                            <span className="text-[10px] text-gray-400">₹{Number(item.gst_amount || 0).toLocaleString()}</span>
+                                        </div>
+                                    ) : <span className="text-gray-300">-</span>}
                                 </td>
                                 <td className="py-0.5 text-right font-black text-sm tracking-tighter">₹{Math.round(Number(item.amount || 0)).toLocaleString()}</td>
                                 <td className="py-1 pl-4 no-print text-right opacity-50 hover:opacity-100 transition-opacity">

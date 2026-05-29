@@ -7001,15 +7001,23 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
         buyer_name = ""
         buyer_city = ""
         buyer_gstin = ""
+        buyer_phone = ""
+        buyer_address = ""
         if doc.buyerid:
             fields_to_fetch = ["full_name", "city"]
             if frappe.db.has_column("Mandi Contact", "gstin"):
                 fields_to_fetch.append("gstin")
+            if frappe.db.has_column("Mandi Contact", "phone"):
+                fields_to_fetch.append("phone")
+            if frappe.db.has_column("Mandi Contact", "address"):
+                fields_to_fetch.append("address")
             buyer_doc = frappe.db.get_value("Mandi Contact", doc.buyerid, fields_to_fetch, as_dict=True)
             if buyer_doc:
                 buyer_name = buyer_doc.get("full_name") or ""
                 buyer_city = buyer_doc.get("city") or ""
                 buyer_gstin = buyer_doc.get("gstin") or ""
+                buyer_phone = buyer_doc.get("phone") or ""
+                buyer_address = buyer_doc.get("address") or ""
 
         items = []
         for item in doc.get("items") or []:
@@ -7024,6 +7032,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
                 "amount": float(item.get("amount") or 0),
                 "gst_rate": float(item.get("gst_rate") or 0),
                 "gst_amount": float(item.get("gst_amount") or 0),
+                "hsn_code": item.get("hsn_code") or "",
                 "item_name": item_name,
                 "lot": {
                     "lot_code": lot_code,
@@ -7060,6 +7069,8 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "buyer_name": buyer_name,
             "buyer_city": buyer_city,
             "buyer_gstin": buyer_gstin,
+            "buyer_phone": buyer_phone,
+            "buyer_address": buyer_address,
             "payment_mode": doc.paymentmode,
             "bankaccountid": doc.bankaccountid,
             "selected_bank_details": selected_bank_details,
@@ -7083,6 +7094,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "contact_bill_no": getattr(doc, 'contact_bill_no', '') or '',
             "due_date": str(doc.duedate or ""),
             "vehicle_number": doc.vehiclenumber or "",
+            "transport_name": getattr(doc, 'transport_name', '') or '',
             "book_no": doc.bookno or "",
             "lot_no": doc.lotno or "",
             "cheque_no": doc.chequeno or "",
@@ -9961,6 +9973,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
             "sgst_amount": flt(payload.get("sgst_amount") or payload.get("p_sgst_amount") or 0),
             "igst_amount": flt(payload.get("igst_amount") or payload.get("p_igst_amount") or 0),
             "vehiclenumber": payload.get("p_vehicle_number") or payload.get("vehicle_number") or "",
+            "transport_name": payload.get("p_transport_name") or payload.get("transport_name") or "",
             "bookno": payload.get("p_book_no") or payload.get("book_no") or "",
             "lotno": payload.get("p_lot_no") or payload.get("lot_no") or "",
             "contact_bill_no": _get_next_annual_bill_no("Mandi Sale", "buyerid", buyer_id) if buyer_id else None,

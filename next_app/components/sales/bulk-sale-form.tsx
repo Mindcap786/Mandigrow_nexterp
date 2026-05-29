@@ -62,6 +62,10 @@ const formSchema = z.object({
         is_igst: z.boolean().default(false),
         discount_percent: z.coerce.number().min(0).max(100).default(0),
         discount_amount: z.coerce.number().min(0).default(0),
+        vehicle_number: z.string().optional(),
+        transport_name: z.string().optional(),
+        book_no: z.string().optional(),
+        lot_no: z.string().optional(),
         cratesEnabled: z.boolean().default(false).optional(),
         crateCart: z.array(z.object({
             crate_type: z.string(),
@@ -166,6 +170,10 @@ export function BulkLotSaleForm() {
                 is_igst: false,
                 discount_percent: 0,
                 discount_amount: 0,
+                vehicle_number: "",
+                transport_name: "",
+                book_no: "",
+                lot_no: "",
                 cratesEnabled: false,
                 crateCart: []
             }]
@@ -414,6 +422,10 @@ export function BulkLotSaleForm() {
                     amountReceived: dist.payment_mode === 'credit' ? 0 : (Number(dist.amount_received) || 0),
                     dueDate,
                     idempotencyKey,
+                    vehicleNumber: dist.vehicle_number || null,
+                    transportName: dist.transport_name || null,
+                    bookNo: dist.book_no || null,
+                    lotNo: dist.lot_no || null,
                     // New meta fields
                     placeOfSupply: dist.is_igst ? (buyerInfo?.state_code || null) : (taxSettings.state_code || null),
                     buyerGstin: buyerInfo?.gstin || null,
@@ -568,7 +580,11 @@ export function BulkLotSaleForm() {
                                             igst_amount: 0,
                                             is_igst: false,
                                             discount_percent: 0,
-                                            discount_amount: 0
+                                            discount_amount: 0,
+                                            vehicle_number: "",
+                                            transport_name: "",
+                                            book_no: "",
+                                            lot_no: ""
                                         })} 
                                         className="rounded-xl border-slate-200 font-bold uppercase text-[10px] tracking-widest bg-slate-50 hover:bg-slate-100 text-slate-600 gap-2 h-9 px-4"
                                     >

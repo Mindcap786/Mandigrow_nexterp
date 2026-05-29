@@ -29,6 +29,7 @@
   "chequedate",
   "bankname",
   "vehiclenumber",
+  "transport_name",
   "bookno",
   "lotno",
   "status",
@@ -175,6 +176,11 @@
    "fieldname": "vehiclenumber",
    "fieldtype": "Data",
    "label": "Vehicle Number"
+  },
+  {
+   "fieldname": "transport_name",
+   "fieldtype": "Data",
+   "label": "Transport Name"
   },
   {
    "fieldname": "bookno",

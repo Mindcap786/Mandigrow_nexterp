@@ -52,6 +52,10 @@ const distributionSchema = z.object({
     other_expenses: z.coerce.number({ message: "Invalid number" }).min(0).default(0),
     discount_percent: z.coerce.number().min(0).max(100).optional(),
     discount_amount: z.coerce.number().min(0).optional(),
+    vehicle_number: z.string().optional(),
+    transport_name: z.string().optional(),
+    book_no: z.string().optional(),
+    lot_no: z.string().optional(),
     cratesEnabled: z.boolean().default(false).optional(),
     crateCart: z.array(z.any()).default([]).optional(),
 });
@@ -119,6 +123,10 @@ const NewInvoiceForm = () => {
                 loading_charges: 0,
                 unloading_charges: 0,
                 other_expenses: 0,
+                vehicle_number: "",
+                transport_name: "",
+                book_no: "",
+                lot_no: "",
                 cratesEnabled: false,
                 crateCart: []
             }]
@@ -301,6 +309,10 @@ const syncBasis = watchedDistributions?.map(d => ({
                     bankAccountId: dist.bank_account_id || null,
                     chequeNo: dist.cheque_no || null,
                     chequeDate: dist.cheque_date ? dist.cheque_date.toISOString().split('T')[0] : null,
+                    vehicleNumber: dist.vehicle_number || null,
+                    transportName: dist.transport_name || null,
+                    bookNo: dist.book_no || null,
+                    lotNo: dist.lot_no || null,
                     chequeStatus: dist.cheque_status,
                     bankName: dist.bank_name || null,
                     amountReceived: dist.amount_received,
@@ -506,6 +518,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                     <Button type="button" variant="outline" onClick={() => append({ 
                                         buyer_id: "", qty: selectedLot ? remainingInLot : 0, rate: selectedLot?.sale_price || 0, 
                                         payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, cheque_status: false,
+                                        vehicle_number: "", transport_name: "", book_no: "", lot_no: "",
                                         cratesEnabled: false, crateCart: [] 
                                     })} className="text-xs font-bold uppercase tracking-widest h-8 rounded-lg text-slate-600">
                                         <Plus className="w-3 h-3 mr-1" /> Add Buyer
@@ -686,6 +699,40 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                 </div>
                                                             </div>
                                                         )}
+
+                                                        {/* ── TRANSPORT & REFERENCE DETAILS ── */}
+                                                        <div className="bg-slate-50 border-l-4 border-slate-600 p-4 rounded-r-xl mt-4">
+                                                            <div className="flex items-center gap-2 text-slate-900 font-black text-[10px] uppercase tracking-[0.1em] mb-3">
+                                                                <Truck className="w-3.5 h-3.5" />
+                                                                Transport & Reference Details
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <FormField control={form.control} name={`distributions.${index}.transport_name`} render={({ field: f }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Transport Name</FormLabel>
+                                                                        <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                                    </FormItem>
+                                                                )} />
+                                                                <FormField control={form.control} name={`distributions.${index}.vehicle_number`} render={({ field: f }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Vehicle No</FormLabel>
+                                                                        <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                                    </FormItem>
+                                                                )} />
+                                                                <FormField control={form.control} name={`distributions.${index}.book_no`} render={({ field: f }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Book No</FormLabel>
+                                                                        <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                                    </FormItem>
+                                                                )} />
+                                                                <FormField control={form.control} name={`distributions.${index}.lot_no`} render={({ field: f }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Bilti/Lot No</FormLabel>
+                                                                        <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                                    </FormItem>
+                                                                )} />
+                                                            </div>
+                                                        </div>
 
                                                         {/* ── CRATE SALE TOGGLE FOR THIS DISTRIBUTION ── */}
                                                         <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm mb-4">

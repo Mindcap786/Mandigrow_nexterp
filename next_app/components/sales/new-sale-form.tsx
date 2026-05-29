@@ -88,6 +88,7 @@ const formSchema = z.object({
     bank_account_id: z.string().optional(),
     cheque_status: z.boolean().default(false),
     vehicle_number: z.string().optional(),
+    transport_name: z.string().optional(),
     book_no: z.string().optional(),
     lot_no: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -176,6 +177,7 @@ function NewSaleForm() {
             cheque_no: "",
             cheque_status: false,
             vehicle_number: "",
+            transport_name: "",
             book_no: "",
             lot_no: "",
         }
@@ -626,6 +628,7 @@ function NewSaleForm() {
                 buyerGstin: buyerInfo?.gstin || null,
                 isIgst: totals.isIgst,
                 vehicleNumber: values.vehicle_number || null,
+                transportName: values.transport_name || null,
                 bookNo: values.book_no || null,
                 lotNo: values.lot_no || null,
                 crateItems: cratesEnabled && crateCart.length > 0 ? crateCart : []
@@ -1575,6 +1578,57 @@ function NewSaleForm() {
                                         </div>
                                     );
                                 })()}
+
+                                {/* ── TRANSPORT & REFERENCE DETAILS ── */}
+                                <div className="bg-slate-50 border-l-4 border-slate-600 p-4 rounded-r-xl mt-3">
+                                    <div className="flex items-center gap-2 text-slate-900 font-black text-[10px] uppercase tracking-[0.1em] mb-3">
+                                        <Truck className="w-3.5 h-3.5" />
+                                        Transport & Reference Details
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="transport_name"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Transport Name</FormLabel>
+                                                    <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="vehicle_number"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Vehicle No</FormLabel>
+                                                    <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="book_no"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Book No</FormLabel>
+                                                    <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="lot_no"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Bilti/Lot No</FormLabel>
+                                                    <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="bg-slate-50 border-l-4 border-indigo-600 p-4 rounded-r-xl">
                                     <div className="flex items-center gap-2 text-slate-900 font-black text-[10px] uppercase tracking-[0.1em] mb-3">
                                         <Truck className="w-3.5 h-3.5" />
