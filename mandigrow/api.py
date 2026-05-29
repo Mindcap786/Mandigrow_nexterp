@@ -10310,6 +10310,9 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         # Auto-assign annual sequential contact_bill_no if not provided
         contact_bill_no = payload.get("contact_bill_no")
         party_id = payload.get("party_id") or ""
+        is_farmer = False
+        if party_id:
+            is_farmer = (frappe.db.get_value("Mandi Contact", party_id, "contact_type") == "farmer")
         if not contact_bill_no and party_id:
             contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", party_id)
             
