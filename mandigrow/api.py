@@ -9948,6 +9948,10 @@ def confirm_sale_transaction(**kwargs) -> dict:
             
         buyer_id = payload.get("p_buyer_id") or payload.get("buyer_id")
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
+        
+        # ── Global GST Compliance Master Override ────────────────────────────────
+        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled"))
+        # ─────────────────────────────────────────────────────────────────────────
 
         if not buyer_id:
             walkin_buyer = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "buyer", "full_name": "Walk-in Buyer"}, "name")
@@ -10087,11 +10091,15 @@ def confirm_sale_transaction(**kwargs) -> dict:
             if not item_hsn and item_id:
                 item_hsn = frappe.db.get_value("Item", item_id, "customs_tariff_number") or ""
             
+            # Master Override: If organization GST is disabled, strictly enforce 0% tax compliance
+            if not org_gst_enabled:
+                item_gst_rate = 0.0
+
             sale_gst_type = str(frappe.db.get_value("Item", item_id, "sale_gst_type") or "Exclusive").strip().capitalize()
             base_amount = float(item.get("amount") or (qty * rate))
             
             if sale_gst_type == "Inclusive":
-                actual_base = base_amount / (1 + item_gst_rate / 100.0)
+                actual_base = base_amount / (1 + item_gst_rate / 100.0) if item_gst_rate > 0 else base_amount
                 line_gst_amount = round(base_amount - actual_base, 2)
             else:
                 line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
@@ -10279,6 +10287,11 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             
         # 1. Create Mandi Arrival Document
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
+        
+        # ── Global GST Compliance Master Override ────────────────────────────────
+        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled"))
+        # ─────────────────────────────────────────────────────────────────────────
+        
         doc = frappe.get_doc({
             "doctype": "Mandi Arrival",
             "party_id": party_id,
@@ -10378,11 +10391,15 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             item_master = frappe.db.get_value("Item", item_id, item_fields, as_dict=True) or {}
             
             is_ob = payload.get("is_opening_balance") is True
+            
+            # Master Override: If organization GST is disabled, strictly enforce 0% tax compliance
+            final_purchase_gst_rate = 0.0 if not org_gst_enabled or is_ob else float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0)
+            
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item_id,
                 "lot_code": item_lot_code,
-                "purchase_gst_rate": 0.0 if is_ob else float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0),
+                "purchase_gst_rate": final_purchase_gst_rate,
                 "purchase_gst_type": "Exclusive" if is_ob else (item.get("purchase_gst_type") or item_master.get("purchase_gst_type") or "Exclusive"),
                 "qty": float(item.get("qty", 0)),
                 "initial_qty": float(item.get("qty", 0)),
