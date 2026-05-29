@@ -211,6 +211,12 @@ class MandiArrival(Document):
                         self.sgst_amount = round(self.purchase_gst_total / 2.0, 2)
                     elif gst_type == "inter":
                         self.igst_amount = self.purchase_gst_total
+                        
+                # Set ITC Eligibility and RCM aggregation
+                has_rcm = any(lot.get("is_rcm") for lot in (self.get("items") or []))
+                self.is_rcm = 1 if has_rcm else 0
+                self.itc_eligible = 1 if not has_rcm else 0  # Simplified logic for ITC
+
             except Exception as e:
                 frappe.log_error(f"Error calculating GST split in Mandi Arrival: {str(e)}")
 

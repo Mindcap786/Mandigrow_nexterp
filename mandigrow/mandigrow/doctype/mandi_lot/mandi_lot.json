@@ -184,15 +184,21 @@
    "label": "GST Rate (%)"
   },
   {
-   "fieldname": "gst_amount",
+   "fieldname": "purchase_gst_amount",
    "fieldtype": "Currency",
-   "label": "GST Amount"
+   "label": "Purchase GST Amount"
   },
   {
    "fieldname": "purchase_gst_type",
    "fieldtype": "Select",
    "label": "Purchase GST Type",
    "options": "\nInclusive\nExclusive"
+  },
+  {
+   "fieldname": "is_rcm",
+   "fieldtype": "Check",
+   "label": "RCM Applicable",
+   "default": "0"
   }
  ],
  "grid_page_length": 50,

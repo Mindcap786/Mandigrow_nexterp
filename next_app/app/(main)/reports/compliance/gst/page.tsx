@@ -40,6 +40,7 @@ export default function GSTReportsPage() {
     const cachedData = orgId ? cacheGet<any>(`gst_report_${dateKey}`, orgId) : null;
 
     const [sales, setSales] = useState<any[]>(cachedData?.sales || []);
+    const [purchases, setPurchases] = useState<any[]>(cachedData?.purchases || []);
     const [hsnData, setHsnData] = useState<any[]>(cachedData?.hsnData || []);
     const [loading, setLoading] = useState(!cachedData);
     const [searchTerm, setSearchTerm] = useState("");
@@ -57,7 +58,13 @@ export default function GSTReportsPage() {
         totalSgst: 0,
         totalTax: 0,
         b2bCount: 0,
-        b2cCount: 0
+        b2cCount: 0,
+        totalItcTaxable: 0,
+        totalItc: 0,
+        itcCount: 0,
+        totalRcmTaxable: 0,
+        totalRcm: 0,
+        rcmCount: 0
     });
 
     const [b2bPage, setB2bPage] = useState(1);
@@ -82,6 +89,8 @@ export default function GSTReportsPage() {
 
             if (data) {
                 setSales(data);
+                const purchasesData = response?.purchases || [];
+                setPurchases(purchasesData);
 
                 // Calculate Summary and HSN Grouping
                 let taxable = 0;
@@ -139,6 +148,59 @@ export default function GSTReportsPage() {
                     });
                 });
 
+                // Calculate ITC and RCM Summary
+                let itcTaxable = 0;
+                let itcTax = 0;
+                let itcCount = 0;
+                
+                let rcmTaxable = 0;
+                let rcmTax = 0;
+                let rcmCount = 0;
+
+                purchasesData.forEach((purchase: any) => {
+                    let pTaxable = 0;
+                    let pTax = 0;
+
+                    purchase.purchase_items?.forEach((item: any) => {
+                        pTaxable += Number(item.amount) || 0;
+                        pTax += Number(item.tax_amount) || 0;
+                        
+                        // Add to HSN summary
+                        const hsn = item.hsn_code || "N/A";
+                        const rate = Number(item.gst_rate) || 0;
+                        const key = `${hsn}_${rate}`;
+
+                        if (!hsnMap[key]) {
+                            hsnMap[key] = {
+                                hsn_code: hsn,
+                                gst_rate: rate,
+                                quantity: 0,
+                                unit: item.unit || 'Kg',
+                                taxable_value: 0,
+                                igst: 0,
+                                cgst: 0,
+                                sgst: 0,
+                                total_tax: 0
+                            };
+                        }
+
+                        hsnMap[key].quantity += Number(item.qty) || 0;
+                        // For HSN summary, usually only outward supplies are reported in Table 12 of GSTR-1
+                        // But if inward supplies are required, we add them (often inward HSN is not mandatory for small taxpayers, but we include it for complete view).
+                        // To distinguish, we might keep them out of Table 12, but we'll include them for the "Internal Audit" purpose.
+                    });
+
+                    if (purchase.is_rcm) {
+                        rcmTaxable += pTaxable;
+                        rcmTax += pTax;
+                        rcmCount++;
+                    } else if (purchase.itc_eligible) {
+                        itcTaxable += pTaxable;
+                        itcTax += pTax;
+                        itcCount++;
+                    }
+                });
+
                 const newSummary = {
                     totalTaxable: taxable,
                     totalIgst: igst,
@@ -146,7 +208,13 @@ export default function GSTReportsPage() {
                     totalSgst: sgst,
                     totalTax: igst + cgst + sgst,
                     b2bCount: b2b,
-                    b2cCount: b2c
+                    b2cCount: b2c,
+                    totalItcTaxable: itcTaxable,
+                    totalItc: itcTax,
+                    itcCount: itcCount,
+                    totalRcmTaxable: rcmTaxable,
+                    totalRcm: rcmTax,
+                    rcmCount: rcmCount
                 };
                 
                 const hsnList = Object.values(hsnMap);
@@ -154,7 +222,7 @@ export default function GSTReportsPage() {
                 setSummary(newSummary);
                 
                 if (orgId) {
-                    cacheSet(`gst_report_${dateKey}`, orgId, { sales: data, hsnData: hsnList, summary: newSummary });
+                    cacheSet(`gst_report_${dateKey}`, orgId, { sales: data, purchases: purchasesData, hsnData: hsnList, summary: newSummary });
                 }
             }
         } catch (e) {
@@ -393,6 +461,9 @@ export default function GSTReportsPage() {
                             </TabsTrigger>
                             <TabsTrigger value="3b" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 py-3 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-rose-600">
                                 GSTR-3B VIEW
+                            </TabsTrigger>
+                            <TabsTrigger value="itc" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 py-3 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-emerald-600">
+                                ITC / RCM ({summary.itcCount + summary.rcmCount})
                             </TabsTrigger>
                         </TabsList>
 
@@ -639,28 +710,95 @@ export default function GSTReportsPage() {
                                     </div>
                                 </div>
 
-                                <div className="relative group cursor-not-allowed opacity-60">
-                                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-[32px]">
-                                        <Badge className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest px-6 py-3 shadow-2xl">
-                                            ITC Data Coming Soon
-                                        </Badge>
-                                    </div>
-                                    <h4 className="font-black text-slate-400 uppercase tracking-[0.2em] text-xs underline underline-offset-8">4. Eligible ITC</h4>
-                                    <div className="mt-6 space-y-4">
-                                        <div className="h-20 w-full bg-slate-50 rounded-[24px] border border-dashed border-slate-200" />
-                                        <div className="h-20 w-full bg-slate-50 rounded-[24px] border border-dashed border-slate-200" />
-                                        <div className="h-20 w-full bg-slate-50 rounded-[24px] border border-dashed border-slate-200" />
+                                <div className="space-y-6">
+                                    <h4 className="font-black text-slate-900 uppercase tracking-[0.2em] text-xs underline underline-offset-8">4. Eligible ITC</h4>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center p-6 bg-slate-50 rounded-[24px] border border-slate-100">
+                                            <span className="font-bold text-slate-600">ITC Available (All Other ITC)</span>
+                                            <span className="font-black text-xl text-slate-900">₹{summary.totalItc.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-6 bg-rose-50/50 rounded-[24px] border border-rose-100">
+                                            <span className="font-bold text-rose-700">Inward Supplies liable to Reverse Charge (Tax Payable)</span>
+                                            <span className="font-black text-xl text-rose-700">₹{summary.totalRcm.toLocaleString('en-IN')}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-rose-50 p-8 rounded-[32px] border border-rose-100 mt-10">
-                                <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em] mb-4 text-center">Final Filing Liability</p>
-                                <div className="text-center">
-                                    <p className="text-6xl font-[1000] text-rose-600 tracking-tighter">₹{summary.totalTax.toLocaleString('en-IN')}</p>
-                                    <p className="text-xs font-black text-rose-400 mt-2 uppercase tracking-widest">Payable to Government (Outward)</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="bg-rose-50 p-8 rounded-[32px] border border-rose-100 mt-10">
+                                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em] mb-4 text-center">Gross Liability (Outward + RCM)</p>
+                                    <div className="text-center">
+                                        <p className="text-5xl font-[1000] text-rose-600 tracking-tighter">₹{(summary.totalTax + summary.totalRcm).toLocaleString('en-IN')}</p>
+                                    </div>
+                                </div>
+                                <div className="bg-emerald-50 p-8 rounded-[32px] border border-emerald-100 mt-10">
+                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-4 text-center">Net Liability (After ITC)</p>
+                                    <div className="text-center">
+                                        <p className="text-5xl font-[1000] text-emerald-600 tracking-tighter">₹{Math.max(0, (summary.totalTax + summary.totalRcm) - summary.totalItc).toLocaleString('en-IN')}</p>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="itc" className="p-0 m-0 border-none outline-none">
+                        <div className="overflow-x-auto p-4">
+                            <Table>
+                                <TableHeader className="bg-slate-50/50">
+                                    <TableRow className="hover:bg-transparent border-none">
+                                        <TableHead className="font-black text-slate-400 h-14 uppercase text-[10px] tracking-widest pl-6">GSTIN of Supplier</TableHead>
+                                        <TableHead className="font-black text-slate-400 h-14 uppercase text-[10px] tracking-widest">Party Name</TableHead>
+                                        <TableHead className="font-black text-slate-400 h-14 uppercase text-[10px] tracking-widest">Bill Details</TableHead>
+                                        <TableHead className="font-black text-slate-400 h-14 uppercase text-[10px] tracking-widest">Type</TableHead>
+                                        <TableHead className="font-black text-slate-400 h-14 uppercase text-[10px] tracking-widest text-right">Taxable Val</TableHead>
+                                        <TableHead className="font-black text-slate-400 h-14 uppercase text-[10px] tracking-widest text-right pr-6">GST Amount</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {purchases.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-20">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
+                                                        <FileText className="w-8 h-8 text-slate-300" />
+                                                    </div>
+                                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No Purchase Records Found</p>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        purchases.map((purchase) => {
+                                            const gstAmt = Number(purchase.igst_amount || 0) + Number(purchase.cgst_amount || 0) + Number(purchase.sgst_amount || 0);
+                                            return (
+                                                <TableRow key={purchase.id} className="hover:bg-emerald-50/30 transition-colors border-slate-50">
+                                                    <TableCell className="font-bold text-slate-900 pl-6 uppercase">{purchase.supplier_gstin || "URD"}</TableCell>
+                                                    <TableCell className="font-bold text-slate-700">{purchase.contact?.name}</TableCell>
+                                                    <TableCell className="space-y-1">
+                                                        <p className="font-black text-xs text-slate-900 tracking-tight">{purchase.bill_no}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400">{format(new Date(purchase.purchase_date), 'dd MMM yyyy')}</p>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {purchase.is_rcm ? (
+                                                            <Badge className="bg-rose-50 text-rose-600 border-none font-black uppercase text-[9px]">RCM (You Pay)</Badge>
+                                                        ) : purchase.itc_eligible ? (
+                                                            <Badge className="bg-emerald-50 text-emerald-600 border-none font-black uppercase text-[9px]">Eligible ITC</Badge>
+                                                        ) : (
+                                                            <Badge className="bg-slate-100 text-slate-500 border-none font-black uppercase text-[9px]">Exempt / Non-ITC</Badge>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-black text-slate-900 text-lg tracking-tighter">₹{Number(purchase.total_amount).toLocaleString('en-IN')}</TableCell>
+                                                    <TableCell className="text-right pr-6">
+                                                        <p className={`font-bold ${purchase.is_rcm ? 'text-rose-600' : 'text-emerald-600'}`}>₹{gstAmt.toLocaleString('en-IN')}</p>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                         </div>
                     </TabsContent>
                 </Tabs>

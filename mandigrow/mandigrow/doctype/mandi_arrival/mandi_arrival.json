@@ -266,6 +266,20 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "itc_eligible",
+   "fieldtype": "Check",
+   "label": "Eligible for ITC",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_rcm",
+   "fieldtype": "Check",
+   "label": "RCM Applicable (Aggregate)",
+   "default": "0",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

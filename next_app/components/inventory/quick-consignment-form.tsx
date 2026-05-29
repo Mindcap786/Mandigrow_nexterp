@@ -121,6 +121,7 @@ const formSchema = z.object({
         hsn_code: z.string().optional(),
         purchase_gst_rate: z.coerce.number().optional(),
         purchase_gst_type: z.enum(['Inclusive', 'Exclusive']).optional(),
+        is_rcm: z.boolean().default(false).optional(),
     }))
 })
 
@@ -162,6 +163,7 @@ interface QuickPurchaseFormValues {
         hsn_code?: string;
         purchase_gst_rate?: number;
         purchase_gst_type?: 'Inclusive' | 'Exclusive';
+        is_rcm?: boolean;
     }[];
 }
 
@@ -218,6 +220,7 @@ export function QuickPurchaseForm() {
                 hsn_code: '',
                 purchase_gst_rate: 0,
                 purchase_gst_type: 'Exclusive',
+                is_rcm: false,
             }]
         }
     })
@@ -295,8 +298,16 @@ export function QuickPurchaseForm() {
         const grossValue = qty * rate
         const commissionAmount = (grossValue * commPercent) / 100
 
+        // 2. GST Calculation
+        let gstAmount = 0;
+        if (type === 'direct' && !row.is_rcm && row.purchase_gst_rate) {
+            if (row.purchase_gst_type === 'Exclusive') {
+                gstAmount = grossValue * (Number(row.purchase_gst_rate) / 100);
+            }
+        }
+
         // Net Payable per row: What Mandi owes for this specific item
-        const netPayable = grossValue - commissionAmount
+        const netPayable = grossValue - commissionAmount + gstAmount;
 
         return {
             grossValue,
@@ -425,6 +436,7 @@ export function QuickPurchaseForm() {
                     hsn_code: row.hsn_code,
                     purchase_gst_rate: row.purchase_gst_rate,
                     purchase_gst_type: row.purchase_gst_type,
+                    is_rcm: row.is_rcm ? 1 : 0,
                     expenses_total: financials.expensesTotal,
                     net_payable: financials.netPayable,
                     unit_cost: financials.unitCost,
@@ -479,6 +491,7 @@ export function QuickPurchaseForm() {
                     packing_cost: '',
                     loading_cost: '',
                     other_cut: '',
+                    is_rcm: false,
                 }],
                 advance: 0,
                 notes: ''
@@ -957,6 +970,21 @@ export function QuickPurchaseForm() {
                                                                     {...field}
                                                                     onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                                     className="h-10 font-black text-sm bg-indigo-50/50 border-none text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+                                                                />
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`rows.${index}.is_rcm`}
+                                                    render={({ field }) => (
+                                                        <FormItem className="flex flex-col items-center justify-center pt-5">
+                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">RCM Applicable</FormLabel>
+                                                            <FormControl>
+                                                                <Switch
+                                                                    checked={field.value}
+                                                                    onCheckedChange={field.onChange}
                                                                 />
                                                             </FormControl>
                                                         </FormItem>

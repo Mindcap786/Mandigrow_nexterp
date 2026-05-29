@@ -10353,6 +10353,10 @@ def record_quick_purchase(**kwargs) -> dict:
             "loading_cost": l.get("loading_cost"),
             "farmer_charges": l.get("other_cut"),
             "lot_code": kwargs.get("p_lot_no") or "",
+            "hsn_code": l.get("hsn_code"),
+            "purchase_gst_rate": l.get("purchase_gst_rate"),
+            "purchase_gst_type": l.get("purchase_gst_type"),
+            "is_rcm": l.get("is_rcm"),
         })
     payload["items"] = items
     
@@ -10376,9 +10380,12 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         # Auto-assign annual sequential contact_bill_no if not provided
         contact_bill_no = payload.get("contact_bill_no")
         party_id = payload.get("party_id") or ""
-        is_farmer = False
+        supplier_gstin = ""
         if party_id:
-            is_farmer = (frappe.db.get_value("Mandi Contact", party_id, "contact_type") == "farmer")
+            party_info = frappe.db.get_value("Mandi Contact", party_id, ["contact_type", "gstin"], as_dict=True)
+            if party_info:
+                is_farmer = (party_info.get("contact_type") == "farmer")
+                supplier_gstin = (party_info.get("gstin") or "").strip()
         if not contact_bill_no and party_id:
             contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", party_id)
             
@@ -10492,13 +10499,24 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             
             is_ob = payload.get("is_opening_balance") is True
             
-            # Master Override: If organization GST is disabled OR counterparty is a farmer, strictly enforce 0% tax compliance
-            final_purchase_gst_rate = 0.0 if (not org_gst_enabled or is_ob or is_farmer) else float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0)
+            # Advanced GST Profiling
+            is_rcm = str(item.get("is_rcm") or "").lower() in ["true", "1", "yes"]
+            input_gst_rate = float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0)
+            
+            final_purchase_gst_rate = 0.0
+            if org_gst_enabled and not is_ob:
+                if is_rcm:
+                    final_purchase_gst_rate = input_gst_rate
+                elif is_farmer and not supplier_gstin:
+                    final_purchase_gst_rate = 0.0
+                else:
+                    final_purchase_gst_rate = input_gst_rate
             
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item_id,
                 "lot_code": item_lot_code,
+                "is_rcm": int(is_rcm),
                 "hsn_code": item.get("hsn_code") or item_master.get("hsn_code") or "",
                 "purchase_gst_rate": final_purchase_gst_rate,
                 "purchase_gst_type": "Exclusive" if is_ob else (item.get("purchase_gst_type") or item_master.get("purchase_gst_type") or "Exclusive"),
@@ -11082,14 +11100,15 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
     """Return GST sales data shaped for the frontend GST Compliance Dashboard."""
     org_id = _get_user_org()
     
-    sales = frappe.get_all(
+    # ── Fetch Outward Supplies (Sales) ──
+    sales_docs = frappe.get_all(
         "Mandi Sale",
         filters={"organization_id": org_id, "docstatus": 1, "saledate": ["between", [date_from, date_to]]},
         fields=["name", "buyerid", "bookno", "saledate", "totalamount", "invoice_total", "gsttotal"]
     )
     
-    data = []
-    for s in sales:
+    sales_data = []
+    for s in sales_docs:
         contact_fields = ["full_name", "city"]
         if frappe.db.has_column("Mandi Contact", "gstin"):
             contact_fields.append("gstin")
@@ -11118,7 +11137,7 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
             
         gst_total = float(s.gsttotal or 0)
         
-        data.append({
+        sales_data.append({
             "id": s.name,
             "buyer_gstin": buyer.get("gstin") or "",
             "contact": {
@@ -11136,7 +11155,80 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
             "sale_items": sale_items
         })
         
-    return {"data": data}
+    # ── Fetch Inward Supplies (Purchases / Arrivals) for ITC & RCM ──
+    # We only care about arrivals that have GST > 0 or are marked as RCM
+    arrival_filters = {
+        "organization_id": org_id,
+        "docstatus": 1,
+        "arrival_date": ["between", [date_from, date_to]]
+    }
+    
+    arrivals_docs = frappe.get_all(
+        "Mandi Arrival",
+        filters=arrival_filters,
+        fields=[
+            "name", "party_id", "contact_bill_no", "arrival_date", 
+            "total_realized", "total_expenses", "net_payable_farmer",
+            "cgst_amount", "sgst_amount", "igst_amount", "gst_total", 
+            "is_rcm", "itc_eligible", "arrival_type"
+        ]
+    )
+    
+    purchases_data = []
+    for a in arrivals_docs:
+        # Check if arrival has any GST implication
+        if not (float(a.gst_total or 0) > 0 or a.is_rcm):
+            continue
+
+        contact_fields = ["full_name", "city"]
+        if frappe.db.has_column("Mandi Contact", "gstin"):
+            contact_fields.append("gstin")
+        supplier = frappe.db.get_value("Mandi Contact", a.party_id, contact_fields, as_dict=True) or {}
+        
+        items = frappe.get_all(
+            "Mandi Lot",
+            filters={"parent": a.name},
+            fields=["item_id", "qty", "supplier_rate", "net_amount", "purchase_gst_amount", "purchase_gst_rate", "hsn_code", "is_rcm"]
+        )
+        
+        purchase_items = []
+        for it in items:
+            # Skip items with no GST or RCM if we want to be strict, but keeping all for summary is fine
+            hsn = it.hsn_code
+            if not hsn:
+                hsn = frappe.db.get_value("Item", it.item_id, "customs_tariff_number") or "0000"
+                
+            purchase_items.append({
+                "hsn_code": hsn,
+                "gst_rate": float(it.purchase_gst_rate or 0),
+                "amount": float(it.net_amount or 0),
+                "tax_amount": float(it.purchase_gst_amount or 0),
+                "qty": float(it.qty or 0),
+                "unit": "Kg",
+                "is_rcm": bool(it.is_rcm)
+            })
+            
+        purchases_data.append({
+            "id": a.name,
+            "supplier_gstin": supplier.get("gstin") or "",
+            "contact": {
+                "name": supplier.get("full_name") or a.party_id,
+                "gstin": supplier.get("gstin") or ""
+            },
+            "bill_no": a.contact_bill_no or a.name,
+            "purchase_date": str(a.arrival_date),
+            "place_of_supply": supplier.get("city") or "Local",
+            "total_amount_inc_tax": float(a.net_payable_farmer or 0),
+            "total_amount": float(a.total_realized or 0),
+            "igst_amount": float(a.igst_amount or 0),
+            "cgst_amount": float(a.cgst_amount or 0),
+            "sgst_amount": float(a.sgst_amount or 0),
+            "is_rcm": bool(a.is_rcm),
+            "itc_eligible": bool(a.itc_eligible),
+            "purchase_items": purchase_items
+        })
+        
+    return {"data": sales_data, "purchases": purchases_data}
 
 @frappe.whitelist(allow_guest=False)
 def repair_all_settlements(org_id: str = None):

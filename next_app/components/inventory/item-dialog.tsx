@@ -378,6 +378,11 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 setLoadingState(null);
                 return;
             }
+            if (price > 0 && stock <= 0) {
+                toast({ title: "Validation Error", description: "Opening stock must be entered when defining a Purchase Price.", variant: "destructive" });
+                setLoadingState(null);
+                return;
+            }
             if (stock > 0 && !data.storage_location) {
                 toast({ title: "Validation Error", description: "Storage location is required when entering opening stock.", variant: "destructive" });
                 setLoadingState(null);
@@ -788,8 +793,12 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                         <SelectValue placeholder="Select GST type" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="Exclusive" className="font-bold">GST Excluding purchase price (100 + 3% GST)</SelectItem>
-                                                        <SelectItem value="Inclusive" className="font-bold">GST Inclusive purchase price (100 incl. 3% GST)</SelectItem>
+                                                        <SelectItem value="Exclusive" className="font-bold">
+                                                            GST Excluding (Base + {form.watch("purchase_gst_rate") || 0}% GST)
+                                                        </SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">
+                                                            GST Inclusive (Total incl. {form.watch("purchase_gst_rate") || 0}% GST)
+                                                        </SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -817,8 +826,12 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                         <SelectValue placeholder="Select GST type" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="Exclusive" className="font-bold">GST Excluding sale price (100 + 3% GST)</SelectItem>
-                                                        <SelectItem value="Inclusive" className="font-bold">GST Inclusive sale price (100 incl. 3% GST)</SelectItem>
+                                                        <SelectItem value="Exclusive" className="font-bold">
+                                                            GST Excluding (Base + {form.watch("sale_gst_rate") || 0}% GST)
+                                                        </SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">
+                                                            GST Inclusive (Total incl. {form.watch("sale_gst_rate") || 0}% GST)
+                                                        </SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
