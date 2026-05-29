@@ -370,25 +370,7 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                                 </div>
                             </div>
 
-                            {/* Billing Address Lines */}
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">Billing Address Line 1</Label>
-                                <Input
-                                    id="billing_address_line1"
-                                    placeholder="Street / House No / Building Name"
-                                    className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-bold transition-all placeholder:text-slate-400"
-                                    {...form.register("billing_address_line1")}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">Billing Address Line 2</Label>
-                                <Input
-                                    id="billing_address_line2"
-                                    placeholder="Area / Landmark / Taluka"
-                                    className="w-full bg-slate-50 border-slate-300 text-black h-11 rounded-xl focus:border-blue-500 font-bold transition-all placeholder:text-slate-400"
-                                    {...form.register("billing_address_line2")}
-                                />
-                            </div>
+
                         </div>
                         {!initialData?.id && (
                             <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 space-y-3">

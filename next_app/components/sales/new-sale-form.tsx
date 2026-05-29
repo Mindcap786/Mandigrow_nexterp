@@ -1585,7 +1585,7 @@ function NewSaleForm() {
                                         <Truck className="w-3.5 h-3.5" />
                                         Transport & Reference Details
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <FormField
                                             control={form.control}
                                             name="transport_name"
@@ -1602,26 +1602,6 @@ function NewSaleForm() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Vehicle No</FormLabel>
-                                                    <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="book_no"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Book No</FormLabel>
-                                                    <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="lot_no"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Bilti/Lot No</FormLabel>
                                                     <Input {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
                                                 </FormItem>
                                             )}

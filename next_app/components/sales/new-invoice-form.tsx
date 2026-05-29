@@ -719,18 +719,6 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                         <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
                                                                     </FormItem>
                                                                 )} />
-                                                                <FormField control={form.control} name={`distributions.${index}.book_no`} render={({ field: f }) => (
-                                                                    <FormItem>
-                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Book No</FormLabel>
-                                                                        <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
-                                                                    </FormItem>
-                                                                )} />
-                                                                <FormField control={form.control} name={`distributions.${index}.lot_no`} render={({ field: f }) => (
-                                                                    <FormItem>
-                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Bilti/Lot No</FormLabel>
-                                                                        <Input {...f} value={f.value || ""} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
-                                                                    </FormItem>
-                                                                )} />
                                                             </div>
                                                         </div>
 
