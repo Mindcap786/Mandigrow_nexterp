@@ -142,7 +142,11 @@ export default function PurchaseBillsPage() {
             if (!search) return true;
             const q = search.toLowerCase();
             return supplier.name.toLowerCase().includes(q) || 
-                   (supplier.city || '').toLowerCase().includes(q);
+                   (supplier.city || '').toLowerCase().includes(q) ||
+                   (supplier.lots || []).some((l: any) => 
+                       (l.lot_code || '').toLowerCase().includes(q) ||
+                       (l.arrival?.reference_no || '').toLowerCase().includes(q)
+                   );
         });
 
     const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);

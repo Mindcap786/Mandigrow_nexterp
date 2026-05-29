@@ -8870,6 +8870,7 @@ def commit_mandi_session(**kwargs) -> dict:
             sale.unloadingcharges = buyer_packing
             # lot_no from the frontend screen → printed on buyer invoice
             sale.lotno = lot_prefix
+            sale.vehiclenumber = vehicle_no
 
             total_gross_amount = 0.0
             total_less_amount = 0.0
