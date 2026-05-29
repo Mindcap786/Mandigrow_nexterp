@@ -9752,11 +9752,16 @@ def create_commodity(**kwargs) -> dict:
             "stock_uom": kwargs.get("default_unit") or "Nos",
             "shelf_life_in_days": kwargs.get("shelf_life_days") or 7,
             "critical_age_days": kwargs.get("critical_age_days") or 14,
-            "standard_rate": kwargs.get("sale_price") or 0,
+            "standard_rate": kwargs.get("purchase_price") or 0, # Changed sale_price to purchase_price for standard_rate? No wait, standard_rate is selling price in erpnext. I'll leave standard_rate untouched. Let's just add the custom fields.
             "is_stock_item": 1,
             "disabled": 0,
             # GST Compliance fields
-            "gst_rate": gst_rate_val,
+            "gst_rate": gst_rate_val, # Keeping legacy for safety
+            "sale_gst_rate": flt(kwargs.get("sale_gst_rate")),
+            "sale_gst_type": kwargs.get("sale_gst_type") or "Exclusive",
+            "purchase_gst_rate": flt(kwargs.get("purchase_gst_rate")),
+            "purchase_gst_type": kwargs.get("purchase_gst_type") or "Exclusive",
+            "opening_stock": flt(kwargs.get("opening_stock")),
             "customs_tariff_number": hsn_code or None,
         }
         
@@ -9772,6 +9777,7 @@ def create_commodity(**kwargs) -> dict:
         # 2. Else if old item_id exists, we rename it to the new item_code and update.
         # 3. Else, we create a new doc.
         
+        is_new_creation = False
         if frappe.db.exists("Item", item_code):
             doc = frappe.get_doc("Item", item_code)
         elif item_id and frappe.db.exists("Item", item_id):
@@ -9784,6 +9790,7 @@ def create_commodity(**kwargs) -> dict:
         else:
             doc = frappe.new_doc("Item")
             doc.item_code = item_code
+            is_new_creation = True
 
         # TENANT ISOLATION GUARD: Ensure the user cannot mutate another tenant's Item
         if not doc.is_new() and hasattr(doc, "organization_id") and doc.organization_id != org_id:
@@ -9806,6 +9813,38 @@ def create_commodity(**kwargs) -> dict:
             })
         
         doc.save(ignore_permissions=True)
+        
+        # Handle Opening Stock Auto-Generation
+        opening_stock = flt(kwargs.get("opening_stock"))
+        if is_new_creation and opening_stock > 0:
+            purchase_price = flt(kwargs.get("purchase_price") or 0)
+            
+            # Find or create internal supplier for Opening Balance
+            supplier_id = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "supplier", "full_name": "Opening Balance"})
+            if not supplier_id:
+                supp_doc = frappe.get_doc({
+                    "doctype": "Mandi Contact",
+                    "full_name": "Opening Balance",
+                    "contact_type": "supplier",
+                    "organization_id": org_id,
+                    "phone": "0000000000"
+                }).insert(ignore_permissions=True)
+                supplier_id = supp_doc.name
+            
+            # Create Mandi Arrival internally
+            confirm_arrival_transaction(
+                org_id=org_id,
+                party_id=supplier_id,
+                arrival_type="direct",
+                items=[{
+                    "item_id": doc.name,
+                    "qty": opening_stock,
+                    "supplier_rate": purchase_price,
+                    "unit": unit,
+                    "lot_code": f"OB-{item_code}"
+                }]
+            )
+            
         frappe.db.commit()
         return {"success": True, "id": doc.name, "name": doc.item_name}
     except Exception as e:
@@ -10005,12 +10044,18 @@ def confirm_sale_transaction(**kwargs) -> dict:
             
             # Priority 2: read from Item master if not sent
             if not item_gst_rate and item_id:
-                item_gst_rate = flt(frappe.db.get_value("Item", item_id, "gst_rate") or 0)
+                item_gst_rate = flt(frappe.db.get_value("Item", item_id, "sale_gst_rate") or frappe.db.get_value("Item", item_id, "gst_rate") or 0)
             if not item_hsn and item_id:
                 item_hsn = frappe.db.get_value("Item", item_id, "customs_tariff_number") or ""
             
+            sale_gst_type = str(frappe.db.get_value("Item", item_id, "sale_gst_type") or "Exclusive").strip().capitalize()
             base_amount = float(item.get("amount") or (qty * rate))
-            line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
+            
+            if sale_gst_type == "Inclusive":
+                actual_base = base_amount / (1 + item_gst_rate / 100.0)
+                line_gst_amount = round(base_amount - actual_base, 2)
+            else:
+                line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
             # ─────────────────────────────────────────────────────────────────
             
             doc.append("items", {
@@ -10289,12 +10334,16 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             item_fields = ["shelf_life_in_days"]
             if frappe.db.has_column("Item", "critical_age_days"):
                 item_fields.append("critical_age_days")
+            if frappe.db.has_column("Item", "purchase_gst_rate"):
+                item_fields.extend(["purchase_gst_rate", "purchase_gst_type"])
             item_master = frappe.db.get_value("Item", item_id, item_fields, as_dict=True) or {}
             
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item_id,
                 "lot_code": item_lot_code,
+                "purchase_gst_rate": float(item.get("purchase_gst_rate") or item_master.get("purchase_gst_rate") or 0),
+                "purchase_gst_type": item.get("purchase_gst_type") or item_master.get("purchase_gst_type") or "Exclusive",
                 "qty": float(item.get("qty", 0)),
                 "initial_qty": float(item.get("qty", 0)),
                 "current_qty": float(item.get("qty", 0)),

@@ -59,6 +59,10 @@ class MandiArrival(Document):
         sum_lot_costs = 0.0  # packing + loading + farmer charges per lot
         sum_other_cuts = 0.0
         sum_reimbursable_costs = 0.0
+        total_purchase_gst = 0.0
+        exclusive_gst_total = 0.0
+        
+        arrival_type_str = (self.arrival_type or "direct").lower()
 
         for lot in self.get("items") or []:
             if not lot.short_code:
@@ -79,6 +83,21 @@ class MandiArrival(Document):
             rate = flt(lot.supplier_rate or 0)
             gross_amount = round(qty * rate, 2)           # Gross: full qty × rate
             net_amount = round(net_qty * rate, 2)         # Adjusted: after less_units
+
+            purchase_gst_amount = 0.0
+            if arrival_type_str == "direct":
+                gst_rate = flt(lot.purchase_gst_rate or 0)
+                if gst_rate > 0:
+                    gst_type = str(lot.purchase_gst_type or "Exclusive").strip().capitalize()
+                    if gst_type == "Inclusive":
+                        base_amount = net_amount / (1 + gst_rate / 100.0)
+                        purchase_gst_amount = net_amount - base_amount
+                    else:
+                        purchase_gst_amount = net_amount * (gst_rate / 100.0)
+                        exclusive_gst_total += purchase_gst_amount
+
+            lot.purchase_gst_amount = round(purchase_gst_amount, 2)
+            total_purchase_gst += lot.purchase_gst_amount
 
             farmer_cut = flt(lot.farmer_charges or 0)
             commission_base = max(0, net_amount)
@@ -108,11 +127,10 @@ class MandiArrival(Document):
         total_expenses = round(sum_lot_costs + arrival_costs, 2)
         total_reimbursable_expenses = round(sum_reimbursable_costs + arrival_costs, 2)
         
-        arrival_type_str = (self.arrival_type or "direct").lower()
         if arrival_type_str == "direct":
             mandi_total_earnings = round(sum_other_cuts, 2)  # Mandi keeps the Other Cut
-            # For direct, reimbursable expenses are added to the cost, but Other Cut (discount) is subtracted
-            net_payable = round(total_realized + total_reimbursable_expenses - sum_other_cuts, 2)
+            # For direct, reimbursable expenses are added to the cost, but Other Cut (discount) is subtracted, Exclusive GST is added.
+            net_payable = round(total_realized + total_reimbursable_expenses - sum_other_cuts + exclusive_gst_total, 2)
         else:
             mandi_total_earnings = round(total_commission + total_expenses, 2)
             net_payable = round(total_realized - mandi_total_earnings, 2)
@@ -122,3 +140,4 @@ class MandiArrival(Document):
         self.total_expenses = total_expenses
         self.mandi_total_earnings = mandi_total_earnings
         self.net_payable_farmer = net_payable
+        self.purchase_gst_total = round(total_purchase_gst, 2)

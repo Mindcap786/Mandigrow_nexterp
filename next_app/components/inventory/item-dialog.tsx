@@ -41,6 +41,12 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs"
 import { Check, ChevronsUpDown, Loader2, Package, QrCode, Printer } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { cn } from "@/lib/utils"
@@ -60,20 +66,19 @@ const itemSchema = z.object({
     category: z.string().optional(),
     sub_category: z.string().optional(),
     purchase_price: z.number().min(0).optional(),
-    sale_price: z.number().min(0).optional(),
-    minimum_price: z.number().min(0).optional(),
-    wholesale_price: z.number().min(0).optional(),
-    dealer_price: z.number().min(0).optional(),
-    average_cost: z.number().min(0).optional(),
-    min_stock_level: z.number().min(0).optional(),
     barcode: z.string().optional(),
     gst_rate: z.number().min(0).max(28).optional(),
+    sale_gst_rate: z.number().min(0).max(28).optional(),
+    sale_gst_type: z.string().optional(),
+    purchase_gst_rate: z.number().min(0).max(28).optional(),
+    purchase_gst_type: z.string().optional(),
     hsn_code: z.string().max(8).optional(),
     tracking_type: z.string().optional(),
     custom_attributes: z.record(z.string(), z.string()).optional(),
     internal_id: z.string().optional().or(z.literal("")),
     variety: z.string().optional(),
     grade: z.string().optional(),
+    opening_stock: z.number().min(0).optional(),
 })
 
 // GST & HSN auto-fill lookup — India Mandi commodities
@@ -223,18 +228,17 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             category: initialItem?.category || "",
             sub_category: initialItem?.sub_category || "",
             purchase_price: initialItem?.purchase_price || 0,
-            sale_price: initialItem?.sale_price || 0,
-            minimum_price: initialItem?.minimum_price || 0,
-            wholesale_price: initialItem?.wholesale_price || 0,
-            dealer_price: initialItem?.dealer_price || 0,
-            average_cost: initialItem?.average_cost || 0,
-            min_stock_level: initialItem?.min_stock_level || 0,
             barcode: initialItem?.barcode || "",
             gst_rate: initialItem?.gst_rate || 0,
+            sale_gst_rate: initialItem?.sale_gst_rate || 0,
+            sale_gst_type: initialItem?.sale_gst_type || "Exclusive",
+            purchase_gst_rate: initialItem?.purchase_gst_rate || 0,
+            purchase_gst_type: initialItem?.purchase_gst_type || "Exclusive",
             hsn_code: initialItem?.hsn_code || initialItem?.customs_tariff_number || "",
             tracking_type: initialItem?.tracking_type || "none",
             custom_attributes: initialItem?.custom_attributes || {},
             internal_id: initialItem?.internal_id || "",
+            opening_stock: initialItem?.opening_stock || 0,
         }
     })
 
@@ -295,20 +299,19 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 category: initialItem?.category || "",
                 sub_category: initialItem?.sub_category || "",
                 purchase_price: initialItem?.purchase_price || 0,
-                sale_price: initialItem?.sale_price || 0,
-                minimum_price: initialItem?.minimum_price || 0,
-                wholesale_price: initialItem?.wholesale_price || 0,
-                dealer_price: initialItem?.dealer_price || 0,
-                average_cost: initialItem?.average_cost || 0,
-                min_stock_level: initialItem?.min_stock_level || 0,
                 barcode: initialItem?.barcode || "",
                 gst_rate: initialItem?.gst_rate || 0,
+                sale_gst_rate: initialItem?.sale_gst_rate || 0,
+                sale_gst_type: initialItem?.sale_gst_type || "Exclusive",
+                purchase_gst_rate: initialItem?.purchase_gst_rate || 0,
+                purchase_gst_type: initialItem?.purchase_gst_type || "Exclusive",
                 hsn_code: initialItem?.hsn_code || initialItem?.customs_tariff_number || "",
                 tracking_type: initialItem?.tracking_type || "none",
                 ...sanitized,
                 variety,
                 grade,
                 custom_attributes: otherAttrs,
+                opening_stock: initialItem?.opening_stock || 0,
             })
             setSelectedImages([])
             setPreviewUrls([])
@@ -352,7 +355,12 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 ...data,
                 id: initialItem?.id,
                 hsn_code: data.hsn_code || "",
-                gst_rate: data.gst_rate || 0,
+                gst_rate: data.sale_gst_rate || data.gst_rate || 0,
+                sale_gst_rate: data.sale_gst_rate || 0,
+                sale_gst_type: data.sale_gst_type || "Exclusive",
+                purchase_gst_rate: data.purchase_gst_rate || 0,
+                purchase_gst_type: data.purchase_gst_type || "Exclusive",
+                opening_stock: data.opening_stock || 0,
                 shelf_life_days: data.shelf_life_days,
                 internal_id: data.internal_id?.trim() || null,
                 custom_attributes: finalAttrs
@@ -406,126 +414,127 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
 
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex-1 overflow-y-auto p-8 pt-4 custom-scrollbar">
-                        <div className="space-y-6">
-                            {isVisible('name') && (
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('name', 'Item Name (Required)')}</Label>
-                                    <Popover open={openCombobox} onOpenChange={setOpenCombobox} modal={true}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openCombobox}
-                                                className="w-full justify-between bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl hover:bg-gray-50 hover:text-gray-900 focus:ring-blue-500/20"
-                                            >
-                                                {form.watch("name")
-                                                    ? form.watch("name")
-                                                    : getLabel('name', "Select or type item...")}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[380px] p-0 bg-white border-gray-300 text-gray-900 shadow-xl z-[200]">
-                                            <Command className="bg-white">
-                                                {!initialItem && <CommandInput placeholder="Search user item..." className="text-gray-900 placeholder:text-gray-400" onValueChange={setSearchTerm} />}
-                                                <CommandList>
-                                                    <CommandEmpty className="py-6 text-center text-sm text-gray-700">
-                                                        <p>No item found.</p>
-                                                        {searchTerm && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                className="mt-2 text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50"
-                                                                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                onClick={() => {
-                                                                    form.setValue("name", searchTerm)
-                                                                    setOpenCombobox(false)
-                                                                }}
-                                                            >
-                                                                + Create "{searchTerm}"
-                                                            </Button>
-                                                        )}
-                                                    </CommandEmpty>
-                                                    {displayedItems.length > 0 && (
-                                                        <CommandGroup heading="Suggestions">
-                                                            {displayedItems.map((item) => (
-                                                                <CommandItem
-                                                                    key={item.name}
-                                                                    value={item.name}
-                                                                    onSelect={(currentValue) => {
-                                                                        form.setValue("name", item.name)
-                                                                        if (item.local_name) {
-                                                                            form.setValue("local_name", item.local_name)
-                                                                        }
-                                                                        const lookupKey = item.name.toLowerCase();
-                                                                        if (HSN_LOOKUP[lookupKey]) {
-                                                                            form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
-                                                                            form.setValue("gst_rate", HSN_LOOKUP[lookupKey].gst);
-                                                                        }
-                                                                        setOpenCombobox(false)
-                                                                    }}
+                        <Tabs defaultValue="metadata" className="w-full">
+                            <TabsList className="w-full mb-6 grid grid-cols-3 bg-gray-100 p-1 rounded-xl">
+                                <TabsTrigger value="metadata" className="font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Metadata</TabsTrigger>
+                                <TabsTrigger value="pricing" className="font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Pricing & GST</TabsTrigger>
+                                <TabsTrigger value="stock" className="font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Stock</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="metadata" className="space-y-6 mt-0">
+                                {isVisible('name') && (
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('name', 'Item Name (Required)')}</Label>
+                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox} modal={true}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={openCombobox}
+                                                    className="w-full justify-between bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl hover:bg-gray-50 hover:text-gray-900 focus:ring-blue-500/20"
+                                                >
+                                                    {form.watch("name")
+                                                        ? form.watch("name")
+                                                        : getLabel('name', "Select or type item...")}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[380px] p-0 bg-white border-gray-300 text-gray-900 shadow-xl z-[200]">
+                                                <Command className="bg-white">
+                                                    {!initialItem && <CommandInput placeholder="Search user item..." className="text-gray-900 placeholder:text-gray-400" onValueChange={setSearchTerm} />}
+                                                    <CommandList>
+                                                        <CommandEmpty className="py-6 text-center text-sm text-gray-700">
+                                                            <p>No item found.</p>
+                                                            {searchTerm && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    className="mt-2 text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50"
                                                                     onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                                                                     onClick={() => {
-                                                                        form.setValue("name", item.name)
-                                                                        if (item.local_name) {
-                                                                            form.setValue("local_name", item.local_name)
-                                                                        }
-                                                                        const lookupKey = item.name.toLowerCase();
-                                                                        if (HSN_LOOKUP[lookupKey]) {
-                                                                            form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
-                                                                            form.setValue("gst_rate", HSN_LOOKUP[lookupKey].gst);
-                                                                        }
+                                                                        form.setValue("name", searchTerm)
                                                                         setOpenCombobox(false)
                                                                     }}
-                                                                    className="!pointer-events-auto text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
                                                                 >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "mr-2 h-4 w-4 text-blue-600 shrink-0",
-                                                                            form.watch("name") === item.name ? "opacity-100" : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                    {(() => {
-                                                                        const visual = getIntelligentVisual(item.name, LucideIcons);
-                                                                        if (visual.type === 'img' && visual.src) {
-                                                                            return <img src={visual.src} alt={item.name} className="w-6 h-6 mr-3 object-contain shrink-0" />;
-                                                                        } else if (visual.type === 'icon' && visual.icon) {
-                                                                            const Icon = visual.icon;
-                                                                            return <Icon className="w-5 h-5 mr-3 text-slate-400 shrink-0" />;
-                                                                        }
-                                                                        return <Package className="w-5 h-5 mr-3 text-slate-400 shrink-0" />;
-                                                                    })()}
-                                                                    <span className="font-bold flex-1">{item.name}</span>
-                                                                    {item.local_name && <span className="ml-2 text-gray-500 text-xs font-medium">({item.local_name})</span>}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    )}
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                            )}
+                                                                    + Create "{searchTerm}"
+                                                                </Button>
+                                                            )}
+                                                        </CommandEmpty>
+                                                        {displayedItems.length > 0 && (
+                                                            <CommandGroup heading="Suggestions">
+                                                                {displayedItems.map((item) => (
+                                                                    <CommandItem
+                                                                        key={item.name}
+                                                                        value={item.name}
+                                                                        onSelect={(currentValue) => {
+                                                                            form.setValue("name", item.name)
+                                                                            if (item.local_name) {
+                                                                                form.setValue("local_name", item.local_name)
+                                                                            }
+                                                                            const lookupKey = item.name.toLowerCase();
+                                                                            if (HSN_LOOKUP[lookupKey]) {
+                                                                                form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
+                                                                                form.setValue("sale_gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                                form.setValue("purchase_gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                            }
+                                                                            setOpenCombobox(false)
+                                                                        }}
+                                                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                        onClick={() => {
+                                                                            form.setValue("name", item.name)
+                                                                            if (item.local_name) {
+                                                                                form.setValue("local_name", item.local_name)
+                                                                            }
+                                                                            const lookupKey = item.name.toLowerCase();
+                                                                            if (HSN_LOOKUP[lookupKey]) {
+                                                                                form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
+                                                                                form.setValue("sale_gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                                form.setValue("purchase_gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                            }
+                                                                            setOpenCombobox(false)
+                                                                        }}
+                                                                        className="!pointer-events-auto text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 h-4 w-4 text-blue-600 shrink-0",
+                                                                                form.watch("name") === item.name ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        {(() => {
+                                                                            const visual = getIntelligentVisual(item.name, LucideIcons);
+                                                                            if (visual.type === 'img' && visual.src) {
+                                                                                return <img src={visual.src} alt={item.name} className="w-6 h-6 mr-3 object-contain shrink-0" />;
+                                                                            } else if (visual.type === 'icon' && visual.icon) {
+                                                                                const Icon = visual.icon;
+                                                                                return <Icon className="w-5 h-5 mr-3 text-slate-400 shrink-0" />;
+                                                                            }
+                                                                            return <Package className="w-5 h-5 mr-3 text-slate-400 shrink-0" />;
+                                                                        })()}
+                                                                        <span className="font-bold flex-1">{item.name}</span>
+                                                                        {item.local_name && <span className="ml-2 text-gray-500 text-xs font-medium">({item.local_name})</span>}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        )}
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
 
-                            {isVisible('local_name') && (
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('local_name', 'Local Name (Optional)')}</Label>
-                                    <Input
-                                        placeholder={getLabel('local_name', "e.g. మామిడి పండు / आम")}
-                                        className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                        {...form.register("local_name")}
-                                    />
-                                </div>
-                            )}
+                                {isVisible('local_name') && (
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('local_name', 'Local Name (Optional)')}</Label>
+                                        <Input
+                                            placeholder={getLabel('local_name', "e.g. మామిడి పండు / आम")}
+                                            className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
+                                            {...form.register("local_name")}
+                                        />
+                                    </div>
+                                )}
 
-
-
-
-                            {/* Item Metadata (Shared) */}
-                            <div className="space-y-4 pt-4 border-t border-gray-100">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-2">Item Metadata</Label>
-
-                                {/* Common Specifications: Variety & Grade */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Variety</Label>
                                         <Input
@@ -556,7 +565,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                             {...form.register("internal_id")}
                                             onBlur={(e) => checkIdUniqueness(e.target.value)}
                                         />
-                                        <p className="text-[9px] text-gray-500 font-medium pl-1">Each code must be unique in your Mandi.</p>
+                                        <p className="text-[9px] text-gray-500 font-medium pl-1">Must be unique.</p>
                                         {idConflict && (
                                             <p className="text-[9px] text-red-600 font-bold uppercase tracking-tight">{idConflict}</p>
                                         )}
@@ -580,34 +589,6 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                     </div>
                                 </div>
 
-                                {/* HSN and GST Rate */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">HSN Code</Label>
-                                        <Input
-                                            placeholder="e.g. 0804"
-                                            maxLength={8}
-                                            className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all font-mono"
-                                            {...form.register("hsn_code")}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">GST Rate (%)</Label>
-                                        <div className="relative">
-                                            <Input
-                                                type="number"
-                                                placeholder="0"
-                                                min={0}
-                                                max={28}
-                                                step="0.01"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all pl-10 font-mono"
-                                                {...form.register("gst_rate", { valueAsNumber: true })}
-                                            />
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {isVisible('default_unit') && (
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('default_unit', 'Default Unit')}</Label>
@@ -626,89 +607,10 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                         </Select>
                                     </div>
                                 )}
-                            </div>
 
-                            {/* Wholesaler Specific Pricing */}
-                            {profile?.business_domain === 'wholesaler' && (
-                                <div className="space-y-4 pt-4 border-t border-gray-100">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-2 mt-4">Pricing Setup</Label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Purchase Price</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                                {...form.register("purchase_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Sale Price</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                                {...form.register("sale_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Minimum Price</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                                {...form.register("minimum_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Wholesale Price</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                                {...form.register("wholesale_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Dealer Price</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                                {...form.register("dealer_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Average Cost</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                                {...form.register("average_cost", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2 mt-4">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Minimum Stock Warning Level</Label>
-                                        <Input
-                                            type="number"
-                                            placeholder="Min Qty"
-                                            className="w-full bg-white border-gray-300 text-amber-600 font-bold h-12 rounded-xl focus:border-amber-500 transition-all"
-                                            {...form.register("min_stock_level", { valueAsNumber: true })}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Shelf Life & Critical Days — MandiGrow only */}
-                            {true && (
                                 <div className="space-y-4 pt-4 border-t border-gray-100">
                                     <div className="space-y-1">
                                         <h4 className="font-black leading-none text-black">Shelf Life Config</h4>
-                                        <p className="text-xs text-slate-700">Example: Shelf Life = 10, Critical Age = 15 → Fresh for 10 days, Aging from day 10–15, Critical after day 15.</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
@@ -720,7 +622,6 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                     setValueAs: (v) => v === "" || v === null || v === undefined ? null : Number(v)
                                                 })}
                                             />
-                                            <p className="text-[9px] text-slate-600 pl-1">Fresh 0 → X days. After X days → 🟡 Aging</p>
                                         </div>
                                         <div className="space-y-1">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-700">Critical Age (days)</Label>
@@ -731,94 +632,175 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                     setValueAs: (v) => v === "" || v === null || v === undefined ? null : Number(v)
                                                 })}
                                             />
-                                            <p className="text-[9px] text-slate-600 pl-1">Aging X → Y days. After Y days → 🔴 Critical</p>
                                         </div>
                                     </div>
                                 </div>
-                            )}
 
-                        </div>
-                        {/* Visual Asset & Image Gallery Section */}
-                        <div className="pt-6 space-y-4">
-                            <div className="flex justify-between items-center">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Product Gallery</Label>
-                                <span className="text-[9px] font-black text-slate-600">{existingImages.length + selectedImages.length} Images</span>
-                            </div>
-
-                            <div className="grid grid-cols-4 gap-3">
-                                {/* Display Existing Images */}
-                                {existingImages.map((img) => (
-                                    <div key={img.id} className="aspect-square bg-white border border-slate-100 rounded-xl overflow-hidden relative group">
-                                        <img src={img.url} alt="Item" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    await supabase.schema('mandi').from('item_images').delete().eq('id', img.id);
-                                                    fetchExistingImages();
-                                                }}
-                                                className="p-1.5 bg-red-500 rounded-full text-white hover:scale-110 transition-transform"
-                                            >
-                                                <LucideIcons.X className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                        {img.is_primary && (
-                                            <div className="absolute top-1 left-1 bg-blue-600 text-white text-[7px] px-1 rounded uppercase font-black">Main</div>
-                                        )}
+                                <div className="pt-6 space-y-4 border-t border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Product Gallery</Label>
+                                        <span className="text-[9px] font-black text-slate-600">{existingImages.length + selectedImages.length} Images</span>
                                     </div>
-                                ))}
 
-                                {/* Display Selected (New) Images */}
-                                {previewUrls.map((url, idx) => (
-                                    <div key={idx} className="aspect-square bg-blue-50 border border-blue-100 rounded-xl overflow-hidden relative group">
-                                        <img src={url} alt="New" className="w-full h-full object-cover opacity-70" />
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="bg-blue-600/80 text-white text-[8px] px-1.5 font-black uppercase rounded-full">New</div>
-                                        </div>
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedImages(prev => prev.filter((_, i) => i !== idx));
-                                                    setPreviewUrls(prev => prev.filter((_, i) => i !== idx));
-                                                }}
-                                                className="p-1.5 bg-white rounded-full text-red-600 hover:scale-110 transition-transform"
-                                            >
-                                                <LucideIcons.X className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
+                                    <div className="grid grid-cols-4 gap-3">
+                                        {existingImages.map((img) => (
+                                            <div key={img.id} className="aspect-square bg-white border border-slate-100 rounded-xl overflow-hidden relative group">
+                                                <img src={img.url} alt="Item" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            await supabase.schema('mandi').from('item_images').delete().eq('id', img.id);
+                                                            fetchExistingImages();
+                                                        }}
+                                                        className="p-1.5 bg-red-500 rounded-full text-white hover:scale-110 transition-transform"
+                                                    >
+                                                        <LucideIcons.X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                                {img.is_primary && (
+                                                    <div className="absolute top-1 left-1 bg-blue-600 text-white text-[7px] px-1 rounded uppercase font-black">Main</div>
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        {previewUrls.map((url, idx) => (
+                                            <div key={idx} className="aspect-square bg-blue-50 border border-blue-100 rounded-xl overflow-hidden relative group">
+                                                <img src={url} alt="New" className="w-full h-full object-cover opacity-70" />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="bg-blue-600/80 text-white text-[8px] px-1.5 font-black uppercase rounded-full">New</div>
+                                                </div>
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedImages(prev => prev.filter((_, i) => i !== idx));
+                                                            setPreviewUrls(prev => prev.filter((_, i) => i !== idx));
+                                                        }}
+                                                        className="p-1.5 bg-white rounded-full text-red-600 hover:scale-110 transition-transform"
+                                                    >
+                                                        <LucideIcons.X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                                        >
+                                            <LucideIcons.Upload className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
+                                            <span className="text-[8px] font-black text-slate-600 group-hover:text-blue-600 uppercase">Add</span>
+                                        </button>
                                     </div>
-                                ))}
-
-                                {/* Add More Button */}
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-blue-400 hover:bg-blue-50 transition-all group"
-                                >
-                                    <LucideIcons.Upload className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
-                                    <span className="text-[8px] font-black text-slate-600 group-hover:text-blue-600 uppercase">Add</span>
-                                </button>
-                            </div>
-
-                            <div className="bg-amber-50 border border-amber-100 p-3 rounded-2xl flex gap-3">
-                                <LucideIcons.Zap className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                <div className="space-y-0.5">
-                                    <p className="text-[10px] font-black text-amber-900 leading-none">AI Insight</p>
-                                    <p className="text-[9px] font-medium text-amber-700/80">Add multiple images from different angles to improve marketplace visibility.</p>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" multiple className="hidden" />
                                 </div>
-                            </div>
+                            </TabsContent>
 
-                            {/* Hidden file input */}
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileSelect}
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                            />
-                        </div>
+                            <TabsContent value="pricing" className="space-y-6 mt-0">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Purchase Price</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
+                                        {...form.register("purchase_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
+                                    />
+                                    <p className="text-[9px] text-gray-500 font-medium pl-1">Standard buy price for reference (optional).</p>
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-gray-100">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-2">GST Details</Label>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">HSN Code</Label>
+                                        <Input
+                                            placeholder="e.g. 0804"
+                                            maxLength={8}
+                                            className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all font-mono"
+                                            {...form.register("hsn_code")}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 pt-2">
+                                        <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Purchase GST</Label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="0"
+                                                        min={0}
+                                                        max={28}
+                                                        step="0.01"
+                                                        className="w-full bg-white border-gray-300 text-gray-900 font-bold h-10 rounded-lg focus:border-indigo-500 transition-all pl-8 font-mono"
+                                                        {...form.register("purchase_gst_rate", { valueAsNumber: true })}
+                                                    />
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <Select onValueChange={(val: any) => form.setValue("purchase_gst_type", val)} defaultValue={form.watch("purchase_gst_type") || "Exclusive"}>
+                                                    <SelectTrigger className="w-full h-10 bg-white border-gray-300 font-bold rounded-lg">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Exclusive" className="font-bold">Exclusive</SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">Inclusive</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Sale GST</Label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="0"
+                                                        min={0}
+                                                        max={28}
+                                                        step="0.01"
+                                                        className="w-full bg-white border-gray-300 text-gray-900 font-bold h-10 rounded-lg focus:border-indigo-500 transition-all pl-8 font-mono"
+                                                        {...form.register("sale_gst_rate", { valueAsNumber: true })}
+                                                    />
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <Select onValueChange={(val: any) => form.setValue("sale_gst_type", val)} defaultValue={form.watch("sale_gst_type") || "Exclusive"}>
+                                                    <SelectTrigger className="w-full h-10 bg-white border-gray-300 font-bold rounded-lg">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Exclusive" className="font-bold">Exclusive</SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">Inclusive</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="stock" className="space-y-6 mt-0">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Opening Stock</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
+                                        disabled={!!initialItem}
+                                        {...form.register("opening_stock", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
+                                    />
+                                    <p className="text-[9px] text-gray-500 font-medium pl-1">
+                                        {initialItem ? "Opening stock cannot be modified after creation. Use stock entry instead." : "Initial stock available in your Mandi."}
+                                    </p>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
                     </div>
 
                     <div className="p-8 bg-gray-50 border-t border-gray-100">
