@@ -9561,6 +9561,9 @@ def create_commodity(**kwargs) -> dict:
     Creates or updates a commodity (Item in ERPNext).
     Ensures dependencies like Item Group exist.
     """
+    old_ignore = frappe.flags.ignore_permissions
+    frappe.flags.ignore_permissions = True
+    
     try:
         name = kwargs.get("name")
         if not name:
@@ -9836,12 +9839,14 @@ def create_commodity(**kwargs) -> dict:
                 org_id=org_id,
                 party_id=supplier_id,
                 arrival_type="direct",
+                is_opening_balance=True,
                 items=[{
                     "item_id": doc.name,
                     "qty": opening_stock,
                     "supplier_rate": purchase_price,
                     "unit": unit,
-                    "lot_code": f"OB-{item_code}"
+                    "lot_code": f"OB-{item_code}",
+                    "purchase_gst_rate": 0,
                 }]
             )
             
@@ -9851,6 +9856,60 @@ def create_commodity(**kwargs) -> dict:
         frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "create_commodity Failed")
         return {"success": False, "error": str(e)}
+    finally:
+        frappe.flags.ignore_permissions = old_ignore
+
+@frappe.whitelist(allow_guest=False)
+def delete_commodity(item_id: str) -> dict:
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    try:
+        if not frappe.db.exists("Item", item_id):
+            return {"success": False, "error": "Item not found"}
+
+        # 1. Check for real transactions (Sales or non-Opening Balance Arrivals)
+        has_real_sales = frappe.db.count("Mandi Sale Item", {"item_id": item_id}) > 0
+        has_real_purchases = False
+        
+        # Check all lots for this item
+        lots = frappe.get_all("Mandi Lot", filters={"item_id": item_id}, fields=["name", "parent", "lot_code"])
+        ob_arrivals = set()
+        
+        for lot in lots:
+            if not lot.parent: continue
+            if lot.lot_code.startswith("OB-"):
+                ob_arrivals.add(lot.parent)
+            else:
+                has_real_purchases = True
+                
+        # Also check direct GL entries or Stock Ledger if needed, but Mandi Sale/Arrival is the source of truth
+        if has_real_sales or has_real_purchases:
+            # We must Disable instead of Delete to protect ledger
+            frappe.db.set_value("Item", item_id, "disabled", 1, update_modified=True)
+            return {"success": True, "message": "Item disabled successfully. It cannot be permanently deleted because it has real sales or purchases attached.", "action": "disabled"}
+
+        # 2. It's safe to fully delete. First, cancel and delete OB Arrivals if any
+        frappe.flags.ignore_permissions = True
+        for arr_name in ob_arrivals:
+            if frappe.db.exists("Mandi Arrival", arr_name):
+                arr_doc = frappe.get_doc("Mandi Arrival", arr_name)
+                if arr_doc.docstatus == 1:
+                    arr_doc.cancel()
+                frappe.delete_doc("Mandi Arrival", arr_name, force=True, ignore_permissions=True)
+
+        # Now delete the item
+        frappe.delete_doc("Item", item_id, force=True, ignore_permissions=True)
+        return {"success": True, "message": "Item completely deleted along with its Opening Balance.", "action": "deleted"}
+
+    except frappe.LinkExistsError:
+        # Fallback if there's an unknown linked document
+        frappe.db.set_value("Item", item_id, "disabled", 1, update_modified=True)
+        return {"success": True, "message": "Item disabled (could not be fully deleted due to linked records).", "action": "disabled"}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "delete_commodity Failed")
+        return {"success": False, "error": str(e)}
+    finally:
+        frappe.flags.ignore_permissions = False
 
 def _get_next_annual_bill_no(doctype: str, party_field: str, party_id: str) -> str:
     """
@@ -10338,12 +10397,13 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 item_fields.extend(["purchase_gst_rate", "purchase_gst_type"])
             item_master = frappe.db.get_value("Item", item_id, item_fields, as_dict=True) or {}
             
+            is_ob = payload.get("is_opening_balance") is True
             lot_data = {
                 "doctype": "Mandi Lot",
                 "item_id": item_id,
                 "lot_code": item_lot_code,
-                "purchase_gst_rate": float(item.get("purchase_gst_rate") or item_master.get("purchase_gst_rate") or 0),
-                "purchase_gst_type": item.get("purchase_gst_type") or item_master.get("purchase_gst_type") or "Exclusive",
+                "purchase_gst_rate": 0.0 if is_ob else float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0),
+                "purchase_gst_type": "Exclusive" if is_ob else (item.get("purchase_gst_type") or item_master.get("purchase_gst_type") or "Exclusive"),
                 "qty": float(item.get("qty", 0)),
                 "initial_qty": float(item.get("qty", 0)),
                 "current_qty": float(item.get("qty", 0)),

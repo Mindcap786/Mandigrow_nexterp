@@ -705,9 +705,12 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                         type="number"
                                         placeholder="0.00"
                                         className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                        {...form.register("purchase_price", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
+                                        disabled={!!initialItem}
+                                        {...form.register("purchase_price", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                                     />
-                                    <p className="text-[9px] text-gray-500 font-medium pl-1">Standard buy price for reference (optional).</p>
+                                    <p className="text-[9px] text-gray-500 font-medium pl-1">
+                                        {initialItem ? "Purchase price cannot be modified after creation." : "Standard buy price for reference (optional)."}
+                                    </p>
                                 </div>
 
                                 <div className="space-y-4 pt-4 border-t border-gray-100">
@@ -735,7 +738,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                         max={28}
                                                         step="0.01"
                                                         className="w-full bg-white border-gray-300 text-gray-900 font-bold h-10 rounded-lg focus:border-indigo-500 transition-all pl-8 font-mono"
-                                                        {...form.register("purchase_gst_rate", { valueAsNumber: true })}
+                                                        {...form.register("purchase_gst_rate", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                                                     />
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
                                                 </div>
@@ -764,7 +767,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                         max={28}
                                                         step="0.01"
                                                         className="w-full bg-white border-gray-300 text-gray-900 font-bold h-10 rounded-lg focus:border-indigo-500 transition-all pl-8 font-mono"
-                                                        {...form.register("sale_gst_rate", { valueAsNumber: true })}
+                                                        {...form.register("sale_gst_rate", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                                                     />
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
                                                 </div>
@@ -793,7 +796,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                         placeholder="0.00"
                                         className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
                                         disabled={!!initialItem}
-                                        {...form.register("opening_stock", { setValueAs: (v) => v === "" ? 0 : Number(v) })}
+                                        {...form.register("opening_stock", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                                     />
                                     <p className="text-[9px] text-gray-500 font-medium pl-1">
                                         {initialItem ? "Opening stock cannot be modified after creation. Use stock entry instead." : "Initial stock available in your Mandi."}

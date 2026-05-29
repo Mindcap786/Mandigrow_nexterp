@@ -141,3 +141,29 @@ class MandiArrival(Document):
         self.mandi_total_earnings = mandi_total_earnings
         self.net_payable_farmer = net_payable
         self.purchase_gst_total = round(total_purchase_gst, 2)
+        
+        # Calculate GST Split
+        self.cgst_amount = 0.0
+        self.sgst_amount = 0.0
+        self.igst_amount = 0.0
+        
+        if self.purchase_gst_total > 0 and arrival_type_str == "direct":
+            try:
+                org_id = self.organization_id
+                if not org_id:
+                    from mandigrow.api import _get_user_org
+                    org_id = _get_user_org()
+                
+                if org_id:
+                    from mandigrow.api import _get_org_info
+                    org_data = _get_org_info(org_id)
+                    gst_type = (org_data.get("gst_type") or "intra").lower()
+                    
+                    if gst_type == "intra":
+                        self.cgst_amount = round(self.purchase_gst_total / 2.0, 2)
+                        self.sgst_amount = round(self.purchase_gst_total / 2.0, 2)
+                    elif gst_type == "inter":
+                        self.igst_amount = self.purchase_gst_total
+            except Exception as e:
+                frappe.log_error(f"Error calculating GST split in Mandi Arrival: {str(e)}")
+

@@ -145,6 +145,14 @@ def get_comm_acc(company=None):       return get_acc("Commission Income", compan
 def get_stock_acc(company=None):      return get_acc("Stock In Hand", company)
 def get_expense_acc(company=None):    return get_acc("Expense Recovery", company)
 
+def get_cgst_input_acc(company=None): return get_acc("CGST Input", company)
+def get_sgst_input_acc(company=None): return get_acc("SGST Input", company)
+def get_igst_input_acc(company=None): return get_acc("IGST Input", company)
+
+def get_cgst_output_acc(company=None): return get_acc("CGST Output", company)
+def get_sgst_output_acc(company=None): return get_acc("SGST Output", company)
+def get_igst_output_acc(company=None): return get_acc("IGST Output", company)
+
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 
@@ -156,7 +164,13 @@ def _resolve_parent_account(company, base_name):
         "Stock In Hand": ["Stock Assets", "Direct Assets", "Current Assets"],
         "Creditors": ["Account Payable", "Creditors", "Current Liabilities"],
         "Debtors": ["Account Receivable", "Debtors", "Current Assets"],
-        "Commission Income": ["Direct Income", "Income", "Revenue"]
+        "Commission Income": ["Direct Income", "Income", "Revenue"],
+        "CGST Input": ["Duties and Taxes", "Current Liabilities", "Current Assets"],
+        "SGST Input": ["Duties and Taxes", "Current Liabilities", "Current Assets"],
+        "IGST Input": ["Duties and Taxes", "Current Liabilities", "Current Assets"],
+        "CGST Output": ["Duties and Taxes", "Current Liabilities"],
+        "SGST Output": ["Duties and Taxes", "Current Liabilities"],
+        "IGST Output": ["Duties and Taxes", "Current Liabilities"],
     }
     
     parents = search_map.get(base_name, ["Current Assets"])
@@ -427,14 +441,48 @@ def post_arrival_ledger(doc, method=None):
         # Mandi bears expenses, so they are added to the supplier payable and the stock cost.
         total_expenses = _flt(doc.total_expenses)
         net_payable = _flt(doc.net_payable_farmer)
+        purchase_gst = _flt(doc.get("purchase_gst_total") or getattr(doc, "purchase_gst_total", 0))
+        cgst = _flt(doc.get("cgst_amount") or getattr(doc, "cgst_amount", 0))
+        sgst = _flt(doc.get("sgst_amount") or getattr(doc, "sgst_amount", 0))
+        igst = _flt(doc.get("igst_amount") or getattr(doc, "igst_amount", 0))
+        
+        stock_cost = round(net_payable - purchase_gst, 2)
+        
         if net_payable > 0:
-            goods_accounts.append({
-                "account":                   get_stock_acc(company),
-                "debit_in_account_currency": net_payable,
-                "against_voucher_type":      "Mandi Arrival",
-                "against_voucher":           doc.name,
-                "user_remark":               f"Direct purchase received from {party_name} — {bill_ref}{details_str}",
-            })
+            if stock_cost > 0:
+                goods_accounts.append({
+                    "account":                   get_stock_acc(company),
+                    "debit_in_account_currency": stock_cost,
+                    "against_voucher_type":      "Mandi Arrival",
+                    "against_voucher":           doc.name,
+                    "user_remark":               f"Direct purchase received from {party_name} — {bill_ref}{details_str}",
+                })
+            
+            if cgst > 0:
+                goods_accounts.append({
+                    "account":                   get_cgst_input_acc(company),
+                    "debit_in_account_currency": cgst,
+                    "against_voucher_type":      "Mandi Arrival",
+                    "against_voucher":           doc.name,
+                    "user_remark":               f"CGST Input on {bill_ref}",
+                })
+            if sgst > 0:
+                goods_accounts.append({
+                    "account":                   get_sgst_input_acc(company),
+                    "debit_in_account_currency": sgst,
+                    "against_voucher_type":      "Mandi Arrival",
+                    "against_voucher":           doc.name,
+                    "user_remark":               f"SGST Input on {bill_ref}",
+                })
+            if igst > 0:
+                goods_accounts.append({
+                    "account":                   get_igst_input_acc(company),
+                    "debit_in_account_currency": igst,
+                    "against_voucher_type":      "Mandi Arrival",
+                    "against_voucher":           doc.name,
+                    "user_remark":               f"IGST Input on {bill_ref}",
+                })
+
             if net_payable > 0:
                 goods_accounts.append({
                     "account":                    payable_acc,
@@ -664,6 +712,13 @@ def post_sale_ledger(doc, method=None):
     cost_center = _get_cost_center(company)
     
     # A. Sale Legs (Revenue and Party Liability)
+    cgst_out = _flt(doc.get("cgst_amount") or getattr(doc, "cgst_amount", 0))
+    sgst_out = _flt(doc.get("sgst_amount") or getattr(doc, "sgst_amount", 0))
+    igst_out = _flt(doc.get("igst_amount") or getattr(doc, "igst_amount", 0))
+    total_gst_out = cgst_out + sgst_out + igst_out
+    
+    stock_credit = round(total_amount - total_gst_out, 2)
+
     sale_legs = [
         {
             "account":                   get_debtor_acc(company),
@@ -676,18 +731,54 @@ def post_sale_ledger(doc, method=None):
             "account_currency":          "INR",
             "exchange_rate":             1,
             "cost_center":               cost_center
-        },
-        {
+        }
+    ]
+    
+    if stock_credit > 0:
+        sale_legs.append({
             "account":                    get_stock_acc(company),
-            "credit_in_account_currency": total_amount,
+            "credit_in_account_currency": stock_credit,
             "against_voucher_type":      "Mandi Sale",
             "against_voucher":           doc.name,
             "user_remark":                f"Stock issued — {bill_ref}",
             "account_currency":           "INR",
             "exchange_rate":              1,
             "cost_center":                cost_center
-        }
-    ]
+        })
+        
+    if cgst_out > 0:
+        sale_legs.append({
+            "account":                    get_cgst_output_acc(company),
+            "credit_in_account_currency": cgst_out,
+            "against_voucher_type":      "Mandi Sale",
+            "against_voucher":           doc.name,
+            "user_remark":                f"CGST Output on {bill_ref}",
+            "account_currency":           "INR",
+            "exchange_rate":              1,
+            "cost_center":                cost_center
+        })
+    if sgst_out > 0:
+        sale_legs.append({
+            "account":                    get_sgst_output_acc(company),
+            "credit_in_account_currency": sgst_out,
+            "against_voucher_type":      "Mandi Sale",
+            "against_voucher":           doc.name,
+            "user_remark":                f"SGST Output on {bill_ref}",
+            "account_currency":           "INR",
+            "exchange_rate":              1,
+            "cost_center":                cost_center
+        })
+    if igst_out > 0:
+        sale_legs.append({
+            "account":                    get_igst_output_acc(company),
+            "credit_in_account_currency": igst_out,
+            "against_voucher_type":      "Mandi Sale",
+            "against_voucher":           doc.name,
+            "user_remark":                f"IGST Output on {bill_ref}",
+            "account_currency":           "INR",
+            "exchange_rate":              1,
+            "cost_center":                cost_center
+        })
 
     # B. Receipt Legs (Money in and Party Credit)
     # We ALWAYS build these if there is a payment, so we can create a separate JV.
