@@ -988,6 +988,16 @@ def _tag_gl_entries(je_name, voucher_type, voucher_no):
     
 def on_arrival_submit(doc, method=None):
     """Dispatches to ledger + stock receipt on Mandi Arrival submit."""
+    # ── OPENING BALANCE GUARD ────────────────────────────────────────────────
+    # Opening Stock bypasses all Purchase Bills and Daybook Ledger entries.
+    # It purely enters the Mandi inventory for future sales P&L tracking.
+    party_name = _party_name(doc.party_id)
+    if party_name == "Opening Balance":
+        frappe.db.set_value("Mandi Arrival", doc.name, "status", "Paid", update_modified=False)
+        frappe.logger().info(f"[on_arrival_submit] Skipping {doc.name} — Opening Balance requires no ledger/purchase bill.")
+        return
+    # ─────────────────────────────────────────────────────────────────────────
+
     try:
         post_arrival_ledger(doc, method)
     except Exception as exc:
