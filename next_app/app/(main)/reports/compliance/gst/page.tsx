@@ -799,7 +799,6 @@ export default function GSTReportsPage() {
                                 </TableBody>
                             </Table>
                         </div>
-                        </div>
                     </TabsContent>
                 </Tabs>
             </Card>
