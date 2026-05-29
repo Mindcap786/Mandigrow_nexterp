@@ -2244,40 +2244,7 @@ def get_commodities() -> list:
 
     return {"commodities": items}
     
-@frappe.whitelist()
-def delete_commodity(id: str):
-    """Delete a commodity (Item)."""
-    if not id:
-        frappe.throw("Item ID is required for deletion.")
 
-    # Tenant guard: verify item belongs to user's organization
-    from mandigrow.mandigrow.logic.tenancy import is_super_admin
-    if not is_super_admin():
-        org_id = _get_user_org()
-        item_org = frappe.db.get_value("Item", id, "organization_id")
-        if not item_org or item_org != org_id:
-            frappe.throw(_("You do not have permission to delete this item."), frappe.PermissionError)
-
-    try:
-        # Attempt hard delete first — only possible if no linked transactions exist
-        try:
-            frappe.delete_doc("Item", id, ignore_permissions=True)
-            frappe.db.commit()
-            return {"success": True, "action": "deleted"}
-        except frappe.LinkExistsError:
-            # Item is linked to sales/purchases — ERPNext best practice: SOFT DELETE (disable)
-            # This preserves audit trail and financial integrity
-            doc = frappe.get_doc("Item", id)
-            doc.disabled = 1
-            doc.save(ignore_permissions=True)
-            frappe.db.commit()
-            return {
-                "success": True,
-                "action": "disabled",
-                "message": f"'{doc.item_name}' is linked to existing transactions and cannot be permanently deleted. It has been disabled and will no longer appear in new transactions."
-            }
-    except Exception as e:
-        frappe.throw(f"Failed to delete item: {str(e)}")
 
 
 @frappe.whitelist(allow_guest=False)
@@ -9756,7 +9723,6 @@ def create_commodity(**kwargs) -> dict:
             "stock_uom": kwargs.get("default_unit") or "Nos",
             "shelf_life_in_days": kwargs.get("shelf_life_days") or 7,
             "critical_age_days": kwargs.get("critical_age_days") or 14,
-            "standard_rate": kwargs.get("purchase_price") or 0, # Changed sale_price to purchase_price for standard_rate? No wait, standard_rate is selling price in erpnext. I'll leave standard_rate untouched. Let's just add the custom fields.
             "is_stock_item": 1,
             "disabled": 0,
             # GST Compliance fields
@@ -9861,19 +9827,24 @@ def create_commodity(**kwargs) -> dict:
         frappe.flags.ignore_permissions = old_ignore
 
 @frappe.whitelist(allow_guest=False)
-def delete_commodity(item_id: str) -> dict:
+def delete_commodity(id: str = None, item_id: str = None) -> dict:
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
+    
+    target_id = id or item_id
+    if not target_id:
+        return {"success": False, "error": "Item ID is required"}
+        
     try:
-        if not frappe.db.exists("Item", item_id):
+        if not frappe.db.exists("Item", target_id):
             return {"success": False, "error": "Item not found"}
 
         # 1. Check for real transactions (Sales or non-Opening Balance Arrivals)
-        has_real_sales = frappe.db.count("Mandi Sale Item", {"item_id": item_id}) > 0
+        has_real_sales = frappe.db.count("Mandi Sale Item", {"item_id": target_id}) > 0
         has_real_purchases = False
         
         # Check all lots for this item
-        lots = frappe.get_all("Mandi Lot", filters={"item_id": item_id}, fields=["name", "parent", "lot_code"])
+        lots = frappe.get_all("Mandi Lot", filters={"item_id": target_id}, fields=["name", "parent", "lot_code"])
         ob_arrivals = set()
         
         for lot in lots:
@@ -9886,7 +9857,7 @@ def delete_commodity(item_id: str) -> dict:
         # Also check direct GL entries or Stock Ledger if needed, but Mandi Sale/Arrival is the source of truth
         if has_real_sales or has_real_purchases:
             # We must Disable instead of Delete to protect ledger
-            frappe.db.set_value("Item", item_id, "disabled", 1, update_modified=True)
+            frappe.db.set_value("Item", target_id, "disabled", 1, update_modified=True)
             return {"success": True, "message": "Item disabled successfully. It cannot be permanently deleted because it has real sales or purchases attached.", "action": "disabled"}
 
         # 2. It's safe to fully delete. First, cancel and delete OB Arrivals if any
