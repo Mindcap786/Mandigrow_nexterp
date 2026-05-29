@@ -749,8 +749,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="Exclusive" className="font-bold">Exclusive</SelectItem>
-                                                        <SelectItem value="Inclusive" className="font-bold">Inclusive</SelectItem>
+                                                        <SelectItem value="Exclusive" className="font-bold">Gst excluding purchase price</SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">Gst including purchase price</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -778,8 +778,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="Exclusive" className="font-bold">Exclusive</SelectItem>
-                                                        <SelectItem value="Inclusive" className="font-bold">Inclusive</SelectItem>
+                                                        <SelectItem value="Exclusive" className="font-bold">Gst excluding Sale price</SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">Gst including Sale price</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
