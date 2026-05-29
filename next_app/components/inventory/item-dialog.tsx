@@ -79,6 +79,7 @@ const itemSchema = z.object({
     variety: z.string().optional(),
     grade: z.string().optional(),
     opening_stock: z.number().min(0).optional(),
+    storage_location: z.string().optional(),
 })
 
 // GST & HSN auto-fill lookup — India Mandi commodities
@@ -215,6 +216,28 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
 
     const [openCombobox, setOpenCombobox] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const [storageLocations, setStorageLocations] = useState<{name: string, location_name: string}[]>([])
+
+    useEffect(() => {
+        if (open) {
+            const fetchLocations = async () => {
+                try {
+                    const res: any = await callApi('frappe.client.get_list', {
+                        doctype: 'Mandi Storage Location',
+                        fields: ['name', 'location_name'],
+                        filters: { is_active: 1 },
+                        limit_page_length: 100
+                    });
+                    if (res && res.message) {
+                        setStorageLocations(res.message);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch storage locations:", err);
+                }
+            };
+            fetchLocations();
+        }
+    }, [open]);
 
     const form = useForm<ItemFormValues>({
         resolver: zodResolver(itemSchema),
@@ -239,6 +262,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             custom_attributes: initialItem?.custom_attributes || {},
             internal_id: initialItem?.internal_id || "",
             opening_stock: initialItem?.opening_stock || 0,
+            storage_location: initialItem?.storage_location || "",
         }
     })
 
@@ -312,6 +336,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 grade,
                 custom_attributes: otherAttrs,
                 opening_stock: initialItem?.opening_stock || 0,
+                storage_location: initialItem?.storage_location || "",
             })
             setSelectedImages([])
             setPreviewUrls([])
@@ -346,6 +371,20 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
         console.time("ItemSave")
 
         try {
+            const price = data.purchase_price || 0;
+            const stock = data.opening_stock || 0;
+
+            if (stock > 0 && price <= 0) {
+                toast({ title: "Validation Error", description: "Purchase price must be greater than 0 when entering opening stock.", variant: "destructive" });
+                setLoadingState(null);
+                return;
+            }
+            if (stock > 0 && !data.storage_location) {
+                toast({ title: "Validation Error", description: "Storage location is required when entering opening stock.", variant: "destructive" });
+                setLoadingState(null);
+                return;
+            }
+
             // Merge variety/grade into custom_attributes
             const finalAttrs = { ...(data.custom_attributes || {}) }
             if (data.variety) finalAttrs.Variety = data.variety
@@ -361,6 +400,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 purchase_gst_rate: data.purchase_gst_rate || 0,
                 purchase_gst_type: data.purchase_gst_type || "Exclusive",
                 opening_stock: data.opening_stock || 0,
+                storage_location: data.storage_location,
                 shelf_life_days: data.shelf_life_days,
                 internal_id: data.internal_id?.trim() || null,
                 custom_attributes: finalAttrs
@@ -795,11 +835,32 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                         type="number"
                                         placeholder="0.00"
                                         className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-blue-500 transition-all"
-                                        disabled={false}
+                                        disabled={!!initialItem}
                                         {...form.register("opening_stock", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                                     />
                                     <p className="text-[9px] text-gray-500 font-medium pl-1">
-                                        {initialItem ? "If opening stock hasn't been logged yet, you can add it here." : "Initial stock available in your Mandi."}
+                                        {initialItem ? "Opening stock cannot be modified after creation." : "Initial stock available in your Mandi."}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Storage Location</Label>
+                                    <Select
+                                        onValueChange={(val: string) => form.setValue("storage_location", val)}
+                                        value={form.watch("storage_location") || ""}
+                                        disabled={!!initialItem}
+                                    >
+                                        <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm">
+                                            <SelectValue placeholder="Select storage location" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white border-gray-300 text-gray-900 rounded-xl shadow-lg z-[250]">
+                                            {storageLocations.map((loc) => (
+                                                <SelectItem key={loc.name} value={loc.name} className="font-bold text-xs">{loc.location_name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-[9px] text-gray-500 font-medium pl-1">
+                                        {initialItem ? "Storage location cannot be modified after creation." : "Where this opening stock is stored."}
                                     </p>
                                 </div>
                             </TabsContent>

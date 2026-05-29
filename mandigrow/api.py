@@ -9824,17 +9824,21 @@ def create_commodity(**kwargs) -> dict:
             # Check if opening balance lot already exists to prevent duplicates on edit
             existing_ob_lot = frappe.db.get_value("Mandi Lot", {"item_id": doc.name, "lot_code": f"OB-{item_code}"}, "name")
             if not existing_ob_lot:
-                # BUG FIX: ALL variables (storage_location, purchase_price, supplier_id)
-                # must be inside this block — they're only needed for new OB creation.
-                storage_location = frappe.db.get_value(
+                storage_location = kwargs.get("storage_location")
+                if not storage_location:
+                    frappe.throw("Storage Location is mandatory when entering Opening Stock.")
+                
+                loc_name = frappe.db.get_value(
                     "Mandi Storage Location",
-                    {"organization_id": org_id, "is_active": 1},
+                    {"name": storage_location, "organization_id": org_id, "is_active": 1},
                     "name"
                 )
-                if not storage_location:
-                    frappe.throw("Please add at least one Storage Location from Field Governance to store Opening Stock.")
+                if not loc_name:
+                    frappe.throw("Invalid or inactive Storage Location selected.")
 
                 purchase_price = flt(kwargs.get("purchase_price") or 0)
+                if purchase_price <= 0:
+                    frappe.throw("Purchase Price must be greater than 0 when entering Opening Stock.")
 
                 # Find or create internal supplier for Opening Balance
                 supplier_id = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "supplier", "full_name": "Opening Balance"})
@@ -9850,19 +9854,17 @@ def create_commodity(**kwargs) -> dict:
 
                 # Create Mandi Arrival internally.
                 # is_opening_balance=True bypasses the mandatory rate check.
-                # We use valuation_rate=1 as placeholder if price is 0 (Frappe
-                # stock ledger requires non-zero valuation; this is internal only).
                 try:
                     confirm_arrival_transaction(
                         org_id=org_id,
                         party_id=supplier_id,
                         arrival_type="direct",
                         is_opening_balance=True,
-                        storage_location=storage_location,
+                        storage_location=loc_name,
                         items=[{
                             "item_id": doc.name,
                             "qty": opening_stock,
-                            "supplier_rate": purchase_price if purchase_price > 0 else 1,
+                            "supplier_rate": purchase_price,
                             "unit": unit,
                             "lot_code": f"OB-{item_code}",
                             "purchase_gst_rate": 0,
