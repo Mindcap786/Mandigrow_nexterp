@@ -9835,6 +9835,14 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
     if not target_id:
         return {"success": False, "error": "Item ID is required"}
         
+    # Tenant guard: verify item belongs to user's organization
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        org_id = _get_user_org()
+        item_org = frappe.db.get_value("Item", target_id, "organization_id")
+        if not item_org or item_org != org_id:
+            frappe.throw(_("You do not have permission to delete this item."), frappe.PermissionError)
+
     try:
         if not frappe.db.exists("Item", target_id):
             return {"success": False, "error": "Item not found"}
@@ -9870,12 +9878,12 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
                 frappe.delete_doc("Mandi Arrival", arr_name, force=True, ignore_permissions=True)
 
         # Now delete the item
-        frappe.delete_doc("Item", item_id, force=True, ignore_permissions=True)
+        frappe.delete_doc("Item", target_id, force=True, ignore_permissions=True)
         return {"success": True, "message": "Item completely deleted along with its Opening Balance.", "action": "deleted"}
 
     except frappe.LinkExistsError:
         # Fallback if there's an unknown linked document
-        frappe.db.set_value("Item", item_id, "disabled", 1, update_modified=True)
+        frappe.db.set_value("Item", target_id, "disabled", 1, update_modified=True)
         return {"success": True, "message": "Item disabled (could not be fully deleted due to linked records).", "action": "disabled"}
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "delete_commodity Failed")
