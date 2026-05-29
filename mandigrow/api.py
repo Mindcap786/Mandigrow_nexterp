@@ -2130,7 +2130,10 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> dict:
     if not effective_org:
         return {"records": [], "contacts": [], "total_count": 0}
 
-    filters = [["full_name", "!=", "Walk-in Buyer"]]
+    filters = [
+        ["full_name", "!=", "Walk-in Buyer"],
+        ["full_name", "!=", "Opening Balance"]
+    ]
     if effective_org and frappe.db.has_column("Mandi Contact", "organization_id"):
         filters.insert(0, ["organization_id", "=", effective_org])
     if contact_type:
@@ -2450,7 +2453,7 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
                 ), 0
             ) as net_balance
         FROM `tabMandi Contact` c
-        WHERE c.full_name != 'Walk-in Buyer'
+        WHERE c.full_name != 'Walk-in Buyer' AND LOWER(c.full_name) != 'opening balance'
     """
     params = {"company": company, "today": frappe.utils.today()}
 
@@ -6511,7 +6514,10 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
     page = int(page or 1)
     page_size = int(page_size or 50)
 
-    filters = [["full_name", "!=", "Walk-in Buyer"]]
+    filters = [
+        ["full_name", "!=", "Walk-in Buyer"],
+        ["full_name", "!=", "Opening Balance"]
+    ]
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         filters.append(["organization_id", "=", org_id])
     if contact_type and contact_type != "all":
@@ -8184,8 +8190,13 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
     org_id = _get_user_org()
     if not org_id:
         return {"bills": [], "groupedSuppliers": []}
+        
+    opening_balance_contacts = frappe.get_all("Mandi Contact", filters={"full_name": "Opening Balance", "organization_id": org_id}, pluck="name", ignore_permissions=True)
 
     arrival_filters = {"organization_id": org_id}
+    if opening_balance_contacts:
+        arrival_filters["party_id"] = ["not in", opening_balance_contacts]
+        
     if date_from and date_to:
         arrival_filters["creation"] = ["between", [date_from, date_to]]
     elif date_from:

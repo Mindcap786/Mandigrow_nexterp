@@ -744,13 +744,13 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                 </div>
                                             </div>
                                             <div className="pt-2">
-                                                <Select onValueChange={(val: any) => form.setValue("purchase_gst_type", val)} defaultValue={form.watch("purchase_gst_type") || "Exclusive"}>
+                                                <Select onValueChange={(val: any) => form.setValue("purchase_gst_type", val)} value={form.watch("purchase_gst_type") || "Exclusive"}>
                                                     <SelectTrigger className="w-full h-10 bg-white border-gray-300 font-bold rounded-lg">
-                                                        <SelectValue />
+                                                        <SelectValue placeholder="Select GST type" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="Exclusive" className="font-bold">Gst excluding purchase price</SelectItem>
-                                                        <SelectItem value="Inclusive" className="font-bold">Gst including purchase price</SelectItem>
+                                                        <SelectItem value="Exclusive" className="font-bold">GST Excluding purchase price (100 + 3% GST)</SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">GST Inclusive purchase price (100 incl. 3% GST)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -773,13 +773,13 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                 </div>
                                             </div>
                                             <div className="pt-2">
-                                                <Select onValueChange={(val: any) => form.setValue("sale_gst_type", val)} defaultValue={form.watch("sale_gst_type") || "Exclusive"}>
+                                                <Select onValueChange={(val: any) => form.setValue("sale_gst_type", val)} value={form.watch("sale_gst_type") || "Exclusive"}>
                                                     <SelectTrigger className="w-full h-10 bg-white border-gray-300 font-bold rounded-lg">
-                                                        <SelectValue />
+                                                        <SelectValue placeholder="Select GST type" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="Exclusive" className="font-bold">Gst excluding Sale price</SelectItem>
-                                                        <SelectItem value="Inclusive" className="font-bold">Gst including Sale price</SelectItem>
+                                                        <SelectItem value="Exclusive" className="font-bold">GST Excluding sale price (100 + 3% GST)</SelectItem>
+                                                        <SelectItem value="Inclusive" className="font-bold">GST Inclusive sale price (100 incl. 3% GST)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
