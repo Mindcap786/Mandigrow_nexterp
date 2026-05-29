@@ -9786,6 +9786,15 @@ def create_commodity(**kwargs) -> dict:
         # Handle Opening Stock Auto-Generation
         opening_stock = flt(kwargs.get("opening_stock"))
         if is_new_creation and opening_stock > 0:
+            # Enforce at least one storage location exists for the opening stock to sit in
+            storage_location = frappe.db.get_value(
+                "Mandi Storage Location",
+                {"organization_id": org_id, "is_active": 1},
+                "name"
+            )
+            if not storage_location:
+                frappe.throw("Please add at least one Storage Location from Field Governance to store Opening Stock.")
+
             purchase_price = flt(kwargs.get("purchase_price") or 0)
             
             # Find or create internal supplier for Opening Balance
@@ -9806,6 +9815,7 @@ def create_commodity(**kwargs) -> dict:
                 party_id=supplier_id,
                 arrival_type="direct",
                 is_opening_balance=True,
+                storage_location=storage_location,
                 items=[{
                     "item_id": doc.name,
                     "qty": opening_stock,
