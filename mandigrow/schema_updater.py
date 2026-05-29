@@ -10,7 +10,7 @@ def update_schemas():
         {"fieldname": "purchase_gst_type", "label": "Purchase GST Type", "fieldtype": "Select", "options": "Exclusive\nInclusive", "default": "Exclusive", "insert_after": "purchase_gst_rate"}
     ]
     for df in item_fields:
-        if not frappe.db.exists("Custom Field", f"Item-{df['fieldname']}"):
+        if not frappe.get_meta("Item").has_field(df['fieldname']):
             create_custom_field("Item", df)
             print(f"Created Item-{df['fieldname']}")
 
@@ -21,7 +21,7 @@ def update_schemas():
         {"fieldname": "purchase_gst_type", "label": "Purchase GST Type", "fieldtype": "Select", "options": "Exclusive\nInclusive", "insert_after": "purchase_gst_amount"}
     ]
     for df in lot_fields:
-        if not frappe.db.exists("Custom Field", f"Mandi Lot-{df['fieldname']}"):
+        if not frappe.get_meta("Mandi Lot").has_field(df['fieldname']):
             create_custom_field("Mandi Lot", df)
             print(f"Created Mandi Lot-{df['fieldname']}")
             
@@ -30,7 +30,7 @@ def update_schemas():
         {"fieldname": "purchase_gst_total", "label": "Purchase GST Total", "fieldtype": "Currency", "insert_after": "total_expenses"}
     ]
     for df in arrival_fields:
-        if not frappe.db.exists("Custom Field", f"Mandi Arrival-{df['fieldname']}"):
+        if not frappe.get_meta("Mandi Arrival").has_field(df['fieldname']):
             create_custom_field("Mandi Arrival", df)
             print(f"Created Mandi Arrival-{df['fieldname']}")
     
