@@ -32,6 +32,9 @@ export interface ArrivalCommodity {
   sku_code?: string | null
   default_unit: string
   custom_attributes?: Record<string, unknown> | null
+  hsn_code?: string | null
+  purchase_gst_rate?: number
+  purchase_gst_type?: 'Inclusive' | 'Exclusive'
 }
 
 export interface StorageLocation {

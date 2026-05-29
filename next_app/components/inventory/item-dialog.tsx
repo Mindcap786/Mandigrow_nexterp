@@ -216,20 +216,19 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
 
     const [openCombobox, setOpenCombobox] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
-    const [storageLocations, setStorageLocations] = useState<{name: string, location_name: string}[]>([])
+    const [storageLocations, setStorageLocations] = useState<any[]>([])
 
     useEffect(() => {
         if (open) {
             const fetchLocations = async () => {
                 try {
-                    const res: any = await callApi('frappe.client.get_list', {
-                        doctype: 'Mandi Storage Location',
-                        fields: ['name', 'location_name'],
-                        filters: { is_active: 1 },
-                        limit_page_length: 100
-                    });
-                    if (res && res.message) {
+                    const res: any = await callApi('mandigrow.api.get_storage_locations', { active_only: true });
+                    if (res && Array.isArray(res)) {
+                        setStorageLocations(res);
+                    } else if (res && res.message) {
                         setStorageLocations(res.message);
+                    } else {
+                        setStorageLocations(res || []);
                     }
                 } catch (err) {
                     console.error("Failed to fetch storage locations:", err);
@@ -855,7 +854,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                         </SelectTrigger>
                                         <SelectContent className="bg-white border-gray-300 text-gray-900 rounded-xl shadow-lg z-[250]">
                                             {storageLocations.map((loc) => (
-                                                <SelectItem key={loc.name} value={loc.name} className="font-bold text-xs">{loc.location_name}</SelectItem>
+                                                <SelectItem key={loc.id || loc.name} value={loc.id || loc.name} className="font-bold text-xs">{loc.name || loc.location_name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>

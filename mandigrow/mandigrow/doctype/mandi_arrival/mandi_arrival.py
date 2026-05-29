@@ -3,6 +3,53 @@ from frappe.utils import flt
 
 
 class MandiArrival(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
+
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from frappe.types import DF
+        from mandigrow.mandigrow.doctype.mandi_lot.mandi_lot import MandiLot
+
+        advance: DF.Currency
+        advance_bank_account_id: DF.Link | None
+        advance_bank_name: DF.Data | None
+        advance_cheque_date: DF.Date | None
+        advance_cheque_no: DF.Data | None
+        advance_payment_mode: DF.Literal["credit", "cash", "upi_bank", "cheque"]
+        amended_from: DF.Link | None
+        arrival_date: DF.Date
+        arrival_type: DF.Literal["direct", "commission", "commission_supplier"]
+        cgst_amount: DF.Currency
+        commission_settlement_status: DF.Literal["Pending", "Ready", "Settled"]
+        contact_bill_no: DF.Data | None
+        driver_mobile: DF.Data | None
+        driver_name: DF.Data | None
+        gst_total: DF.Currency
+        guarantor: DF.Data | None
+        hamali_expenses: DF.Currency
+        hire_charges: DF.Currency
+        igst_amount: DF.Currency
+        items: DF.Table[MandiLot]
+        loaders_count: DF.Int
+        lot_prefix: DF.Data | None
+        mandi_total_earnings: DF.Currency
+        net_payable_farmer: DF.Currency
+        organization_id: DF.Data | None
+        other_expenses: DF.Currency
+        party_id: DF.Link
+        reference_no: DF.Data | None
+        sgst_amount: DF.Currency
+        status: DF.Literal["Pending", "Paid", "Partial", "Overdue"]
+        storage_location: DF.Data | None
+        total_commission: DF.Currency
+        total_expenses: DF.Currency
+        total_realized: DF.Currency
+        vehicle_number: DF.Data | None
+        vehicle_type: DF.Data | None
+    # end: auto-generated types
+
     """Mandi Arrival controller.
 
     Computes the commission summary fields (total_realized,

@@ -7018,7 +7018,10 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
 
         items = []
         for item in doc.get("items") or []:
-            item_name = frappe.db.get_value("Item", item.item_id, "item_name") if item.item_id else ""
+            item_master = frappe.db.get_value("Item", item.item_id, ["item_name", "customs_tariff_number", "gst_rate"], as_dict=True) if item.item_id else {}
+            item_name = item_master.get("item_name") or ""
+            hsn_code = item.get("hsn_code") or item_master.get("customs_tariff_number") or ""
+            gst_rate = float(item.get("gst_rate") or item_master.get("gst_rate") or 0)
             lot_code = frappe.db.get_value("Mandi Lot", item.lot_id, "lot_code") if item.lot_id else ""
             items.append({
                 "id": item.name,
@@ -7027,9 +7030,9 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
                 "qty": float(item.get("qty") or 0),
                 "rate": float(item.get("rate") or 0),
                 "amount": float(item.get("amount") or 0),
-                "gst_rate": float(item.get("gst_rate") or 0),
+                "gst_rate": gst_rate,
                 "gst_amount": float(item.get("gst_amount") or 0),
-                "hsn_code": item.get("hsn_code") or "",
+                "hsn_code": hsn_code,
                 "item_name": item_name,
                 "lot": {
                     "lot_code": lot_code,
@@ -8876,6 +8879,7 @@ def commit_mandi_session(**kwargs) -> dict:
 
             total_gross_amount = 0.0
             total_less_amount = 0.0
+            exclusive_gst_total = 0.0
 
             for idx, row in enumerate(farmers):
                 if not row.get("item_id"):
@@ -8885,12 +8889,29 @@ def commit_mandi_session(**kwargs) -> dict:
                 rate = float(row.get("rate") or 0)
                 less_amt = float(row.get("less_amount") or 0)
                 item_gross = qty * rate
+                item_taxable = max(item_gross - less_amt, 0)
+                
+                gst_rate = float(row.get("gst_rate") or 0)
+                sale_gst_type = row.get("sale_gst_type") or "Exclusive"
+                hsn_code = row.get("hsn_code") or ""
+                
+                gst_amount = 0.0
+                if gst_rate > 0:
+                    if sale_gst_type == "Inclusive":
+                        base_amount = item_taxable / (1 + gst_rate / 100)
+                        gst_amount = item_taxable - base_amount
+                    else:
+                        gst_amount = item_taxable * (gst_rate / 100)
+                        exclusive_gst_total += gst_amount
 
                 item = sale.append("items", {})
                 item.item_id = row.get("item_id")
                 item.qty = qty
                 item.rate = rate
                 item.amount = item_gross
+                item.hsn_code = hsn_code
+                item.gst_rate = gst_rate
+                item.gst_amount = round(gst_amount, 2)
                 if idx < len(lot_names):
                     item.lot_id = lot_names[idx]
 
@@ -8965,7 +8986,7 @@ def commit_mandi_session(**kwargs) -> dict:
                 sale.igst_amount = igst_amount
                 
             # Recalculate invoice_total just like frontend to be absolutely safe
-            computed_payable = round(taxable_val + market_fee + nirashrit + misc_fee + gst_total + buyer_loading + buyer_packing)
+            computed_payable = round(taxable_val + market_fee + nirashrit + misc_fee + exclusive_gst_total + buyer_loading + buyer_packing)
             sale.invoice_total = computed_payable
             # Udhaar sale — status is Pending until buyer pays
             sale.status = "Pending"
@@ -9396,10 +9417,8 @@ def get_pos_master_data() -> dict:
             lot.setdefault("custom_attributes", {})
             lots.append(lot)
         
-        commodities = frappe.get_all("Item",
-            filters={"disabled": 0},
-            fields=["name as id", "item_name as name", "stock_uom as default_unit", "image as image_url", "item_code as sku_code", "standard_rate as sale_price"]
-        )
+        commodities_res = get_commodities()
+        commodities = commodities_res.get("commodities", [])
         
         # 2. Fetch Buyers — use raw SQL to avoid frappe.get_all 'name as id' alias conflict
         # (frappe.get_all always adds `name` PK to SELECT, creating duplicate column with alias)
@@ -10467,6 +10486,8 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 item_fields.append("critical_age_days")
             if frappe.db.has_column("Item", "purchase_gst_rate"):
                 item_fields.extend(["purchase_gst_rate", "purchase_gst_type"])
+            if frappe.db.has_column("Item", "customs_tariff_number"):
+                item_fields.append("customs_tariff_number as hsn_code")
             item_master = frappe.db.get_value("Item", item_id, item_fields, as_dict=True) or {}
             
             is_ob = payload.get("is_opening_balance") is True
@@ -10478,6 +10499,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
                 "doctype": "Mandi Lot",
                 "item_id": item_id,
                 "lot_code": item_lot_code,
+                "hsn_code": item.get("hsn_code") or item_master.get("hsn_code") or "",
                 "purchase_gst_rate": final_purchase_gst_rate,
                 "purchase_gst_type": "Exclusive" if is_ob else (item.get("purchase_gst_type") or item_master.get("purchase_gst_type") or "Exclusive"),
                 "qty": float(item.get("qty", 0)),

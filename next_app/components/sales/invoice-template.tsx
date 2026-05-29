@@ -387,19 +387,19 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         {/* GST Breakdown - individual lines for compliance */}
                         {Number(sale.cgst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400 font-bold uppercase tracking-widest">CGST ({sale.cgst_rate || ''}%)</span>
+                                <span className="text-gray-400 font-bold uppercase tracking-widest">CGST ({sale.cgst_rate || (items.find((i: any) => Number(i.gst_rate) > 0)?.gst_rate / 2) || ''}%)</span>
                                 <span className="font-bold">₹{Number(sale.cgst_amount).toLocaleString()}</span>
                             </div>
                         )}
                         {Number(sale.sgst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400 font-bold uppercase tracking-widest">SGST ({sale.sgst_rate || ''}%)</span>
+                                <span className="text-gray-400 font-bold uppercase tracking-widest">SGST ({sale.sgst_rate || (items.find((i: any) => Number(i.gst_rate) > 0)?.gst_rate / 2) || ''}%)</span>
                                 <span className="font-bold">₹{Number(sale.sgst_amount).toLocaleString()}</span>
                             </div>
                         )}
                         {Number(sale.igst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400 font-bold uppercase tracking-widest">IGST ({sale.igst_rate || ''}%)</span>
+                                <span className="text-gray-400 font-bold uppercase tracking-widest">IGST ({sale.igst_rate || items.find((i: any) => Number(i.gst_rate) > 0)?.gst_rate || ''}%)</span>
                                 <span className="font-bold">₹{Number(sale.igst_amount).toLocaleString()}</span>
                             </div>
                         )}

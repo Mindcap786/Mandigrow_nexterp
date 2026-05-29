@@ -28,7 +28,12 @@
   "critical_age_days",
   "net_qty",
   "net_amount",
-  "commission_amount"
+  "commission_amount",
+  "short_code",
+  "hsn_code",
+  "gst_rate",
+  "gst_amount",
+  "purchase_gst_type"
  ],
  "fields": [
   {
@@ -128,8 +133,8 @@
    "fieldname": "short_code",
    "fieldtype": "Data",
    "label": "Short Code",
-   "unique": 1,
-   "read_only": 1
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "storage_location",
@@ -167,13 +172,34 @@
    "fieldtype": "Currency",
    "label": "Commission Amount",
    "read_only": 1
+  },
+  {
+   "fieldname": "hsn_code",
+   "fieldtype": "Data",
+   "label": "HSN Code"
+  },
+  {
+   "fieldname": "gst_rate",
+   "fieldtype": "Float",
+   "label": "GST Rate (%)"
+  },
+  {
+   "fieldname": "gst_amount",
+   "fieldtype": "Currency",
+   "label": "GST Amount"
+  },
+  {
+   "fieldname": "purchase_gst_type",
+   "fieldtype": "Select",
+   "label": "Purchase GST Type",
+   "options": "\nInclusive\nExclusive"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-04-24 15:47:44.311179",
+ "modified": "2026-05-29 23:07:18.032208",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Lot",

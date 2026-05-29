@@ -15,6 +15,7 @@ export type SaleTaxableItem = {
     amount?: number | string | null;
     gst_rate?: number | string | null;
     is_gst_exempt?: boolean | null;
+    gst_inclusive?: boolean | null;
 };
 
 const toNumber = (value: number | string | null | undefined) => Number(value) || 0;
@@ -36,6 +37,7 @@ export function calculateSaleItemTaxBreakdown({
     amount,
     gstRate,
     isGstExempt,
+    gstInclusive,
     taxSettings,
     orgStateCode,
     buyerStateCode,
@@ -43,6 +45,7 @@ export function calculateSaleItemTaxBreakdown({
     amount?: number | string | null;
     gstRate?: number | string | null;
     isGstExempt?: boolean | null;
+    gstInclusive?: boolean | null;
     taxSettings: SaleTaxSettings;
     orgStateCode?: string | null;
     buyerStateCode?: string | null;
@@ -63,7 +66,16 @@ export function calculateSaleItemTaxBreakdown({
 
     const effectiveGstRate = taxSettings.gst_enabled ? toNumber(gstRate) : 0;
 
-    const gstRaw = taxableAmount * (effectiveGstRate / 100);
+    let gstRaw = 0;
+    if (effectiveGstRate > 0) {
+        if (gstInclusive) {
+            const actualBase = taxableAmount / (1 + effectiveGstRate / 100);
+            gstRaw = taxableAmount - actualBase;
+        } else {
+            gstRaw = taxableAmount * (effectiveGstRate / 100);
+        }
+    }
+    
     const cgstRaw = isIgst ? 0 : gstRaw / 2;
     const sgstRaw = isIgst ? 0 : gstRaw / 2;
     const igstRaw = isIgst ? gstRaw : 0;
@@ -113,21 +125,31 @@ export function calculateSaleTotals({
     // Calculate GST proportionally based on the discounted ratio of total amount
     const discountRatio = subTotal > 0 ? taxableSubTotal / subTotal : 0;
     
-    const taxBreakdowns = items.map((item) =>
-        calculateSaleItemTaxBreakdown({
+    const taxBreakdowns = items.map((item) => {
+        const itemRes = calculateSaleItemTaxBreakdown({
             amount: toNumber(item.amount) * discountRatio, // apply proportional discount on item level
             gstRate: item.gst_rate,
             isGstExempt: item.is_gst_exempt,
+            gstInclusive: item.gst_inclusive,
             taxSettings,
             orgStateCode,
             buyerStateCode,
-        })
-    );
+        });
+        return {
+            ...itemRes,
+            isInclusive: !!item.gst_inclusive
+        };
+    });
 
     const cgstAmount = taxBreakdowns.reduce((sum, item) => sum + item.cgstAmount, 0);
     const sgstAmount = taxBreakdowns.reduce((sum, item) => sum + item.sgstAmount, 0);
     const igstAmount = taxBreakdowns.reduce((sum, item) => sum + item.igstAmount, 0);
     const gstTotal = cgstAmount + sgstAmount + igstAmount;
+    
+    // Only exclusive GST gets added on top of the taxable base for the grand total
+    const exclusiveGstTotal = taxBreakdowns
+        .filter((item) => !item.isInclusive)
+        .reduce((sum, item) => sum + item.gstTotal, 0);
     const isIgst = taxBreakdowns[0]?.isIgst ?? resolveIsIgst(taxSettings, orgStateCode, buyerStateCode);
 
     const extraCharges =
@@ -136,7 +158,7 @@ export function calculateSaleTotals({
     // Grand Total is traditionally rounded to the nearest integer in India, 
     // but the sub-components MUST be 2-decimal precise.
     const grandTotal = Math.round(
-        taxableSubTotal + marketFee + nirashrit + miscFee + gstTotal + extraCharges
+        taxableSubTotal + marketFee + nirashrit + miscFee + exclusiveGstTotal + extraCharges
     );
 
     return {

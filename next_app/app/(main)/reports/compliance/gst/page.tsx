@@ -75,8 +75,8 @@ export default function GSTReportsPage() {
         try {
             // Fetch Outward Supplies (Sales/Invoices) with Items for HSN
             const response: any = await callApi('mandigrow.api.get_gst_report', {
-                date_from: dateRange.from.toISOString().split('T')[0],
-                date_to: dateRange.to.toISOString().split('T')[0]
+                date_from: format(dateRange.from, 'yyyy-MM-dd'),
+                date_to: format(dateRange.to, 'yyyy-MM-dd')
             });
             const data = response?.data;
 

@@ -117,6 +117,10 @@ const formSchema = z.object({
         packing_cost: z.union([z.number(), z.literal('')]).transform(v => v === '' ? 0 : v).default(0),
         loading_cost: z.union([z.number(), z.literal('')]).transform(v => v === '' ? 0 : v).default(0),
         other_cut: z.union([z.number(), z.literal('')]).transform(v => v === '' ? 0 : v).default(0),
+        // GST Fields
+        hsn_code: z.string().optional(),
+        purchase_gst_rate: z.coerce.number().optional(),
+        purchase_gst_type: z.enum(['Inclusive', 'Exclusive']).optional(),
     }))
 })
 
@@ -155,6 +159,9 @@ interface QuickPurchaseFormValues {
         packing_cost: number | '';
         loading_cost: number | '';
         other_cut: number | '';
+        hsn_code?: string;
+        purchase_gst_rate?: number;
+        purchase_gst_type?: 'Inclusive' | 'Exclusive';
     }[];
 }
 
@@ -208,6 +215,9 @@ export function QuickPurchaseForm() {
                 packing_cost: '',
                 loading_cost: '',
                 other_cut: '',
+                hsn_code: '',
+                purchase_gst_rate: 0,
+                purchase_gst_type: 'Exclusive',
             }]
         }
     })
@@ -412,6 +422,9 @@ export function QuickPurchaseForm() {
                     packing_cost: Number(row.packing_cost) || 0,
                     loading_cost: Number(row.loading_cost) || 0,
                     other_cut: Number(row.other_cut) || 0,
+                    hsn_code: row.hsn_code,
+                    purchase_gst_rate: row.purchase_gst_rate,
+                    purchase_gst_type: row.purchase_gst_type,
                     expenses_total: financials.expensesTotal,
                     net_payable: financials.netPayable,
                     unit_cost: financials.unitCost,
@@ -800,6 +813,11 @@ export function QuickPurchaseForm() {
                                                                     if (selectedItem?.default_unit) {
                                                                         form.setValue(`rows.${index}.unit`, selectedItem.default_unit);
                                                                     }
+                                                                    if (selectedItem?.hsn_code) {
+                                                                        form.setValue(`rows.${index}.hsn_code`, selectedItem.hsn_code);
+                                                                    }
+                                                                    form.setValue(`rows.${index}.purchase_gst_rate`, selectedItem?.purchase_gst_rate || 0);
+                                                                    form.setValue(`rows.${index}.purchase_gst_type`, selectedItem?.purchase_gst_type || 'Exclusive');
                                                                 }}
                                                                 placeholder="Select Item"
                                                                 error={!!(form.formState.errors.rows as any)?.[index]?.item_id}
@@ -907,6 +925,65 @@ export function QuickPurchaseForm() {
                                                 </div>
                                             )}
                                         </div>
+                                        
+                                        {/* GST Row for Direct Purchases */}
+                                        {arrivalType === 'direct' && (
+                                            <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`rows.${index}.hsn_code`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">HSN Code</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    type="text"
+                                                                    {...field}
+                                                                    className="h-10 font-black text-sm bg-indigo-50/50 border-none text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+                                                                />
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`rows.${index}.purchase_gst_rate`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">GST Rate (%)</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    type="number"
+                                                                    {...field}
+                                                                    onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                                                                    className="h-10 font-black text-sm bg-indigo-50/50 border-none text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+                                                                />
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`rows.${index}.purchase_gst_type`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">GST Type</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger className="h-10 bg-indigo-50/50 border-none rounded-xl text-sm font-black shadow-sm text-center">
+                                                                        <SelectValue placeholder="Type" />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent className="rounded-xl border-none shadow-xl">
+                                                                    <SelectItem value="Exclusive" className="font-bold text-xs">Exclusive</SelectItem>
+                                                                    <SelectItem value="Inclusive" className="font-bold text-xs">Inclusive</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
 
                                         {/* Deductions block hidden as per user request */}
 

@@ -39,6 +39,8 @@ export interface MandiSessionFarmerRow {
     netQty: number;
     internalCode?: string;
     gstRate?: number;
+    saleGstType?: string;
+    hsnCode?: string;
     _lastEdited?: "lessPercent" | "lessUnits";
 }
 
@@ -164,6 +166,8 @@ export function useMandiSession() {
                         net_payable: f.netPayable,
                         net_qty: f.netQty,
                         gst_rate: f.gstRate || 0,
+                        hsn_code: f.hsnCode || "",
+                        sale_gst_type: f.saleGstType || "Exclusive",
                     })),
                 });
 

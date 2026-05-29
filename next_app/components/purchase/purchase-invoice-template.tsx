@@ -140,8 +140,13 @@ export default function PurchaseBillInvoice({
     
     // DIRECT purchase: farmer reimburses transport/packing expenses → ADD them to payable.
     // COMMISSION:      expenses are deducted from farmer's proceeds  → SUBTRACT via combinedExpenses.
+    
+    // Add exclusive GST to payable only for direct purchases
+    const purchaseGstTotal = toNumber(arrival?.purchase_gst_total || arrival?.gst_total || 0);
+    const exclusiveGstToAdd = arrivalType === 'direct' ? purchaseGstTotal : 0;
+    
     const finalPayable = arrivalType === 'direct' 
-        ? Math.max(0, totalNetGoodsValue + totalLotExpenses + tripExpenses - combinedPaid - totalOtherCharges)
+        ? Math.max(0, totalNetGoodsValue + totalLotExpenses + tripExpenses - combinedPaid - totalOtherCharges + exclusiveGstToAdd)
         : Math.max(0, totalNetGoodsValue - totalCommission - combinedExpenses - combinedPaid - totalOtherCharges)
 
     // Organization address
@@ -476,6 +481,38 @@ export default function PurchaseBillInvoice({
                                     − ₹{Math.round(combinedPaid).toLocaleString()}
                                 </span>
                             </div>
+                        )}
+
+                        {/* GST Breakdown (Direct Purchase Only) */}
+                        {arrivalType === 'direct' && purchaseGstTotal > 0 && (
+                            <>
+                                <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
+                                    <span className="text-blue-600 font-bold uppercase tracking-widest">GST Applied</span>
+                                    <span className="font-bold text-blue-600">
+                                        + ₹{Math.round(purchaseGstTotal).toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="pl-2 space-y-0.5 mt-0.5">
+                                    {toNumber(arrival?.cgst_amount) > 0 && (
+                                        <div className="flex justify-between items-center text-[9px] text-gray-500">
+                                            <span className="uppercase tracking-widest text-gray-400">↳ CGST</span>
+                                            <span>₹{Math.round(toNumber(arrival?.cgst_amount)).toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                    {toNumber(arrival?.sgst_amount) > 0 && (
+                                        <div className="flex justify-between items-center text-[9px] text-gray-500">
+                                            <span className="uppercase tracking-widest text-gray-400">↳ SGST</span>
+                                            <span>₹{Math.round(toNumber(arrival?.sgst_amount)).toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                    {toNumber(arrival?.igst_amount) > 0 && (
+                                        <div className="flex justify-between items-center text-[9px] text-gray-500">
+                                            <span className="uppercase tracking-widest text-gray-400">↳ IGST</span>
+                                            <span>₹{Math.round(toNumber(arrival?.igst_amount)).toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
 
                         {/* ── FINAL PAYABLE ── */}

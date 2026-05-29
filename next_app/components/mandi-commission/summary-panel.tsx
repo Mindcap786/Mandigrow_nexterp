@@ -45,7 +45,7 @@ export function SummaryPanel({
     
     // Tax computation for Buyer Bill
     const taxTotals = calculateSaleTotals({
-        items: [{ amount: buyerNet }],
+        items: farmers.map(f => ({ amount: f.netAmount, gst_rate: f.gstRate, gst_inclusive: f.saleGstType === 'Inclusive' })),
         taxSettings: taxSettings || {},
         orgStateCode: taxSettings?.state_code,
         buyerStateCode: buyerStateCode,

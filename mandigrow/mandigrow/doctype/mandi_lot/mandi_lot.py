@@ -17,8 +17,12 @@ class MandiLot(Document):
 		barcode: DF.Data | None
 		commission_amount: DF.Currency
 		commission_percent: DF.Percent
-		farmer_charges: DF.Currency
+		critical_age_days: DF.Int
 		current_qty: DF.Float
+		farmer_charges: DF.Currency
+		gst_amount: DF.Currency
+		gst_rate: DF.Float
+		hsn_code: DF.Data | None
 		initial_qty: DF.Float
 		item_id: DF.Link
 		less_percent: DF.Percent
@@ -31,8 +35,11 @@ class MandiLot(Document):
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
+		purchase_gst_type: DF.Literal["", "Inclusive", "Exclusive"]
 		qty: DF.Float
 		sale_price: DF.Currency
+		shelf_life_days: DF.Int
+		short_code: DF.Data | None
 		status: DF.Literal["Available", "Partial", "Sold Out"]
 		storage_location: DF.Data | None
 		supplier_rate: DF.Currency

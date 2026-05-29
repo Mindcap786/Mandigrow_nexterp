@@ -24,6 +24,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
 
+const toNumber = (v: any) => Number(v) || 0;
+
 const itemSchema = z.object({
     id: z.string().optional(),
     item_id: z.string().min(1, "Required"),
@@ -641,6 +643,42 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                     </div>
                                 )}
                             </div>
+                            
+                            {/* GST Breakdown Section */}
+                            {!isEditing && data?.arrival?.arrival_type === 'direct' && toNumber(data?.arrival?.purchase_gst_total || data?.arrival?.gst_total) > 0 && (
+                                <div className="space-y-4 pb-12">
+                                    <div className="flex items-center justify-between px-1">
+                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
+                                            <FileText className="w-4 h-4 text-blue-600" />
+                                            GST Details
+                                        </h3>
+                                    </div>
+                                    <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm space-y-3">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-slate-500 uppercase">Total GST Applied</span>
+                                            <span className="font-bold text-slate-900">₹{Math.round(toNumber(data.arrival.purchase_gst_total || data.arrival.gst_total)).toLocaleString()}</span>
+                                        </div>
+                                        {toNumber(data.arrival.cgst_amount) > 0 && (
+                                            <div className="flex justify-between items-center text-xs border-t border-slate-100 pt-2">
+                                                <span className="font-bold text-slate-400 uppercase">CGST</span>
+                                                <span className="font-bold text-slate-600">₹{Math.round(toNumber(data.arrival.cgst_amount)).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {toNumber(data.arrival.sgst_amount) > 0 && (
+                                            <div className="flex justify-between items-center text-xs border-t border-slate-100 pt-2">
+                                                <span className="font-bold text-slate-400 uppercase">SGST</span>
+                                                <span className="font-bold text-slate-600">₹{Math.round(toNumber(data.arrival.sgst_amount)).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {toNumber(data.arrival.igst_amount) > 0 && (
+                                            <div className="flex justify-between items-center text-xs border-t border-slate-100 pt-2">
+                                                <span className="font-bold text-slate-400 uppercase">IGST</span>
+                                                <span className="font-bold text-slate-600">₹{Math.round(toNumber(data.arrival.igst_amount)).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

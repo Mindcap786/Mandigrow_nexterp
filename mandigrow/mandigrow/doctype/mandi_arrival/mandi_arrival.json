@@ -38,11 +38,12 @@
   "total_expenses",
   "mandi_total_earnings",
   "net_payable_farmer",
-  "purchase_gst_total",
+  "commission_settlement_status",
   "cgst_amount",
   "sgst_amount",
   "igst_amount",
-  "commission_settlement_status"
+  "gst_total",
+  "amended_from"
  ],
  "fields": [
   {
@@ -230,30 +231,19 @@
    "read_only": 1
   },
   {
-   "fieldname": "purchase_gst_total",
-   "fieldtype": "Currency",
-   "label": "Total GST"
-  },
-  {
    "fieldname": "cgst_amount",
    "fieldtype": "Currency",
-   "label": "CGST Amount",
-   "read_only": 0,
-   "allow_on_submit": 1
+   "label": "CGST"
   },
   {
    "fieldname": "sgst_amount",
    "fieldtype": "Currency",
-   "label": "SGST Amount",
-   "read_only": 0,
-   "allow_on_submit": 1
+   "label": "SGST"
   },
   {
    "fieldname": "igst_amount",
    "fieldtype": "Currency",
-   "label": "IGST Amount",
-   "read_only": 0,
-   "allow_on_submit": 1
+   "label": "IGST"
   },
   {
    "default": "Pending",
@@ -261,13 +251,28 @@
    "fieldtype": "Select",
    "label": "Settlement Status",
    "options": "Pending\nReady\nSettled"
+  },
+  {
+   "fieldname": "gst_total",
+   "fieldtype": "Currency",
+   "label": "GST Total"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Mandi Arrival",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-23 20:17:25.087637",
+ "modified": "2026-05-29 23:07:18.728862",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Arrival",

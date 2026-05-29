@@ -53,6 +53,7 @@ type POSItem = {
     unit: string
 
     gst_rate: number
+    sale_gst_type?: string
     image_url?: string
     available_qty: number
     purchase_rate: number
@@ -406,6 +407,7 @@ export default function POSPage() {
                 lot_details: stock.lot_details,
                 unit: stock.unit,
                 gst_rate: Number(commodityMap[stock.item_id]?.gst_rate) || 0,
+                sale_gst_type: commodityMap[stock.item_id]?.sale_gst_type || 'Exclusive',
                 image_url: stock.image_url,
                 available_qty: stock.total_qty,
                 purchase_rate: stock.purchase_rate,
@@ -534,7 +536,18 @@ export default function POSPage() {
         const itemDiscount = discountAmount * itemRatio;
         const itemTaxable = Math.max(0, itemSubtotal - itemDiscount);
         const rate = Number(c.item.gst_rate) || 0;
-        return s + (itemTaxable * (rate / 100));
+        const isInclusive = c.item.sale_gst_type === 'Inclusive';
+        
+        let gstAmt = 0;
+        if (rate > 0) {
+            if (isInclusive) {
+                const base = itemTaxable / (1 + rate / 100);
+                gstAmt = itemTaxable - base;
+            } else {
+                gstAmt = itemTaxable * (rate / 100);
+            }
+        }
+        return s + gstAmt;
     }, 0);
     
     const gstTotal = Math.round(rawGstTotal);
@@ -549,9 +562,20 @@ export default function POSPage() {
     const nirashritAmount = Math.round(taxableSubTotal * taxSettings.nirashrit_percent / 100);
     const miscFeeAmount = Math.round(taxableSubTotal * taxSettings.misc_fee_percent / 100);
     
+    const exclusiveGstTotal = taxSettings.gst_enabled ? cart.reduce((s, c) => {
+        if (c.item.sale_gst_type === 'Inclusive') return s;
+        const itemSubtotal = c.price * c.qty;
+        const itemRatio = subTotal > 0 ? (itemSubtotal / subTotal) : 0;
+        const itemDiscount = discountAmount * itemRatio;
+        const itemTaxable = Math.max(0, itemSubtotal - itemDiscount);
+        const rate = Number(c.item.gst_rate) || 0;
+        return s + (itemTaxable * (rate / 100));
+    }, 0) : 0;
+
     const extraChargesTotal = additionalCharges.reduce((acc, c) => acc + c.amount, 0)
     const crateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + c.qty * c.rate, 0) : 0
-    const grandTotal = taxableSubTotal + gstTotal + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
+    // Only exclusive GST is added on top of the taxable subtotal
+    const grandTotal = taxableSubTotal + Math.round(exclusiveGstTotal) + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
 
     const handleConfirmCheckout = async () => {
         if (cart.length === 0) {
