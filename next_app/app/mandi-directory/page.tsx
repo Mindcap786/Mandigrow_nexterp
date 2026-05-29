@@ -7,6 +7,9 @@ import { MapPin, ArrowRight, LayoutGrid } from 'lucide-react';
 export const metadata: Metadata = {
     title: 'Mandi Directory & Supported Commodities | MandiGrow',
     description: 'Explore all the major agricultural markets, mandis, and commodities supported by MandiGrow ERP across India.',
+    alternates: {
+        canonical: 'https://www.mandigrow.com/mandi-directory',
+    },
 };
 
 export default function MandiDirectoryPage() {

@@ -55,7 +55,6 @@ export const metadata: Metadata = {
     publisher: 'MandiGrow',
     manifest: '/manifest.json',
     alternates: {
-        canonical: 'https://www.mandigrow.com',
         // NOTE: hreflang entries removed until real /hi /ta /te /kn /ml routes
         // exist. Lying to Google about alternates is worse than omitting them.
     },
