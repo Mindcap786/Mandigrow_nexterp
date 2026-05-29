@@ -16199,11 +16199,19 @@ def _get_or_create_crate_commodity(org_id: str, crate_type: str) -> str:
     """
     virtual_id = f"CRATE-{frappe.scrub(crate_type).upper()[:20]}"
     if not frappe.db.exists("Item", virtual_id):
+        if not frappe.db.exists("Item Group", "Crates"):
+            frappe.get_doc({
+                "doctype": "Item Group",
+                "item_group_name": "Crates",
+                "is_group": 0,
+                "parent_item_group": "All Item Groups"
+            }).insert(ignore_permissions=True)
+            
         frappe.get_doc({
             "doctype": "Item",
             "item_code": virtual_id,
             "item_name": f"Crate: {crate_type}",
-            "item_group": "All Item Groups",
+            "item_group": "Crates",
             "stock_uom": "Nos",
             "is_stock_item": 0
         }).insert(ignore_permissions=True)

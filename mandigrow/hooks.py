@@ -87,6 +87,7 @@ app_license = "mit"
 
 # before_install = "mandigrow.mandigrow.install.before_install"
 # after_install = "mandigrow.mandigrow.install.after_install"
+after_migrate = "mandigrow.schema_updater.update_schemas"
 
 # Uninstallation
 # ------------
