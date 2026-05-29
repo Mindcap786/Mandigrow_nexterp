@@ -10392,8 +10392,8 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             
             is_ob = payload.get("is_opening_balance") is True
             
-            # Master Override: If organization GST is disabled, strictly enforce 0% tax compliance
-            final_purchase_gst_rate = 0.0 if not org_gst_enabled or is_ob else float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0)
+            # Master Override: If organization GST is disabled OR counterparty is a farmer, strictly enforce 0% tax compliance
+            final_purchase_gst_rate = 0.0 if (not org_gst_enabled or is_ob or is_farmer) else float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0)
             
             lot_data = {
                 "doctype": "Mandi Lot",
