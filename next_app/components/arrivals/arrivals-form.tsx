@@ -340,16 +340,16 @@ export default function ArrivalsEntryForm() {
 
         // farmerPayment (Before arrival-level advance)
         const farmerPayment = arrivalType === 'direct'
-            ? (purchaseGstType.toLowerCase() === 'exclusive' && !isUnregisteredSupplier ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
+            ? (purchaseGstType.toLowerCase() === 'exclusive' ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
             : adjustedValue - commissionAmount - totalExpenses;
 
         const netCost = arrivalType === 'direct'
-            ? adjustedValue + totalExpenses
+            ? (purchaseGstType.toLowerCase() === 'exclusive' ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
             : adjustedValue;
             
-        const baseCostForUnit = purchaseGstType.toLowerCase() === 'inclusive' && arrivalType === 'direct' && !isUnregisteredSupplier ? taxableValue : adjustedValue;
+        const baseCostForUnit = purchaseGstType.toLowerCase() === 'inclusive' && arrivalType === 'direct' ? taxableValue : adjustedValue;
         
-        const unitCost = qty > 0 ? (arrivalType === 'direct' ? (baseCostForUnit + totalExpenses) / qty : adjustedValue / qty) : 0;
+        const unitCost = qty > 0 ? (arrivalType === 'direct' ? (baseCostForUnit + totalExpenses + (purchaseGstType.toLowerCase() === 'exclusive' ? gstAmount : 0)) / qty : adjustedValue / qty) : 0;
 
         return {
             qty,
