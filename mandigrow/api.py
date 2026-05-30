@@ -10220,9 +10220,11 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 # EXTRACT the tax from the base amounts for standard ERP display
                 base_amount = round(actual_base, 2)
                 rate = round(base_amount / qty, 2) if qty > 0 else 0
+                total_gst += line_gst_amount
             else:
                 line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
                 total_exclusive_gst += line_gst_amount
+                total_gst += line_gst_amount
             # ─────────────────────────────────────────────────────────────────
             
             doc.append("items", {
@@ -10237,6 +10239,18 @@ def confirm_sale_transaction(**kwargs) -> dict:
             })
             
         doc.exclusive_gst_total = round(total_exclusive_gst, 2)
+        
+        # ── Override payload GST with true calculated GST ────────────────
+        doc.gsttotal = round(total_gst, 2)
+        is_igst = str(payload.get("is_igst") or payload.get("p_is_igst") or "").lower() in ["true", "1", "yes"]
+        if is_igst or doc.igst_amount > 0:
+            doc.igst_amount = doc.gsttotal
+            doc.cgst_amount = 0
+            doc.sgst_amount = 0
+        else:
+            doc.cgst_amount = round(doc.gsttotal / 2, 2)
+            doc.sgst_amount = round(doc.gsttotal / 2, 2)
+            doc.igst_amount = 0
         
         # ── Recalculate true subtotal after GST extraction ────────────────
         doc.totalamount = sum(flt(i.amount) for i in doc.items)
