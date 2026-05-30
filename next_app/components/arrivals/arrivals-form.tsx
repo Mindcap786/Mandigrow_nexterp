@@ -79,6 +79,8 @@ const itemSchema = z.object({
     barcode: z.string().optional(),
     lot_code: z.string().optional(),
     storage_location: z.string().optional(),
+    purchase_gst_rate: z.coerce.number().default(0),
+    purchase_gst_type: z.string().default("Exclusive"),
 });
 
 const formSchema = z.object({
@@ -299,11 +301,11 @@ export default function ArrivalsEntryForm() {
         const hasGstin = !!(selectedSupplier?.gstin && selectedSupplier.gstin.trim());
         const isUnregisteredSupplier = !hasGstin;
         const itemData = availableItems?.find(i => i.id === item.item_id);
-        const purchaseGstRate = Number(itemData?.purchase_gst_rate) || 0;
-        const purchaseGstType = (itemData?.purchase_gst_type || 'Exclusive').trim();
+        const purchaseGstRate = Number((item as any).purchase_gst_rate) || Number((itemData as any)?.purchase_gst_rate) || 0;
+        const purchaseGstType = ((item as any).purchase_gst_type || (itemData as any)?.purchase_gst_type || 'Exclusive').trim();
         const isRcm = false;
 
-        if (arrivalType === 'direct' && !isRcm && purchaseGstRate > 0 && !isUnregisteredSupplier) {
+        if (arrivalType === 'direct' && !isRcm && purchaseGstRate > 0) {
             if (purchaseGstType.toLowerCase() === 'inclusive') {
                 const baseAmount = adjustedValue / (1 + purchaseGstRate / 100);
                 gstAmount = Math.round((adjustedValue - baseAmount) * 100) / 100;
@@ -1267,7 +1269,9 @@ export default function ArrivalsEntryForm() {
                                         sale_price: 0,
                                         barcode: "",
                                         lot_code: "",
-                                        storage_location: form.getValues('storage_location') || ""
+                                        storage_location: form.getValues('storage_location') || "",
+                                        purchase_gst_rate: 0,
+                                        purchase_gst_type: "Exclusive"
                                     })}
                                     className="bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 font-bold text-[10px] uppercase tracking-wide h-8 px-4 rounded-lg transition-all shadow-sm"
                                 >
@@ -1331,6 +1335,12 @@ export default function ArrivalsEntryForm() {
                                                                             const item = availableItems?.find(i => i.id === val);
                                                                             if (item?.default_unit) {
                                                                                 form.setValue(`items.${index}.unit`, item.default_unit);
+                                                                            }
+                                                                            if (item?.purchase_gst_rate) {
+                                                                                form.setValue(`items.${index}.purchase_gst_rate`, Number(item.purchase_gst_rate));
+                                                                            }
+                                                                            if (item?.purchase_gst_type) {
+                                                                                form.setValue(`items.${index}.purchase_gst_type`, item.purchase_gst_type);
                                                                             }
                                                                         }}
                                                                         placeholder="Select Item..."

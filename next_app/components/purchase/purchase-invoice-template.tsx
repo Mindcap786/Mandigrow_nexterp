@@ -331,8 +331,15 @@ export default function PurchaseBillInvoice({
                                     <td className="py-2 text-center font-bold text-sm tracking-tighter">
                                         {Math.round(lGrossQty * 100) / 100} <span className="text-[11px] text-gray-500 font-bold ml-0.5 uppercase tracking-tight">{l.unit || unit}</span>
                                     </td>
-                                    <td className="py-2 text-right font-bold text-sm tracking-tighter">
-                                        ₹{toNumber(l.supplier_rate).toLocaleString()}
+                                    <td className="py-2 text-right">
+                                        <div className="font-bold text-sm tracking-tighter">
+                                            ₹{toNumber(l.supplier_rate).toLocaleString()}
+                                        </div>
+                                        {toNumber(l.purchase_gst_rate) > 0 && arrivalType === 'direct' && (
+                                            <div className="text-[9px] font-bold text-blue-600 mt-0.5 uppercase">
+                                                + {l.purchase_gst_rate}% GST
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="py-2 text-right font-black text-sm tracking-tighter">
                                         ₹{Math.round(lGoodsVal).toLocaleString()}
