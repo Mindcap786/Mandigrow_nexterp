@@ -441,13 +441,23 @@ def post_arrival_ledger(doc, method=None):
         # Mandi bears expenses, so they are added to the supplier payable and the stock cost.
         total_expenses = _flt(doc.total_expenses)
         net_payable = _flt(doc.net_payable_farmer)
-        purchase_gst = _flt(doc.get("purchase_gst_total") or getattr(doc, "purchase_gst_total", 0))
+        # ── Field-name fix: the arrival doctype uses `gst_total`, NOT `purchase_gst_total` ──
+        # Reading the wrong name returns 0, which inflates stock_cost by the full GST amount
+        # and causes "Total Debit != Total Credit" by exactly the GST value.
+        purchase_gst = _flt(getattr(doc, "gst_total", None) or doc.get("gst_total") or 0)
         cgst = _flt(doc.get("cgst_amount") or getattr(doc, "cgst_amount", 0))
         sgst = _flt(doc.get("sgst_amount") or getattr(doc, "sgst_amount", 0))
         igst = _flt(doc.get("igst_amount") or getattr(doc, "igst_amount", 0))
         
+        # Safety: if CGST/SGST split is missing but we have a total, auto-split
+        # (this handles the case where the org lookup silently failed in _recompute_summary)
+        if purchase_gst > 0 and (cgst + sgst + igst) == 0:
+            cgst = round(purchase_gst / 2.0, 2)
+            sgst = round(purchase_gst / 2.0, 2)
+
+        # stock_cost = goods value without GST (GST posted separately to Input Tax accounts)
         stock_cost = round(net_payable - purchase_gst, 2)
-        
+
         if net_payable > 0:
             if stock_cost > 0:
                 goods_accounts.append({
