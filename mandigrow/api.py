@@ -10581,10 +10581,10 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             input_gst_rate = float(item.get("purchase_gst_rate") if item.get("purchase_gst_rate") is not None else item_master.get("purchase_gst_rate") or 0)
             
             final_purchase_gst_rate = 0.0
-            if org_gst_enabled and not is_ob:
+            if not is_ob:
                 if is_rcm:
                     final_purchase_gst_rate = input_gst_rate
-                elif is_farmer and not supplier_gstin:
+                elif not supplier_gstin:
                     final_purchase_gst_rate = 0.0
                 else:
                     final_purchase_gst_rate = input_gst_rate

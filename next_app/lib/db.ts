@@ -8,6 +8,7 @@ export interface PendingSale {
     sale_date: string;
     created_at: number;
     sync_status: 'pending' | 'synced' | 'failed';
+    payload?: any; // Stores the full RPC payload
 }
 
 export interface OfflineContact {

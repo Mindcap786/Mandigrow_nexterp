@@ -545,26 +545,26 @@ export default function POSPage() {
         if (rate > 0) {
             if (isInclusive) {
                 const base = itemTaxable / (1 + rate / 100);
-                gstAmt = itemTaxable - base;
+                gstAmt = Math.round((itemTaxable - base) * 100) / 100;
             } else {
-                gstAmt = itemTaxable * (rate / 100);
+                gstAmt = Math.round((itemTaxable * (rate / 100)) * 100) / 100;
             }
         }
         return s + gstAmt;
     }, 0);
     
-    const gstTotal = Math.round(rawGstTotal);
+    const gstTotal = Math.round(rawGstTotal * 100) / 100;
     
     // Split CGST/SGST/IGST based on intra vs inter state (use taxSettings for the split type only)
     const isIntraState = taxSettings.gst_type !== 'inter';
-    const cgstAmount = isIntraState ? Math.round(gstTotal / 2) : 0;
-    const sgstAmount = isIntraState ? Math.round(gstTotal / 2) : 0;
+    const cgstAmount = isIntraState ? Math.round((gstTotal / 2) * 100) / 100 : 0;
+    const sgstAmount = isIntraState ? Math.round((gstTotal / 2) * 100) / 100 : 0;
     const igstAmount = !isIntraState ? gstTotal : 0;
     
     // Market charges from settings (auto-applied on taxable base)
-    const marketFeeAmount = taxSettings.market_fee_percent;
-    const nirashritAmount = Math.round(taxableSubTotal * taxSettings.nirashrit_percent / 100);
-    const miscFeeAmount = Math.round(taxableSubTotal * taxSettings.misc_fee_percent / 100);
+    const marketFeeAmount = Math.round(taxSettings.market_fee_percent * 100) / 100;
+    const nirashritAmount = Math.round((taxableSubTotal * taxSettings.nirashrit_percent / 100) * 100) / 100;
+    const miscFeeAmount = Math.round((taxableSubTotal * taxSettings.misc_fee_percent / 100) * 100) / 100;
     
     // Only exclusive GST is added on top of the taxable subtotal (inclusive GST is already inside the price)
     const exclusiveGstTotal = cart.reduce((s, c) => {
@@ -575,13 +575,14 @@ export default function POSPage() {
         const itemRatio = subTotal > 0 ? (itemSubtotal / subTotal) : 0;
         const itemDiscount = discountAmount * itemRatio;
         const itemTaxable = Math.max(0, itemSubtotal - itemDiscount);
-        return s + (itemTaxable * (rate / 100));
+        const lineGst = Math.round((itemTaxable * (rate / 100)) * 100) / 100;
+        return s + lineGst;
     }, 0);
 
     const extraChargesTotal = additionalCharges.reduce((acc, c) => acc + c.amount, 0)
     const crateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + c.qty * c.rate, 0) : 0
     // Only exclusive GST is added on top of the taxable subtotal
-    const grandTotal = taxableSubTotal + Math.round(exclusiveGstTotal) + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
+    const grandTotal = Math.round((taxableSubTotal + (Math.round(exclusiveGstTotal * 100) / 100) + marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal) * 100) / 100;
 
     const handleConfirmCheckout = async () => {
         if (cart.length === 0) {

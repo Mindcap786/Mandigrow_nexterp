@@ -33,6 +33,8 @@
   "hsn_code",
   "gst_rate",
   "gst_amount",
+  "purchase_gst_rate",
+  "purchase_gst_amount",
   "purchase_gst_type"
  ],
  "fields": [
@@ -182,6 +184,11 @@
    "fieldname": "gst_rate",
    "fieldtype": "Float",
    "label": "GST Rate (%)"
+  },
+  {
+   "fieldname": "purchase_gst_rate",
+   "fieldtype": "Float",
+   "label": "Purchase GST Rate (%)"
   },
   {
    "fieldname": "purchase_gst_amount",

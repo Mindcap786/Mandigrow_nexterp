@@ -155,11 +155,10 @@ export function calculateSaleTotals({
     const extraCharges =
         toNumber(loadingCharges) + toNumber(unloadingCharges) + toNumber(otherExpenses);
 
-    // Grand Total is traditionally rounded to the nearest integer in India, 
-    // but the sub-components MUST be 2-decimal precise.
+    // Grand Total MUST match backend decimal precision (2 decimals) to avoid ledger drift
     const grandTotal = Math.round(
-        taxableSubTotal + marketFee + nirashrit + miscFee + exclusiveGstTotal + extraCharges
-    );
+        (taxableSubTotal + marketFee + nirashrit + miscFee + exclusiveGstTotal + extraCharges) * 100
+    ) / 100;
 
     // For display: when some items are inclusive, the "Taxable Val" panel should
     // show the base-before-GST, not the raw amount that still contains the tax.

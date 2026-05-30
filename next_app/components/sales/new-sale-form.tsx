@@ -541,28 +541,7 @@ function NewSaleForm() {
                 throw new Error("User profile not loaded. Please refresh.");
             }
 
-            // 3. OFFLINE HANDLING
-            if (!isOnline) {
-                await db.sales.add({
-                    id: crypto.randomUUID(),
-                    contact_id: values.buyer_id,
-                    total_amount: totalAmount,
-                    items: processedItems,
-                    sale_date: values.sale_date.toISOString(),
-                    created_at: Date.now(),
-                    sync_status: 'pending'
-                });
-
-                toast({
-                    title: "Saved Offline",
-                    description: "Transaction saved locally. Will sync when online.",
-                    className: "bg-yellow-500 text-black border-none"
-                });
-                router.replace('/sales');
-                return;
-            }
-
-            // 4. ONLINE HANDLING - Pre-flight Checks
+            // 3. ONLINE HANDLING - Pre-flight Checks (Applies to both Offline/Online)
             for (const item of processedItems) {
                 if (!item.lot_id) throw new Error("Please select a Stock Lot for every item.");
                 const currentLot = lots.find(l => l.id === item.lot_id);
@@ -577,7 +556,7 @@ function NewSaleForm() {
                 }
             }
 
-            // 5. Build final tax breakdown for each item
+            // 4. Build final tax breakdown for each item
             const saleItemsWithTax = processedItems.map(item => {
                 const itemTax = calculateSaleItemTaxBreakdown({
                     amount: item.amount,
@@ -597,8 +576,7 @@ function NewSaleForm() {
 
             const idempotencyKey = crypto.randomUUID();
 
-            // 6. Execute Transaction via RPC
-            const { error, data: rpcResponse, warning } = await confirmSaleTransactionWithFallback({
+            const fullPayloadParams = {
                 organizationId: profile.organization_id,
                 buyerId: values.buyer_id,
                 saleDate: values.sale_date.toISOString().split('T')[0],
@@ -632,7 +610,32 @@ function NewSaleForm() {
                 bookNo: values.book_no || null,
                 lotNo: values.lot_no || null,
                 crateItems: cratesEnabled && crateCart.length > 0 ? crateCart : []
-            });
+            };
+
+            // 5. OFFLINE HANDLING
+            if (!isOnline) {
+                await db.sales.add({
+                    id: idempotencyKey,
+                    contact_id: values.buyer_id,
+                    total_amount: totalAmount,
+                    items: saleItemsWithTax,
+                    sale_date: values.sale_date.toISOString(),
+                    created_at: Date.now(),
+                    sync_status: 'pending',
+                    payload: fullPayloadParams // Store the EXACT payload
+                });
+
+                toast({
+                    title: "Saved Offline",
+                    description: "Transaction saved locally. Will sync when online.",
+                    className: "bg-yellow-500 text-black border-none"
+                });
+                router.replace('/sales');
+                return;
+            }
+
+            // 6. Execute Transaction via RPC
+            const { error, data: rpcResponse, warning } = await confirmSaleTransactionWithFallback(fullPayloadParams);
 
             if (error) throw error;
             if (warning) {

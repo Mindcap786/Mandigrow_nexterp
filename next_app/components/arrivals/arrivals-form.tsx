@@ -286,7 +286,8 @@ export default function ArrivalsEntryForm() {
         const adjustedQty = qty - (qty * lessPercent / 100);
 
         // Adjusted Value (after Less % and Other Cut applied)
-        // USER REQUEST: Other Cut is a discount like Less.
+        // Match backend: base_adjusted_amount = adjusted_qty * rate
+        // net_amount = max(0, base_adjusted_amount - otherCut)
         const baseAdjustedValue = adjustedQty * rate;
         const adjustedValue = Math.max(0, baseAdjustedValue - otherCut);
 
@@ -295,28 +296,27 @@ export default function ArrivalsEntryForm() {
         let taxableValue = adjustedValue;
         
         const selectedSupplier = contacts?.find(c => c.id === form.getValues('contact_id'));
-        const isFarmer = selectedSupplier?.type === 'farmer';
         const hasGstin = !!(selectedSupplier?.gstin && selectedSupplier.gstin.trim());
-        const isUnregisteredFarmer = isFarmer && !hasGstin;
+        const isUnregisteredSupplier = !hasGstin;
         const itemData = availableItems?.find(i => i.id === item.item_id);
         const purchaseGstRate = Number(itemData?.purchase_gst_rate) || 0;
-        const purchaseGstType = itemData?.purchase_gst_type || 'Exclusive';
-        // Note: item_master is_rcm might be needed, but we'll assume standard direct purchase logic
-        const isRcm = false; // We don't have row-level RCM toggle in arrivals yet
+        const purchaseGstType = (itemData?.purchase_gst_type || 'Exclusive').trim();
+        const isRcm = false;
 
-        if (arrivalType === 'direct' && !isRcm && purchaseGstRate && !isUnregisteredFarmer) {
-            if (purchaseGstType === 'Exclusive') {
-                gstAmount = adjustedValue * (purchaseGstRate / 100);
-            } else if (purchaseGstType === 'Inclusive') {
-                taxableValue = adjustedValue / (1 + purchaseGstRate / 100);
-                gstAmount = adjustedValue - taxableValue;
+        if (arrivalType === 'direct' && !isRcm && purchaseGstRate > 0 && !isUnregisteredSupplier) {
+            if (purchaseGstType.toLowerCase() === 'inclusive') {
+                const baseAmount = adjustedValue / (1 + purchaseGstRate / 100);
+                gstAmount = Math.round((adjustedValue - baseAmount) * 100) / 100;
+                taxableValue = baseAmount;
+            } else {
+                gstAmount = Math.round((adjustedValue * (purchaseGstRate / 100)) * 100) / 100;
             }
         }
 
         // Commission Amount (calculated on final adjusted value)
-        const commissionAmount = arrivalType === 'direct' ? 0 : (adjustedValue * commissionPercent / 100);
+        const commissionAmount = arrivalType === 'direct' ? 0 : Math.round((adjustedValue * commissionPercent / 100) * 100) / 100;
 
-        // Transport Expenses (arrival-level, need proportional split)
+        // Transport Expenses
         const allItems = form.watch('items') || [];
         const totalArrivalValue = allItems.reduce((sum, itm) => {
             const iQty = Number(itm.qty) || 0;
@@ -325,8 +325,7 @@ export default function ArrivalsEntryForm() {
             const iOtherCut = Number(itm.farmer_charges) || 0;
             const iAdjustedQty = iQty - (iQty * iLess / 100);
             const iBaseAdjusted = iAdjustedQty * iRate;
-            const iAdjusted = Math.max(0, iBaseAdjusted - iOtherCut);
-            return sum + iAdjusted;
+            return sum + Math.max(0, iBaseAdjusted - iOtherCut);
         }, 0);
 
         const totalTransportExpenses = Number(totalTripDeductions) || 0;
@@ -335,31 +334,19 @@ export default function ArrivalsEntryForm() {
             ? (adjustedValue / totalArrivalValue) * totalTransportExpenses
             : (1 / Math.max(1, allItems.length)) * totalTransportExpenses;
 
-        // Total Expenses (item-level + transport share)
         const totalExpenses = packing + loading + itemTransportShare;
 
         // farmerPayment (Before arrival-level advance)
-        // USER REQUEST: For Direct Purchase, Net Cost = Final Payable.
-        // For Direct (Exclusive): Pay (Goods - OtherCut + Expenses + GST)
-        // For Direct (Inclusive): Pay (Goods - OtherCut + Expenses) -> GST is inside Goods
-        // For Commission: Pay (Goods - Commission - OtherCut - Expenses)
         const farmerPayment = arrivalType === 'direct'
-            ? (purchaseGstType === 'Exclusive' && !isUnregisteredFarmer ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
+            ? (purchaseGstType.toLowerCase() === 'exclusive' && !isUnregisteredSupplier ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
             : adjustedValue - commissionAmount - totalExpenses;
 
-        // Net Cost (to Mandi)
-        // For Direct: Total out-of-pocket (Goods - OtherCut + Expenses)
-        // For Commission: Total cost of goods (Adjusted Value)
         const netCost = arrivalType === 'direct'
             ? adjustedValue + totalExpenses
             : adjustedValue;
             
-        // Unit Cost (for inventory): Should exclude GST
-        // If Exclusive: Base cost is adjustedValue.
-        // If Inclusive: Base cost is Taxable Value (adjustedValue - GST).
-        const baseCostForUnit = purchaseGstType === 'Inclusive' && arrivalType === 'direct' && !isUnregisteredFarmer ? taxableValue : adjustedValue;
+        const baseCostForUnit = purchaseGstType.toLowerCase() === 'inclusive' && arrivalType === 'direct' && !isUnregisteredSupplier ? taxableValue : adjustedValue;
         
-        // Final Unit Cost: Base cost + expenses divided by qty (for direct)
         const unitCost = qty > 0 ? (arrivalType === 'direct' ? (baseCostForUnit + totalExpenses) / qty : adjustedValue / qty) : 0;
 
         return {
@@ -764,6 +751,8 @@ export default function ArrivalsEntryForm() {
                     const commodity = availableItems?.find(i => i.id === item.item_id);
                     return {
                         ...item,
+                        purchase_gst_rate: commodity?.purchase_gst_rate || 0,
+                        purchase_gst_type: commodity?.purchase_gst_type || 'Exclusive',
                         custom_attributes: {
                             ...commodity?.custom_attributes,
                             // Ensure variety and grade are present if they exist in the commodity

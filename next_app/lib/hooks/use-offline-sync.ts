@@ -39,15 +39,58 @@ export function useOfflineSync(organizationId?: string) {
         // Parallel flush — idempotency key (sale.id) guarantees server-side dedup
         const results = await Promise.allSettled(
             pendingSales.map(async (sale) => {
-                await callApi('mandigrow.api.confirm_sale_transaction', {
-                    p_organization_id: organizationId,
-                    p_buyer_id: sale.contact_id,
-                    p_sale_date: String(sale.sale_date).split('T')[0],
-                    p_payment_mode: 'credit',
-                    p_total_amount: sale.total_amount,
-                    p_items: sale.items,
-                    p_idempotency_key: sale.id,
-                });
+                if (sale.payload) {
+                    await callApi('mandigrow.api.confirm_sale_transaction', {
+                        p_organization_id: sale.payload.organizationId,
+                        p_buyer_id: sale.payload.buyerId,
+                        p_sale_date: sale.payload.saleDate,
+                        p_payment_mode: sale.payload.paymentMode,
+                        p_total_amount: sale.payload.totalAmount,
+                        p_items: sale.payload.items,
+                        p_market_fee: sale.payload.marketFee || 0,
+                        p_nirashrit: sale.payload.nirashrit || 0,
+                        p_misc_fee: sale.payload.miscFee || 0,
+                        p_loading_charges: sale.payload.loadingCharges || 0,
+                        p_unloading_charges: sale.payload.unloadingCharges || 0,
+                        p_other_expenses: sale.payload.otherExpenses || 0,
+                        p_amount_received: sale.payload.amountReceived ?? 0,
+                        p_idempotency_key: sale.payload.idempotencyKey || sale.id,
+                        p_due_date: sale.payload.dueDate,
+                        p_bank_account_id: sale.payload.bankAccountId,
+                        p_cheque_no: sale.payload.chequeNo,
+                        p_cheque_date: sale.payload.chequeDate,
+                        p_cheque_status: sale.payload.chequeStatus || false,
+                        p_bank_name: sale.payload.bankName,
+                        p_cgst_amount: sale.payload.cgstAmount || 0,
+                        p_sgst_amount: sale.payload.sgstAmount || 0,
+                        p_igst_amount: sale.payload.igstAmount || 0,
+                        p_gst_total: sale.payload.gstTotal || 0,
+                        p_discount_percent: sale.payload.discountPercent || 0,
+                        p_discount_amount: sale.payload.discountAmount || 0,
+                        p_place_of_supply: sale.payload.placeOfSupply,
+                        p_buyer_gstin: sale.payload.buyerGstin,
+                        p_is_igst: sale.payload.isIgst || false,
+                        p_vehicle_number: sale.payload.vehicleNumber,
+                        p_transport_name: sale.payload.transportName,
+                        p_book_no: sale.payload.bookNo,
+                        p_lot_no: sale.payload.lotNo,
+                        p_narration: sale.payload.narration,
+                        p_created_by: sale.payload.createdBy,
+                        p_gst_enabled: sale.payload.gstEnabled || false,
+                        p_crate_items: sale.payload.crateItems || [],
+                    });
+                } else {
+                    // Fallback for older stored offline sales
+                    await callApi('mandigrow.api.confirm_sale_transaction', {
+                        p_organization_id: organizationId,
+                        p_buyer_id: sale.contact_id,
+                        p_sale_date: String(sale.sale_date).split('T')[0],
+                        p_payment_mode: 'credit',
+                        p_total_amount: sale.total_amount,
+                        p_items: sale.items,
+                        p_idempotency_key: sale.id,
+                    });
+                }
                 await db.sales.update(sale.id, { sync_status: 'synced' });
             })
         );
