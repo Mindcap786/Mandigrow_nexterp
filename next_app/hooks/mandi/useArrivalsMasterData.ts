@@ -23,6 +23,7 @@ export interface ArrivalContact {
   name: string
   type: string
   city?: string | null
+  gstin?: string | null
 }
 
 export interface ArrivalCommodity {

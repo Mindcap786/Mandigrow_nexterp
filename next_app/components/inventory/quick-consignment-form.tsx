@@ -300,7 +300,12 @@ export function QuickPurchaseForm() {
 
         // 2. GST Calculation
         let gstAmount = 0;
-        if (type === 'direct' && !row.is_rcm && row.purchase_gst_rate) {
+        const selectedSupplier = masterContacts.find(c => c.id === form.getValues('supplier_id'));
+        const isFarmer = selectedSupplier?.type === 'farmer';
+        const hasGstin = !!(selectedSupplier?.gstin && selectedSupplier.gstin.trim());
+        const isUnregisteredFarmer = isFarmer && !hasGstin;
+
+        if (type === 'direct' && !row.is_rcm && row.purchase_gst_rate && !isUnregisteredFarmer) {
             if (row.purchase_gst_type === 'Exclusive') {
                 gstAmount = grossValue * (Number(row.purchase_gst_rate) / 100);
             }

@@ -4753,8 +4753,11 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     has_internal_id = frappe.db.has_column("Mandi Contact", "internal_id")
     internal_id_col = ", internal_id" if has_internal_id else ""
 
+    has_gstin = frappe.db.has_column("Mandi Contact", "gstin")
+    gstin_col = ", gstin" if has_gstin else ""
+
     contacts_raw = frappe.db.sql(f"""
-        SELECT name AS id, full_name AS display_name, contact_type AS type, city {internal_id_col}
+        SELECT name AS id, full_name AS display_name, contact_type AS type, city {internal_id_col} {gstin_col}
         FROM `tabMandi Contact`
         WHERE {' AND '.join(contact_where)}
         ORDER BY full_name ASC

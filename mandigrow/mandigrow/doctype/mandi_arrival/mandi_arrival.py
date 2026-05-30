@@ -187,14 +187,14 @@ class MandiArrival(Document):
         self.total_expenses = total_expenses
         self.mandi_total_earnings = mandi_total_earnings
         self.net_payable_farmer = net_payable
-        self.purchase_gst_total = round(total_purchase_gst, 2)
+        self.gst_total = round(total_purchase_gst, 2)
         
         # Calculate GST Split
         self.cgst_amount = 0.0
         self.sgst_amount = 0.0
         self.igst_amount = 0.0
         
-        if self.purchase_gst_total > 0 and arrival_type_str == "direct":
+        if self.gst_total > 0 and arrival_type_str == "direct":
             try:
                 org_id = self.organization_id
                 if not org_id:
@@ -207,10 +207,10 @@ class MandiArrival(Document):
                     gst_type = (org_data.get("gst_type") or "intra").lower()
                     
                     if gst_type == "intra":
-                        self.cgst_amount = round(self.purchase_gst_total / 2.0, 2)
-                        self.sgst_amount = round(self.purchase_gst_total / 2.0, 2)
+                        self.cgst_amount = round(self.gst_total / 2.0, 2)
+                        self.sgst_amount = round(self.gst_total / 2.0, 2)
                     elif gst_type == "inter":
-                        self.igst_amount = self.purchase_gst_total
+                        self.igst_amount = self.gst_total
                         
                 # Set ITC Eligibility and RCM aggregation
                 has_rcm = any(lot.get("is_rcm") for lot in (self.get("items") or []))
@@ -219,4 +219,3 @@ class MandiArrival(Document):
 
             except Exception as e:
                 frappe.log_error(f"Error calculating GST split in Mandi Arrival: {str(e)}")
-
