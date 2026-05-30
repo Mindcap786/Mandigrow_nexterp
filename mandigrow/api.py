@@ -2962,6 +2962,10 @@ def get_purchase_bill_details(lot_id: str) -> dict:
                 "initial_qty": stock.get("initial_qty"),
                 "current_qty": stock.get("current_qty"),
                 "status": stock.get("status"),
+                "purchase_gst_rate": getattr(item, "purchase_gst_rate", 0),
+                "purchase_gst_type": getattr(item, "purchase_gst_type", "Exclusive"),
+                "hsn_code": getattr(item, "hsn_code", None),
+                "is_rcm": getattr(item, "is_rcm", 0),
                 # custom_attributes is an optional field — not present on the
                 # standard Mandi Lot doctype unless added as a Custom Field.
                 "custom_attributes": getattr(item, "custom_attributes", None) or {},
@@ -3014,6 +3018,10 @@ def get_purchase_bill_details(lot_id: str) -> dict:
                 "advance_bank_name": arrival_doc.advance_bank_name,
                 "advance_cheque_no": arrival_doc.advance_cheque_no,
                 "advance_cheque_date": arrival_doc.advance_cheque_date,
+                "gst_total": getattr(arrival_doc, "gst_total", 0),
+                "cgst_amount": getattr(arrival_doc, "cgst_amount", 0),
+                "sgst_amount": getattr(arrival_doc, "sgst_amount", 0),
+                "igst_amount": getattr(arrival_doc, "igst_amount", 0),
                 # KEY FLAG: True only if the cheque JE is submitted (Cleared Instantly)
                 # False if the JE is a draft (Clear Later — pending)
                 "is_cheque_cleared": is_cheque_cleared,
@@ -3133,6 +3141,15 @@ def update_purchase_bill(arrival_id: str, data: str) -> dict:
                 item_doc.farmer_charges = item_data.get('farmer_charges')
                 item_doc.storage_location = item_data.get('storage_location')
                 item_doc.lot_code = item_data.get('lot_code')
+                
+                if 'purchase_gst_rate' in item_data:
+                    item_doc.purchase_gst_rate = item_data.get('purchase_gst_rate')
+                if 'purchase_gst_type' in item_data:
+                    item_doc.purchase_gst_type = item_data.get('purchase_gst_type')
+                if 'hsn_code' in item_data:
+                    item_doc.hsn_code = item_data.get('hsn_code')
+                if 'is_rcm' in item_data:
+                    item_doc.is_rcm = item_data.get('is_rcm')
                 _normalize_lot_stock(item_doc)
 
         doc.flags.ignore_validate_update_after_submit = True
@@ -10582,12 +10599,10 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             
             final_purchase_gst_rate = 0.0
             if not is_ob:
-                if is_rcm:
-                    final_purchase_gst_rate = input_gst_rate
-                elif not supplier_gstin:
-                    final_purchase_gst_rate = 0.0
-                else:
-                    final_purchase_gst_rate = input_gst_rate
+                # We honor the input_gst_rate (from frontend or item master).
+                # Responsibility for compliance is on the user/frontend, as silently dropping it 
+                # causes critical mismatches between frontend payload and backend bill.
+                final_purchase_gst_rate = input_gst_rate
             
             lot_data = {
                 "doctype": "Mandi Lot",
