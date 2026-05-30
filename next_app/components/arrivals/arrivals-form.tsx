@@ -290,6 +290,29 @@ export default function ArrivalsEntryForm() {
         const baseAdjustedValue = adjustedQty * rate;
         const adjustedValue = Math.max(0, baseAdjustedValue - otherCut);
 
+        // GST Calculation (Direct Purchase Only)
+        let gstAmount = 0;
+        let taxableValue = adjustedValue;
+        
+        const selectedSupplier = contacts?.find(c => c.id === form.getValues('contact_id'));
+        const isFarmer = selectedSupplier?.type === 'farmer';
+        const hasGstin = !!(selectedSupplier?.gstin && selectedSupplier.gstin.trim());
+        const isUnregisteredFarmer = isFarmer && !hasGstin;
+        const itemData = availableItems?.find(i => i.id === item.item_id);
+        const purchaseGstRate = Number(itemData?.purchase_gst_rate) || 0;
+        const purchaseGstType = itemData?.purchase_gst_type || 'Exclusive';
+        // Note: item_master is_rcm might be needed, but we'll assume standard direct purchase logic
+        const isRcm = false; // We don't have row-level RCM toggle in arrivals yet
+
+        if (arrivalType === 'direct' && !isRcm && purchaseGstRate && !isUnregisteredFarmer) {
+            if (purchaseGstType === 'Exclusive') {
+                gstAmount = adjustedValue * (purchaseGstRate / 100);
+            } else if (purchaseGstType === 'Inclusive') {
+                taxableValue = adjustedValue / (1 + purchaseGstRate / 100);
+                gstAmount = adjustedValue - taxableValue;
+            }
+        }
+
         // Commission Amount (calculated on final adjusted value)
         const commissionAmount = arrivalType === 'direct' ? 0 : (adjustedValue * commissionPercent / 100);
 
@@ -317,10 +340,11 @@ export default function ArrivalsEntryForm() {
 
         // farmerPayment (Before arrival-level advance)
         // USER REQUEST: For Direct Purchase, Net Cost = Final Payable.
-        // For Direct: Pay (Goods - OtherCut + Expenses)
+        // For Direct (Exclusive): Pay (Goods - OtherCut + Expenses + GST)
+        // For Direct (Inclusive): Pay (Goods - OtherCut + Expenses) -> GST is inside Goods
         // For Commission: Pay (Goods - Commission - OtherCut - Expenses)
         const farmerPayment = arrivalType === 'direct'
-            ? adjustedValue + totalExpenses
+            ? (purchaseGstType === 'Exclusive' && !isUnregisteredFarmer ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
             : adjustedValue - commissionAmount - totalExpenses;
 
         // Net Cost (to Mandi)
@@ -329,6 +353,14 @@ export default function ArrivalsEntryForm() {
         const netCost = arrivalType === 'direct'
             ? adjustedValue + totalExpenses
             : adjustedValue;
+            
+        // Unit Cost (for inventory): Should exclude GST
+        // If Exclusive: Base cost is adjustedValue.
+        // If Inclusive: Base cost is Taxable Value (adjustedValue - GST).
+        const baseCostForUnit = purchaseGstType === 'Inclusive' && arrivalType === 'direct' && !isUnregisteredFarmer ? taxableValue : adjustedValue;
+        
+        // Final Unit Cost: Base cost + expenses divided by qty (for direct)
+        const unitCost = qty > 0 ? (arrivalType === 'direct' ? (baseCostForUnit + totalExpenses) / qty : adjustedValue / qty) : 0;
 
         return {
             qty,
@@ -338,11 +370,15 @@ export default function ArrivalsEntryForm() {
             adjustedValue: isNaN(adjustedValue) ? 0 : adjustedValue,
             commissionAmount: isNaN(commissionAmount) ? 0 : commissionAmount,
             totalExpenses: isNaN(totalExpenses) ? 0 : totalExpenses,
+            gstAmount: isNaN(gstAmount) ? 0 : gstAmount,
             farmerPayment: isNaN(farmerPayment) ? 0 : farmerPayment,
             netCost: isNaN(netCost) ? 0 : netCost,
+            unitCost: isNaN(unitCost) ? 0 : unitCost,
             lessPercent,
             commissionPercent,
-            transportShare: isNaN(itemTransportShare) ? 0 : itemTransportShare
+            transportShare: isNaN(itemTransportShare) ? 0 : itemTransportShare,
+            purchaseGstType,
+            purchaseGstRate
         };
     };
 
@@ -1571,6 +1607,14 @@ export default function ArrivalsEntryForm() {
                                                                 <div className="text-[9px] font-bold text-red-600 uppercase tracking-widest mb-1">Expenses & Cuts</div>
                                                                 <div className="text-sm font-bold text-red-600 tabular-nums">₹{financials.totalExpenses.toFixed(0)}</div>
                                                             </div>
+                                                            
+                                                            {arrivalType === 'direct' && (financials.gstAmount || 0) > 0 && (
+                                                                <div>
+                                                                    <div className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mb-1">GST ({financials.purchaseGstType})</div>
+                                                                    <div className="text-sm font-bold text-orange-600 tabular-nums">₹{financials.gstAmount.toFixed(0)}</div>
+                                                                    <div className="text-[8px] text-orange-400 mt-0.5 font-medium">{financials.purchaseGstRate}%</div>
+                                                                </div>
+                                                            )}
 
                                                             <div className="md:col-span-1 border-r border-slate-300/50">
                                                                 <div className="text-[9px] font-bold text-green-600 uppercase tracking-widest mb-1">

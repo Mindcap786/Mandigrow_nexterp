@@ -300,27 +300,45 @@ export function QuickPurchaseForm() {
 
         // 2. GST Calculation
         let gstAmount = 0;
+        let taxableValue = grossValue;
         const selectedSupplier = masterContacts.find(c => c.id === form.getValues('supplier_id'));
         const isFarmer = selectedSupplier?.type === 'farmer';
         const hasGstin = !!(selectedSupplier?.gstin && selectedSupplier.gstin.trim());
         const isUnregisteredFarmer = isFarmer && !hasGstin;
 
         if (type === 'direct' && !row.is_rcm && row.purchase_gst_rate && !isUnregisteredFarmer) {
+            const gstRate = Number(row.purchase_gst_rate);
             if (row.purchase_gst_type === 'Exclusive') {
-                gstAmount = grossValue * (Number(row.purchase_gst_rate) / 100);
+                gstAmount = grossValue * (gstRate / 100);
+            } else if (row.purchase_gst_type === 'Inclusive') {
+                taxableValue = grossValue / (1 + gstRate / 100);
+                gstAmount = grossValue - taxableValue;
             }
         }
 
         // Net Payable per row: What Mandi owes for this specific item
-        const netPayable = grossValue - commissionAmount + gstAmount;
+        // If Exclusive: owes Gross - Commission + GST
+        // If Inclusive: owes Gross - Commission (since GST is inside Gross)
+        const netPayable = row.purchase_gst_type === 'Exclusive' && type === 'direct' && !row.is_rcm && !isUnregisteredFarmer
+            ? grossValue - commissionAmount + gstAmount
+            : grossValue - commissionAmount;
+
+        // Unit Cost (for inventory): Should exclude GST
+        // If Exclusive: Base cost is Gross.
+        // If Inclusive: Base cost is Taxable Value (Gross - GST).
+        const baseCostForUnit = row.purchase_gst_type === 'Inclusive' && type === 'direct' && !row.is_rcm && !isUnregisteredFarmer ? taxableValue : grossValue;
+        
+        // Final Unit Cost: Base cost minus commission divided by qty
+        const unitCost = qty > 0 ? (baseCostForUnit - commissionAmount) / qty : 0;
 
         return {
             grossValue,
             adjustedValue: grossValue,
             commissionAmount,
+            gstAmount,
             expensesTotal: 0,
             netPayable,
-            unitCost: qty > 0 ? netPayable / qty : 0
+            unitCost
         }
     }
 
@@ -337,9 +355,10 @@ export function QuickPurchaseForm() {
                 adjustedValue: acc.adjustedValue + financials.adjustedValue,
                 commissionAmount: acc.commissionAmount + financials.commissionAmount,
                 expensesTotal: acc.expensesTotal + financials.expensesTotal,
+                gstAmount: (acc.gstAmount || 0) + (financials.gstAmount || 0),
                 netPayable: acc.netPayable + financials.netPayable
             }
-        }, { grossValue: 0, adjustedValue: 0, commissionAmount: 0, expensesTotal: 0, netPayable: 0 })
+        }, { grossValue: 0, adjustedValue: 0, commissionAmount: 0, expensesTotal: 0, gstAmount: 0, netPayable: 0 })
 
         // Apply trip-level expenses: Mandi ALWAYS deducts expenses from the supplier/farmer payment
         // (If Mandi pays the loading, that amount is subtracted from what is owed to the party)
@@ -963,6 +982,13 @@ export function QuickPurchaseForm() {
                                                     <span className="text-xs font-black text-purple-700">₹{(rowFinancials?.commissionAmount || 0).toLocaleString()}</span>
                                                     <span className="text-[6px] text-purple-400">{row.commission}% of gross</span>
                                                 </div>
+                                                {form.watch('arrival_type') === 'direct' && (rowFinancials?.gstAmount || 0) > 0 && (
+                                                    <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-orange-100/50 border border-orange-100">
+                                                        <span className="text-[7px] font-black uppercase text-orange-500 mb-1">GST ({row.purchase_gst_type})</span>
+                                                        <span className="text-xs font-black text-orange-700">₹{(rowFinancials?.gstAmount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                                        <span className="text-[6px] text-orange-400">{row.purchase_gst_rate}%</span>
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-emerald-100/50 border border-emerald-200 shadow-sm shadow-emerald-500/5">
                                                     <span className="text-[7px] font-black uppercase text-emerald-600 mb-1">
                                                         {form.watch('arrival_type') === 'direct' ? 'Net Cost' :
@@ -1230,7 +1256,8 @@ export function QuickPurchaseForm() {
                             {/* Right: Totals Summary */}
                             <div className={cn(
                                 "grid gap-4 h-fit",
-                                totalFinancials.commissionAmount > 0 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
+                                totalFinancials.commissionAmount > 0 && (totalFinancials.gstAmount || 0) > 0 ? "grid-cols-2 md:grid-cols-4" : 
+                                (totalFinancials.commissionAmount > 0 || (totalFinancials.gstAmount || 0) > 0) ? "grid-cols-2 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
                             )}>
                                 <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-indigo-50 shadow-xl shadow-indigo-500/5 flex flex-col items-center justify-center">
                                     <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Total Gross</span>
@@ -1242,13 +1269,20 @@ export function QuickPurchaseForm() {
                                         <span className="text-2xl font-black text-emerald-700">₹{(totalFinancials?.commissionAmount || 0).toLocaleString()}</span>
                                     </div>
                                 )}
+                                {(totalFinancials?.gstAmount || 0) > 0 && (
+                                    <div className="bg-gradient-to-br from-orange-50/80 to-orange-100/80 p-6 rounded-3xl border border-orange-200 flex flex-col items-center justify-center animate-in zoom-in-95 duration-300 shadow-xl shadow-orange-500/5 backdrop-blur-md">
+                                        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Total GST</span>
+                                        <span className="text-2xl font-black text-orange-700">₹{(totalFinancials?.gstAmount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                )}
                                 <div className="bg-gradient-to-br from-indigo-50/80 to-indigo-100/80 p-6 rounded-3xl border border-indigo-200 flex flex-col items-center justify-center shadow-xl shadow-indigo-500/5 backdrop-blur-md">
                                     <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Balance Pending</span>
                                     <span className="text-2xl font-black text-indigo-700">₹{(totalFinancials?.finalPay || 0).toLocaleString()}</span>
                                 </div>
                                 <div className={cn(
                                     "bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between shadow-2xl shadow-purple-500/20 ring-4 ring-white/50 relative overflow-hidden gap-4 md:gap-0",
-                                    totalFinancials.commissionAmount > 0 ? "md:col-span-3" : "md:col-span-2"
+                                    totalFinancials.commissionAmount > 0 && (totalFinancials.gstAmount || 0) > 0 ? "md:col-span-4" :
+                                    (totalFinancials.commissionAmount > 0 || (totalFinancials.gstAmount || 0) > 0) ? "md:col-span-3" : "md:col-span-2"
                                 )}>
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[60px] pointer-events-none" />
                                     <div className="flex flex-col relative z-10 text-center md:text-left w-full md:w-auto">
