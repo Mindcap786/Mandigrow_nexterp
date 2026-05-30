@@ -211,7 +211,7 @@ class MandiArrival(Document):
                     
                     if gst_type == "intra":
                         self.cgst_amount = round(self.gst_total / 2.0, 2)
-                        self.sgst_amount = round(self.gst_total / 2.0, 2)
+                        self.sgst_amount = round(self.gst_total - self.cgst_amount, 2)
                     elif gst_type == "inter":
                         self.igst_amount = self.gst_total
                         

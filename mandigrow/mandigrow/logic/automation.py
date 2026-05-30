@@ -455,11 +455,14 @@ def post_arrival_ledger(doc, method=None):
         # Safety: if CGST/SGST split is missing but we have a total, auto-split
         if purchase_gst > 0 and (cgst + sgst + igst) == 0:
             cgst = round(purchase_gst / 2.0, 2)
-            sgst = round(purchase_gst / 2.0, 2)
+            sgst = round(purchase_gst - cgst, 2)
+
+        # Force the component sum to perfectly equal the deducted amount
+        exact_gst_sum = round(cgst + sgst + igst, 2)
 
         # For RCM, the GST is NOT in net_payable. Stock cost is just net_payable (Goods + Exp).
-        # For Regular, GST IS in net_payable. Stock cost is net_payable - GST.
-        stock_cost = round(net_payable if has_rcm else (net_payable - purchase_gst), 2)
+        # For Regular, GST IS in net_payable. Stock cost is net_payable - exact_gst_sum.
+        stock_cost = round(net_payable if has_rcm else (net_payable - exact_gst_sum), 2)
 
         if net_payable > 0 or stock_cost > 0:
             if stock_cost > 0:
