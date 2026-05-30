@@ -1625,19 +1625,19 @@ export default function POSPage() {
                                 {/* GST Breakdown — computed from per-item gst_rate (same as backend) */}
                                 {cgstAmount > 0 && (
                                     <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                        <span>CGST</span>
+                                        <span>CGST {Math.round(exclusiveGstTotal) < gstTotal ? '(Incl. in price)' : '(Added)'}</span>
                                         <span>₹{cgstAmount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 {sgstAmount > 0 && (
                                     <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                        <span>SGST</span>
+                                        <span>SGST {Math.round(exclusiveGstTotal) < gstTotal ? '(Incl. in price)' : '(Added)'}</span>
                                         <span>₹{sgstAmount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 {igstAmount > 0 && (
                                     <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                        <span>IGST</span>
+                                        <span>IGST {Math.round(exclusiveGstTotal) < gstTotal ? '(Incl. in price)' : '(Added)'}</span>
                                         <span>₹{igstAmount.toLocaleString()}</span>
                                     </div>
                                 )}

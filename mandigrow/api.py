@@ -9475,9 +9475,20 @@ def get_pos_master_data() -> dict:
 
         
         # 4. Fetch Settings
+        org_info = _get_org_info(org_id)
         settings = frappe.get_single("Mandi Settings") if frappe.db.exists("DocType", "Mandi Settings") else {}
         if settings:
             settings = settings.as_dict()
+        else:
+            settings = {}
+            
+        settings.update({
+            "gst_enabled": org_info.get("gst_enabled"),
+            "gst_type": org_info.get("gst_type"),
+            "cgst_percent": org_info.get("cgst_percent"),
+            "sgst_percent": org_info.get("sgst_percent"),
+            "igst_percent": org_info.get("igst_percent"),
+        })
         
         return {
             "items": lots,
@@ -10103,18 +10114,24 @@ def confirm_sale_transaction(**kwargs) -> dict:
         # Additional charges array sum and labels
         extra_charges_list = payload.get("additional_charges") or []
         if isinstance(extra_charges_list, str):
-            extra_charges_list = json.loads(extra_charges_list)
+            try:
+                extra_charges_list = json.loads(extra_charges_list)
+            except Exception:
+                extra_charges_list = []
         add_charges = sum(flt(c.get("amount")) for c in extra_charges_list)
         charge_remarks = ", ".join([f"{c.get('name') or 'Charge'}: {c.get('amount')}" for c in extra_charges_list if c.get('amount')])
         
         o_fee = flt(payload.get("other_expenses") or payload.get("p_other_expenses") or 0) + add_charges
         disc = flt(payload.get("discount_amount") or payload.get("p_discount_amount") or 0)
         
+        # Account for GST that may have been sent from POS frontend payload, to avoid it being treated as gap (Other Expenses)
+        payload_gst_total = flt(payload.get("gst_total") or payload.get("p_gst_total") or 0)
+        
         p_total = flt(payload.get("p_total_amount") or payload.get("total_amount") or 0)
         if p_total > 0 and (m_fee + n_fee + ms_fee + l_fee + u_fee + o_fee) == 0:
-            # Use items_subtotal_with_crates so crate amounts don't become Other Expenses
-            charges_gap = (p_total + disc) - items_subtotal_with_crates
-            if charges_gap > 0:
+            # Use items_subtotal_with_crates + payload_gst_total so crate and GST amounts don't become Other Expenses
+            charges_gap = (p_total + disc) - (items_subtotal_with_crates + payload_gst_total)
+            if charges_gap > 0.01: # allow small rounding gap
                 o_fee = charges_gap
         
         # DEBUG: Log exact payment capture (TEMPORARY — remove after diagnosis)
