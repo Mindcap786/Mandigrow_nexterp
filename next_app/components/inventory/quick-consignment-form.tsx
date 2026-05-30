@@ -944,79 +944,9 @@ export function QuickPurchaseForm() {
                                             )}
                                         </div>
                                         
-                                        {/* GST Row for Direct Purchases */}
-                                        {arrivalType === 'direct' && (
-                                            <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`rows.${index}.hsn_code`}
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">HSN Code</FormLabel>
-                                                            <FormControl>
-                                                                <Input
-                                                                    type="text"
-                                                                    {...field}
-                                                                    className="h-10 font-black text-sm bg-indigo-50/50 border-none text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
-                                                                />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`rows.${index}.purchase_gst_rate`}
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">GST Rate (%)</FormLabel>
-                                                            <FormControl>
-                                                                <Input
-                                                                    type="number"
-                                                                    {...field}
-                                                                    onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                                                                    className="h-10 font-black text-sm bg-indigo-50/50 border-none text-center rounded-xl focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
-                                                                />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`rows.${index}.is_rcm`}
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-col items-center justify-center pt-5">
-                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">RCM Applicable</FormLabel>
-                                                            <FormControl>
-                                                                <Switch
-                                                                    checked={field.value}
-                                                                    onCheckedChange={field.onChange}
-                                                                />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`rows.${index}.purchase_gst_type`}
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block text-center">GST Type</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger className="h-10 bg-indigo-50/50 border-none rounded-xl text-sm font-black shadow-sm text-center">
-                                                                        <SelectValue placeholder="Type" />
-                                                                    </SelectTrigger>
-                                                                </FormControl>
-                                                                <SelectContent className="rounded-xl border-none shadow-xl">
-                                                                    <SelectItem value="Exclusive" className="font-bold text-xs">Exclusive</SelectItem>
-                                                                    <SelectItem value="Inclusive" className="font-bold text-xs">Inclusive</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                        )}
+                                        {/* GST Row for Direct Purchases - HIDDEN to keep Quick Entry clean. 
+                                            Values are populated silently from Commodity Master on item select. */}
+
 
                                         {/* Deductions block hidden as per user request */}
 
