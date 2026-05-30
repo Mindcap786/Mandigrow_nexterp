@@ -177,8 +177,10 @@ class MandiArrival(Document):
         
         if arrival_type_str == "direct":
             mandi_total_earnings = round(sum_other_cuts, 2)  # Mandi keeps the Other Cut
-            # For direct, reimbursable expenses are added to the cost, but Other Cut (discount) is subtracted, Exclusive GST is added.
-            net_payable = round(total_realized + total_reimbursable_expenses - sum_other_cuts + exclusive_gst_total, 2)
+            # For direct, reimbursable expenses are added to the cost, but Other Cut (discount) is subtracted, Exclusive GST is added (unless RCM).
+            has_rcm = any(lot.get("is_rcm") for lot in (self.get("items") or []))
+            gst_to_add_to_payable = exclusive_gst_total if not has_rcm else 0.0
+            net_payable = round(total_realized + total_reimbursable_expenses - sum_other_cuts + gst_to_add_to_payable, 2)
         else:
             mandi_total_earnings = round(total_commission + total_expenses, 2)
             net_payable = round(total_realized - mandi_total_earnings, 2)

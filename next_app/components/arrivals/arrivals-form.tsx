@@ -81,6 +81,7 @@ const itemSchema = z.object({
     storage_location: z.string().optional(),
     purchase_gst_rate: z.coerce.number().default(0),
     purchase_gst_type: z.string().default("Exclusive"),
+    is_rcm: z.number().default(0),
 });
 
 const formSchema = z.object({
@@ -303,9 +304,9 @@ export default function ArrivalsEntryForm() {
         const itemData = availableItems?.find(i => i.id === item.item_id);
         const purchaseGstRate = Number((item as any).purchase_gst_rate) || Number((itemData as any)?.purchase_gst_rate) || 0;
         const purchaseGstType = ((item as any).purchase_gst_type || (itemData as any)?.purchase_gst_type || 'Exclusive').trim();
-        const isRcm = false;
+        const isRcm = isUnregisteredSupplier && purchaseGstRate > 0;
 
-        if (arrivalType === 'direct' && !isRcm && purchaseGstRate > 0) {
+        if (arrivalType === 'direct' && purchaseGstRate > 0) {
             if (purchaseGstType.toLowerCase() === 'inclusive') {
                 const baseAmount = adjustedValue / (1 + purchaseGstRate / 100);
                 gstAmount = Math.round((adjustedValue - baseAmount) * 100) / 100;
@@ -340,16 +341,16 @@ export default function ArrivalsEntryForm() {
 
         // farmerPayment (Before arrival-level advance)
         const farmerPayment = arrivalType === 'direct'
-            ? (purchaseGstType.toLowerCase() === 'exclusive' ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
+            ? (purchaseGstType.toLowerCase() === 'exclusive' && !isRcm ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
             : adjustedValue - commissionAmount - totalExpenses;
 
         const netCost = arrivalType === 'direct'
-            ? (purchaseGstType.toLowerCase() === 'exclusive' ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
+            ? (purchaseGstType.toLowerCase() === 'exclusive' && !isRcm ? adjustedValue + totalExpenses + gstAmount : adjustedValue + totalExpenses)
             : adjustedValue;
             
-        const baseCostForUnit = purchaseGstType.toLowerCase() === 'inclusive' && arrivalType === 'direct' ? taxableValue : adjustedValue;
+        const baseCostForUnit = purchaseGstType.toLowerCase() === 'inclusive' && arrivalType === 'direct' && !isRcm ? taxableValue : adjustedValue;
         
-        const unitCost = qty > 0 ? (arrivalType === 'direct' ? (baseCostForUnit + totalExpenses + (purchaseGstType.toLowerCase() === 'exclusive' ? gstAmount : 0)) / qty : adjustedValue / qty) : 0;
+        const unitCost = qty > 0 ? (arrivalType === 'direct' ? (baseCostForUnit + totalExpenses + (purchaseGstType.toLowerCase() === 'exclusive' && !isRcm ? gstAmount : 0)) / qty : adjustedValue / qty) : 0;
 
         return {
             qty,
@@ -367,7 +368,8 @@ export default function ArrivalsEntryForm() {
             commissionPercent,
             transportShare: isNaN(itemTransportShare) ? 0 : itemTransportShare,
             purchaseGstType,
-            purchaseGstRate
+            purchaseGstRate,
+            is_rcm: isRcm ? 1 : 0
         };
     };
 

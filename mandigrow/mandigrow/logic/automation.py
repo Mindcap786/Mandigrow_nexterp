@@ -171,6 +171,9 @@ def _resolve_parent_account(company, base_name):
         "CGST Output": ["Duties and Taxes", "Current Liabilities"],
         "SGST Output": ["Duties and Taxes", "Current Liabilities"],
         "IGST Output": ["Duties and Taxes", "Current Liabilities"],
+        "CGST Payable (RCM)": ["Duties and Taxes", "Current Liabilities"],
+        "SGST Payable (RCM)": ["Duties and Taxes", "Current Liabilities"],
+        "IGST Payable (RCM)": ["Duties and Taxes", "Current Liabilities"],
     }
     
     parents = search_map.get(base_name, ["Current Assets"])
@@ -442,23 +445,23 @@ def post_arrival_ledger(doc, method=None):
         total_expenses = _flt(doc.total_expenses)
         net_payable = _flt(doc.net_payable_farmer)
         # ── Field-name fix: the arrival doctype uses `gst_total`, NOT `purchase_gst_total` ──
-        # Reading the wrong name returns 0, which inflates stock_cost by the full GST amount
-        # and causes "Total Debit != Total Credit" by exactly the GST value.
         purchase_gst = _flt(getattr(doc, "gst_total", None) or doc.get("gst_total") or 0)
         cgst = _flt(doc.get("cgst_amount") or getattr(doc, "cgst_amount", 0))
         sgst = _flt(doc.get("sgst_amount") or getattr(doc, "sgst_amount", 0))
         igst = _flt(doc.get("igst_amount") or getattr(doc, "igst_amount", 0))
         
+        has_rcm = getattr(doc, "is_rcm", 0) == 1
+
         # Safety: if CGST/SGST split is missing but we have a total, auto-split
-        # (this handles the case where the org lookup silently failed in _recompute_summary)
         if purchase_gst > 0 and (cgst + sgst + igst) == 0:
             cgst = round(purchase_gst / 2.0, 2)
             sgst = round(purchase_gst / 2.0, 2)
 
-        # stock_cost = goods value without GST (GST posted separately to Input Tax accounts)
-        stock_cost = round(net_payable - purchase_gst, 2)
+        # For RCM, the GST is NOT in net_payable. Stock cost is just net_payable (Goods + Exp).
+        # For Regular, GST IS in net_payable. Stock cost is net_payable - GST.
+        stock_cost = round(net_payable if has_rcm else (net_payable - purchase_gst), 2)
 
-        if net_payable > 0:
+        if net_payable > 0 or stock_cost > 0:
             if stock_cost > 0:
                 goods_accounts.append({
                     "account":                   get_stock_acc(company),
@@ -503,8 +506,33 @@ def post_arrival_ledger(doc, method=None):
                     "against_voucher":            doc.name,
                     "user_remark":                f"Goods payable to {party_name} — {bill_ref}",
                 })
+
+            if has_rcm and purchase_gst > 0:
+                if cgst > 0:
+                    goods_accounts.append({
+                        "account":                    get_acc("CGST Payable (RCM)", company),
+                        "credit_in_account_currency": cgst,
+                        "against_voucher_type":       "Mandi Arrival",
+                        "against_voucher":            doc.name,
+                        "user_remark":                f"CGST Payable (RCM) on {bill_ref}",
+                    })
+                if sgst > 0:
+                    goods_accounts.append({
+                        "account":                    get_acc("SGST Payable (RCM)", company),
+                        "credit_in_account_currency": sgst,
+                        "against_voucher_type":       "Mandi Arrival",
+                        "against_voucher":            doc.name,
+                        "user_remark":                f"SGST Payable (RCM) on {bill_ref}",
+                    })
+                if igst > 0:
+                    goods_accounts.append({
+                        "account":                    get_acc("IGST Payable (RCM)", company),
+                        "credit_in_account_currency": igst,
+                        "against_voucher_type":       "Mandi Arrival",
+                        "against_voucher":            doc.name,
+                        "user_remark":                f"IGST Payable (RCM) on {bill_ref}",
+                    })
             # For direct purchases, expenses are borne by the Mandi and added to the stock cost/payable.
-            # No separate Expense Recovery entry is needed since it's not recovered from the supplier.
 
     goods_je = None
     if goods_accounts:
