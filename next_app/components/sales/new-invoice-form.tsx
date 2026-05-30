@@ -179,7 +179,14 @@ const NewInvoiceForm = () => {
         }
     };
 
-    useEffect(() => { fetchMasters(); }, [profile?.organization_id]);
+    useEffect(() => { 
+        fetchMasters(); 
+        
+        // Ensure masters are fresh if user switches tabs to update Item GST settings
+        const handleFocus = () => fetchMasters();
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [profile?.organization_id]);
 
     // Sync amount_received with total whenever charges or basis change
 

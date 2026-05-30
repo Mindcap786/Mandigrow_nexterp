@@ -2197,7 +2197,7 @@ def get_commodities() -> list:
     Schema-aware: uses has_column guards so this never crashes if custom
     fields haven't been migrated to the cloud DB yet.
     """
-    item_filters = [["is_stock_item", "=", 1]]
+    item_filters = [["is_stock_item", "=", 1], ["disabled", "=", 0]]
     if frappe.db.has_column("Item", "organization_id"):
         item_filters.append(["organization_id", "=", _get_user_org()])
 
@@ -10156,6 +10156,27 @@ def confirm_sale_transaction(**kwargs) -> dict:
             "items": []
         })
         
+        # ── Ensure exclusive_gst_total field exists ───────────────────────
+        if not frappe.db.has_column("Mandi Sale", "exclusive_gst_total"):
+            try:
+                frappe.get_doc({
+                    "doctype": "Custom Field",
+                    "dt": "Mandi Sale",
+                    "fieldname": "exclusive_gst_total",
+                    "label": "Exclusive GST Total",
+                    "fieldtype": "Currency",
+                    "insert_after": "gsttotal",
+                    "read_only": 1,
+                    "default": "0"
+                }).insert(ignore_permissions=True)
+                frappe.db.commit()
+                frappe.clear_cache(doctype="Mandi Sale")
+            except Exception:
+                pass
+        # ─────────────────────────────────────────────────────────────────
+        
+        total_exclusive_gst = 0.0
+
         for item in items:
             lot_id = item.get("lot_id")
             qty = flt(item.get("qty", 0))
@@ -10197,6 +10218,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 line_gst_amount = round(base_amount - actual_base, 2)
             else:
                 line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
+                total_exclusive_gst += line_gst_amount
             # ─────────────────────────────────────────────────────────────────
             
             doc.append("items", {
@@ -10209,6 +10231,8 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 "gst_amount": line_gst_amount,
                 "hsn_code": item_hsn,
             })
+            
+        doc.exclusive_gst_total = round(total_exclusive_gst, 2)
             
         # ── CRATE ITEMS: sold alongside commodities ───────────────────────
         crate_items = payload.get("crate_items") or payload.get("p_crate_items") or []
