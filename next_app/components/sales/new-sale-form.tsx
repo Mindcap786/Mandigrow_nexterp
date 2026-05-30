@@ -1854,6 +1854,10 @@ function NewSaleForm() {
                                     {(() => {
                                         const watchedItems = form.watch('sale_items') || [];
                                         const safeItems = Array.isArray(watchedItems) ? watchedItems : [];
+                                        // Detect if any item uses inclusive GST — affects label and total display
+                                        const isAnyInclusive = safeItems.some((item: any) =>
+                                            items.find(i => i.id === item?.item_id)?.sale_gst_type?.toLowerCase() === 'inclusive'
+                                        );
                                         const totals = calculateSaleTotals({
                                             items: safeItems.map((item: any) => {
                                                 const itemInfo = items.find(i => i.id === item?.item_id);
@@ -1861,6 +1865,8 @@ function NewSaleForm() {
                                                     amount: item?.amount,
                                                     gst_rate: itemInfo?.gst_rate,
                                                     is_gst_exempt: itemInfo?.is_gst_exempt,
+                                                    // Pass inclusive flag so GST is extracted, not added on top
+                                                    gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                                                 };
                                             }),
                                             taxSettings,
@@ -1879,8 +1885,10 @@ function NewSaleForm() {
                                             <>
                                                 <div className="space-y-2 pb-3 border-b border-white/10">
                                                     <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50">
-                                                        <span>Taxable Val</span>
-                                                        <span className="text-white">₹{totals.subTotal.toLocaleString()}</span>
+                                                        {/* For inclusive GST: show the base value (excl. GST).
+                                                            For exclusive GST: taxableBase == subTotal so this is the same. */}
+                                                        <span>{isAnyInclusive ? 'Base Value (excl. GST)' : 'Taxable Val'}</span>
+                                                        <span className="text-white">₹{totals.taxableBase.toLocaleString()}</span>
                                                     </div>
                                                     {cratesEnabled && crateCart.length > 0 && (
                                                         <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-amber-400/80 mt-1">
@@ -1888,10 +1896,15 @@ function NewSaleForm() {
                                                             <span className="text-amber-400">+ ₹{crateTotal.toLocaleString()}</span>
                                                         </div>
                                                     )}
-                                                    <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50">
-                                                        <span>GST</span>
-                                                        <span className="text-indigo-400">+ ₹{totals.gstTotal.toLocaleString()}</span>
-                                                    </div>
+                                                    {totals.gstTotal > 0 && (
+                                                        <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50">
+                                                            {/* Inclusive: GST is already in price — no "+" prefix */}
+                                                            <span>{isAnyInclusive ? 'GST (incl. in price)' : 'GST'}</span>
+                                                            <span className={isAnyInclusive ? 'text-slate-400' : 'text-indigo-400'}>
+                                                                {isAnyInclusive ? '' : '+ '}₹{totals.gstTotal.toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50">
                                                         <span>Fees & Charges</span>
                                                         <span className="text-indigo-400">+ ₹{otherFees.toLocaleString()}</span>
@@ -1988,6 +2001,10 @@ function NewSaleForm() {
                                 const watchItems = pendingValues?.sale_items || [];
                                 const safeItems = Array.isArray(watchItems) ? watchItems : [];
                                 const pendingBuyer = buyers.find(b => b.id === pendingValues?.buyer_id);
+                                // Detect inclusive GST for conditional label rendering in the confirm dialog
+                                const isAnyInclusiveConfirm = safeItems.some((item: any) =>
+                                    items.find(i => i.id === item?.item_id)?.sale_gst_type?.toLowerCase() === 'inclusive'
+                                );
                                 const totals = calculateSaleTotals({
                                     items: safeItems.map((item: any) => {
                                         const itemInfo = items.find(i => i.id === item?.item_id);
@@ -1995,6 +2012,8 @@ function NewSaleForm() {
                                             amount: item?.amount,
                                             gst_rate: itemInfo?.gst_rate,
                                             is_gst_exempt: itemInfo?.is_gst_exempt,
+                                            // Pass inclusive flag — without this, GST is wrongly added on top
+                                            gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                                         };
                                     }),
                                     taxSettings,
@@ -2070,12 +2089,20 @@ function NewSaleForm() {
                                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Reconciliation</span>
                                                     <div className="flex justify-between items-center group">
-                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Gross Amount</span>
+                                                        {/* Inclusive: the entered price already includes GST, so the invoice amount = total payable */}
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                                            {isAnyInclusiveConfirm ? 'Invoice Amount (incl. GST)' : 'Gross Amount'}
+                                                        </span>
                                                         <span className="font-black text-slate-700 text-xs">₹{totals.subTotal.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center py-2 border-y border-slate-200/50">
-                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">GST + Fees</span>
-                                                        <span className="font-black text-slate-700 text-xs">₹{(totals.gstTotal + totals.marketFee + totals.nirashrit + totals.miscFee + totals.extraCharges).toLocaleString()}</span>
+                                                        {/* For inclusive: GST is INSIDE the price, not added on top */}
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                                            {isAnyInclusiveConfirm ? 'GST (incl. in above)' : 'GST + Fees'}
+                                                        </span>
+                                                        <span className={`font-black text-xs ${isAnyInclusiveConfirm ? 'text-slate-400' : 'text-slate-700'}`}>
+                                                            {isAnyInclusiveConfirm ? '' : ''}₹{(totals.gstTotal + totals.marketFee + totals.nirashrit + totals.miscFee + totals.extraCharges).toLocaleString()}
+                                                        </span>
                                                     </div>
                                                     <div className="flex justify-between items-center pt-1">
                                                         <span className="text-[10px] font-black text-indigo-600 uppercase">Total Payable</span>
