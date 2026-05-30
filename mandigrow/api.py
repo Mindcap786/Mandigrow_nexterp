@@ -10216,6 +10216,10 @@ def confirm_sale_transaction(**kwargs) -> dict:
             if sale_gst_type == "Inclusive":
                 actual_base = base_amount / (1 + item_gst_rate / 100.0) if item_gst_rate > 0 else base_amount
                 line_gst_amount = round(base_amount - actual_base, 2)
+                
+                # EXTRACT the tax from the base amounts for standard ERP display
+                base_amount = round(actual_base, 2)
+                rate = round(base_amount / qty, 2) if qty > 0 else 0
             else:
                 line_gst_amount = round(base_amount * item_gst_rate / 100, 2)
                 total_exclusive_gst += line_gst_amount
@@ -10233,6 +10237,10 @@ def confirm_sale_transaction(**kwargs) -> dict:
             })
             
         doc.exclusive_gst_total = round(total_exclusive_gst, 2)
+        
+        # ── Recalculate true subtotal after GST extraction ────────────────
+        doc.totalamount = sum(flt(i.amount) for i in doc.items)
+        # ─────────────────────────────────────────────────────────────────
             
         # ── CRATE ITEMS: sold alongside commodities ───────────────────────
         crate_items = payload.get("crate_items") or payload.get("p_crate_items") or []

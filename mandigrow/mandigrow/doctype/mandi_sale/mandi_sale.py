@@ -39,12 +39,7 @@ class MandiSale(Document):
     def get_invoice_total(self):
         """The definitive formula for a Mandi Sale total."""
         
-        # ── Intelligently add only EXCLUSIVE GST ───────────────────────
-        if hasattr(self, 'exclusive_gst_total') and getattr(self, 'exclusive_gst_total') is not None:
-            tax_to_add = flt(getattr(self, 'exclusive_gst_total', 0))
-        else:
-            tax_to_add = flt(getattr(self, 'gsttotal', 0))
-        # ─────────────────────────────────────────────────────────────────
+        tax_to_add = flt(getattr(self, 'gsttotal', 0))
         
         return (
             flt(self.totalamount)
