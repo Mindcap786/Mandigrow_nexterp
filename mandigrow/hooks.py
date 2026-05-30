@@ -155,7 +155,6 @@ doc_events = {
 	"Mandi Arrival": {
 		"validate": [
 			"mandigrow.mandigrow.logic.tenancy.stamp_organization_id",
-			"mandigrow.mandigrow.logic.commission.calculate_arrival_commission",
 		],
 		"on_submit": [
 			"mandigrow.mandigrow.logic.automation.on_arrival_submit"
