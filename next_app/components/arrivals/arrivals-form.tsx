@@ -1273,7 +1273,8 @@ export default function ArrivalsEntryForm() {
                                         lot_code: "",
                                         storage_location: form.getValues('storage_location') || "",
                                         purchase_gst_rate: 0,
-                                        purchase_gst_type: "Exclusive"
+                                        purchase_gst_type: "Exclusive",
+                                        is_rcm: 0
                                     })}
                                     className="bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 font-bold text-[10px] uppercase tracking-wide h-8 px-4 rounded-lg transition-all shadow-sm"
                                 >

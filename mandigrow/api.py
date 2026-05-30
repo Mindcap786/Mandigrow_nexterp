@@ -2963,6 +2963,7 @@ def get_purchase_bill_details(lot_id: str) -> dict:
                 "current_qty": stock.get("current_qty"),
                 "status": stock.get("status"),
                 "purchase_gst_rate": getattr(item, "purchase_gst_rate", 0),
+                "purchase_gst_amount": getattr(item, "purchase_gst_amount", 0.0),
                 "purchase_gst_type": getattr(item, "purchase_gst_type", "Exclusive"),
                 "hsn_code": getattr(item, "hsn_code", None),
                 "is_rcm": getattr(item, "is_rcm", 0),
@@ -10142,7 +10143,9 @@ def confirm_sale_transaction(**kwargs) -> dict:
         disc = flt(payload.get("discount_amount") or payload.get("p_discount_amount") or 0)
         
         # Account for GST that may have been sent from POS frontend payload, to avoid it being treated as gap (Other Expenses)
-        payload_gst_total = flt(payload.get("gst_total") or payload.get("p_gst_total") or 0)
+        if gst_type == "intra":
+            doc.cgst_amount = round(doc.gsttotal / 2.0, 2)
+            doc.sgst_amount = round(doc.gsttotal - doc.cgst_amount, 2)
         
         p_total = flt(payload.get("p_total_amount") or payload.get("total_amount") or 0)
         if p_total > 0 and (m_fee + n_fee + ms_fee + l_fee + u_fee + o_fee) == 0:

@@ -141,24 +141,54 @@ export default function PurchaseBillInvoice({
     // DIRECT purchase: farmer reimburses transport/packing expenses → ADD them to payable.
     // COMMISSION:      expenses are deducted from farmer's proceeds  → SUBTRACT via combinedExpenses.
     
-    // Separate Inclusive and Exclusive GST amounts
+    // Separate Inclusive and Exclusive GST amounts with dynamic calculation fallback
     const inclusiveGstTotal = lotsToProcess.reduce((sum, l) => {
-        const isInclusive = (l.purchase_gst_type || 'Exclusive').toLowerCase() === 'inclusive';
-        return sum + (isInclusive ? toNumber(l.purchase_gst_amount) : 0);
+        const isInclusive = String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive';
+        let amt = toNumber(l.purchase_gst_amount);
+        if (amt === 0 && toNumber(l.purchase_gst_rate) > 0 && isInclusive) {
+            const lGrossQty = toNumber(l.gross_quantity) || toNumber(l.initial_qty);
+            let itemLessQty = 0;
+            const itemLessUnits = toNumber(l.less_units);
+            const itemLessPercent = toNumber(l.less_percent);
+            if (itemLessUnits > 0) itemLessQty = itemLessUnits;
+            else if (itemLessPercent > 0) itemLessQty = lGrossQty * (itemLessPercent / 100);
+            const lNetQty = Math.max(lGrossQty - itemLessQty, 0);
+            const lGoodsVal = lNetQty * toNumber(l.supplier_rate);
+            amt = lGoodsVal - (lGoodsVal / (1 + toNumber(l.purchase_gst_rate) / 100));
+        }
+        return sum + (isInclusive ? amt : 0);
     }, 0);
     
     const exclusiveGstTotal = lotsToProcess.reduce((sum, l) => {
-        const isInclusive = (l.purchase_gst_type || 'Exclusive').toLowerCase() === 'inclusive';
-        return sum + (isInclusive ? 0 : toNumber(l.purchase_gst_amount));
+        const isInclusive = String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive';
+        let amt = toNumber(l.purchase_gst_amount);
+        if (amt === 0 && toNumber(l.purchase_gst_rate) > 0 && !isInclusive) {
+            const lGrossQty = toNumber(l.gross_quantity) || toNumber(l.initial_qty);
+            let itemLessQty = 0;
+            const itemLessUnits = toNumber(l.less_units);
+            const itemLessPercent = toNumber(l.less_percent);
+            if (itemLessUnits > 0) itemLessQty = itemLessUnits;
+            else if (itemLessPercent > 0) itemLessQty = lGrossQty * (itemLessPercent / 100);
+            const lNetQty = Math.max(lGrossQty - itemLessQty, 0);
+            const lGoodsVal = lNetQty * toNumber(l.supplier_rate);
+            amt = lGoodsVal * (toNumber(l.purchase_gst_rate) / 100);
+        }
+        return sum + (isInclusive ? 0 : amt);
     }, 0);
 
-    // Fallback: If item-level GST is missing but total exists (old arrivals), assume Exclusive
+    // Fallback: If item-level GST is missing but total exists (old arrivals), assume Exclusive unless any lot is inclusive
     const legacyGstTotal = toNumber(arrival?.purchase_gst_total || arrival?.gst_total || 0);
-    const resolvedExclusiveGst = (inclusiveGstTotal === 0 && exclusiveGstTotal === 0 && legacyGstTotal > 0) 
-        ? legacyGstTotal 
-        : exclusiveGstTotal;
+    const anyInclusive = lotsToProcess.some(l => String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive');
+    
+    // We only use the legacy fallback if both calculated totals are 0
+    let finalInclusiveGst = inclusiveGstTotal;
+    let finalExclusiveGst = exclusiveGstTotal;
+    if (inclusiveGstTotal === 0 && exclusiveGstTotal === 0 && legacyGstTotal > 0) {
+        if (anyInclusive) finalInclusiveGst = legacyGstTotal;
+        else finalExclusiveGst = legacyGstTotal;
+    }
 
-    const exclusiveGstToAdd = arrivalType === 'direct' && !arrival?.is_rcm ? resolvedExclusiveGst : 0;
+    const exclusiveGstToAdd = arrivalType === 'direct' && !arrival?.is_rcm ? finalExclusiveGst : 0;
     
     const finalPayable = arrivalType === 'direct' 
         ? Math.max(0, totalNetGoodsValue + totalLotExpenses + tripExpenses - combinedPaid - totalOtherCharges + exclusiveGstToAdd)
@@ -352,11 +382,11 @@ export default function PurchaseBillInvoice({
                                         </div>
                                         {toNumber(l.purchase_gst_rate) > 0 && arrivalType === 'direct' && !arrival?.is_rcm && (
                                             <div className={`text-[9px] font-bold mt-0.5 uppercase ${
-                                                (l.purchase_gst_type || 'Exclusive').toLowerCase() === 'inclusive' 
+                                                String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' 
                                                 ? 'text-gray-500' 
                                                 : 'text-blue-600'
                                             }`}>
-                                                {(l.purchase_gst_type || 'Exclusive').toLowerCase() === 'inclusive' ? 'Incl.' : '+'} {l.purchase_gst_rate}% GST
+                                                {String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' ? 'Incl.' : '+'} {l.purchase_gst_rate}% GST
                                             </div>
                                         )}
                                     </td>
@@ -510,12 +540,12 @@ export default function PurchaseBillInvoice({
                         )}
 
                         {/* GST Breakdown (Direct Purchase Only) */}
-                        {arrivalType === 'direct' && resolvedExclusiveGst > 0 && !arrival?.is_rcm && (
+                        {arrivalType === 'direct' && finalExclusiveGst > 0 && !arrival?.is_rcm && (
                             <>
                                 <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
                                     <span className="text-blue-600 font-bold uppercase tracking-widest">GST Applied (Exclusive)</span>
                                     <span className="font-bold text-blue-600">
-                                        + ₹{Math.round(resolvedExclusiveGst).toLocaleString()}
+                                        + ₹{Math.round(finalExclusiveGst).toLocaleString()}
                                     </span>
                                 </div>
                                 {toNumber(arrival?.cgst_amount) > 0 && (
@@ -547,11 +577,11 @@ export default function PurchaseBillInvoice({
                                 )}
                             </>
                         )}
-                        {arrivalType === 'direct' && inclusiveGstTotal > 0 && !arrival?.is_rcm && (
+                        {arrivalType === 'direct' && finalInclusiveGst > 0 && !arrival?.is_rcm && (
                             <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
                                 <span className="text-gray-500 font-medium uppercase tracking-widest text-[10px]">GST Included (Inclusive)</span>
                                 <span className="font-medium text-gray-500 text-[10px]">
-                                    (₹{Math.round(inclusiveGstTotal).toLocaleString()})
+                                    (₹{Math.round(finalInclusiveGst).toLocaleString()})
                                 </span>
                             </div>
                         )}
