@@ -293,6 +293,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                 
                 const idempotencyKey = crypto.randomUUID();
 
+                const isInclusiveGst = itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive';
+
                 const { error, data: rpcResponse, warning } = await confirmSaleTransactionWithFallback({
                     organizationId: profile!.organization_id,
                     buyerId: dist.buyer_id,
@@ -305,7 +307,11 @@ const syncBasis = watchedDistributions?.map(d => ({
                         qty: dist.qty,
                         rate: dist.rate,
                         amount: totalItemsRaw,
-                        unit: selectedLot.unit
+                        unit: selectedLot.unit,
+                        // Forward the GST type so the backend uses it instead of re-reading
+                        // from Item master (which might differ from what the user configured)
+                        gst_type: isInclusiveGst ? 'Inclusive' : 'Exclusive',
+                        gst_rate: itemInfo?.gst_rate ?? 0,
                     }],
                     marketFee: totals.marketFee,
                     nirashrit: totals.nirashrit,
@@ -980,7 +986,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                     <div className="md:col-span-5 relative">
                                                         <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative h-full flex flex-col">
                                                             <div className="space-y-2 pb-3 border-b border-white/10 flex-1">
-                                                                <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50"><span>Taxable Val</span><span className="text-white">₹{rowTotals.subTotal.toLocaleString()}</span></div>
+                                                                <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50"><span>Taxable Val</span><span className="text-white">₹{rowTotals.taxableBase.toLocaleString()}</span></div>
                                                                 <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50"><span>GST</span><span className="text-indigo-400">+ ₹{rowTotals.gstTotal.toLocaleString()}</span></div>
                                                                 <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase text-white/50"><span>Fees & Charges</span><span className="text-indigo-400">+ ₹{(rowTotals.marketFee + rowTotals.nirashrit + rowTotals.miscFee + rowTotals.extraCharges).toLocaleString()}</span></div>
                                                             </div>

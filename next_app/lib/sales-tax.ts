@@ -161,8 +161,16 @@ export function calculateSaleTotals({
         taxableSubTotal + marketFee + nirashrit + miscFee + exclusiveGstTotal + extraCharges
     );
 
+    // For display: when some items are inclusive, the "Taxable Val" panel should
+    // show the base-before-GST, not the raw amount that still contains the tax.
+    const inclusiveGstExtracted = taxBreakdowns
+        .filter((item) => item.isInclusive)
+        .reduce((sum, item) => sum + item.gstTotal, 0);
+    const taxableBase = taxableSubTotal - inclusiveGstExtracted;
+
     return {
         subTotal, // Raw subtotal before discount
+        taxableBase, // Subtotal with inclusive GST extracted — use this for "Taxable Val" display
         discountAmount: safeDiscountAmount,
         marketFee,
         nirashrit,
@@ -171,6 +179,8 @@ export function calculateSaleTotals({
         sgstAmount,
         igstAmount,
         gstTotal,
+        exclusiveGstTotal,
+        inclusiveGstExtracted,
         extraCharges,
         loadingCharges: toNumber(loadingCharges),
         unloadingCharges: toNumber(unloadingCharges),

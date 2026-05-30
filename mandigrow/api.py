@@ -10179,6 +10179,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
         # ─────────────────────────────────────────────────────────────────
         
         total_exclusive_gst = 0.0
+        total_gst = 0.0
 
         for item in items:
             lot_id = item.get("lot_id")
@@ -10213,7 +10214,17 @@ def confirm_sale_transaction(**kwargs) -> dict:
             if not org_gst_enabled:
                 item_gst_rate = 0.0
 
-            sale_gst_type = str(frappe.db.get_value("Item", item_id, "sale_gst_type") or "Exclusive").strip().capitalize()
+            # ── GST type: prefer value explicitly sent from frontend per-item ─
+            # The frontend has already resolved the correct type for the user's
+            # selection; trusting it avoids a stale Item-master re-read that can
+            # flip an Inclusive item to Exclusive (causing double-GST).
+            frontend_gst_type = str(item.get("gst_type") or "").strip().capitalize()
+            if frontend_gst_type in ("Inclusive", "Exclusive"):
+                sale_gst_type = frontend_gst_type
+            else:
+                sale_gst_type = str(frappe.db.get_value("Item", item_id, "sale_gst_type") or "Exclusive").strip().capitalize()
+            # ─────────────────────────────────────────────────────────────────
+
             base_amount = float(item.get("amount") or (qty * rate))
             
             if sale_gst_type == "Inclusive":
