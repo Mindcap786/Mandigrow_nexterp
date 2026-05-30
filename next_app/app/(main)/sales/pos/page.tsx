@@ -529,8 +529,11 @@ export default function POSPage() {
     // Calculate Final Taxable Amount after Discount
     const taxableSubTotal = Math.max(0, subTotal - discountAmount)
 
-    // Per-item GST (calculated if GST is enabled)
-    const rawGstTotal = !taxSettings.gst_enabled ? 0 : cart.reduce((s, c) => {
+    // Per-item GST — always computed from item.gst_rate, matching backend behaviour.
+    // The global gst_enabled flag is intentionally NOT used here because:
+    //   1) The backend always applies item-level GST regardless of the setting
+    //   2) The gst_enabled flag may not always be returned from the API
+    const rawGstTotal = cart.reduce((s, c) => {
         const itemSubtotal = c.price * c.qty;
         const itemRatio = subTotal > 0 ? (itemSubtotal / subTotal) : 0;
         const itemDiscount = discountAmount * itemRatio;
@@ -552,25 +555,28 @@ export default function POSPage() {
     
     const gstTotal = Math.round(rawGstTotal);
     
-    // Split GST based on Intra/Inter state
-    const cgstAmount = taxSettings.gst_enabled && taxSettings.gst_type === 'intra' ? Math.round(gstTotal / 2) : 0;
-    const sgstAmount = taxSettings.gst_enabled && taxSettings.gst_type === 'intra' ? Math.round(gstTotal / 2) : 0;
-    const igstAmount = taxSettings.gst_enabled && taxSettings.gst_type === 'inter' ? gstTotal : 0;
+    // Split CGST/SGST/IGST based on intra vs inter state (use taxSettings for the split type only)
+    const isIntraState = taxSettings.gst_type !== 'inter';
+    const cgstAmount = isIntraState ? Math.round(gstTotal / 2) : 0;
+    const sgstAmount = isIntraState ? Math.round(gstTotal / 2) : 0;
+    const igstAmount = !isIntraState ? gstTotal : 0;
     
     // Market charges from settings (auto-applied on taxable base)
     const marketFeeAmount = taxSettings.market_fee_percent;
     const nirashritAmount = Math.round(taxableSubTotal * taxSettings.nirashrit_percent / 100);
     const miscFeeAmount = Math.round(taxableSubTotal * taxSettings.misc_fee_percent / 100);
     
-    const exclusiveGstTotal = taxSettings.gst_enabled ? cart.reduce((s, c) => {
+    // Only exclusive GST is added on top of the taxable subtotal (inclusive GST is already inside the price)
+    const exclusiveGstTotal = cart.reduce((s, c) => {
         if (c.item.sale_gst_type === 'Inclusive') return s;
+        const rate = Number(c.item.gst_rate) || 0;
+        if (rate === 0) return s;
         const itemSubtotal = c.price * c.qty;
         const itemRatio = subTotal > 0 ? (itemSubtotal / subTotal) : 0;
         const itemDiscount = discountAmount * itemRatio;
         const itemTaxable = Math.max(0, itemSubtotal - itemDiscount);
-        const rate = Number(c.item.gst_rate) || 0;
         return s + (itemTaxable * (rate / 100));
-    }, 0) : 0;
+    }, 0);
 
     const extraChargesTotal = additionalCharges.reduce((acc, c) => acc + c.amount, 0)
     const crateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + c.qty * c.rate, 0) : 0
@@ -1616,20 +1622,23 @@ export default function POSPage() {
                                         <span>₹{miscFeeAmount.toLocaleString()}</span>
                                     </div>
                                 )}
-                                {/* GST Breakdown */}
-                                {taxSettings.gst_enabled && taxSettings.gst_type === 'intra' && (
-                                    <>
-                                        {taxSettings.cgst_percent > 0 && <div className="flex justify-between text-[10px] font-bold text-slate-500"><span>CGST ({taxSettings.cgst_percent}%)</span><span>₹{Math.round(taxableSubTotal * taxSettings.cgst_percent / 100).toLocaleString()}</span></div>}
-                                        {taxSettings.sgst_percent > 0 && <div className="flex justify-between text-[10px] font-bold text-slate-500"><span>SGST ({taxSettings.sgst_percent}%)</span><span>₹{Math.round(taxableSubTotal * taxSettings.sgst_percent / 100).toLocaleString()}</span></div>}
-                                    </>
-                                )}
-                                {taxSettings.gst_enabled && taxSettings.gst_type === 'inter' && taxSettings.igst_percent > 0 && (
-                                    <div className="flex justify-between text-[10px] font-bold text-slate-500"><span>IGST ({taxSettings.igst_percent}%)</span><span>₹{Math.round(taxableSubTotal * taxSettings.igst_percent / 100).toLocaleString()}</span></div>
-                                )}
-                                {!taxSettings.gst_enabled && gstTotal > 0 && (
+                                {/* GST Breakdown — computed from per-item gst_rate (same as backend) */}
+                                {cgstAmount > 0 && (
                                     <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                        <span>GST Total</span>
-                                        <span>₹{gstTotal.toLocaleString()}</span>
+                                        <span>CGST</span>
+                                        <span>₹{cgstAmount.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {sgstAmount > 0 && (
+                                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                        <span>SGST</span>
+                                        <span>₹{sgstAmount.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {igstAmount > 0 && (
+                                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                        <span>IGST</span>
+                                        <span>₹{igstAmount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 {additionalCharges.map((charge, i) => (
