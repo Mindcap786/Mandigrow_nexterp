@@ -4478,6 +4478,7 @@ def _get_or_create_temporary_opening_account(company: str) -> str:
     return frappe.db.get_value("Account", {"account_type": "Equity", "company": company, "is_group": 0}, "name")
 
 
+@frappe.whitelist(allow_guest=False)
 def create_contact(full_name: str, contact_type: str, phone: str = None, city: str = None, address: str = None, internal_id: str = None, opening_balance: float = 0, balance_type: str = 'receivable', org_id: str = None,
     gstin: str = None, pan_number: str = None, state: str = None, pincode: str = None,
     billing_address_line1: str = None, billing_address_line2: str = None) -> dict:
