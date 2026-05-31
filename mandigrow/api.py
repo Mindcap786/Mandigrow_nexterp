@@ -611,9 +611,11 @@ def get_daybook(date: str = None, org_id: str = None) -> dict:
                     # Creditors debit leg of a payment JE — money flowed out
                     tx_type = "paid_receipt"
                 elif is_debit:
-                    tx_type = "receive_receipt" if gl.get("party_type") == "Customer" else "payment"
+                    # Non-liquid leg is debited -> cash is credited -> Money flowed OUT (payment)
+                    tx_type = "payment"
                 else:
-                    tx_type = "receipt" if gl.get("party_type") == "Customer" else "paid_receipt"
+                    # Non-liquid leg is credited -> cash is debited -> Money flowed IN (receipt)
+                    tx_type = "receipt" if gl.get("party_type") == "Customer" else "receive_receipt"
             else:
                 tx_type = _map_voucher_type(gl.get("voucher_type", ""), is_debit)
 
@@ -4979,11 +4981,13 @@ def adjust_liquid_balance(p_organization_id: str = None, p_account_id: str = Non
                     "account": p_account_id,
                     "debit_in_account_currency": amount if p_adjustment_type == "deposit" else 0,
                     "credit_in_account_currency": amount if p_adjustment_type == "withdraw" else 0,
+                    "is_opening": "Yes",
                 },
                 {
                     "account": equity_account,
                     "debit_in_account_currency": amount if p_adjustment_type == "withdraw" else 0,
                     "credit_in_account_currency": amount if p_adjustment_type == "deposit" else 0,
+                    "is_opening": "Yes",
                 }
             ]
         })
