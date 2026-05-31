@@ -4961,9 +4961,7 @@ def adjust_liquid_balance(p_organization_id: str = None, p_account_id: str = Non
         if amount <= 0:
             return {"error": "Amount must be greater than 0"}
             
-        equity_account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
-        if not equity_account:
-            equity_account = frappe.db.get_value("Account", {"account_name": ["like", "%Opening%"], "company": company}, "name")
+        equity_account = _get_or_create_temporary_opening_account(company)
         if not equity_account:
             return {"error": "Equity/Opening balance account not found in Chart of Accounts"}
             
@@ -4972,7 +4970,7 @@ def adjust_liquid_balance(p_organization_id: str = None, p_account_id: str = Non
 
         je = frappe.get_doc({
             "doctype": "Journal Entry",
-            "voucher_type": "Journal Entry",
+            "voucher_type": "Opening Entry",
             "posting_date": posting_date,
             "company": company,
             "remark": p_description,
