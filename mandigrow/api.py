@@ -3745,16 +3745,13 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             je.db_set("clearance_date", posting_date)
 
         # ── 7. Optional Auto-settle oldest bills (FIFO) ─────────────────────
-        if p_auto_allocate:
-            total_settlement = amount + discount
-            if total_settlement > 0 and p_party_id and not against_vtype:
-                try:
-                    if v_type == "receipt":
-                        settle_buyer_receipt(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
-                    elif v_type == "payment":
-                        settle_supplier_payment(p_organization_id=org_id, p_contact_id=p_party_id, p_payment_amount=total_settlement, p_payment_id=je.name)
-                except Exception as set_err:
-                    frappe.log_error(f"Auto-settlement failed: {str(set_err)}")
+        # DEPRECATED: je.submit() triggers on_journal_submit which natively 
+        # executes repair_single_party_settlement and perfectly balances the ledger via FIFO.
+        # Calling settle_supplier_payment manually here causes a double-counting bug where 
+        # the same funds are allocated twice!
+        #
+        # if p_auto_allocate:
+        #     pass
 
         return {
             "success": True,
@@ -4137,19 +4134,16 @@ def settle_supplier_payment(p_organization_id: str = None, p_contact_id: str = N
             
             if due <= 0.01:
                 if arr.status != "Paid":
-                    upd = {"status": "Paid"}
-                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total
+                    upd = {"status": "Paid", "paid_amount": total}
                     frappe.db.set_value("Mandi Arrival", arr.name, upd, update_modified=False)
                 continue
             
             if remaining >= due:
-                upd = {"status": "Paid"}
-                if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total
+                upd = {"status": "Paid", "paid_amount": total}
                 frappe.db.set_value("Mandi Arrival", arr.name, upd, update_modified=False)
                 remaining -= due
             else:
-                upd = {"status": "Partial"}
-                if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = received + remaining
+                upd = {"status": "Partial", "paid_amount": received + remaining}
                 frappe.db.set_value("Mandi Arrival", arr.name, upd, update_modified=False)
                 remaining = 0
                 
@@ -11548,16 +11542,13 @@ def repair_single_party_settlement(contact_id: str, org_id: str = None):
                     fifo_pool -= take
 
                 if total_paid >= (total - 0.01):
-                    upd = {"status": "Paid"}
-                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total
+                    upd = {"status": "Paid", "paid_amount": total}
                     frappe.db.set_value("Mandi Arrival", a.name, upd, update_modified=False)
                 elif total_paid > 0.01:
-                    upd = {"status": "Partial"}
-                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = total_paid
+                    upd = {"status": "Partial", "paid_amount": total_paid}
                     frappe.db.set_value("Mandi Arrival", a.name, upd, update_modified=False)
                 else:
-                    upd = {"status": "Pending"}
-                    if _col_exists("Mandi Arrival", "paid_amount"): upd["paid_amount"] = 0
+                    upd = {"status": "Pending", "paid_amount": 0}
                     frappe.db.set_value("Mandi Arrival", a.name, upd, update_modified=False)
         
         frappe.db.commit()
