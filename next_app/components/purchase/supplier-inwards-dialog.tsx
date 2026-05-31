@@ -365,19 +365,38 @@ export function SupplierInwardsDialog({ supplier, unappliedPayment = 0, isOpen, 
                                         </Button>
                                     )}
                                 </div>
+                                {/* Ledger Balance Badge */}
                                 <div className={cn(
                                     "h-7 px-3 rounded-full border flex items-center gap-2 shadow-sm transition-all bg-white shrink-0",
-                                    displayedPendingTotal > AMOUNT_EPSILON ? "border-rose-100 bg-rose-50/30" : "border-slate-200 bg-slate-50"
-                                )}>
+                                    effectiveBalance > AMOUNT_EPSILON ? "border-rose-100 bg-rose-50/30" : "border-slate-200 bg-slate-50"
+                                )} title="Total Outstanding Ledger Balance (includes opening balances & unallocated payments)">
                                     <span className={cn(
                                         "text-[8px] font-black uppercase tracking-widest",
-                                        displayedPendingTotal > AMOUNT_EPSILON ? "text-rose-600" : "text-slate-500"
+                                        effectiveBalance > AMOUNT_EPSILON ? "text-rose-600" : "text-slate-500"
                                     )}>
-                                        {displayedPendingTotal > AMOUNT_EPSILON ? 'To Pay:' : 'Settled:'}
+                                        Ledger Bal:
                                     </span>
                                     <span className={cn(
                                         "text-[10px] font-black font-mono",
-                                        displayedPendingTotal > AMOUNT_EPSILON ? "text-rose-700" : "text-slate-600"
+                                        effectiveBalance > AMOUNT_EPSILON ? "text-rose-700" : "text-slate-600"
+                                    )}>
+                                        ₹{Math.round(effectiveBalance).toLocaleString()}
+                                    </span>
+                                </div>
+                                {/* Filtered Bills Sum Badge */}
+                                <div className={cn(
+                                    "h-7 px-3 rounded-full border flex items-center gap-2 shadow-sm transition-all bg-white shrink-0",
+                                    displayedPendingTotal > AMOUNT_EPSILON ? "border-orange-100 bg-orange-50/30" : "border-slate-200 bg-slate-50"
+                                )} title="Sum of currently displayed bills">
+                                    <span className={cn(
+                                        "text-[8px] font-black uppercase tracking-widest",
+                                        displayedPendingTotal > AMOUNT_EPSILON ? "text-orange-600" : "text-slate-500"
+                                    )}>
+                                        Bills Sum:
+                                    </span>
+                                    <span className={cn(
+                                        "text-[10px] font-black font-mono",
+                                        displayedPendingTotal > AMOUNT_EPSILON ? "text-orange-700" : "text-slate-600"
                                     )}>
                                         ₹{Math.round(displayedPendingTotal).toLocaleString()}
                                     </span>
