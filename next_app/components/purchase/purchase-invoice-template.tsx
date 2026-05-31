@@ -220,7 +220,7 @@ export default function PurchaseBillInvoice({
             {/* ───── Header ───── */}
             <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
                 {/* Left: Identity */}
-                <div className="flex items-start gap-4 min-w-0 print:w-1/3">
+                <div className="flex items-start gap-4 min-w-0 print:w-[42%]">
                     {organization?.logo_url ? (
                         <img src={organization.logo_url} alt="Logo" className="h-20 w-auto object-contain" style={{ borderRadius: 12 }} />
                     ) : (
@@ -236,7 +236,7 @@ export default function PurchaseBillInvoice({
                     <div className="space-y-1 min-w-0">
                         <p
                             data-invoice-org-name
-                            className="text-black text-[29px] font-black tracking-tight uppercase leading-[1.12] break-words"
+                            className="text-black text-[24px] md:text-[29px] print:text-[24px] font-black tracking-tight uppercase leading-[1.12] print:break-normal"
                         >
                             {organization?.name || 'Mandi HQ Enterprise'}
                         </p>
@@ -252,7 +252,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Center: Title */}
-                <div className="self-center flex flex-col items-center text-center print:w-1/3 print:shrink-0">
+                <div className="self-center flex flex-col items-center text-center print:w-[16%] print:shrink-0">
                     <h2
                         data-invoice-title
                         className="text-2xl font-black uppercase tracking-[0.2em] leading-[1.08] text-black"
@@ -266,7 +266,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Right: Contact Details */}
-                <div className="text-right space-y-0.5 print:w-1/3 print:flex print:flex-col print:items-end">
+                <div className="text-right space-y-0.5 print:w-[42%] print:flex print:flex-col print:items-end">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Contact Details</p>
                     <div className="space-y-0 text-xs font-black">
                         <p>Ph: {organization?.phone || '+91 98765 43210'}</p>
@@ -599,7 +599,7 @@ export default function PurchaseBillInvoice({
                         {/* Amount in Words */}
                         <div className="text-right mt-3">
                             <p className="text-xs font-black text-slate-900 italic uppercase leading-tight">
-                                Rupees {toWords(Math.round(finalPayable))} Only
+                                Rupees {toWords(Math.round(finalPayable))}
                             </p>
                         </div>
                     </div>
