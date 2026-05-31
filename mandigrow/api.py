@@ -14187,7 +14187,7 @@ def change_tenant_plan(plan_name: str, billing_cycle: str = "monthly",
             frappe.get_doc({
                 "doctype": "Subscription Audit Log",
                 "organization": org_id,
-                "action": "plan_changed",
+                "action": "plan_change",
                 "old_value": frappe.db.get_value("Mandi Organization", org_id, "subscription_tier") or "unknown",
                 "new_value": plan_name,
                 "notes": f"billing_cycle={billing_cycle}, period_end={period_end}, coupon={coupon_code}",
