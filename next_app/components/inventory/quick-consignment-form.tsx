@@ -70,7 +70,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useAuth } from '@/components/auth/auth-provider'
 import { callApi } from '@/lib/frappeClient'
 import { toast } from 'sonner'
-import { cacheGet, cacheSet, cacheIsStale } from '@/lib/data-cache'
+import { cacheGet, cacheSet, cacheIsStale, cacheClearPrefix } from '@/lib/data-cache'
 import { ItemDialog } from '@/components/inventory/item-dialog'
 import { Switch } from '@/components/ui/switch'
 import { formatCommodityName, COMMODITY_UNITS } from '@/lib/utils/commodity-utils'
@@ -187,6 +187,8 @@ export function QuickPurchaseForm() {
         bankAccounts: masterBanks,
         defaultCommissionRate: masterDefaultComm,
         loading: masterLoading,
+        error: masterError,
+        gstEnabled,
         refetch: refetchMasterData
     } = useArrivalsMasterData(profile?.organization_id)
 
@@ -306,7 +308,7 @@ export function QuickPurchaseForm() {
         const hasGstin = !!(selectedSupplier?.gstin && selectedSupplier.gstin.trim());
         const isUnregisteredFarmer = isFarmer && !hasGstin;
 
-        if (type === 'direct' && !row.is_rcm && row.purchase_gst_rate && !isUnregisteredFarmer) {
+        if (type === 'direct' && !row.is_rcm && row.purchase_gst_rate && !isUnregisteredFarmer && gstEnabled) {
             const gstRate = Number(row.purchase_gst_rate);
             if (row.purchase_gst_type === 'Exclusive') {
                 gstAmount = grossValue * (gstRate / 100);
@@ -319,14 +321,14 @@ export function QuickPurchaseForm() {
         // Net Payable per row: What Mandi owes for this specific item
         // If Exclusive: owes Gross - Commission + GST
         // If Inclusive: owes Gross - Commission (since GST is inside Gross)
-        const netPayable = row.purchase_gst_type === 'Exclusive' && type === 'direct' && !row.is_rcm && !isUnregisteredFarmer
+        const netPayable = row.purchase_gst_type === 'Exclusive' && type === 'direct' && !row.is_rcm && !isUnregisteredFarmer && gstEnabled
             ? grossValue - commissionAmount + gstAmount
             : grossValue - commissionAmount;
 
         // Unit Cost (for inventory): Should exclude GST
         // If Exclusive: Base cost is Gross.
         // If Inclusive: Base cost is Taxable Value (Gross - GST).
-        const baseCostForUnit = row.purchase_gst_type === 'Inclusive' && type === 'direct' && !row.is_rcm && !isUnregisteredFarmer ? taxableValue : grossValue;
+        const baseCostForUnit = row.purchase_gst_type === 'Inclusive' && type === 'direct' && !row.is_rcm && !isUnregisteredFarmer && gstEnabled ? taxableValue : grossValue;
         
         // Final Unit Cost: Base cost minus commission divided by qty
         const unitCost = qty > 0 ? (baseCostForUnit - commissionAmount) / qty : 0;
@@ -500,6 +502,10 @@ export function QuickPurchaseForm() {
 
             setFinalBillNo(data.contact_bill_no || data.bill_no)
             setRecordCompleted(true)
+
+            if (profile?.organization_id) {
+                cacheClearPrefix('stock_main', profile.organization_id);
+            }
 
             form.reset({
                 ...form.getValues(),

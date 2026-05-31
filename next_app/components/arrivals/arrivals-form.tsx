@@ -149,6 +149,7 @@ export default function ArrivalsEntryForm() {
         storageLocations, 
         bankAccounts, 
         defaultCommissionRate,
+        gstEnabled,
         units,
         loading: masterLoading,
         error: masterError,
@@ -304,9 +305,9 @@ export default function ArrivalsEntryForm() {
         const itemData = availableItems?.find(i => i.id === item.item_id);
         const purchaseGstRate = Number((item as any).purchase_gst_rate) || Number((itemData as any)?.purchase_gst_rate) || 0;
         const purchaseGstType = ((item as any).purchase_gst_type || (itemData as any)?.purchase_gst_type || 'Exclusive').trim();
-        const isRcm = isUnregisteredSupplier && purchaseGstRate > 0;
+        const isRcm = gstEnabled && isUnregisteredSupplier && purchaseGstRate > 0;
 
-        if (arrivalType === 'direct' && purchaseGstRate > 0) {
+        if (gstEnabled && arrivalType === 'direct' && purchaseGstRate > 0 && !isRcm) {
             if (purchaseGstType.toLowerCase() === 'inclusive') {
                 const baseAmount = adjustedValue / (1 + purchaseGstRate / 100);
                 gstAmount = Math.round((adjustedValue - baseAmount) * 100) / 100;
@@ -769,6 +770,9 @@ export default function ArrivalsEntryForm() {
 
             const result = await createArrival(payload);
             if (!result) return; // Hook handles error toasts
+            
+            // CLEAR STOCK CACHE so stock page updates immediately
+            cacheClearPrefix('stock_main', profile.organization_id);
 
             // Update QR Code state for printing
             if (result.lot_codes && result.lot_codes.length > 0) {

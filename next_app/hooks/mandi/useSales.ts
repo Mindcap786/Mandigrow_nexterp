@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { callApi } from "@/lib/frappeClient"
+import { useAuth } from "@/components/auth/auth-provider"
+import { cacheClearPrefix } from "@/lib/data-cache"
 
 export interface SaleListItem {
   id: string
@@ -132,6 +134,7 @@ export function useCreateSale(onSuccess?: (result: Record<string, unknown>) => v
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const { profile } = useAuth()
 
   const createSale = useCallback(
     async (payload: CreateSalePayload): Promise<Record<string, unknown> | null> => {
@@ -142,6 +145,10 @@ export function useCreateSale(onSuccess?: (result: Record<string, unknown>) => v
 
         if (!result?.success) {
           throw new Error(result?.error || "Failed to create sale in Frappe")
+        }
+
+        if (profile?.organization_id) {
+          cacheClearPrefix('stock_main', profile.organization_id);
         }
 
         toast({ title: "Sale Confirmed", description: `Invoice #${result.id} created.` })

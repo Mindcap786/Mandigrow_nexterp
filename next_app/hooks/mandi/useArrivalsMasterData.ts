@@ -60,6 +60,7 @@ export interface ArrivalMasterData {
   marketFeePercent: number
   nirashritPercent: number
   miscFeePercent: number
+  gstEnabled: boolean
   units: string[]
   loading: boolean
   error: string | null
@@ -75,6 +76,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
   const [marketFeePercent, setMarketFeePercent] = useState(0)
   const [nirashritPercent, setNirashritPercent] = useState(0)
   const [miscFeePercent, setMiscFeePercent] = useState(0)
+  const [gstEnabled, setGstEnabled] = useState(false)
   const [units, setUnits] = useState<string[]>(STANDARD_UNITS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -92,7 +94,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
       commodities: ArrivalCommodity[]
       storage: StorageLocation[]
       banks: BankAccount[]
-      settings: { commission_rate_default?: number; market_fee_percent?: number; nirashrit_percent?: number; misc_fee_percent?: number }
+      settings: { commission_rate_default?: number; market_fee_percent?: number; nirashrit_percent?: number; misc_fee_percent?: number; gst_enabled?: boolean }
       units: string[]
     }>(CACHE_KEY, currentOrgId)
 
@@ -105,6 +107,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
       setMarketFeePercent(Number(cached.settings?.market_fee_percent || 0))
       setNirashritPercent(Number(cached.settings?.nirashrit_percent || 0))
       setMiscFeePercent(Number(cached.settings?.misc_fee_percent || 0))
+      setGstEnabled(Boolean(cached.settings?.gst_enabled))
       setUnits(STANDARD_UNITS);
       setLoading(false)
       if (!cacheIsStale(CACHE_KEY, currentOrgId)) return
@@ -129,6 +132,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
         setMarketFeePercent(Number(settings.market_fee_percent || 0))
         setNirashritPercent(Number(settings.nirashrit_percent || 0))
         setMiscFeePercent(Number(settings.misc_fee_percent || 0))
+        setGstEnabled(Boolean(settings.gst_enabled))
 
         setStorageLocations(sortLocations(data.storage_locations || []))
         const banks = data.banks || []
@@ -163,6 +167,7 @@ export function useArrivalsMasterData(organizationId: string | undefined): Arriv
   return {
     contacts, commodities, storageLocations, bankAccounts,
     defaultCommissionRate, marketFeePercent, nirashritPercent, miscFeePercent,
+    gstEnabled,
     units,
     loading, error, refetch: () => fetch(true),
   }
