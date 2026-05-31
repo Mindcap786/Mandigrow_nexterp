@@ -3807,11 +3807,14 @@ def get_payments_register(
     if not company:
         company = _get_user_company()
 
-    filters = [["docstatus", "=", 1], ["company", "=", company], ["voucher_type", "!=", "Opening Entry"]]
+    filters = {"docstatus": 1, "company": company, "voucher_type": ["!=", "Opening Entry"]}
     if date_from:
-        filters.append(["posting_date", ">=", date_from])
+        filters["posting_date"] = [">=", date_from]
     if date_to:
-        filters.append(["posting_date", "<=", date_to])
+        if "posting_date" in filters:
+            filters["posting_date"] = ["between", [date_from, date_to]]
+        else:
+            filters["posting_date"] = ["<=", date_to]
 
     if search:
         q = (search or "").strip()
@@ -4425,6 +4428,46 @@ def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
     return {"exists": False}
 
 @frappe.whitelist(allow_guest=False)
+
+def _get_or_create_temporary_opening_account(company: str) -> str:
+    """Ensures 'Temporary Opening' account exists for a company and returns its name."""
+    account_name = "Temporary Opening"
+    # Check if exists by name
+    existing = frappe.db.get_value("Account", {"account_name": account_name, "company": company}, "name")
+    if existing:
+        return existing
+        
+    # Attempt to create it under Equity
+    abbr = frappe.db.get_value("Company", company, "abbr") or ""
+    parent = None
+    for p_name in ["Equities", "Equity", "Capital Account", "Capital Accounts", "Source of Funds (Liabilities)"]:
+        for candidate in (f"{p_name} - {abbr}", f"{p_name} - {company}", p_name):
+            if frappe.db.exists("Account", {"name": candidate, "company": company, "is_group": 1}):
+                parent = candidate
+                break
+        if parent:
+            break
+            
+    if parent:
+        try:
+            acc = frappe.get_doc({
+                "doctype": "Account",
+                "account_name": account_name,
+                "parent_account": parent,
+                "company": company,
+                "account_type": "Equity",
+                "is_group": 0,
+            })
+            acc.insert(ignore_permissions=True)
+            frappe.db.commit()
+            return acc.name
+        except Exception:
+            pass
+            
+    # Absolute fallback to first Equity account
+    return frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+
+
 def create_contact(full_name: str, contact_type: str, phone: str = None, city: str = None, address: str = None, internal_id: str = None, opening_balance: float = 0, balance_type: str = 'receivable', org_id: str = None,
     gstin: str = None, pan_number: str = None, state: str = None, pincode: str = None,
     billing_address_line1: str = None, billing_address_line2: str = None) -> dict:
@@ -4473,10 +4516,7 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
         """
         company = _get_user_company()
         # Prefer 'Temporary Opening' account; fall back to any Equity account.
-        account = (
-            frappe.db.get_value("Account", {"account_name": "Temporary Opening", "company": company}, "name")
-            or frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
-        )
+        account = _get_or_create_temporary_opening_account(company)
 
         from mandigrow.mandigrow.logic.automation import ensure_customer_for_contact, ensure_supplier_for_contact
 
@@ -5221,9 +5261,7 @@ def save_bank_account(**kwargs) -> dict:
             
             # Post opening balance via Journal Entry
             if opening_balance > 0:
-                equity_account = frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
-                if not equity_account:
-                    equity_account = frappe.db.get_value("Account", {"account_name": ["like", "%Opening%"], "company": company}, "name")
+                equity_account = _get_or_create_temporary_opening_account(company)
                 
                 if equity_account:
                     je = frappe.get_doc({
