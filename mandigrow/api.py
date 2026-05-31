@@ -4432,13 +4432,14 @@ def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
 def _get_or_create_temporary_opening_account(company: str) -> str:
     """Ensures 'Temporary Opening' account exists for a company and returns its name."""
     account_name = "Temporary Opening"
-    # Check if exists by name
-    existing = frappe.db.get_value("Account", {"account_name": account_name, "company": company}, "name")
-    if existing:
-        return existing
+    abbr = frappe.db.get_value("Company", company, "abbr") or ""
+    expected_name = f"{account_name} - {abbr}" if abbr else account_name
+
+    # Check if exact name exists
+    if frappe.db.exists("Account", {"name": expected_name, "company": company}):
+        return expected_name
         
     # Attempt to create it under Equity
-    abbr = frappe.db.get_value("Company", company, "abbr") or ""
     parent = None
     for p_name in ["Equities", "Equity", "Capital Account", "Capital Accounts", "Source of Funds (Liabilities)"]:
         for candidate in (f"{p_name} - {abbr}", f"{p_name} - {company}", p_name):
@@ -4464,8 +4465,17 @@ def _get_or_create_temporary_opening_account(company: str) -> str:
         except Exception:
             pass
             
-    # Absolute fallback to first Equity account
-    return frappe.db.get_value("Account", {"account_type": "Equity", "company": company}, "name")
+    # Absolute fallback: Find ANY Equity account that is NOT Revaluation Surplus
+    fallback = frappe.db.sql("""
+        SELECT name FROM `tabAccount` 
+        WHERE account_type = 'Equity' AND company = %s AND is_group = 0 AND name NOT LIKE '%Revaluation%'
+        LIMIT 1
+    """, (company,))
+    
+    if fallback:
+        return fallback[0][0]
+        
+    return frappe.db.get_value("Account", {"account_type": "Equity", "company": company, "is_group": 0}, "name")
 
 
 def create_contact(full_name: str, contact_type: str, phone: str = None, city: str = None, address: str = None, internal_id: str = None, opening_balance: float = 0, balance_type: str = 'receivable', org_id: str = None,
@@ -10181,9 +10191,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
         disc = flt(payload.get("discount_amount") or payload.get("p_discount_amount") or 0)
         
         # Account for GST that may have been sent from POS frontend payload, to avoid it being treated as gap (Other Expenses)
-        if gst_type == "intra":
-            doc.cgst_amount = round(doc.gsttotal / 2.0, 2)
-            doc.sgst_amount = round(doc.gsttotal - doc.cgst_amount, 2)
+        payload_gst_total = flt(payload.get("p_gst_total") or payload.get("gst_total") or 0)
         
         p_total = flt(payload.get("p_total_amount") or payload.get("total_amount") or 0)
         if p_total > 0 and (m_fee + n_fee + ms_fee + l_fee + u_fee + o_fee) == 0:
