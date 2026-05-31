@@ -57,7 +57,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ContactDialog } from "@/components/contacts/contact-dialog";
 import { ItemDialog } from "@/components/inventory/item-dialog";
-import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache";
+import { cacheGet, cacheSet, cacheIsStale, cacheClearPrefix } from "@/lib/data-cache";
 import { useArrivalsMasterData } from "@/hooks/mandi/useArrivalsMasterData";
 import { useArrivals } from "@/hooks/mandi/useArrivals";
 import { useFieldGovernance } from "@/hooks/useFieldGovernance";
