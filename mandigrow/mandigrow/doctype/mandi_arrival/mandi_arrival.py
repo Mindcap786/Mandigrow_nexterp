@@ -110,6 +110,25 @@ class MandiArrival(Document):
         total_purchase_gst = 0.0
         exclusive_gst_total = 0.0
         
+        # --- CA/CFO GST COMPLIANCE CHECK ---
+        org_id = self.organization_id
+        if not org_id:
+            from mandigrow.api import _get_user_org
+            org_id = _get_user_org()
+            
+        org_gst_enabled = False
+        if org_id:
+            org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled"))
+            
+        supplier_gstin = ""
+        if self.party_id:
+            try:
+                if frappe.db.has_column("Mandi Contact", "gstin"):
+                    supplier_gstin = str(frappe.db.get_value("Mandi Contact", self.party_id, "gstin") or "").strip()
+            except Exception:
+                pass
+        # -----------------------------------
+        
         arrival_type_str = (self.arrival_type or "direct").lower()
 
         for lot in self.get("items") or []:
@@ -135,6 +154,14 @@ class MandiArrival(Document):
             purchase_gst_amount = 0.0
             if arrival_type_str == "direct":
                 gst_rate = flt(lot.purchase_gst_rate or 0)
+                
+                # Master GST Compliance Override
+                is_rcm = bool(lot.get("is_rcm"))
+                if not org_gst_enabled:
+                    gst_rate = 0.0
+                elif not supplier_gstin and not is_rcm:
+                    gst_rate = 0.0
+                    
                 if gst_rate > 0:
                     gst_type = str(lot.purchase_gst_type or "Exclusive").strip().capitalize()
                     if gst_type == "Inclusive":
