@@ -3461,6 +3461,8 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                     # card can include it as a real cash movement (not an arrival/sale entry).
                     party_leg["against_voucher_type"] = against_vtype
                     party_leg["against_voucher"]      = against_vname
+                else:
+                    party_leg["is_advance"] = "Yes"
                 accounts.extend([cash_leg, party_leg])
 
             if discount > 0:
@@ -3518,6 +3520,8 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
                     # card can include it as a real cash movement (not an arrival/sale entry).
                     party_leg["against_voucher_type"] = against_vtype
                     party_leg["against_voucher"]      = against_vname
+                else:
+                    party_leg["is_advance"] = "Yes"
                 accounts.extend([party_leg, cash_leg])
 
             if discount > 0:
@@ -3685,10 +3689,10 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
         elif je.voucher_type == "Bank Entry":
-            # UPI/Bank transfers: do NOT assign a cheque_no — they are NOT cheques.
-            # Only real cheques (is_cheque=True) should have cheque_no.
-            # cheque_no on a Bank Entry would incorrectly send it to Cheque Management.
-            # We still set clearance_date so the Daybook treats this as instantly cleared.
+            # UPI/Bank transfers: Frappe requires a Reference No for Bank Entries.
+            # We assign a TRF- hash so it validates, BUT our cheque_api.py filter 
+            # explicitly excludes TRF- strings from appearing in Cheque Management.
+            je.cheque_no = p_cheque_no or ("TRF-" + frappe.generate_hash(length=8))
             je.cheque_date = posting_date
             je.clearance_date = posting_date
 
