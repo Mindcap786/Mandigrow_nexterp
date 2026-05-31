@@ -201,15 +201,15 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
     },
     'garlic': {
         aliases: ['lahsun', 'lasun'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/garlic.png' }
     },
     'ginger': {
         aliases: ['adrak', 'allam'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/ginger.png' }
     },
     'radish': {
         aliases: ['mooli', 'muli'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/radish.png' }
     },
     'fenugreek': {
         aliases: ['methi'],
@@ -221,15 +221,15 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
     },
     'brinjal': {
         aliases: ['baingan', 'eggplant', 'aubergine', 'vankaya'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/brinjal.png' }
     },
     'capsicum': {
         aliases: ['shimla mirch', 'bell pepper'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/capsicum.png' }
     },
     'chili': {
         aliases: ['mirch', 'mirchi', 'green chili', 'red chili'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/chili.png' }
     },
     'cabbage': {
         aliases: ['patta gobhi', 'band gobhi'],
@@ -242,6 +242,46 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
     'broccoli': {
         aliases: ['hari gobhi'],
         asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'turmeric': {
+        aliases: ['haldi', 'curcuma'],
+        asset: { type: 'img', src: '/assets/3d/turmeric.png' }
+    },
+    'beetroot': {
+        aliases: ['chukandar', 'beet'],
+        asset: { type: 'img', src: '/assets/3d/beetroot.png' }
+    },
+    'turnip': {
+        aliases: ['shalgam'],
+        asset: { type: 'img', src: '/assets/3d/turnip.png' }
+    },
+    'wheat': {
+        aliases: ['gehu', 'kanak', 'wheat grain'],
+        asset: { type: 'img', src: '/assets/3d/wheat.png' }
+    },
+    'paddy': {
+        aliases: ['chawal', 'dhan', 'rice'],
+        asset: { type: 'img', src: '/assets/3d/paddy.png' }
+    },
+    'maize': {
+        aliases: ['makki', 'corn', 'bhutta'],
+        asset: { type: 'img', src: '/assets/3d/maize.png' }
+    },
+    'bajra': {
+        aliases: ['pearl millet', 'millet'],
+        asset: { type: 'img', src: '/assets/3d/bajra.png' }
+    },
+    'barley': {
+        aliases: ['jau'],
+        asset: { type: 'img', src: '/assets/3d/barley.png' }
+    },
+    'chickpea': {
+        aliases: ['chana', 'gram', 'chole'],
+        asset: { type: 'img', src: '/assets/3d/chickpea.png' }
+    },
+    'mustard': {
+        aliases: ['sarson', 'mustard seeds'],
+        asset: { type: 'img', src: '/assets/3d/mustard.png' }
     },
     'mushroom': {
         aliases: ['kumbh', 'khumbi'],
