@@ -4427,8 +4427,6 @@ def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
         return {"exists": True, "name": name}
     return {"exists": False}
 
-@frappe.whitelist(allow_guest=False)
-
 def _get_or_create_temporary_opening_account(company: str) -> str:
     """Ensures 'Temporary Opening' account exists for a company and returns its name."""
     account_name = "Temporary Opening"
