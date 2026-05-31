@@ -5243,10 +5243,16 @@ def save_bank_account(**kwargs) -> dict:
         if not account_id:
             # Predict Frappe's autoname to catch duplicates cleanly
             abbr = frappe.db.get_value("Company", company, "abbr")
+            acc_num = str(kwargs.get("account_number") or "").strip()
+            
+            parts = [name.strip()]
             if abbr and not name.endswith(f" - {abbr}"):
-                generated_name = f"{name} - {abbr}"
-            else:
-                generated_name = name
+                parts.append(abbr)
+                
+            if acc_num:
+                parts.insert(0, acc_num)
+                
+            generated_name = " - ".join(parts)
             
             if frappe.db.exists("Account", generated_name):
                 existing_doc = frappe.get_doc("Account", generated_name)
