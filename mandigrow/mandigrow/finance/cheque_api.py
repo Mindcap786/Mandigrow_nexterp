@@ -79,6 +79,10 @@ def get_reconciliation_data(org_id: str = None, date_from: str = None, date_to: 
         LEFT JOIN `tabMandi Sale` ms ON jea.reference_name = ms.name AND jea.reference_type = 'Mandi Sale'
         LEFT JOIN `tabMandi Arrival` ma ON jea.reference_name = ma.name AND jea.reference_type = 'Mandi Arrival'
         WHERE (je.cheque_no IS NOT NULL AND je.cheque_no != '')
+          -- Exclude auto-generated TRF-/CHQ- reference IDs assigned to Bank/UPI transfers by old code.
+          -- Real cheques always have user-entered cheque numbers (numeric or custom strings).
+          -- TRF- and CHQ- prefixed entries are UPI/bank transfers that should NOT appear here.
+          AND je.cheque_no NOT REGEXP '^(TRF|CHQ)-[a-f0-9]{{8}}$'
           AND je.company = %s
           {date_conditions}
           {status_condition}

@@ -47,9 +47,10 @@ def _col_exists(doctype: str, fieldname: str) -> bool:
     key = (doctype, fieldname)
     if key not in _COL_CACHE:
         try:
-            _COL_CACHE[key] = bool(frappe.db.has_column(doctype, fieldname))
+            val = bool(frappe.db.has_column(doctype, fieldname))
+            _COL_CACHE[key] = val
         except Exception:
-            _COL_CACHE[key] = False
+            return False
     return _COL_CACHE[key]
 
 def _org_filter(doctype: str, org_id: str) -> dict:
@@ -3684,7 +3685,10 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
             if is_cheque_cleared:
                 je.clearance_date = cheque_norm or date_norm
         elif je.voucher_type == "Bank Entry":
-            je.cheque_no = p_cheque_no or ("TRF-" + frappe.generate_hash(length=8))
+            # UPI/Bank transfers: do NOT assign a cheque_no — they are NOT cheques.
+            # Only real cheques (is_cheque=True) should have cheque_no.
+            # cheque_no on a Bank Entry would incorrectly send it to Cheque Management.
+            # We still set clearance_date so the Daybook treats this as instantly cleared.
             je.cheque_date = posting_date
             je.clearance_date = posting_date
 
@@ -3731,6 +3735,9 @@ def create_voucher(p_organization_id: str = None, p_party_id: str = None, p_amou
         if (is_cheque and is_cheque_cleared):
             je.db_set("clearance_date", cheque_norm or date_norm)
         elif je.voucher_type == "Bank Entry" and not is_cheque:
+            # Instantly-cleared bank/UPI transfer: stamp clearance_date without a cheque_no.
+            # This ensures it shows up correctly in the Daybook liquid-assets balance
+            # but does NOT appear in Cheque Management (no cheque_no = not a cheque).
             je.db_set("clearance_date", posting_date)
 
         # ── 7. Optional Auto-settle oldest bills (FIFO) ─────────────────────
@@ -5381,11 +5388,17 @@ def delete_bank_account(account_id: str) -> dict:
         # Check if used in GL Entry (has real transactions)
         if frappe.db.exists("GL Entry", {"account": account_id}):
             # Has real transactions — disable instead of delete
+            random_str = frappe.utils.generate_hash()[:6]
             doc = frappe.get_doc("Account", account_id)
             doc.disabled = 1
             if doc.account_number:
-                doc.account_number = f"DEL-{frappe.utils.generate_hash()[:6]}-{doc.account_number}"
+                doc.account_number = f"DEL-{random_str}-{doc.account_number}"
+            doc.account_name = f"DEL-{random_str} {doc.account_name}"
             doc.save(ignore_permissions=True)
+            
+            # Free up the primary key by renaming the doc
+            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}", ignore_permissions=True)
+            
             frappe.db.commit()
             return {"success": True, "message": "Account has transactions; it was disabled instead of deleted. It will no longer appear in new entries."}
 
@@ -11384,7 +11397,7 @@ def repair_all_settlements(org_id: str = None):
     Force-reconciles all sales and arrivals with their ledger balances via FIFO.
     """
     try:
-        org_id = _get_user_org()
+        org_id = org_id or _get_user_org()
         
         # 1. Repair all Buyers
         buyers = frappe.get_all("Mandi Contact", 
@@ -11498,7 +11511,14 @@ def repair_single_party_settlement(contact_id: str, org_id: str = None):
             fifo_pool = max(0, float(unlinked_debits))
 
             for a in arrivals:
-                total = float(a.net_payable_farmer or 0)
+                # Get the actual billed amount from the ledger (credits) rather than document field
+                # because manual ledger adjustments or returns might have altered the real total.
+                total = float(frappe.db.sql("""
+                    SELECT SUM(gl.credit) FROM `tabGL Entry` gl
+                    WHERE gl.is_cancelled = 0 AND gl.party IN %s 
+                    AND gl.against_voucher = %s AND gl.credit > 0
+                """, (tuple(party_list), a.name))[0][0] or a.net_payable_farmer or 0)
+
                 # A. Linked Paid (Submitted)
                 linked_paid = frappe.db.sql("""
                     SELECT SUM(gl.debit) FROM `tabGL Entry` gl
