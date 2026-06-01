@@ -17602,7 +17602,9 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     
     # 1. Create new Mandi Lot with Secondary UOM
     new_lot = frappe.new_doc("Mandi Lot")
-    new_lot.organization_id = lot.organization_id
+    org_id = getattr(lot, "organization_id", None) or _get_user_org()
+    if org_id:
+        new_lot.organization_id = org_id
     new_lot.item_id = lot.item_id
     new_lot.unit = secondary_uom
     new_lot.unit_weight = 0  # Base unit, no further conversion
