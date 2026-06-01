@@ -222,8 +222,10 @@ def cancel_cheque_voucher(voucher_no: str) -> dict:
             frappe.throw(_("You do not have permission to cancel this voucher."), frappe.PermissionError)
 
     if doc.docstatus == 0:
-        doc.delete(ignore_permissions=True)
-        return {"status": "success", "message": f"Draft cheque voucher {voucher_no} deleted"}
+        doc.flags.ignore_permissions = True
+        doc.submit()
+        doc.cancel()
+        return {"status": "cancelled", "voucher_no": voucher_no, "success": True, "message": f"Cheque voucher {voucher_no} cancelled"}
 
     if doc.docstatus == 2:
         return {"status": "success", "message": f"Cheque voucher {voucher_no} is already cancelled"}
