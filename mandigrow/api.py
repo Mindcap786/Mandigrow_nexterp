@@ -9758,6 +9758,32 @@ def create_commodity(**kwargs) -> dict:
             except Exception:
                 pass
 
+        # Ensure custom_secondary_uom field exists
+        if not frappe.db.exists("Custom Field", "Item-custom_secondary_uom"):
+            try:
+                from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+                create_custom_field("Item", {
+                    "fieldname": "custom_secondary_uom",
+                    "label": "Secondary UOM",
+                    "fieldtype": "Data",
+                    "insert_after": "stock_uom"
+                })
+            except Exception:
+                pass
+                
+        # Ensure custom_uom_conversion_factor field exists
+        if not frappe.db.exists("Custom Field", "Item-custom_uom_conversion_factor"):
+            try:
+                from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+                create_custom_field("Item", {
+                    "fieldname": "custom_uom_conversion_factor",
+                    "label": "Secondary UOM Conversion Factor",
+                    "fieldtype": "Float",
+                    "insert_after": "custom_secondary_uom"
+                })
+            except Exception:
+                pass
+
         # Ensure gst_rate custom field exists on Item
         if not frappe.db.exists("Custom Field", "Item-gst_rate"):
             try:
