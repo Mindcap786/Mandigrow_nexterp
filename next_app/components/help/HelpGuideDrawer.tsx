@@ -79,7 +79,7 @@ export function HelpGuideDrawer({ trigger, className }: HelpGuideDrawerProps) {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <a
-                            href="/guide"
+                        href="/user-guide"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-colors"
