@@ -573,7 +573,7 @@ export default function ProfitLossPage() {
                                                         <tr
                                                             key={item.id}
                                                             className="hover:bg-emerald-50/30 transition-all group cursor-pointer"
-                                                            onClick={() => { if (item.id) setSelectedLotId(item.id) }}
+                                                            onClick={() => { if (item.id && !item.id.startsWith('CRATE-')) setSelectedLotId(item.id) }}
                                                         >
                                                             <td className="p-8 pl-12">
                                                                 <div className="flex flex-col">
@@ -640,7 +640,7 @@ export default function ProfitLossPage() {
                                                 <div
                                                     key={item.id}
                                                     className="p-5 active:bg-slate-50 transition-colors"
-                                                    onClick={() => { if (item.id) setSelectedLotId(item.id) }}
+                                                    onClick={() => { if (item.id && !item.id.startsWith('CRATE-')) setSelectedLotId(item.id) }}
                                                 >
                                                     <div className="flex justify-between items-start mb-3">
                                                         <div>
