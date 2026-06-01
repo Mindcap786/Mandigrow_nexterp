@@ -272,6 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                          pathname === '/contact' ||
                          pathname === '/features' ||
                          pathname === '/pricing' ||
+                         pathname === '/user-guide' ||
                          pathname === '/te' ||
                          pathname === '/partners' ||
                          pathname === '/blog' ||
