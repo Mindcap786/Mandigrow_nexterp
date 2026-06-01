@@ -40,6 +40,7 @@ import { callApi } from "@/lib/frappeClient";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useFieldGovernance } from "@/hooks/useFieldGovernance";
 import { Label } from "@/components/ui/label";
+import { cacheClearPrefix } from "@/lib/data-cache";
 
 const formSchema = z.object({
     account_id: z.string().min(1, "Expense category is required"),
@@ -298,6 +299,8 @@ export function ExpenseDialog({
             });
 
             if (res?.error) throw new Error(res.error);
+
+            cacheClearPrefix('cheques_', profile?.organization_id || '');
 
             setOpen(false);
             form.reset();

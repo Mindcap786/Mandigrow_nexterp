@@ -39,6 +39,7 @@ import { callApi } from "@/lib/frappeClient"
 import { useAuth } from "@/components/auth/auth-provider"
 import { cn } from "@/lib/utils"
 import { useFieldGovernance } from "@/hooks/useFieldGovernance"
+import { cacheClearPrefix } from "@/lib/data-cache"
 // Utilizing Command for search because SearchableSelect might be deprecated/custom
 import {
     Command,
@@ -181,7 +182,7 @@ export function PaymentDialog({ type, onSuccess, children }: PaymentDialogProps)
 
             if (res.error) throw new Error(res.error);
 
-
+            cacheClearPrefix('cheques_', profile.organization_id || '');
 
             toast({
                 title: type === 'receipt' ? "Receipt Created" : "Payment Successful",

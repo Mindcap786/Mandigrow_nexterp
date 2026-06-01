@@ -43,6 +43,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useFieldGovernance } from "@/hooks/useFieldGovernance";
 import { formatCurrency, roundTo2 } from "@/lib/accounting-logic";
+import { cacheClearPrefix } from "@/lib/data-cache";
 
 const formSchema = z.object({
     party_id: z.string().min(1, "Select who to pay"),
@@ -373,7 +374,7 @@ export function NewPaymentDialog({ onSuccess, defaultOpen, onOpenChange, initial
             if (res.error) throw new Error(res.error);
             const voucherId = res.voucher_id;
 
-
+            cacheClearPrefix('cheques_', profile?.organization_id || '');
 
             toast({ title: isReceipt ? "Receipt Recorded" : "Payment Recorded", description: "Voucher created successfully." });
             setOpen(false);
