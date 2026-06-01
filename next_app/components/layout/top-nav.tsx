@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react'
 
 import { AlertBell } from '@/components/alerts/AlertBell'
 import { useCachedParties, useCachedItems } from '@/hooks/use-cached-lists'
+import { HelpGuideDrawer } from '@/components/help/HelpGuideDrawer'
 
 const QUICK_LINKS = [
     { tKey: 'nav.quick_purchase', href: '/stock/quick-entry', icon: ShoppingCart, color: 'text-purple-600', bg: 'bg-purple-50' },
@@ -108,8 +109,9 @@ export function TopNav() {
                 })}
                 </div>
 
-                {/* ── Right: Alert Bell (always visible on desktop) ─────────── */}
-                <div className="flex-shrink-0 flex items-center">
+                {/* ── Right: Help Guide + Alert Bell ───────────────── */}
+                <div className="flex-shrink-0 flex items-center gap-2">
+                    <HelpGuideDrawer />
                     <AlertBell />
                 </div>
             </div>

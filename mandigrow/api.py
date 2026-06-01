@@ -4813,6 +4813,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     # 'full_name as name' creates a duplicate column alias that breaks as_dict
     # result parsing, causing empty contact lists even when records exist.
     contact_where = ["1=1"]
+    contact_where.append("full_name != 'Opening Balance'")
     contact_params = []
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         contact_where.append("organization_id = %s")

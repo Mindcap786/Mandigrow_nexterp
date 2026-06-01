@@ -1,9 +1,10 @@
 "use client";
 
 import { useLanguage } from "@/components/i18n/language-provider";
-import { ChevronLeft, Menu } from "lucide-react";
+import { ChevronLeft, Menu, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AlertBell } from "@/components/alerts/AlertBell";
+import { HelpGuideDrawer } from "@/components/help/HelpGuideDrawer";
 import { usePathname, useRouter } from "next/navigation";
 
 /**
@@ -141,8 +142,23 @@ export function NativeTopBar({
             </h1>
 
             {/* Right Actions */}
-            <div className="w-11 flex items-center justify-end gap-1">
-                {rightActions || <AlertBell />}
+            <div className="flex items-center justify-end gap-1 pr-1">
+                {rightActions || (
+                    <>
+                        <HelpGuideDrawer
+                            trigger={
+                                <button
+                                    id="mobile-help-guide-trigger"
+                                    className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors duration-100"
+                                    aria-label="User Guide"
+                                >
+                                    <HelpCircle className="w-5 h-5 text-[#1A6B3C]" strokeWidth={2} />
+                                </button>
+                            }
+                        />
+                        <AlertBell />
+                    </>
+                )}
             </div>
         </header>
     );
