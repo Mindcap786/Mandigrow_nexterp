@@ -17540,7 +17540,7 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
     }
 
 @frappe.whitelist(allow_guest=False)
-def create_repack_entry(lot_id, source_qty=None):
+def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     """
     Convert Box lot to KG lot.
     - Source lot: 85 Boxes × ₹200/Box = ₹17,000
@@ -17552,7 +17552,13 @@ def create_repack_entry(lot_id, source_qty=None):
     
     unit_weight = flt(lot.unit_weight)
     if unit_weight <= 0:
-        frappe.throw("Repack requires unit_weight > 0 on the lot")
+        if manual_unit_weight and flt(manual_unit_weight) > 0:
+            unit_weight = flt(manual_unit_weight)
+            # Save it back to the lot so we know
+            frappe.db.set_value("Mandi Lot", lot_id, "unit_weight", unit_weight)
+            lot.unit_weight = unit_weight
+        else:
+            frappe.throw("Repack requires unit_weight > 0 on the lot or provided manually")
     
     qty_to_convert = flt(source_qty) if source_qty is not None else flt(lot.current_qty)
     if qty_to_convert <= 0 or qty_to_convert > flt(lot.current_qty):

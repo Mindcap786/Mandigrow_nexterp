@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,14 +19,26 @@ interface RepackDialogProps {
 export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogProps) {
     const [loading, setLoading] = useState(false)
     const [sourceQty, setSourceQty] = useState<number | ''>('')
+    const [manualUnitWeight, setManualUnitWeight] = useState<number | ''>('')
     const { toast } = useToast()
+
+    // Reset when lot changes
+    useEffect(() => {
+        if (lot) {
+            setSourceQty('')
+            setManualUnitWeight('')
+        }
+    }, [lot])
 
     if (!lot) return null
 
-    const unitWeight = Number(lot.unit_weight) || 0
+    const existingUnitWeight = Number(lot.unit_weight) || 0
+    const needsManualWeight = existingUnitWeight <= 0
+    const activeUnitWeight = needsManualWeight ? (Number(manualUnitWeight) || 0) : existingUnitWeight
+
     const currentQty = Number(lot.current_qty) || 0
     const qtyToConvert = sourceQty === '' ? currentQty : Number(sourceQty)
-    const kgQty = qtyToConvert * unitWeight
+    const kgQty = qtyToConvert * activeUnitWeight
     const totalValue = qtyToConvert * (Number(lot.supplier_rate) || 0)
 
     const handleRepack = async () => {
@@ -35,11 +47,17 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
             return
         }
         
+        if (activeUnitWeight <= 0) {
+            toast({ title: "Invalid Conversion", description: "Unit weight must be > 0", variant: "destructive" })
+            return
+        }
+
         setLoading(true)
         try {
             await callApi("mandigrow.api.create_repack_entry", {
                 lot_id: lot.name || lot.id,
-                source_qty: qtyToConvert
+                source_qty: qtyToConvert,
+                manual_unit_weight: needsManualWeight ? activeUnitWeight : undefined
             })
             toast({ title: "Repacked successfully", description: `Converted to ${kgQty} KG` })
             onSuccess()
@@ -62,6 +80,24 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
+                    {needsManualWeight && (
+                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-2">
+                            <Label className="text-xs font-black uppercase tracking-widest text-amber-800">
+                                Missing Conversion Factor
+                            </Label>
+                            <p className="text-xs text-amber-700 mb-2">This is a legacy lot. Please provide the weight per {lot.unit}.</p>
+                            <Input
+                                type="number"
+                                min={0.1}
+                                step="any"
+                                value={manualUnitWeight}
+                                onChange={(e) => setManualUnitWeight(e.target.value ? Number(e.target.value) : '')}
+                                placeholder={`KG per 1 ${lot.unit}`}
+                                className="font-black text-sm h-10 border-amber-300 focus-visible:ring-amber-500"
+                            />
+                        </div>
+                    )}
+
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
                         <div className="text-center">
                             <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Source</p>
@@ -107,7 +143,7 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
 
                     <Button 
                         onClick={handleRepack} 
-                        disabled={loading || qtyToConvert <= 0 || qtyToConvert > currentQty}
+                        disabled={loading || qtyToConvert <= 0 || qtyToConvert > currentQty || activeUnitWeight <= 0}
                         className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest"
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Repack"}
