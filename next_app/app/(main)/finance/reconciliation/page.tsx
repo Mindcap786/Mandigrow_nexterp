@@ -202,11 +202,12 @@ export default function ChequeManagementPage() {
             <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
                 {/* ── Summary Cards ── */}
                 {summary && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         {[
                             { label: "Pending", count: pendingCount, amount: summary.pending_amount, color: "amber" },
                             { label: "Cleared", count: clearedCount, amount: summary.cleared_amount, color: "emerald" },
                             { label: "Instant", count: instantCount, amount: summary.instant_amount, color: "blue" },
+                            { label: "Cancelled", count: cancelledCount, amount: 0, color: "rose" },
                             { label: "Total", count: summary.total, amount: summary.pending_amount + summary.cleared_amount + summary.instant_amount, color: "indigo" },
                         ].map(card => (
                             <div key={card.label} className={cn(
@@ -238,7 +239,7 @@ export default function ChequeManagementPage() {
                     <div className="flex items-center gap-3 flex-wrap flex-1">
                         {/* Status filter tabs */}
                         <div className="flex items-center gap-1 p-1 bg-slate-100/50 rounded-2xl border border-slate-200/50">
-                            {(["Pending", "Cleared", "Instant", "All"] as const).map(status => (
+                            {(["Pending", "Cleared", "Instant", "Cancelled", "All"] as const).map(status => (
                                 <button
                                     key={status}
                                     onClick={() => setChequeFilter(status)}
