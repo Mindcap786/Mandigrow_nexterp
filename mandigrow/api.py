@@ -17631,7 +17631,7 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     # 3. Create ERPNext Stock Entry (Repack) - Best Effort
     try:
         from mandigrow.mandigrow.logic.automation import get_default_company, get_default_warehouse
-        company = get_default_company(lot.organization_id)
+        company = get_default_company(org_id)
         if company:
             warehouse = get_default_warehouse(company)
             if warehouse:
