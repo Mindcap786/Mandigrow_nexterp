@@ -43,6 +43,7 @@ def calculate_arrival_commission(doc, method):
 
     for item in doc.items:
         qty             = _flt(item.qty)
+        unit_weight     = _flt(item.unit_weight)
         sale_price      = _flt(item.sale_price)        # What the buyer pays per unit (0 at arrival time)
         supplier_rate   = _flt(item.supplier_rate)     # What the farmer/supplier is owed per unit
         comm_pct        = _flt(item.commission_percent)
@@ -97,12 +98,18 @@ def calculate_arrival_commission(doc, method):
 
         # Lot-level charges (packing, loading, farmer charges)
         trip_charges += packing + loading + farmer_chg
+        
+        # Calculate per-kg rates for ledger
+        per_kg_rate = supplier_rate / unit_weight if unit_weight > 0 else supplier_rate
+        net_kg = net_qty * unit_weight if unit_weight > 0 else net_qty
 
         # Write computed values back to the lot row if fields exist
         for field, value in [
             ("net_qty",           round(net_qty, 3)),
             ("net_amount",        round(net_amount, 2)),
             ("commission_amount", round(lot_commission, 2)),
+            ("per_kg_rate",       round(per_kg_rate, 4)),
+            ("net_kg",            round(net_kg, 3)),
         ]:
             if hasattr(item, field):
                 setattr(item, field, value)

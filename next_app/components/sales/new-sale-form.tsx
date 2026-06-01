@@ -512,7 +512,8 @@ function NewSaleForm() {
                     amount: Number(item.amount),
                     gst_rate: itemInfo?.gst_rate || 0,
                     is_gst_exempt: itemInfo?.is_gst_exempt || false,
-                    hsn_code: itemInfo?.hsn_code || null
+                    hsn_code: itemInfo?.hsn_code || null,
+                    unit: item.unit || 'Kg',
                 };
             });
 

@@ -16,13 +16,14 @@ import { TransferDialog } from "./transfer-dialog"
 import { WastageDialog } from "./wastage-dialog"
 import { PurchaseReturnDialog } from "./purchase-return-dialog"
 import { PurchaseAdjustmentDialog } from "./purchase-adjustment-dialog"
+import { RepackDialog } from "./repack-dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { StockAlertBanner } from "@/components/alerts/StockAlertBanner"
 
 // --- COMPONENT: SINGLE LOT ROW (Native Mobile–first card) ---
-function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn, onAdjust }: { lot: any, itemDefaults: any, onMoveStock: () => void, onWastage: () => void, onUpdate: () => void, onReturn: () => void, onAdjust: () => void }) {
+function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn, onAdjust, onRepack }: { lot: any, itemDefaults: any, onMoveStock: () => void, onWastage: () => void, onUpdate: () => void, onReturn: () => void, onAdjust: () => void, onRepack: () => void }) {
 
     const [isExpanded, setIsExpanded] = useState(false)
     const { toast } = useToast()
@@ -269,6 +270,12 @@ function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn,
                                     className="flex items-center justify-center gap-2 h-11 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 text-sm font-semibold active:bg-orange-100 transition-colors">
                                     <ArrowRightLeft className="w-4 h-4" /> Return Stock
                                 </button>
+                                {(lot.unit_weight > 0 && lot.unit?.toLowerCase() !== 'kg') && (
+                                    <button onClick={(e) => { e.stopPropagation(); onRepack() }}
+                                        className="flex items-center justify-center gap-2 h-11 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 text-sm font-semibold active:bg-blue-100 transition-colors">
+                                        <Scale className="w-4 h-4" /> Repack to KG
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </motion.div>
@@ -298,6 +305,7 @@ export function LotStockDialog({ itemId, itemName, itemDetails, isOpen, onClose,
     const [wastageLot, setWastageLot] = useState<any>(null)
     const [returnLot, setReturnLot] = useState<any>(null)
     const [adjustmentLot, setAdjustmentLot] = useState<any>(null)
+    const [repackLot, setRepackLot] = useState<any>(null)
     const [searchTerm, setSearchTerm] = useState("")
     const [activeTab, setActiveTab] = useState<'lots' | 'batches'>('lots')
 
@@ -440,6 +448,7 @@ export function LotStockDialog({ itemId, itemName, itemDetails, isOpen, onClose,
                                                         onWastage={() => setWastageLot(lot)}
                                                         onReturn={() => setReturnLot(lot)}
                                                         onAdjust={() => setAdjustmentLot(lot)}
+                                                        onRepack={() => setRepackLot(lot)}
                                                         onUpdate={fetchLots}
                                                     />
                                                 ))}
@@ -484,6 +493,15 @@ export function LotStockDialog({ itemId, itemName, itemDetails, isOpen, onClose,
                 isOpen={!!adjustmentLot}
                 onClose={() => setAdjustmentLot(null)}
                 lot={adjustmentLot}
+                onSuccess={() => {
+                    fetchLots()
+                }}
+            />
+
+            <RepackDialog
+                isOpen={!!repackLot}
+                onClose={() => setRepackLot(null)}
+                lot={repackLot}
                 onSuccess={() => {
                     fetchLots()
                 }}

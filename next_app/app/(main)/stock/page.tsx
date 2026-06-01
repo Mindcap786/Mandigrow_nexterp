@@ -327,6 +327,7 @@ export default function StockPage() {
                     current_stock: lot.qty || 0,
                     total_inward: lot.qty || 0,
                     unit: lot.unit || item.unit || 'Kg',
+                    kg_equivalent: lot.kg_equivalent || 0,
                     storage_location: lot.storage_location || 'Mandi',
                     arrival_type: lot.arrival_type || 'commission',
                     supplier_rate: lot.supplier_rate || 0,
@@ -416,8 +417,14 @@ export default function StockPage() {
         const u = curr.unit || 'BOX'
         if (!acc[curr.item_id]) {
             acc[curr.item_id] = { ...curr, units: { [u]: parseFloat(curr.current_stock) } }
+            if (curr.kg_equivalent > 0 && u.toUpperCase() !== 'KG') {
+                acc[curr.item_id].units['KG'] = parseFloat(curr.kg_equivalent)
+            }
         } else {
             acc[curr.item_id].units[u] = (acc[curr.item_id].units[u] || 0) + parseFloat(curr.current_stock)
+            if (curr.kg_equivalent > 0 && u.toUpperCase() !== 'KG') {
+                acc[curr.item_id].units['KG'] = (acc[curr.item_id].units['KG'] || 0) + parseFloat(curr.kg_equivalent)
+            }
             acc[curr.item_id].current_stock = (parseFloat(acc[curr.item_id].current_stock) + parseFloat(curr.current_stock)).toString()
             acc[curr.item_id].total_inward = (parseFloat(acc[curr.item_id].total_inward) + parseFloat(curr.total_inward)).toString()
             acc[curr.item_id].critical_stock = (Number(acc[curr.item_id].critical_stock || 0) + Number(curr.critical_stock || 0))

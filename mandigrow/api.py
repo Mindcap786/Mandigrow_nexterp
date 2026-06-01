@@ -2227,6 +2227,8 @@ def get_commodities() -> list:
         item_fields.append("local_name")
     if frappe.db.has_column("Item", "critical_age_days"):
         item_fields.append("critical_age_days")
+    if frappe.db.has_column("Item", "custom_secondary_uom"):
+        item_fields.extend(["custom_secondary_uom", "custom_uom_conversion_factor"])
 
     items = frappe.get_all(
         "Item",
@@ -4855,7 +4857,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
         commodities = []
 
     # Return only mandi-relevant units — NOT the full ERPNext UOM table (200+ scientific units)
-    MANDI_UNITS = ["Box", "Crate", "Kgs", "Tons", "Nug", "Pieces", "Carton", "Bunch", "Nos", "Kg"]
+    MANDI_UNITS = ["Box", "Crate", "Kg", "Tons", "Nug", "Pieces", "Carton", "Bunch", "Nos"]
     units = [{"name": u} for u in MANDI_UNITS]
 
     settings = get_mandi_settings(org_id)
@@ -6939,7 +6941,7 @@ def get_stock_summary(org_id: str = None) -> dict:
                 "lot_code", "name as id", "name", "storage_location",
                 "net_qty", "creation", "parent",
             ],
-            ["current_qty", "initial_qty", "status"],
+            ["current_qty", "initial_qty", "status", "unit_weight"],
         ),
         order_by="creation desc",
         limit_page_length=1000,
@@ -7044,6 +7046,10 @@ def get_stock_summary(org_id: str = None) -> dict:
         lot["storage_location"] = storage_location_name
         lot["arrival_type"] = arrival.get("arrival_type") or "direct"
         lot["created_at"] = creation_iso
+        
+        unit_weight = flt(lot.get("unit_weight") or 0)
+        lot["unit_weight"] = unit_weight
+        lot["kg_equivalent"] = round(current_qty * unit_weight, 3) if unit_weight > 0 else 0
 
         iid = lot.get("item_id") or "Unknown"
         if iid not in by_item:
@@ -9876,6 +9882,8 @@ def create_commodity(**kwargs) -> dict:
             "stock_uom": kwargs.get("default_unit") or "Nos",
             "shelf_life_in_days": kwargs.get("shelf_life_days") or 7,
             "critical_age_days": kwargs.get("critical_age_days") or 14,
+            "custom_secondary_uom": kwargs.get("custom_secondary_uom") or "",
+            "custom_uom_conversion_factor": flt(kwargs.get("custom_uom_conversion_factor") or 0),
             "is_stock_item": 1,
             "disabled": 0,
             # GST Compliance fields
@@ -10286,15 +10294,25 @@ def confirm_sale_transaction(**kwargs) -> dict:
         for item in items:
             lot_id = item.get("lot_id")
             qty = flt(item.get("qty", 0))
+            sale_unit = str(item.get("unit") or "kg").strip().lower()
+
             if lot_id:
                 lot = frappe.get_doc("Mandi Lot", lot_id)
                 lot = _normalize_lot_stock(lot, persist=True)
+
+                deduction_qty = qty
+                unit_weight = flt(lot.get("unit_weight") or 0)
+                lot_unit = str(lot.get("unit") or "").strip().lower()
+
+                if sale_unit == "kg" and lot_unit != "kg" and unit_weight > 0:
+                    deduction_qty = qty / unit_weight
+
                 available_qty = flt(getattr(lot, "current_qty", 0))
-                if available_qty < qty:
-                    return {"success": False, "error": f"Insufficient stock in lot {lot.lot_code}. Available: {available_qty}"}
+                if available_qty < deduction_qty:
+                    return {"success": False, "error": f"Insufficient stock in lot {lot.lot_code}. Available: {available_qty} {lot.get('unit')} (tried to deduct {deduction_qty} {lot.get('unit')})"}
                 
                 initial_qty = flt(getattr(lot, "initial_qty", 0) or available_qty)
-                current_qty = max(available_qty - qty, 0)
+                current_qty = max(available_qty - deduction_qty, 0)
                 status = _derive_lot_status(current_qty, initial_qty)
                 _update_lot_stock_fields(lot.name, initial_qty, current_qty, status)
             
@@ -17520,3 +17538,84 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
         },
         "grandTotal": round(total_buyer_expenses + total_supplier_expenses, 2)
     }
+
+@frappe.whitelist(allow_guest=False)
+def create_repack_entry(lot_id, source_qty=None):
+    """
+    Convert Box lot to KG lot.
+    - Source lot: 85 Boxes × ₹200/Box = ₹17,000
+    - Target lot: 850 KG × ₹20/KG = ₹17,000 (valuation preserved)
+    - Source lot: closed (current_qty = 0, status = 'Repacked')
+    """
+    lot = frappe.get_doc("Mandi Lot", lot_id)
+    _enforce_ownership(lot)
+    
+    unit_weight = flt(lot.unit_weight)
+    if unit_weight <= 0:
+        frappe.throw("Repack requires unit_weight > 0 on the lot")
+    
+    qty_to_convert = flt(source_qty) if source_qty is not None else flt(lot.current_qty)
+    if qty_to_convert <= 0 or qty_to_convert > flt(lot.current_qty):
+        frappe.throw(f"Invalid repack quantity. Available: {lot.current_qty}")
+
+    kg_qty = qty_to_convert * unit_weight
+    rate_per_kg = flt(lot.supplier_rate) / unit_weight
+    total_value = kg_qty * rate_per_kg  # valuation preserved
+    
+    # 1. Create new Mandi Lot with KG unit
+    new_lot = frappe.new_doc("Mandi Lot")
+    new_lot.organization_id = lot.organization_id
+    new_lot.item_id = lot.item_id
+    new_lot.unit = "Kg"
+    new_lot.unit_weight = 0  # Base unit, no further conversion
+    new_lot.qty = kg_qty
+    new_lot.initial_qty = kg_qty
+    new_lot.current_qty = kg_qty
+    new_lot.supplier_rate = rate_per_kg
+    new_lot.lot_code = f"RPK-{lot.lot_code}"
+    new_lot.storage_location = lot.storage_location
+    new_lot.status = "Available"
+    new_lot.parent = lot.parent
+    new_lot.parenttype = lot.parenttype
+    new_lot.parentfield = lot.parentfield
+    new_lot.insert(ignore_permissions=True)
+    
+    # 2. Close source lot
+    new_source_qty = max(lot.current_qty - qty_to_convert, 0)
+    status = "Repacked" if new_source_qty == 0 else "Partial"
+    frappe.db.set_value("Mandi Lot", lot_id, {
+        "current_qty": new_source_qty,
+        "status": status
+    })
+    
+    # 3. Create ERPNext Stock Entry (Repack) - Best Effort
+    try:
+        from mandigrow.mandigrow.logic.automation import get_default_company, get_default_warehouse
+        company = get_default_company(lot.organization_id)
+        if company:
+            warehouse = get_default_warehouse(company)
+            if warehouse:
+                se = frappe.new_doc("Stock Entry")
+                se.stock_entry_type = "Repack"
+                se.company = company
+                se.append("items", {
+                    "item_code": lot.item_id, 
+                    "qty": qty_to_convert, 
+                    "uom": lot.unit,
+                    "s_warehouse": warehouse, 
+                    "basic_rate": flt(lot.supplier_rate)
+                })
+                se.append("items", {
+                    "item_code": lot.item_id, 
+                    "qty": kg_qty, 
+                    "uom": "Kg",
+                    "t_warehouse": warehouse, 
+                    "basic_rate": rate_per_kg
+                })
+                se.insert(ignore_permissions=True)
+                se.submit()
+    except Exception as e:
+        frappe.log_error(f"Failed to create Repack Stock Entry: {str(e)}", "Repack Stock Entry Error")
+    
+    frappe.db.commit()
+    return {"success": True, "new_lot_id": new_lot.name, "kg_qty": kg_qty, "rate_per_kg": rate_per_kg}

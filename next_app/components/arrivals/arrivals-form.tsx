@@ -1349,6 +1349,11 @@ export default function ArrivalsEntryForm() {
                                                                             if (item?.purchase_gst_type) {
                                                                                 form.setValue(`items.${index}.purchase_gst_type`, item.purchase_gst_type);
                                                                             }
+                                                                            if (item?.custom_secondary_uom && item?.custom_uom_conversion_factor > 0) {
+                                                                                form.setValue(`items.${index}.unit_weight`, Number(item.custom_uom_conversion_factor));
+                                                                            } else {
+                                                                                form.setValue(`items.${index}.unit_weight`, 0);
+                                                                            }
                                                                         }}
                                                                         placeholder="Select Item..."
                                                                         className="h-9 text-xs font-bold bg-white border-slate-300"
@@ -1381,6 +1386,18 @@ export default function ArrivalsEntryForm() {
                                                                         </SelectContent>
                                                                     </Select>
                                                                     <FormMessage className="text-[9px]" />
+                                                                    {(() => {
+                                                                        const itmId = form.watch(`items.${index}.item_id`);
+                                                                        const itmData = availableItems?.find(i => i.id === itmId);
+                                                                        if (itmData?.custom_secondary_uom && itmData?.custom_uom_conversion_factor > 0) {
+                                                                            return (
+                                                                                <div className="text-[8px] text-indigo-600 font-bold uppercase mt-1 leading-tight">
+                                                                                    1 {itmData.default_unit} = {itmData.custom_uom_conversion_factor} {itmData.custom_secondary_uom}
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    })()}
                                                                 </FormItem>
                                                             )}
                                                         />

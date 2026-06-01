@@ -1,7 +1,7 @@
 /**
  * Standard units used across the application for commodities.
  */
-export const COMMODITY_UNITS = ["Box", "Crate", "Kgs", "Tons", "Nug", "Pieces", "Carton", "Bunch", "Nos"];
+export const COMMODITY_UNITS = ["Box", "Crate", "Kg", "Tons", "Nug", "Pieces", "Carton", "Bunch", "Nos"];
 
 /**
  * Standardizes the display name of a commodity by appending Variety and Grade if available.

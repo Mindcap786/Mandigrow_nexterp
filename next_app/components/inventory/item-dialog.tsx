@@ -60,6 +60,8 @@ const itemSchema = z.object({
     name: z.string().min(2, "Name is required"),
     local_name: z.string().optional(),
     default_unit: z.string().min(1, "Default unit is required"),
+    custom_secondary_uom: z.string().optional(),
+    custom_uom_conversion_factor: z.coerce.number().min(0).optional(),
     shelf_life_days: z.number().nullable().optional(),
     critical_age_days: z.number().nullable().optional(),
     sku_code: z.string().optional(),
@@ -244,6 +246,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             name: initialItem?.name || "",
             local_name: initialItem?.local_name || "",
             default_unit: initialItem?.default_unit || "Box",
+            custom_secondary_uom: initialItem?.custom_secondary_uom || "",
+            custom_uom_conversion_factor: initialItem?.custom_uom_conversion_factor || 0,
             shelf_life_days: initialItem?.shelf_life_days || null,
             critical_age_days: initialItem?.critical_age_days || null,
             sku_code: initialItem?.sku_code || "",
@@ -316,6 +320,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 name: initialAttrs.base_name || initialItem?.name || "",
                 local_name: initialItem?.local_name || "",
                 default_unit: initialItem?.default_unit || "Box",
+                custom_secondary_uom: initialItem?.custom_secondary_uom || "",
+                custom_uom_conversion_factor: initialItem?.custom_uom_conversion_factor || 0,
                 shelf_life_days: initialItem?.shelf_life_days || null,
                 critical_age_days: initialItem?.critical_age_days || null,
                 sku_code: initialItem?.sku_code || "",
@@ -406,6 +412,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 opening_stock: data.opening_stock || 0,
                 storage_location: data.storage_location,
                 shelf_life_days: data.shelf_life_days,
+                custom_secondary_uom: data.custom_secondary_uom,
+                custom_uom_conversion_factor: data.custom_uom_conversion_factor,
                 internal_id: data.internal_id?.trim() || null,
                 custom_attributes: finalAttrs
             });
@@ -634,21 +642,68 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                 </div>
 
                                 {isVisible('default_unit') && (
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('default_unit', 'Default Unit')}</Label>
-                                        <Select
-                                            onValueChange={(val: any) => form.setValue("default_unit", val)}
-                                            defaultValue={form.watch("default_unit") || "Box"}
-                                        >
-                                            <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm">
-                                                <SelectValue placeholder="Select unit" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white border-gray-300 text-gray-900 rounded-xl shadow-lg">
-                                                {COMMODITY_UNITS.map(u => (
-                                                    <SelectItem key={u} value={u} className="font-bold text-xs">{u}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('default_unit', 'Default Unit')}</Label>
+                                            <Select
+                                                onValueChange={(val: any) => form.setValue("default_unit", val)}
+                                                defaultValue={form.watch("default_unit") || "Box"}
+                                            >
+                                                <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm">
+                                                    <SelectValue placeholder="Select unit" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-white border-gray-300 text-gray-900 rounded-xl shadow-lg">
+                                                    {COMMODITY_UNITS.map(u => (
+                                                        <SelectItem key={u} value={u} className="font-bold text-xs">{u}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Secondary UOM</Label>
+                                                <Select
+                                                    onValueChange={(val: any) => {
+                                                        const newVal = val === "none" ? "" : val;
+                                                        form.setValue("custom_secondary_uom", newVal);
+                                                        if (!newVal) {
+                                                            form.setValue("custom_uom_conversion_factor", 0);
+                                                        }
+                                                    }}
+                                                    defaultValue={form.watch("custom_secondary_uom") || "none"}
+                                                >
+                                                    <SelectTrigger className="w-full bg-slate-50 border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm">
+                                                        <SelectValue placeholder="Select (Optional)" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-white border-gray-300 text-gray-900 rounded-xl shadow-lg">
+                                                        <SelectItem value="none" className="font-bold text-xs text-gray-400">None</SelectItem>
+                                                        {COMMODITY_UNITS.filter(u => u !== form.watch("default_unit")).map(u => (
+                                                            <SelectItem key={u} value={u} className="font-bold text-xs">{u}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {form.watch("custom_secondary_uom") && (
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Conversion Factor</Label>
+                                                    <div className="relative">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            placeholder="e.g. 10"
+                                                            className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all pl-12"
+                                                            {...form.register("custom_uom_conversion_factor")}
+                                                        />
+                                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase">
+                                                            1 {form.watch("default_unit")} =
+                                                        </div>
+                                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase">
+                                                            {form.watch("custom_secondary_uom")}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 

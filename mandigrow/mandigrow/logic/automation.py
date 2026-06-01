@@ -984,6 +984,12 @@ def _create_purchase_receipt(doc):
             rate    = _flt(getattr(item, "supplier_rate", None) or getattr(item, "sale_price", None))
             uom     = resolve_uom(getattr(item, "unit", None))
 
+            unit_weight = _flt(getattr(item, "unit_weight", 0))
+            if unit_weight > 0:
+                net_qty = net_qty * unit_weight
+                rate = rate / unit_weight
+                uom = "Kg"
+
             pr.append("items", {
                 "item_code":   item_code,
                 "qty":         net_qty,
