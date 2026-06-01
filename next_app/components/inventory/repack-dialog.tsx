@@ -13,10 +13,11 @@ interface RepackDialogProps {
     isOpen: boolean
     onClose: () => void
     lot: any
+    secondaryUOM?: string
     onSuccess: () => void
 }
 
-export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogProps) {
+export function RepackDialog({ isOpen, onClose, lot, secondaryUOM = 'KG', onSuccess }: RepackDialogProps) {
     const [loading, setLoading] = useState(false)
     const [sourceQty, setSourceQty] = useState<number | ''>('')
     const [manualUnitWeight, setManualUnitWeight] = useState<number | ''>('')
@@ -38,7 +39,7 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
 
     const currentQty = Number(lot.current_qty) || 0
     const qtyToConvert = sourceQty === '' ? currentQty : Number(sourceQty)
-    const kgQty = qtyToConvert * activeUnitWeight
+    const secondaryQty = qtyToConvert * activeUnitWeight
     const totalValue = qtyToConvert * (Number(lot.supplier_rate) || 0)
 
     const handleRepack = async () => {
@@ -59,7 +60,7 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
                 source_qty: qtyToConvert,
                 manual_unit_weight: needsManualWeight ? activeUnitWeight : undefined
             })
-            toast({ title: "Repacked successfully", description: `Converted to ${kgQty} KG` })
+            toast({ title: "Repacked successfully", description: `Converted to ${secondaryQty} ${secondaryUOM}` })
             onSuccess()
             onClose()
         } catch (error: any) {
@@ -75,7 +76,7 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Scale className="w-5 h-5 text-blue-600" />
-                        Repack to KG
+                        Repack to {secondaryUOM}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -85,14 +86,14 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
                             <Label className="text-xs font-black uppercase tracking-widest text-amber-800">
                                 Missing Conversion Factor
                             </Label>
-                            <p className="text-xs text-amber-700 mb-2">This is a legacy lot. Please provide the weight per {lot.unit}.</p>
+                            <p className="text-xs text-amber-700 mb-2">This is a legacy lot. Please provide the count/weight per {lot.unit} (in {secondaryUOM}).</p>
                             <Input
                                 type="number"
                                 min={0.1}
                                 step="any"
                                 value={manualUnitWeight}
                                 onChange={(e) => setManualUnitWeight(e.target.value ? Number(e.target.value) : '')}
-                                placeholder={`KG per 1 ${lot.unit}`}
+                                placeholder={`${secondaryUOM} per 1 ${lot.unit}`}
                                 className="font-black text-sm h-10 border-amber-300 focus-visible:ring-amber-500"
                             />
                         </div>
@@ -106,7 +107,7 @@ export function RepackDialog({ isOpen, onClose, lot, onSuccess }: RepackDialogPr
                         <ArrowRight className="w-5 h-5 text-slate-300" />
                         <div className="text-center">
                             <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Target</p>
-                            <p className="text-xl font-black text-blue-600">{kgQty} KG</p>
+                            <p className="text-xl font-black text-blue-600">{secondaryQty} {secondaryUOM}</p>
                         </div>
                     </div>
 

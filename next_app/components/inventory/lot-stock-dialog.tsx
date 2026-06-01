@@ -270,10 +270,10 @@ function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn,
                                     className="flex items-center justify-center gap-2 h-11 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 text-sm font-semibold active:bg-orange-100 transition-colors">
                                     <ArrowRightLeft className="w-4 h-4" /> Return Stock
                                 </button>
-                                {(lot.unit?.toLowerCase() !== 'kg') && (
+                                {(lot.unit?.toLowerCase() !== (lot.secondary_uom?.toLowerCase() || 'kg')) && (
                                     <button onClick={(e) => { e.stopPropagation(); onRepack() }}
                                         className="flex items-center justify-center gap-2 h-11 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 text-sm font-semibold active:bg-blue-100 transition-colors">
-                                        <Scale className="w-4 h-4" /> Repack to KG
+                                        <Scale className="w-4 h-4" /> Repack to {lot.secondary_uom || 'KG'}
                                     </button>
                                 )}
                             </div>
@@ -502,6 +502,7 @@ export function LotStockDialog({ itemId, itemName, itemDetails, isOpen, onClose,
                 isOpen={!!repackLot}
                 onClose={() => setRepackLot(null)}
                 lot={repackLot}
+                secondaryUOM={itemDetails?.custom_secondary_uom || 'KG'}
                 onSuccess={() => {
                     fetchLots()
                 }}

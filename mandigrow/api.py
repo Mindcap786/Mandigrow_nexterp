@@ -17542,9 +17542,7 @@ def get_expense_recovery_report(date_from: str = None, date_to: str = None) -> d
 @frappe.whitelist(allow_guest=False)
 def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     """
-    Convert Box lot to KG lot.
-    - Source lot: 85 Boxes × ₹200/Box = ₹17,000
-    - Target lot: 850 KG × ₹20/KG = ₹17,000 (valuation preserved)
+    Convert base lot to Secondary UOM lot.
     - Source lot: closed (current_qty = 0, status = 'Repacked')
     """
     lot = frappe.get_doc("Mandi Lot", lot_id)
@@ -17554,7 +17552,6 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     if unit_weight <= 0:
         if manual_unit_weight and flt(manual_unit_weight) > 0:
             unit_weight = flt(manual_unit_weight)
-            # Save it back to the lot so we know
             frappe.db.set_value("Mandi Lot", lot_id, "unit_weight", unit_weight)
             lot.unit_weight = unit_weight
         else:
@@ -17564,20 +17561,29 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     if qty_to_convert <= 0 or qty_to_convert > flt(lot.current_qty):
         frappe.throw(f"Invalid repack quantity. Available: {lot.current_qty}")
 
-    kg_qty = qty_to_convert * unit_weight
-    rate_per_kg = flt(lot.supplier_rate) / unit_weight
-    total_value = kg_qty * rate_per_kg  # valuation preserved
+    secondary_qty = qty_to_convert * unit_weight
+    rate_per_secondary = flt(lot.supplier_rate) / unit_weight
+    total_value = secondary_qty * rate_per_secondary
     
-    # 1. Create new Mandi Lot with KG unit
+    # Fetch secondary UOM from item
+    secondary_uom = "Kg"
+    try:
+        fetched_uom = frappe.db.get_value("Item", lot.item_id, "custom_secondary_uom")
+        if fetched_uom:
+            secondary_uom = fetched_uom
+    except Exception:
+        pass
+    
+    # 1. Create new Mandi Lot with Secondary UOM
     new_lot = frappe.new_doc("Mandi Lot")
     new_lot.organization_id = lot.organization_id
     new_lot.item_id = lot.item_id
-    new_lot.unit = "Kg"
+    new_lot.unit = secondary_uom
     new_lot.unit_weight = 0  # Base unit, no further conversion
-    new_lot.qty = kg_qty
-    new_lot.initial_qty = kg_qty
-    new_lot.current_qty = kg_qty
-    new_lot.supplier_rate = rate_per_kg
+    new_lot.qty = secondary_qty
+    new_lot.initial_qty = secondary_qty
+    new_lot.current_qty = secondary_qty
+    new_lot.supplier_rate = rate_per_secondary
     new_lot.lot_code = f"RPK-{lot.lot_code}"
     new_lot.storage_location = lot.storage_location
     new_lot.status = "Available"
@@ -17613,10 +17619,10 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
                 })
                 se.append("items", {
                     "item_code": lot.item_id, 
-                    "qty": kg_qty, 
-                    "uom": "Kg",
+                    "qty": secondary_qty, 
+                    "uom": secondary_uom,
                     "t_warehouse": warehouse, 
-                    "basic_rate": rate_per_kg
+                    "basic_rate": rate_per_secondary
                 })
                 se.insert(ignore_permissions=True)
                 se.submit()
@@ -17624,4 +17630,4 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
         frappe.log_error(f"Failed to create Repack Stock Entry: {str(e)}", "Repack Stock Entry Error")
     
     frappe.db.commit()
-    return {"success": True, "new_lot_id": new_lot.name, "kg_qty": kg_qty, "rate_per_kg": rate_per_kg}
+    return {"success": True, "new_lot_id": new_lot.name, "secondary_qty": secondary_qty, "rate_per_secondary": rate_per_secondary}

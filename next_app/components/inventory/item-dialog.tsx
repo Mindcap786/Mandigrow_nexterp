@@ -670,7 +670,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                             form.setValue("custom_uom_conversion_factor", 0);
                                                         }
                                                     }}
-                                                    defaultValue={form.watch("custom_secondary_uom") || "none"}
+                                                    value={form.watch("custom_secondary_uom") || "none"}
                                                 >
                                                     <SelectTrigger className="w-full bg-slate-50 border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm">
                                                         <SelectValue placeholder="Select (Optional)" />
