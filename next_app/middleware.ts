@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
         path === '/refund-policy' ||
         path === '/features' ||
         path === '/pricing' ||
+        path === '/user-guide' ||
         path === '/te' ||
         path === '/partners' ||
         path === '/blog' ||
