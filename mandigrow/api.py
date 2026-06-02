@@ -2947,6 +2947,10 @@ def get_purchase_bill_details(lot_id: str) -> dict:
         # Format items to match frontend expectations
         formatted_items = []
         for item in arrival_doc.items:
+            # Skip repacked lots as they are internal Mandi inventory and shouldn't double count on farmer bill
+            if item.lot_code and str(item.lot_code).startswith("RPK-"):
+                continue
+
             stock = _normalize_lot_stock(item.as_dict())
             formatted_items.append({
                 "id": item.name,
@@ -8394,6 +8398,9 @@ def get_purchase_bills(org_id: str = None, date_from: str = None, date_to: str =
         order_by="parent asc, idx asc",
         ignore_permissions=True,
     )
+
+    # Filter out repacked lots as they are internal Mandi inventory
+    lot_rows = [l for l in lot_rows if not (l.get("lot_code") and str(l.get("lot_code")).startswith("RPK-"))]
 
     # Resolve item names.
     item_ids = list({l.get("item_id") for l in lot_rows if l.get("item_id")})
