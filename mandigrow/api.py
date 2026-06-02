@@ -7055,21 +7055,30 @@ def get_stock_summary(org_id: str = None) -> dict:
         if iid not in by_item:
             sec_uom, sec_factor, shelf_life, critical_age = "", 0, 7, 14
             try:
-                item_data = frappe.db.get_value("Item", iid, ["item_name", "custom_secondary_uom", "custom_uom_conversion_factor", "shelf_life_in_days", "critical_age_days"], as_dict=True)
-                if not item_data:
-                    # Fallback if iid is a legacy item name but the item was recreated with a new ID
-                    item_data = frappe.db.get_value("Item", {"item_name": iid}, ["item_name", "custom_secondary_uom", "custom_uom_conversion_factor", "shelf_life_in_days", "critical_age_days"], as_dict=True)
-                if item_data:
-                    item_name = item_data.get("item_name") or iid
-                    sec_uom = item_data.get("custom_secondary_uom") or ""
-                    sec_factor = flt(item_data.get("custom_uom_conversion_factor") or 0)
-                    shelf_life = int(float(item_data.get("shelf_life_in_days") or 7))
-                    critical_age = int(float(item_data.get("critical_age_days") or 14))
+                # Use get_cached_doc to avoid "Unknown column" SQL errors if standard fields are missing
+                try:
+                    item_doc = frappe.get_cached_doc("Item", iid)
+                except frappe.DoesNotExistError:
+                    item_doc = None
+                    
+                if not item_doc:
+                    # Fallback if iid is a legacy item name
+                    try:
+                        name_match = frappe.db.get_value("Item", {"item_name": iid}, "name")
+                        if name_match:
+                            item_doc = frappe.get_cached_doc("Item", name_match)
+                    except Exception:
+                        pass
+                        
+                if item_doc:
+                    item_name = item_doc.get("item_name") or iid
+                    sec_uom = item_doc.get("custom_secondary_uom") or ""
+                    sec_factor = flt(item_doc.get("custom_uom_conversion_factor") or 0)
+                    shelf_life = int(float(item_doc.get("shelf_life_in_days") or 7))
+                    critical_age = int(float(item_doc.get("critical_age_days") or 14))
                 else:
                     item_name = iid
             except Exception as e:
-                import traceback
-                frappe.log_error("get_stock_summary item fetch failed", str(e) + "\n" + traceback.format_exc())
                 item_name = iid
                 
             by_item[iid] = {
