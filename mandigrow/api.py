@@ -7056,6 +7056,9 @@ def get_stock_summary(org_id: str = None) -> dict:
             sec_uom, sec_factor, shelf_life, critical_age = "", 0, 7, 14
             try:
                 item_data = frappe.db.get_value("Item", iid, ["item_name", "custom_secondary_uom", "custom_uom_conversion_factor", "shelf_life_in_days", "critical_age_days"], as_dict=True)
+                if not item_data:
+                    # Fallback if iid is a legacy item name but the item was recreated with a new ID
+                    item_data = frappe.db.get_value("Item", {"item_name": iid}, ["item_name", "custom_secondary_uom", "custom_uom_conversion_factor", "shelf_life_in_days", "critical_age_days"], as_dict=True)
                 if item_data:
                     item_name = item_data.get("item_name") or iid
                     sec_uom = item_data.get("custom_secondary_uom") or ""
@@ -7064,7 +7067,9 @@ def get_stock_summary(org_id: str = None) -> dict:
                     critical_age = int(float(item_data.get("critical_age_days") or 14))
                 else:
                     item_name = iid
-            except Exception:
+            except Exception as e:
+                import traceback
+                frappe.log_error("get_stock_summary item fetch failed", str(e) + "\n" + traceback.format_exc())
                 item_name = iid
                 
             by_item[iid] = {
@@ -17609,6 +17614,8 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     secondary_uom = "Kg"
     try:
         fetched_uom = frappe.db.get_value("Item", lot.item_id, "custom_secondary_uom")
+        if not fetched_uom:
+            fetched_uom = frappe.db.get_value("Item", {"item_name": lot.item_id}, "custom_secondary_uom")
         if fetched_uom:
             secondary_uom = fetched_uom
     except Exception:
