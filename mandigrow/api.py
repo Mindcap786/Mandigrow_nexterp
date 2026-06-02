@@ -7055,14 +7055,13 @@ def get_stock_summary(org_id: str = None) -> dict:
         if iid not in by_item:
             sec_uom, sec_factor, shelf_life, critical_age = "", 0, 7, 14
             try:
-                import frappe.utils
                 item_data = frappe.db.get_value("Item", iid, ["item_name", "custom_secondary_uom", "custom_uom_conversion_factor", "shelf_life_in_days", "critical_age_days"], as_dict=True)
                 if item_data:
                     item_name = item_data.get("item_name") or iid
                     sec_uom = item_data.get("custom_secondary_uom") or ""
                     sec_factor = flt(item_data.get("custom_uom_conversion_factor") or 0)
-                    shelf_life = frappe.utils.cint(item_data.get("shelf_life_in_days") or 7)
-                    critical_age = frappe.utils.cint(item_data.get("critical_age_days") or 14)
+                    shelf_life = int(float(item_data.get("shelf_life_in_days") or 7))
+                    critical_age = int(float(item_data.get("critical_age_days") or 14))
                 else:
                     item_name = iid
             except Exception:
