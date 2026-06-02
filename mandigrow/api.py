@@ -2213,6 +2213,8 @@ def get_commodities() -> list:
         "standard_rate as sale_price",
         "shelf_life_in_days as shelf_life_days",
     ]
+    if frappe.db.has_column("Item", "custom_secondary_uom"):
+        item_fields.extend(["custom_secondary_uom", "custom_uom_conversion_factor"])
     if frappe.db.has_column("Item", "gst_rate"):
         item_fields.append("gst_rate")
     if frappe.db.has_column("Item", "sale_gst_rate"):
