@@ -324,6 +324,10 @@ export default function StockPage() {
                 (item.lots || []).map((lot: any) => ({
                     item_id: item.item_id,
                     item_name: item.item_name,
+                    custom_secondary_uom: item.custom_secondary_uom,
+                    custom_uom_conversion_factor: item.custom_uom_conversion_factor,
+                    shelf_life_days: item.shelf_life_days,
+                    critical_age_days: item.critical_age_days,
                     current_stock: lot.qty || 0,
                     total_inward: lot.qty || 0,
                     unit: lot.unit || item.unit || 'Kg',
