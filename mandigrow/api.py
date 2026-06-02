@@ -6812,7 +6812,7 @@ def get_lots_for_item(item_id: str = None) -> list:
              "less_percent", "packing_cost", "loading_cost",
              "farmer_charges", "net_amount", "creation", "parent",
              "shelf_life_days", "critical_age_days"],
-            ["qty", "current_qty", "initial_qty", "net_qty", "status"],
+            ["qty", "current_qty", "initial_qty", "net_qty", "status", "unit_weight"],
         ),
         order_by="creation desc",
         limit_page_length=500,

@@ -270,10 +270,10 @@ function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn,
                                     className="flex items-center justify-center gap-2 h-11 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 text-sm font-semibold active:bg-orange-100 transition-colors">
                                     <ArrowRightLeft className="w-4 h-4" /> Return Stock
                                 </button>
-                                {(lot.unit?.toLowerCase() !== (lot.secondary_uom?.toLowerCase() || 'kg')) && (
+                                {(lot.unit?.toLowerCase() !== (itemDefaults?.custom_secondary_uom?.toLowerCase() || lot.secondary_uom?.toLowerCase() || 'kg')) && (
                                     <button onClick={(e) => { e.stopPropagation(); onRepack() }}
                                         className="flex items-center justify-center gap-2 h-11 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 text-sm font-semibold active:bg-blue-100 transition-colors">
-                                        <Scale className="w-4 h-4" /> Repack to {lot.secondary_uom || 'KG'}
+                                        <Scale className="w-4 h-4" /> Repack to {itemDefaults?.custom_secondary_uom || lot.secondary_uom || 'KG'}
                                     </button>
                                 )}
                             </div>
