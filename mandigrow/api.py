@@ -17603,6 +17603,7 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     """
     lot = frappe.get_doc("Mandi Lot", lot_id)
     _enforce_ownership(lot)
+    lot = _normalize_lot_stock(lot, persist=True)
     
     unit_weight = flt(lot.unit_weight)
     if unit_weight <= 0:
