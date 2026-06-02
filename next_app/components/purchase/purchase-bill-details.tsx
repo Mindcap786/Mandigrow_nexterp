@@ -325,7 +325,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                     ) : isEditing ? (
                         <div className="p-6 space-y-8">
                             {/* Form Sections */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Basic Info */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
@@ -451,7 +451,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                                 <span className="text-[8px] font-bold text-slate-300 uppercase">Immutable ID</span>
                                             </div>
 
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                                 <div className="col-span-2">
                                                     <Label className="text-[8px] font-black uppercase text-slate-400">Commodity</Label>
                                                     <SearchableSelect
@@ -483,7 +483,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                                                 <div>
                                                     <Label className="text-[8px] font-black uppercase text-slate-400">Unit</Label>
                                                     <Input {...form.register(`items.${index}.unit`)} className="h-8 rounded-lg font-bold bg-white text-xs" />

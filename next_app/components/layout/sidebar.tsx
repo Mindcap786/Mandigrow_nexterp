@@ -29,6 +29,18 @@ export const Sidebar = memo(function Sidebar({ onCollapseChange }: SidebarProps 
     const isSuperAdmin = profile?.role === 'super_admin' && !isImpersonating
     const { t, dir } = useLanguage()
 
+    // Auto-collapse on narrow desktop-mode screens (e.g. mobile browser with "Request Desktop Site")
+    useEffect(() => {
+        const checkWidth = () => {
+            const shouldCollapse = window.innerWidth < 1024;
+            setCollapsed(shouldCollapse);
+            onCollapseChange?.(shouldCollapse);
+        };
+        checkWidth();
+        window.addEventListener('resize', checkWidth);
+        return () => window.removeEventListener('resize', checkWidth);
+    }, []);
+
     const handleCollapseToggle = () => {
         const next = !collapsed;
         setCollapsed(next);

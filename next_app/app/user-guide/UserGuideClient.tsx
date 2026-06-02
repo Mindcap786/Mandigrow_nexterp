@@ -76,7 +76,7 @@ function SectionBlock({ section }: { section: GuideSection }) {
                     </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid lg:grid-cols-2 gap-6">
                     {section.tips.length > 0 && (
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 space-y-3">
                             <h4 className="text-xs font-black uppercase tracking-widest text-amber-700 flex items-center gap-2">
@@ -177,7 +177,7 @@ export function UserGuideClient() {
                         </div>
                         <h2 className="text-3xl font-black text-slate-900">Frequently Asked Questions</h2>
                     </div>
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid lg:grid-cols-2 gap-8">
                         {[
                             { q: "Do I need accounting knowledge to use MandiGrow?", a: "No! MandiGrow is designed for mandi clerks who may not have formal accounting training. Everything is in plain language — just enter what happened and the system handles the accounting." },
                             { q: "Can multiple staff members log in at the same time?", a: "Yes. Each staff member gets their own login. The Owner/Admin controls which screens each person can access from Settings → Team." },

@@ -109,11 +109,11 @@ export default function MainLayout({
     return (
         <MaintenanceModeInterceptor>
             <StockAlertsProvider>
-                <div className="min-h-screen bg-slate-50 print:block">
+                <div className="min-h-screen bg-slate-50 print:block overflow-x-hidden">
 
                 {/* ── FIXED Left Sidebar — never scrolls ─────────────────────── */}
                 <aside
-                    className="hidden md:flex fixed inset-y-0 left-0 z-40 flex-col border-r border-slate-200 print:hidden overflow-hidden transition-all duration-300"
+                    className="hidden sm:flex fixed inset-y-0 left-0 z-40 flex-col border-r border-slate-200 print:hidden overflow-hidden transition-all duration-300"
                     style={{ width: sidebarWidth }}
                 >
                     <Sidebar onCollapseChange={(collapsed) =>
@@ -124,9 +124,9 @@ export default function MainLayout({
                 {/* ── Main Content — offset by sidebar width ──────────────────── */}
                 <main
                     className={cn(
-                        "flex flex-col min-h-screen bg-slate-50 transition-all duration-300",
+                        "flex flex-col min-h-screen bg-slate-50 transition-all duration-300 overflow-x-hidden",
                         "print:block print:min-h-0 print:overflow-visible print:bg-white print:h-auto print:ml-0",
-                        "md:ml-[var(--sidebar-width)]",
+                        "sm:ml-[var(--sidebar-width)]",
                         // Mobile web: add bottom padding so content doesn't hide behind the fixed bottom nav
                         "pb-20 md:pb-0"
                     )}

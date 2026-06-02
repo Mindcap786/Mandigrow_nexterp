@@ -586,30 +586,30 @@ export default function StockPage() {
     return (
         <div className="min-h-screen bg-slate-50 overflow-x-hidden pb-40 px-6 sm:px-12">
             <div className="max-w-[1700px] mx-auto pt-10 pb-6 space-y-8">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">
                     <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-blue-600 font-black tracking-widest text-[10px] uppercase">
                             <div className="h-[2px] w-8 bg-blue-600" />{t('stock.inventory_mgmt')}
                         </div>
-                        <h1 className="text-5xl font-[1000] text-black tracking-tighter uppercase italic">
+                        <h1 className="text-3xl lg:text-5xl font-[1000] text-black tracking-tighter uppercase italic">
                             {t('stock.title').split(' ')[0]} <span className="text-blue-600">{t('stock.title').split(' ').slice(1).join(' ')}</span>
                         </h1>
                     </div>
-                    <div className="flex items-center gap-8">
+                    <div className="flex flex-wrap items-center gap-4 lg:gap-8 w-full lg:w-auto">
                         <div className="flex p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
                             <button onClick={() => setViewMode('gallery')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'gallery' ? 'bg-slate-100 text-black' : 'text-slate-400 hover:text-black'}`}><LayoutGrid className="w-5 h-5" /></button>
                             <button onClick={() => setViewMode('compact')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-slate-100 text-black' : 'text-slate-400 hover:text-black'}`}><StretchHorizontal className="w-5 h-5" /></button>
                             <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-slate-100 text-black' : 'text-slate-400 hover:text-black'}`}><LayoutList className="w-5 h-5" /></button>
                         </div>
-                        <div className="h-10 w-[1px] bg-slate-200" />
-                        <div className="flex gap-8 text-right">
+                        <div className="hidden lg:block h-10 w-[1px] bg-slate-200" />
+                        <div className="flex gap-4 lg:gap-8">
                             <div className="text-right">
                                 <div className="text-[8px] font-black text-slate-700 tracking-widest uppercase mb-0.5">{t('stock.total_holding')}</div>
-                                <div className="text-4xl font-black text-black tabular-nums tracking-tighter leading-none">{totalHolding.toLocaleString()}<span className="text-[10px] text-blue-700 ml-2 tracking-widest font-black">{t('stock.units')}</span></div>
+                                <div className="text-2xl lg:text-4xl font-black text-black tabular-nums tracking-tighter leading-none">{totalHolding.toLocaleString()}<span className="text-[10px] text-blue-700 ml-2 tracking-widest font-black">{t('stock.units')}</span></div>
                             </div>
-                            <div className="text-right hidden md:block">
+                            <div className="text-right">
                                 <div className="text-[8px] font-black text-emerald-600/70 tracking-widest uppercase mb-0.5">Stock Value</div>
-                                <div className="text-4xl font-black text-emerald-700 tabular-nums tracking-tighter leading-none">₹{Math.round(Number(totalStockValue)).toLocaleString('en-IN')}</div>
+                                <div className="text-2xl lg:text-4xl font-black text-emerald-700 tabular-nums tracking-tighter leading-none">₹{Math.round(Number(totalStockValue)).toLocaleString('en-IN')}</div>
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -658,18 +658,23 @@ export default function StockPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="xl:col-span-6 overflow-x-auto pb-2 scrollbar-none flex justify-start xl:justify-end">
+                    <div className="xl:col-span-6 flex flex-wrap justify-start xl:justify-end gap-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <button className="min-w-[200px] h-14 px-6 flex items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-black hover:bg-slate-50 transition-all shadow-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-slate-400">STORAGE:</span> 
-                                        <span>{locationFilter}</span>
+                                <button className="min-w-[160px] max-w-full h-14 px-4 sm:px-6 flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-black hover:bg-slate-50 transition-all shadow-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-slate-400 shrink-0">STORAGE:</span>
+                                        <span className="truncate">{locationFilter}</span>
                                     </div>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 shrink-0"><path d="m6 9 6 6 6-6"/></svg>
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[200px] font-bold tracking-widest text-[10px] uppercase p-2 rounded-xl custom-scrollbar max-h-64 overflow-y-auto shadow-xl border-slate-200">
+                            <DropdownMenuContent
+                                align="start"
+                                avoidCollisions={true}
+                                sideOffset={4}
+                                className="w-[220px] font-bold tracking-widest text-[10px] uppercase p-2 rounded-xl custom-scrollbar max-h-64 overflow-y-auto shadow-xl border-slate-200 z-50"
+                            >
                                 {locations.map(f => (
                                     <DropdownMenuItem key={f} onClick={() => setLocationFilter(f)} className={`truncate py-3 px-4 rounded-lg cursor-pointer flex items-center justify-between ${locationFilter === f ? 'bg-black text-white' : 'text-slate-600 hover:text-black hover:bg-slate-100'}`}>
                                         {f}
@@ -683,7 +688,7 @@ export default function StockPage() {
                 {loading ? (
                     <div className="py-60 flex flex-col items-center gap-8"><Loader2 className="w-16 h-16 animate-spin text-blue-600 opacity-20" /><div className="text-[10px] font-black tracking-[0.4em] text-slate-400 uppercase">Synchronizing Inventory...</div></div>
                 ) : (
-                    <div className={viewMode === 'gallery' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8" : viewMode === 'compact' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-3"}>
+                    <div className={viewMode === 'gallery' ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 lg:gap-8" : viewMode === 'compact' ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6" : "flex flex-col gap-3"}>
                         <AnimatePresence>
                             {uniqueItems.map((item: any) => (
                                 <AssetCard key={item.item_id} item={item} onOpen={() => setSelectedItem(item)} />

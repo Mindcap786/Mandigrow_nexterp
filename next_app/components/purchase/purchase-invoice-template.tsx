@@ -209,7 +209,7 @@ export default function PurchaseBillInvoice({
     })()
 
     return (
-        <div id="purchase-invoice-print" className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
+        <div id="purchase-invoice-print" className="bg-white text-black p-4 sm:p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
 
             {/* Global Watermark */}
             <DocumentWatermark
@@ -218,7 +218,7 @@ export default function PurchaseBillInvoice({
             />
 
             {/* ───── Header ───── */}
-            <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-4 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
                 {/* Left: Identity */}
                 <div className="flex items-start gap-4 min-w-0 print:w-[42%]">
                     {organization?.logo_url ? (
@@ -279,7 +279,7 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Parties & Bill Details ───── */}
-            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="py-2 flex flex-col lg:grid lg:grid-cols-2 gap-6 border-b border-gray-100 mb-2 relative z-10 print:flex print:w-full print:justify-between">
                 {/* Left: Purchased From */}
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Purchased From</p>
@@ -299,7 +299,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Right: Bill Details */}
-                <div className="text-right space-y-0.5 text-xs self-end print:w-1/2 print:flex print:flex-col print:items-end">
+                <div className="text-left lg:text-right space-y-0.5 text-xs self-end print:w-1/2 print:flex print:flex-col print:items-end">
                     <div className="flex justify-end gap-2 items-center">
                         <span className="text-gray-400 font-bold uppercase">Invoice No:</span>
                         <span className="font-black">#{billNo}</span>
@@ -401,7 +401,7 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Settlement Breakdown ───── */}
-            <div className="mt-6 flex flex-col md:grid md:grid-cols-2 gap-8 items-start relative z-10">
+            <div className="mt-6 flex flex-col lg:grid lg:grid-cols-2 gap-8 items-start relative z-10">
 
                 {/* Left Side: Transport & Payment Info */}
                 <div className="space-y-4">
