@@ -174,10 +174,15 @@ export function MandiCommissionForm() {
     const handleFarmerSelect = useCallback(
         (farmerId: string) => {
             const farmer = farmers.find((f) => f.id === farmerId);
-            handleCurrentRowChange("farmerId", farmerId);
-            handleCurrentRowChange("farmerName", farmer?.name || "");
+            const isUnregistered = !(farmer?.gstin && farmer.gstin.trim() !== "");
+            setCurrentRow(prev => computeFarmerRow({
+                ...prev,
+                farmerId,
+                farmerName: farmer?.name || "",
+                isUnregisteredFarmer: isUnregistered,
+            }) as Partial<MandiSessionFarmerRow>);
         },
-        [farmers, handleCurrentRowChange]
+        [farmers]
     );
 
     const handleItemSelect = useCallback(
@@ -191,10 +196,11 @@ export function MandiCommissionForm() {
                 unit: item?.default_unit || globalUnit,
                 gstRate: item?.gst_rate || 0,
                 saleGstType: item?.sale_gst_type || 'Exclusive',
+                gstEnabled: settings?.gst_enabled === true || settings?.gst_enabled === "true" || settings?.gst_enabled === 1 || settings?.gst_enabled === "1",
                 hsnCode: item?.hsn_code || "",
             }) as Partial<MandiSessionFarmerRow>);
         },
-        [commodities, globalUnit]
+        [commodities, globalUnit, settings]
     );
 
     const handleAddRow = () => {

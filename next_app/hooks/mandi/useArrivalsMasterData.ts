@@ -41,6 +41,8 @@ export interface ArrivalCommodity {
   hsn_code?: string | null
   purchase_gst_rate?: number
   purchase_gst_type?: 'Inclusive' | 'Exclusive'
+  custom_secondary_uom?: string | null
+  custom_uom_conversion_factor?: number | null
 }
 
 export interface StorageLocation {

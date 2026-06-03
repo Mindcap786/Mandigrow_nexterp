@@ -25,7 +25,7 @@ const resolveIsIgst = (
     orgStateCode?: string | null,
     buyerStateCode?: string | null
 ) => {
-    if (taxSettings.gst_enabled === true || taxSettings.gst_enabled === "true" || taxSettings.gst_enabled === 1 || taxSettings.gst_enabled === "1") {
+    if ((taxSettings.gst_enabled as any) === true || (taxSettings.gst_enabled as any) === "true" || (taxSettings.gst_enabled as any) === 1 || (taxSettings.gst_enabled as any) === "1") {
         if (taxSettings.gst_type === "inter") return true;
         if (taxSettings.gst_type === "intra") return false;
     }
@@ -64,7 +64,7 @@ export function calculateSaleItemTaxBreakdown({
         };
     }
 
-    const effectiveGstRate = (taxSettings.gst_enabled === true || taxSettings.gst_enabled === "true" || taxSettings.gst_enabled === 1 || taxSettings.gst_enabled === "1") ? toNumber(gstRate) : 0;
+    const effectiveGstRate = ((taxSettings.gst_enabled as any) === true || (taxSettings.gst_enabled as any) === "true" || (taxSettings.gst_enabled as any) === 1 || (taxSettings.gst_enabled as any) === "1") ? toNumber(gstRate) : 0;
 
     let gstRaw = 0;
     if (effectiveGstRate > 0) {

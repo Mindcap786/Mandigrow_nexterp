@@ -61,7 +61,7 @@ const itemSchema = z.object({
     local_name: z.string().optional(),
     default_unit: z.string().min(1, "Default unit is required"),
     custom_secondary_uom: z.string().optional(),
-    custom_uom_conversion_factor: z.coerce.number().min(0).optional(),
+    custom_uom_conversion_factor: z.preprocess((val) => Number(val) || 0, z.number().min(0)).optional(),
     shelf_life_days: z.number().nullable().optional(),
     critical_age_days: z.number().nullable().optional(),
     sku_code: z.string().optional(),
@@ -241,7 +241,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
     }, [open]);
 
     const form = useForm<ItemFormValues>({
-        resolver: zodResolver(itemSchema),
+        resolver: zodResolver(itemSchema) as any,
         defaultValues: {
             name: initialItem?.name || "",
             local_name: initialItem?.local_name || "",

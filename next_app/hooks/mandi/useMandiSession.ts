@@ -40,6 +40,12 @@ export interface MandiSessionFarmerRow {
     internalCode?: string;
     gstRate?: number;
     saleGstType?: string;
+    purchaseGstRate?: number;
+    purchaseGstType?: string;
+    isRcm?: boolean;
+    purchaseGstAmount?: number;
+    isUnregisteredFarmer?: boolean;
+    gstEnabled?: boolean;
     hsnCode?: string;
     _lastEdited?: "lessPercent" | "lessUnits";
 }

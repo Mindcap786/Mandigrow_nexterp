@@ -114,11 +114,14 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             />
 
             {itemChunks.map((chunk, pageIndex) => {
+                const isFirstPage = pageIndex === 0;
                 const isLastPage = pageIndex === itemChunks.length - 1;
                 return (
-                    <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "print:break-after-page print:mb-0 mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0")}>
+                    <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "break-after-page print:break-after-page mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0 print:mb-0")}>
 
-            {/* Header */}
+            {/* Header - Only on First Page */}
+            {isFirstPage && (
+                <>
             <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
                 {/* Left: Identity */}
                 <div className="flex items-start gap-4 min-w-0 print:w-1/3">
@@ -244,6 +247,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     )}
                 </div>
             </div>
+            </>
+            )}
 
             {/* Table */}
             <div className="relative z-10 overflow-x-auto">
@@ -609,8 +614,9 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 @media print {
                     @page { margin: 0; }
                     body { background: white; }
-                    #invoice-print { width: 100%; max-width: none; border: none; shadow: none; }
+                    #invoice-print { width: 100%; max-width: none; border: none; box-shadow: none; }
                     .no-print { display: none !important; }
+                    .break-after-page { page-break-after: always; break-after: page; }
                 }
             `}</style>
         </div>
