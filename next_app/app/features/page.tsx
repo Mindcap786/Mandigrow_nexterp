@@ -46,6 +46,21 @@ const FEATURES = [
             'View outstanding balances, advances, part payments and credit notes for any party at any time. Share WhatsApp-ready PDF statements directly from the app.',
     },
     {
+        id: 'repack-uom',
+        icon: '📦',
+        title: 'Repack & Multi-UOM Conversion',
+        description:
+            'Stop losing money on loose produce. Instantly convert tractor trolleys to sacks, or bulk sacks to retail bags without losing a single gram of tracking.',
+        detail: (
+            <>
+                100% visibility into shrinkage. No complex &quot;Bill of Materials&quot;. A completely lossless system designed specifically for the fluid reality of the mandi floor.{' '}
+                <Link href="/blog/repack-multi-uom-inventory-management-software" className="text-emerald-600 font-bold hover:underline">
+                    Read how it stops stock leakage &rarr;
+                </Link>
+            </>
+        ),
+    },
+    {
         id: 'apmc-billing',
         icon: '🏛️',
         title: 'APMC Billing & Market Levy',
@@ -170,15 +185,6 @@ const FEATURES = [
             'Stop wasting paper. Send professional PDF Pattis, Invoices, and Khata Statements directly to farmers and buyers on WhatsApp.',
         detail:
             'One-click sharing from the Android app or Web dashboard. Builds massive trust with farmers by delivering instant, transparent calculations.',
-    },
-    {
-        id: 'repack-uom',
-        icon: '📦',
-        title: 'Repack & Multi-UOM Conversion',
-        description:
-            'Seamlessly manage bulk to retail inventory. Convert incoming Sacks, Crates, or Quintals into smaller retail units like KGs or custom boxes without losing a single gram of tracking.',
-        detail:
-            'Lossless traceability with smart pricing based on UOM. Highly visual Left-to-Right conversion interface reduces time-on-task from minutes to seconds.',
     },
 ];
 

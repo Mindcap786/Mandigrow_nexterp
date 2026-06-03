@@ -633,10 +633,10 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Footer ───── */}
-            <div className="mt-12 pt-6 border-t border-black grid grid-cols-2 relative z-10">
+            <div className="mt-12 pt-6 print:mt-4 print:pt-4 border-t border-black grid grid-cols-2 relative z-10 print:break-inside-avoid">
                 <div className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">
                     <p>Farmer / Supplier Signature</p>
-                    <div className="mt-6 h-px w-32 bg-gray-200" />
+                    <div className="mt-6 print:mt-4 h-px w-32 bg-gray-200" />
                 </div>
                 <div className="text-right text-[10px] font-black text-gray-400 flex flex-col items-end gap-1 uppercase tracking-widest">
                     <span>{branding?.document_footer_presented_by_text }</span>
