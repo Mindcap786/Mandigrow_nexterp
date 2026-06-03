@@ -4854,6 +4854,7 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
             "type": c.get("type") or "",
             "city": c.get("city") or "",
             "internal_id": c.get("internal_id") if has_internal_id else None,
+            "gstin": c.get("gstin") if has_gstin else None,
         })
 
     try:
@@ -9012,6 +9013,25 @@ def commit_mandi_session(**kwargs) -> dict:
             total_less_amount = 0.0
             exclusive_gst_total = 0.0
 
+            # ── Ensure exclusive_gst_total field exists ───────────────────────
+            if not frappe.db.has_column("Mandi Sale", "exclusive_gst_total"):
+                try:
+                    frappe.get_doc({
+                        "doctype": "Custom Field",
+                        "dt": "Mandi Sale",
+                        "fieldname": "exclusive_gst_total",
+                        "label": "Exclusive GST Total",
+                        "fieldtype": "Currency",
+                        "insert_after": "gsttotal",
+                        "read_only": 1,
+                        "default": "0"
+                    }).insert(ignore_permissions=True)
+                    frappe.db.commit()
+                    frappe.clear_cache(doctype="Mandi Sale")
+                except Exception:
+                    pass
+            # ─────────────────────────────────────────────────────────────────
+
             for idx, row in enumerate(farmers):
                 if not row.get("item_id"):
                     continue
@@ -9031,6 +9051,11 @@ def commit_mandi_session(**kwargs) -> dict:
                     if sale_gst_type == "Inclusive":
                         base_amount = item_taxable / (1 + gst_rate / 100)
                         gst_amount = item_taxable - base_amount
+                        
+                        # EXTRACT the tax from the base amounts
+                        item_taxable = base_amount
+                        item_gross = base_amount + less_amt
+                        rate = round(item_gross / qty, 2) if qty > 0 else 0
                     else:
                         gst_amount = item_taxable * (gst_rate / 100)
                         exclusive_gst_total += gst_amount
@@ -9038,11 +9063,12 @@ def commit_mandi_session(**kwargs) -> dict:
                 item = sale.append("items", {})
                 item.item_id = row.get("item_id")
                 item.qty = qty
-                item.rate = rate
-                item.amount = item_gross
+                item.rate = round(rate, 2)
+                item.amount = round(item_gross, 2)
                 item.hsn_code = hsn_code
                 item.gst_rate = gst_rate
                 item.gst_amount = round(gst_amount, 2)
+                item.sale_gst_type = sale_gst_type
                 if idx < len(lot_names):
                     item.lot_id = lot_names[idx]
 
@@ -9111,6 +9137,7 @@ def commit_mandi_session(**kwargs) -> dict:
             sale.nirashrit = nirashrit
             sale.miscfee = misc_fee
             sale.gsttotal = gst_total
+            sale.exclusive_gst_total = round(exclusive_gst_total, 2)
             if frappe.db.has_column("Mandi Sale", "cgst_amount"):
                 sale.cgst_amount = cgst_amount
                 sale.sgst_amount = sgst_amount
