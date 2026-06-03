@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react"
 import { usePlatformBranding } from "@/hooks/use-platform-branding"
 import { DocumentWatermark } from "@/components/common/document-branding"
 import { formatCommodityName } from "@/lib/utils/commodity-utils"
+import { cn } from "@/lib/utils"
 
 interface InvoiceTemplateProps {
     sale: any
@@ -91,6 +92,13 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
         organization?.pincode
     ].filter(Boolean).join(", ");
 
+    const ROWS_PER_PAGE = 15;
+    const itemChunks = [];
+    for (let i = 0; i < items.length; i += ROWS_PER_PAGE) {
+        itemChunks.push(items.slice(i, i + ROWS_PER_PAGE));
+    }
+    if (itemChunks.length === 0) itemChunks.push([]);
+
     return (
         <div id="invoice-print" className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
             
@@ -99,6 +107,11 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 text={branding?.watermark_text} 
                 enabled={branding?.is_watermark_enabled} 
             />
+
+            {itemChunks.map((chunk, pageIndex) => {
+                const isLastPage = pageIndex === itemChunks.length - 1;
+                return (
+                    <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "print:break-after-page print:mb-0 mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0")}>
 
             {/* Header */}
             <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
@@ -242,7 +255,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {items.map((item: any) => (
+                        {chunk.map((item: any) => (
                             <tr key={item.id} className="group">
                                 <td className="py-0.5">
                                     <p className="font-black text-xs tracking-tight uppercase leading-none">
@@ -303,6 +316,14 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </table>
             </div>
 
+            {!isLastPage && (
+                <div className="text-center text-[10px] text-gray-400 mt-6 font-bold uppercase tracking-widest no-print print:block">
+                    Continued on next page...
+                </div>
+            )}
+
+            {isLastPage && (
+                <>
             {/* Bottom Section: Payment (Left) and Totals (Right) */}
             <div className="mt-6 flex flex-col md:grid md:grid-cols-2 gap-8 items-start relative z-10">
                 
@@ -573,6 +594,11 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     <span className="text-[8px] font-bold text-gray-300 italic">{branding?.document_footer_developed_by_text }</span>
                 </div>
             </div>
+            </>
+            )}
+            </div>
+            );
+        })}
 
             <style jsx>{`
                 @media print {

@@ -208,6 +208,13 @@ export default function PurchaseBillInvoice({
         catch { return '-'; }
     })()
 
+    const ROWS_PER_PAGE = 15;
+    const itemChunks = [];
+    for (let i = 0; i < lotsToProcess.length; i += ROWS_PER_PAGE) {
+        itemChunks.push(lotsToProcess.slice(i, i + ROWS_PER_PAGE));
+    }
+    if (itemChunks.length === 0) itemChunks.push([]);
+
     return (
         <div id="purchase-invoice-print" className="bg-white text-black p-4 sm:p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
 
@@ -216,6 +223,11 @@ export default function PurchaseBillInvoice({
                 text={branding?.watermark_text}
                 enabled={branding?.is_watermark_enabled}
             />
+
+            {itemChunks.map((chunk, pageIndex) => {
+                const isLastPage = pageIndex === itemChunks.length - 1;
+                return (
+                    <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "print:break-after-page print:mb-0 mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0")}>
 
             {/* ───── Header ───── */}
             <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-4 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
@@ -342,7 +354,7 @@ export default function PurchaseBillInvoice({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {lotsToProcess.map((l: any) => {
+                        {chunk.map((l: any) => {
                             const lGrossQty = toNumber(l.gross_quantity) || toNumber(l.initial_qty);
                             let itemLessQty = 0;
                             const itemLessUnits = toNumber(l.less_units);
@@ -400,6 +412,14 @@ export default function PurchaseBillInvoice({
                 </table>
             </div>
 
+            {!isLastPage && (
+                <div className="text-center text-[10px] text-gray-400 mt-6 font-bold uppercase tracking-widest no-print print:block">
+                    Continued on next page...
+                </div>
+            )}
+
+            {isLastPage && (
+                <>
             {/* ───── Settlement Breakdown ───── */}
             <div className="mt-6 flex flex-col lg:grid lg:grid-cols-2 gap-8 items-start relative z-10">
 
@@ -622,6 +642,11 @@ export default function PurchaseBillInvoice({
                     </span>
                 </div>
             </div>
+            </>
+            )}
+            </div>
+            );
+        })}
 
             <style jsx>{`
                 @media print {
