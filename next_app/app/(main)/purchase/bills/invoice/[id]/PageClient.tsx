@@ -95,7 +95,7 @@ export default function PurchaseBillInvoicePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8 space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8 space-y-8 print:p-0 print:space-y-0 print:bg-white">
             {/* Header / Actions */}
             <div className="max-w-[800px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4 no-print">
                 <Button variant="ghost" className="text-gray-500 hover:text-white pl-0 md:pl-4" onClick={() => router.back()}>
@@ -137,7 +137,7 @@ export default function PurchaseBillInvoicePage() {
             </div>
 
             {/* Template — elevated card presentation */}
-            <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5">
+            <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5 print:shadow-none print:ring-0">
                 <PurchaseBillInvoice
                     lot={lot}
                     arrival={arrival}
@@ -148,37 +148,31 @@ export default function PurchaseBillInvoicePage() {
 
             <style jsx global>{`
                 @media print {
-                    /* Step 1: hide every element on the page */
-                    body * { visibility: hidden !important; }
-
-                    /* Step 2: show only the invoice and its children */
-                    #purchase-invoice-print,
-                    #purchase-invoice-print * { visibility: visible !important; }
-
-                    /* Step 3: pull the invoice to the top-left corner so it fills the page */
-                    #purchase-invoice-print {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 100% !important;
-                        margin: 0 !important;
-                        padding: 24px !important;
-                        box-shadow: none !important;
-                        border: none !important;
-                        background: white !important;
+                    /* Hide elements that shouldn't be printed without leaving gaps */
+                    .no-print { 
+                        display: none !important; 
                     }
 
                     /* Reset heights to prevent blank trailing pages */
-                    html, body, #__next, .min-h-screen {
+                    html, body, #__next {
                         height: auto !important;
                         min-height: 0 !important;
                         overflow: visible !important;
                         padding: 0 !important;
                         margin: 0 !important;
+                        background: white !important;
+                    }
+
+                    /* Invoice styling overrides for clean print */
+                    #purchase-invoice-print {
+                        width: 100% !important;
+                        margin: 0 auto !important;
+                        box-shadow: none !important;
+                        border: none !important;
                     }
 
                     /* Remove page margins so the invoice fills the sheet */
-                    @page { margin: 0; size: A4 portrait; }
+                    @page { margin: 10mm; size: A4 portrait; }
                 }
             `}</style>
         </div>
