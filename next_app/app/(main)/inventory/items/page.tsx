@@ -215,7 +215,7 @@ export default function ItemsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <span className="font-mono text-[10px] font-black text-slate-500">
-                                                {item.gst_rate ? `${item.gst_rate}%` : '-'}
+                                                {(item.sale_gst_rate ?? item.gst_rate) != null ? `${item.sale_gst_rate ?? item.gst_rate}%` : '-'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right font-mono text-[10px] font-black text-slate-400 group-hover:text-blue-600 transition-colors uppercase tracking-widest">
