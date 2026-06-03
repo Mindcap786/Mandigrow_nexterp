@@ -172,7 +172,7 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
         asset: { type: 'img', src: '/assets/3d/tomato.png' }
     },
     'sabzi': {
-        aliases: ['leaf', 'palak', 'spinach', 'mentha', 'greens', 'vegatable', 'vegetables', 'mooli', 'gobhi', 'shalgam', 'matar', 'peas'],
+        aliases: ['leaf', 'greens', 'vegatable', 'vegetables', 'mooli', 'gobhi', 'shalgam', 'matar', 'peas'],
         asset: { type: 'icon', iconName: 'Leaf' }
     },
     'ladyfinger': {
@@ -212,12 +212,36 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
         asset: { type: 'img', src: '/assets/3d/radish.png' }
     },
     'fenugreek': {
-        aliases: ['methi'],
-        asset: { type: 'icon', iconName: 'Leaf' }
+        aliases: ['methi', 'fenugreek leaves'],
+        asset: { type: 'img', src: '/assets/3d/fenugreek_leaves.png' }
     },
     'coriander': {
-        aliases: ['dhaniya', 'kothmir', 'cilantro'],
-        asset: { type: 'icon', iconName: 'Leaf' }
+        aliases: ['dhaniya', 'kothmir', 'cilantro', 'coriander leaves'],
+        asset: { type: 'img', src: '/assets/3d/coriander_leaves.png' }
+    },
+    'spinach': {
+        aliases: ['palak', 'spinach leaves'],
+        asset: { type: 'img', src: '/assets/3d/spinach.png' }
+    },
+    'mint': {
+        aliases: ['pudina', 'mint leaves', 'mentha'],
+        asset: { type: 'img', src: '/assets/3d/mint_leaves.png' }
+    },
+    'amaranth': {
+        aliases: ['chaulai', 'amaranth leaves'],
+        asset: { type: 'img', src: '/assets/3d/amaranth_leaves.png' }
+    },
+    'mustard_greens': {
+        aliases: ['sarson ka saag', 'mustard leaves'],
+        asset: { type: 'img', src: '/assets/3d/mustard_greens.png' }
+    },
+    'bathua': {
+        aliases: ['chenopodium album', 'bathua leaves'],
+        asset: { type: 'img', src: '/assets/3d/bathua.png' }
+    },
+    'dill': {
+        aliases: ['suwa', 'shepu', 'dill leaves'],
+        asset: { type: 'img', src: '/assets/3d/dill_leaves.png' }
     },
     'brinjal': {
         aliases: ['baingan', 'eggplant', 'aubergine', 'vankaya'],
@@ -233,15 +257,23 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
     },
     'cabbage': {
         aliases: ['patta gobhi', 'band gobhi'],
-        asset: { type: 'icon', iconName: 'Leaf' }
+        asset: { type: 'img', src: '/assets/3d/cabbage.png' }
     },
     'cauliflower': {
         aliases: ['phool gobhi', 'gobi'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/cauliflower.png' }
     },
     'broccoli': {
         aliases: ['hari gobhi'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/broccoli.png' }
+    },
+    'kale': {
+        aliases: ['kale leaves', 'leaf cabbage'],
+        asset: { type: 'img', src: '/assets/3d/kale.png' }
+    },
+    'brussels_sprouts': {
+        aliases: ['brussels sprout', 'choti gobhi'],
+        asset: { type: 'img', src: '/assets/3d/brussels_sprouts.png' }
     },
     'turmeric': {
         aliases: ['haldi', 'curcuma'],
