@@ -126,7 +126,8 @@ export function useArrivalsMasterData(
       setMarketFeePercent(Number(cached.settings?.market_fee_percent || 0))
       setNirashritPercent(Number(cached.settings?.nirashrit_percent || 0))
       setMiscFeePercent(Number(cached.settings?.misc_fee_percent || 0))
-      setGstEnabled(Boolean(cached.settings?.gst_enabled))
+      const gstVal = cached.settings?.gst_enabled as any;
+      setGstEnabled(gstVal === true || gstVal === 1 || gstVal === "1" || gstVal === "true")
       setUnits(STANDARD_UNITS);
       setLoading(false)
       if (!cacheIsStale(CACHE_KEY, currentOrgId)) return
@@ -155,7 +156,8 @@ export function useArrivalsMasterData(
         setMarketFeePercent(Number(settings.market_fee_percent || 0))
         setNirashritPercent(Number(settings.nirashrit_percent || 0))
         setMiscFeePercent(Number(settings.misc_fee_percent || 0))
-        setGstEnabled(Boolean(settings.gst_enabled))
+        const gstVal2 = settings.gst_enabled as any;
+        setGstEnabled(gstVal2 === true || gstVal2 === 1 || gstVal2 === "1" || gstVal2 === "true")
 
         setStorageLocations(sortLocations(data.storage_locations || []))
         const banks = data.banks || []

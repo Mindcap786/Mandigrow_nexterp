@@ -88,8 +88,15 @@ export default function GSTReportsPage() {
             const data = response?.data;
 
             if (data) {
-                setSales(data);
-                const purchasesData = response?.purchases || [];
+                // Filter to ONLY include transactions where GST was actually collected
+                const taxFilteredData = (data || []).filter((sale: any) => 
+                    Number(sale.igst_amount || 0) + Number(sale.cgst_amount || 0) + Number(sale.sgst_amount || 0) > 0
+                );
+                setSales(taxFilteredData);
+                
+                const purchasesData = (response?.purchases || []).filter((purchase: any) => 
+                    Number(purchase.tax_amount || 0) > 0 || purchase.purchase_items?.some((i: any) => Number(i.tax_amount) > 0)
+                );
                 setPurchases(purchasesData);
 
                 // Calculate Summary and HSN Grouping
@@ -102,7 +109,7 @@ export default function GSTReportsPage() {
                 
                 const hsnMap: Record<string, any> = {};
 
-                data.forEach(sale => {
+                taxFilteredData.forEach((sale: any) => {
                     const buyerGstin = sale.buyer_gstin || sale.contact?.gstin;
                     if (buyerGstin) b2b++; else b2c++;
 
@@ -222,7 +229,7 @@ export default function GSTReportsPage() {
                 setSummary(newSummary);
                 
                 if (orgId) {
-                    cacheSet(`gst_report_${dateKey}`, orgId, { sales: data, purchases: purchasesData, hsnData: hsnList, summary: newSummary });
+                    cacheSet(`gst_report_${dateKey}`, orgId, { sales: taxFilteredData, purchases: purchasesData, hsnData: hsnList, summary: newSummary });
                 }
             }
         } catch (e) {

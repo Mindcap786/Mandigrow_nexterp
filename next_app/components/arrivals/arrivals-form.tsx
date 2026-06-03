@@ -1349,8 +1349,8 @@ export default function ArrivalsEntryForm() {
                                                                             if (item?.purchase_gst_type) {
                                                                                 form.setValue(`items.${index}.purchase_gst_type`, item.purchase_gst_type);
                                                                             }
-                                                                            if (item?.custom_secondary_uom && item?.custom_uom_conversion_factor > 0) {
-                                                                                form.setValue(`items.${index}.unit_weight`, Number(item.custom_uom_conversion_factor));
+                                                                            if ((item as any)?.custom_secondary_uom && (item as any)?.custom_uom_conversion_factor > 0) {
+                                                                                form.setValue(`items.${index}.unit_weight`, Number((item as any).custom_uom_conversion_factor));
                                                                             } else {
                                                                                 form.setValue(`items.${index}.unit_weight`, 0);
                                                                             }

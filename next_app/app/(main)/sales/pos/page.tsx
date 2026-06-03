@@ -326,7 +326,7 @@ export default function POSPage() {
                     market_fee_percent: Number(settingsData.market_fee_percent) || 0,
                     nirashrit_percent: Number(settingsData.nirashrit_percent) || 0,
                     misc_fee_percent: Number(settingsData.misc_fee_percent) || 0,
-                    gst_enabled: settingsData.gst_enabled || false,
+                    gst_enabled: settingsData.gst_enabled === true || settingsData.gst_enabled === 1 || settingsData.gst_enabled === "1" || settingsData.gst_enabled === "true",
                     gst_type: settingsData.gst_type || 'intra',
                     cgst_percent: Number(settingsData.cgst_percent) || 0,
                     sgst_percent: Number(settingsData.sgst_percent) || 0,
@@ -529,11 +529,9 @@ export default function POSPage() {
     // Calculate Final Taxable Amount after Discount
     const taxableSubTotal = Math.max(0, subTotal - discountAmount)
 
-    // Per-item GST — always computed from item.gst_rate, matching backend behaviour.
-    // The global gst_enabled flag is intentionally NOT used here because:
-    //   1) The backend always applies item-level GST regardless of the setting
-    //   2) The gst_enabled flag may not always be returned from the API
-    const rawGstTotal = cart.reduce((s, c) => {
+    // Per-item GST — strictly respects the global gst_enabled flag.
+    const effectiveGstEnabled = taxSettings.gst_enabled;
+    const rawGstTotal = effectiveGstEnabled ? cart.reduce((s, c) => {
         const itemSubtotal = c.price * c.qty;
         const itemRatio = subTotal > 0 ? (itemSubtotal / subTotal) : 0;
         const itemDiscount = discountAmount * itemRatio;
@@ -551,7 +549,7 @@ export default function POSPage() {
             }
         }
         return s + gstAmt;
-    }, 0);
+    }, 0) : 0;
     
     const gstTotal = Math.round(rawGstTotal * 100) / 100;
     
@@ -567,7 +565,7 @@ export default function POSPage() {
     const miscFeeAmount = Math.round((taxableSubTotal * taxSettings.misc_fee_percent / 100) * 100) / 100;
     
     // Only exclusive GST is added on top of the taxable subtotal (inclusive GST is already inside the price)
-    const exclusiveGstTotal = cart.reduce((s, c) => {
+    const exclusiveGstTotal = effectiveGstEnabled ? cart.reduce((s, c) => {
         if (c.item.sale_gst_type === 'Inclusive') return s;
         const rate = Number(c.item.gst_rate) || 0;
         if (rate === 0) return s;
@@ -577,7 +575,7 @@ export default function POSPage() {
         const itemTaxable = Math.max(0, itemSubtotal - itemDiscount);
         const lineGst = Math.round((itemTaxable * (rate / 100)) * 100) / 100;
         return s + lineGst;
-    }, 0);
+    }, 0) : 0;
 
     const extraChargesTotal = additionalCharges.reduce((acc, c) => acc + c.amount, 0)
     const crateTotal = cratesEnabled ? crateCart.reduce((s, c) => s + c.qty * c.rate, 0) : 0
