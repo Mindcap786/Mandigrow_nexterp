@@ -194,7 +194,7 @@ export function MandiCommissionForm() {
                 itemName: item?.name || "",
                 internalCode: item?.internal_id || "",
                 unit: item?.default_unit || globalUnit,
-                gstRate: item?.gst_rate || 0,
+                gstRate: item?.sale_gst_rate || 0,
                 saleGstType: item?.sale_gst_type || 'Exclusive',
                 gstEnabled: settings?.gst_enabled === true || settings?.gst_enabled === "true" || settings?.gst_enabled === 1 || settings?.gst_enabled === "1",
                 hsnCode: item?.hsn_code || "",

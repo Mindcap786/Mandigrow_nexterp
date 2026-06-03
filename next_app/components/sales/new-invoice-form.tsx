@@ -210,7 +210,7 @@ const syncBasis = watchedDistributions?.map(d => ({
             const rowTotals = calculateSaleTotals({
                 items: [{
                     amount: (Number(d.qty) || 0) * (Number(d.rate) || 0),
-                    gst_rate: itemInfo?.gst_rate,
+                    gst_rate: itemInfo?.sale_gst_rate,
                     is_gst_exempt: itemInfo?.is_gst_exempt,
                     gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                 }],
@@ -276,7 +276,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                 const totals = calculateSaleTotals({
                     items: [{
                         amount: dist.qty * dist.rate,
-                        gst_rate: itemInfo?.gst_rate,
+                        gst_rate: itemInfo?.sale_gst_rate,
                         is_gst_exempt: itemInfo?.is_gst_exempt,
                         gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                     }],
@@ -311,7 +311,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                         // Forward the GST type so the backend uses it instead of re-reading
                         // from Item master (which might differ from what the user configured)
                         gst_type: isInclusiveGst ? 'Inclusive' : 'Exclusive',
-                        gst_rate: itemInfo?.gst_rate ?? 0,
+                        gst_rate: itemInfo?.sale_gst_rate ?? 0,
                     }],
                     marketFee: totals.marketFee,
                     nirashrit: totals.nirashrit,
@@ -379,7 +379,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                         const rowTotals = calculateSaleTotals({
                             items: [{
                                 amount: (Number(d.qty) || 0) * (Number(d.rate) || 0),
-                                gst_rate: itemInfo?.gst_rate,
+                                gst_rate: itemInfo?.sale_gst_rate,
                                 is_gst_exempt: itemInfo?.is_gst_exempt,
                                 gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                             }],
@@ -552,7 +552,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                     const rowTotals = calculateSaleTotals({
                                         items: [{
                                             amount: distQty * distRate,
-                                            gst_rate: itemInfo?.gst_rate,
+                                            gst_rate: itemInfo?.sale_gst_rate,
                                             is_gst_exempt: itemInfo?.is_gst_exempt,
                                             gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                                         }],
@@ -1049,7 +1049,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                     const totals = calculateSaleTotals({
                                         items: [{
                                             amount: d.qty * d.rate,
-                                            gst_rate: itemInfo?.gst_rate,
+                                            gst_rate: itemInfo?.sale_gst_rate,
                                             is_gst_exempt: itemInfo?.is_gst_exempt,
                                             gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                                         }],

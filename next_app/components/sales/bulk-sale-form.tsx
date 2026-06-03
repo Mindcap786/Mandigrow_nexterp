@@ -204,7 +204,7 @@ export function BulkLotSaleForm() {
             const { data: cData } = await supabase
                 .schema('mandi')
                 .from("commodities")
-                .select("id, name, local_name, sku_code, custom_attributes, gst_rate")
+                .select("id, name, local_name, sku_code, custom_attributes, gst_rate, sale_gst_rate, sale_gst_type")
                 .eq("organization_id", profile.organization_id)
                 .order("name");
             if (cData) setCommodities(cData.map(c => ({ ...c, label: formatCommodityName(c.name, c.custom_attributes), value: c.id })));
@@ -289,7 +289,7 @@ export function BulkLotSaleForm() {
             // GST Detection & Calculation
             const itemInfo = commodities.find(c => c.id === selectedLot?.item_id);
             const buyerInfo = buyers.find(b => b.id === dist.buyer_id);
-            const gstRate = itemInfo?.gst_rate || 0;
+            const gstRate = itemInfo?.sale_gst_rate || 0;
             const isIgst = (taxSettings.state_code && buyerInfo?.state_code && taxSettings.state_code !== buyerInfo.state_code) || false;
             
             const gstTotal = Math.round((taxableSubtotal * gstRate) / 100);
@@ -364,7 +364,7 @@ export function BulkLotSaleForm() {
                 const discount = Number(dist.discount_amount) || 0;
                 const taxableSubtotal = Math.max(0, subtotal - discount);
 
-                const gstRate = itemInfo?.gst_rate || 0;
+                const gstRate = itemInfo?.sale_gst_rate || 0;
                 // Since mandi.commodities doesn't have is_gst_exempt, we derive it from gst_rate
                 const isExempt = gstRate === 0;
                 

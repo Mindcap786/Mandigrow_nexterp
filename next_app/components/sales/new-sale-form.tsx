@@ -282,7 +282,7 @@ function NewSaleForm() {
                 const itemInfo = items.find(it => it.id === item?.item_id);
                 return {
                     amount: item?.amount,
-                    gst_rate: itemInfo?.gst_rate,
+                    gst_rate: itemInfo?.sale_gst_rate,
                     is_gst_exempt: itemInfo?.is_gst_exempt,
                 };
             }),
@@ -433,7 +433,7 @@ function NewSaleForm() {
                     qty: Number(item.qty),
                     rate: Number(item.rate),
                     amount: Number(item.amount),
-                    gst_rate: itemInfo?.gst_rate || 0,
+                    gst_rate: itemInfo?.sale_gst_rate || 0,
                     is_gst_exempt: itemInfo?.is_gst_exempt || false,
                 };
             }),
@@ -510,7 +510,7 @@ function NewSaleForm() {
                     qty: Number(item.qty),
                     rate: Number(item.rate),
                     amount: Number(item.amount),
-                    gst_rate: itemInfo?.gst_rate || 0,
+                    gst_rate: itemInfo?.sale_gst_rate || 0,
                     is_gst_exempt: itemInfo?.is_gst_exempt || false,
                     hsn_code: itemInfo?.hsn_code || null,
                     unit: item.unit || 'Kg',
@@ -1020,7 +1020,7 @@ function NewSaleForm() {
                                                             const itemInfo = items.find(it => it.id === item?.item_id);
                                                             return {
                                                                 amount: item?.amount,
-                                                                gst_rate: itemInfo?.gst_rate,
+                                                                gst_rate: itemInfo?.sale_gst_rate,
                                                                 is_gst_exempt: itemInfo?.is_gst_exempt,
                                                             };
                                                         }),
@@ -1867,7 +1867,7 @@ function NewSaleForm() {
                                                 const itemInfo = items.find(i => i.id === item?.item_id);
                                                 return {
                                                     amount: item?.amount,
-                                                    gst_rate: itemInfo?.gst_rate,
+                                                    gst_rate: itemInfo?.sale_gst_rate,
                                                     is_gst_exempt: itemInfo?.is_gst_exempt,
                                                     // Pass inclusive flag so GST is extracted, not added on top
                                                     gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
@@ -2014,7 +2014,7 @@ function NewSaleForm() {
                                         const itemInfo = items.find(i => i.id === item?.item_id);
                                         return {
                                             amount: item?.amount,
-                                            gst_rate: itemInfo?.gst_rate,
+                                            gst_rate: itemInfo?.sale_gst_rate,
                                             is_gst_exempt: itemInfo?.is_gst_exempt,
                                             // Pass inclusive flag — without this, GST is wrongly added on top
                                             gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
