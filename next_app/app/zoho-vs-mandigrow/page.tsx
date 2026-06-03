@@ -83,12 +83,27 @@ export default function ZohoVsMandiGrowPage() {
                 </div>
             </section>
 
-            <section className="max-w-4xl mx-auto px-6 py-16 text-center">
-                <h2 className="text-3xl font-black mb-4">Stop Hacking Accounting Software for Mandi Trade</h2>
-                <p className="text-lg text-gray-600 mb-8">
-                    Trying to make Zoho work for an Arhtiya business involves messy workarounds for commission and APMC cess. MandiGrow is built specifically for this workflow from day one.
+            <section className="max-w-4xl mx-auto px-6 py-12 text-left">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 mb-12">
+                    <h2 className="text-3xl font-black mb-4 text-emerald-950">Why Generic ERPs like Zoho Fail Mandi Commission Agents</h2>
+                    <p className="text-lg text-emerald-900/80 mb-4 leading-relaxed">
+                        If you run an agricultural wholesale business, you've likely tried to force-fit your operations into Zoho. And you've likely felt the pain of their static inventory models. Generic ERPs are built for manufacturing and traditional retail—they assume an item arrives in a box and leaves in that exact same box.
+                    </p>
+                    <p className="text-lg text-emerald-900/80 mb-4 leading-relaxed">
+                        Agricultural produce is fluid. It shrinks, it spoils, and most importantly, it is constantly repackaged. <strong>MandiGrow's proprietary Repack & Multi-UOM engine</strong> is our competitive moat.
+                    </p>
+                    <p className="text-lg text-emerald-900/80 leading-relaxed">
+                        While a Zoho user is forced to create complex "Bill of Materials" or "Manufacturing Assemblies" just to move apples from a 20kg crate into four 5kg boxes, a MandiGrow user does this in a single click. We don't treat repacking as a manufacturing process; we treat it as a fundamental state change of the produce. This prevents the severe stock discrepancies that plague generic ERP users in the agri-sector.
+                    </p>
+                </div>
+
+                <h2 className="text-3xl font-black mb-4 text-center">Stop Hacking Accounting Software for Mandi Trade</h2>
+                <p className="text-lg text-gray-600 mb-8 text-center">
+                    Trying to make Zoho work for an Arhtiya business involves messy workarounds for commission, repackaging, and APMC cess. MandiGrow is built specifically for this workflow from day one.
                 </p>
-                <Link href="/subscribe" className="inline-block px-8 py-4 bg-emerald-700 text-white font-black rounded-xl hover:bg-emerald-800 transition">Start Free Trial →</Link>
+                <div className="flex justify-center">
+                    <Link href="/subscribe" className="inline-block px-8 py-4 bg-emerald-700 text-white font-black rounded-xl hover:bg-emerald-800 transition">Start Free Trial →</Link>
+                </div>
             </section>
 
             <LandingFooter />

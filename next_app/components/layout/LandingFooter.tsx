@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ShieldCheck, Twitter, Youtube, Linkedin, Phone } from 'lucide-react'
+import { ShieldCheck, Twitter, Youtube, Linkedin, Phone, Boxes } from 'lucide-react'
 import { callApi } from '@/lib/frappeClient'
 import { FOOTER_COLUMNS } from '@/lib/seo-links'
 
@@ -96,6 +96,13 @@ export function LandingFooter() {
                     {/* Col 2: Core Product */}
                     <div className="flex flex-col gap-4">
                         <h3 className="text-[11px] uppercase font-black tracking-widest text-emerald-500 mb-2">Core Features</h3>
+                        
+                        {/* Highlighted Repack & UOM link */}
+                        <Link href="/blog/repack-multi-uom-inventory-management-software" className="flex items-center gap-2 text-[13px] font-bold text-emerald-300 hover:text-emerald-100 transition-colors bg-emerald-900/40 p-2 rounded-lg border border-emerald-500/20 -mx-2">
+                            <Boxes className="w-4 h-4 text-emerald-400" />
+                            <span>Repack & Multi-UOM</span>
+                        </Link>
+                        
                         {coreFeatures.map((link) => (
                             <Link key={link.href} href={link.href} className="text-[13px] font-medium text-emerald-100/70 hover:text-emerald-300 transition-colors">
                                 {link.label}

@@ -171,6 +171,15 @@ const FEATURES = [
         detail:
             'One-click sharing from the Android app or Web dashboard. Builds massive trust with farmers by delivering instant, transparent calculations.',
     },
+    {
+        id: 'repack-uom',
+        icon: '📦',
+        title: 'Repack & Multi-UOM Conversion',
+        description:
+            'Seamlessly manage bulk to retail inventory. Convert incoming Sacks, Crates, or Quintals into smaller retail units like KGs or custom boxes without losing a single gram of tracking.',
+        detail:
+            'Lossless traceability with smart pricing based on UOM. Highly visual Left-to-Right conversion interface reduces time-on-task from minutes to seconds.',
+    },
 ];
 
 const FAQ = [

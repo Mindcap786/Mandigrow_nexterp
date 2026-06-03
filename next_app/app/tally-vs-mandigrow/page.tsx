@@ -83,12 +83,27 @@ export default function TallyVsMandiGrowPage() {
                 </div>
             </section>
 
-            <section className="max-w-4xl mx-auto px-6 py-16 text-center">
-                <h2 className="text-3xl font-black mb-4">You Don't Need an Accounting Degree to Trade</h2>
-                <p className="text-lg text-gray-600 mb-8">
+            <section className="max-w-4xl mx-auto px-6 py-12 text-left">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 mb-12">
+                    <h2 className="text-3xl font-black mb-4 text-emerald-950">Why Generic ERPs like Tally Fail Mandi Commission Agents</h2>
+                    <p className="text-lg text-emerald-900/80 mb-4 leading-relaxed">
+                        If you run an agricultural wholesale business, you've likely tried to force-fit your operations into Tally. And you've likely felt the pain of their static inventory models. Generic ERPs are built for manufacturing and traditional retail—they assume an item arrives in a box and leaves in that exact same box.
+                    </p>
+                    <p className="text-lg text-emerald-900/80 mb-4 leading-relaxed">
+                        Agricultural produce is fluid. It shrinks, it spoils, and most importantly, it is constantly repackaged. <strong>MandiGrow's proprietary Repack & Multi-UOM engine</strong> is built precisely for this.
+                    </p>
+                    <p className="text-lg text-emerald-900/80 leading-relaxed">
+                        While a Tally user is forced to create complex "Manufacturing Assemblies" just to move apples from a 20kg crate into four 5kg boxes, a MandiGrow user does this in a single click. We don't treat repacking as a manufacturing process; we treat it as a fundamental state change of the produce. This prevents the severe stock discrepancies that plague Tally users in the agri-sector.
+                    </p>
+                </div>
+
+                <h2 className="text-3xl font-black mb-4 text-center">You Don't Need an Accounting Degree to Trade</h2>
+                <p className="text-lg text-gray-600 mb-8 text-center">
                     Tally requires a trained accountant to operate effectively. MandiGrow's shortcut-driven, intuitive interface is built so that anyone in your shop can generate bills, farmer pattis, and APMC gate passes in seconds.
                 </p>
-                <Link href="/subscribe" className="inline-block px-8 py-4 bg-emerald-700 text-white font-black rounded-xl hover:bg-emerald-800 transition">Start Free Trial →</Link>
+                <div className="flex justify-center">
+                    <Link href="/subscribe" className="inline-block px-8 py-4 bg-emerald-700 text-white font-black rounded-xl hover:bg-emerald-800 transition">Start Free Trial →</Link>
+                </div>
             </section>
 
             <LandingFooter />

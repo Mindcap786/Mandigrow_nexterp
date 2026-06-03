@@ -74,6 +74,10 @@ const FAQ = [
         q: 'Is there a free trial of MandiGrow?',
         a: 'Yes. MandiGrow offers a 14-day free trial with no credit card required. You can also book a free live demo in Hindi or English to see how it fits your mandi business.',
     },
+    {
+        q: 'How do I repack bulk items into smaller retail packets?',
+        a: 'It is simple! 1. Open the Stock screen. 2. Tap the "Repack" button. 3. Choose your bulk lot (e.g., a 50kg sack). 4. Select what you are making (e.g., 5kg bags) and how many. 5. Press Save. The math is done automatically, converting your big boxes into small packets without any errors.',
+    },
 ];
 
 export default function FaqPage() {
