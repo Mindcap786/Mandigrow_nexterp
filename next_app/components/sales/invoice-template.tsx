@@ -21,7 +21,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
     if (!sale) return null
 
-    const gstEnabled = organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1';
+    const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
+    const gstEnabled = organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1' || totalGst > 0;
 
     const rawBillNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
     // Clean invoice number: if it's a Frappe docname like INV-SALE-ORG00001-2026-00017,
@@ -44,7 +45,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
         (items.length > 0 ? (items[0].lot?.vehicle_number || items[0].lot?.arrival?.vehicle_number || items[0].vehicle_number) : '') || '';
 
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-    const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
+    // totalGst defined earlier
     const isInclusive = items.some((i: any) => i.sale_gst_type?.toLowerCase() === 'inclusive' || i.gst_inclusive);
     const gstToAdd = sale.exclusive_gst_total !== undefined 
         ? Number(sale.exclusive_gst_total) 
@@ -119,12 +120,12 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 const isFirstPage = pageIndex === 0;
                 const isLastPage = pageIndex === itemChunks.length - 1;
                 return (
-                    <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "break-after-page print:break-after-page mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0 print:mb-0")}>
+                    <div key={pageIndex} className={cn("invoice-page-chunk relative flex flex-col", !isLastPage && "break-after-page print:break-after-page mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0 print:mb-0")}>
 
             {/* Header - Only on First Page */}
             {isFirstPage && (
                 <>
-            <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:justify-between">
                 {/* Left: Identity */}
                 <div className="flex items-start gap-4 min-w-0 print:w-1/3">
                     {organization?.logo_url ? (
@@ -152,7 +153,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
 
                 {/* Center: Title */}
-                <div className="self-center flex flex-col items-center text-center print:w-1/3 print:shrink-0">
+                <div className="self-center flex flex-col items-center text-center print:shrink-0">
                     <h2
                         data-invoice-title
                         className="text-3xl font-black uppercase tracking-[0.28em] leading-[1.08] text-black"
@@ -163,7 +164,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
 
                 {/* Right: Contact Details */}
-                <div className="text-right space-y-0.5 print:w-1/3 print:flex print:flex-col print:items-end">
+                <div className="text-right space-y-0.5 print:items-end">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Contact Details</p>
                     <div className="space-y-0 text-xs font-black">
                         <p>Ph: {organization?.phone || '+91 98765 43210'}</p>
@@ -174,7 +175,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             </div>
 
             {/* Parties & Invoice Details Consolidated */}
-            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:grid print:grid-cols-2 print:w-full print:gap-4">
+            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:gap-4">
                 {/* Left: Billed To */}
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Billed To</p>
@@ -194,7 +195,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
 
                     {/* Right: Invoice Details */}
-                <div className="text-right space-y-0.5 text-xs self-end print:w-1/2 print:flex print:flex-col print:items-end">
+                <div className="text-right space-y-0.5 text-xs self-end print:items-end">
                     <div className="flex justify-end gap-2">
                         <span className="text-gray-400 font-bold uppercase">Invoice No:</span>
                         <span className="font-black">#{displayBillNo}</span>
@@ -339,7 +340,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             {isLastPage && (
                 <>
             {/* Bottom Section: Payment (Left) and Totals (Right) */}
-            <div className="mt-6 flex flex-col md:flex-row gap-8 items-start relative z-10 print:flex print:flex-row print:gap-4 print:mt-4 print:break-inside-avoid w-full">
+            <div className="mt-6 flex flex-col md:flex-row gap-8 items-start relative z-10 w-full">
                 
                 {/* Left Side: Payment Details */}
                 <div className="space-y-4 w-full md:w-1/2 print:w-[48%]">
