@@ -582,56 +582,43 @@ export const POSTS: BlogPost[] = [
         author: 'MandiGrow Team',
         readMinutes: 8,
         body: `
-<h1>Architecting a Frictionless Multi-UOM & Repackaging Engine for Mandi Operations</h1>
+<h1>Stop Losing Money on Loose Produce: How MandiGrow’s Repack Engine Works</h1>
 
-<p>Designing agricultural supply chain software requires acknowledging one fundamental truth: <strong>produce doesn't move in static units.</strong></p>
-<p>A tomato lot might arrive in a 25kg crate, be stored in quintals, and sold in 5kg boxes or loose kilograms. Generic inventory systems fail here because they are built for static retail items. MandiGrow was built differently.</p>
+<p>If you run a wholesale agricultural business, you know one fundamental truth: <strong>produce doesn't move in static units.</strong></p>
+<p>A tractor trolley of potatoes arrives loose. It is weighed in quintals, stored in a cold room, and later sorted into 50kg gunny bags for wholesalers and 5kg mesh bags for local retailers. Generic inventory systems (like Tally or Zoho) fail here because they assume an item arrives in a box and leaves in that exact same box. They force you to create complex "Manufacturing Assemblies" just to change a box size.</p>
+<p>At MandiGrow, we built a <strong>Repack & Multi-UOM (Unit of Measurement) Engine</strong> designed specifically for the fluid reality of the Mandi floor. Here is how it solves the biggest headaches for your entire team.</p>
 
-<h2>The System Architect’s View: Normalized Inventory Graph</h2>
-<p>To solve this, we architected a normalized, graph-like inventory schema that natively supports dynamic UOM (Unit of Measurement) conversions without floating-point precision loss. When a "Repack" event is triggered, the system initiates a secure atomic transaction:</p>
-<ol>
-  <li><strong>Deduction:</strong> The source lot (e.g., 50 Sacks) is decremented.</li>
-  <li><strong>Conversion:</strong> The system applies the pre-defined or dynamic conversion multiplier (e.g., 1 Sack = 50kg).</li>
-  <li><strong>Creation:</strong> New child lots are instantiated (e.g., 2500 individual 1kg packets) with inherited traceability metadata (farmer ID, arrival date, quality grade).</li>
-</ol>
-<p>This architecture ensures zero data leakage during bulk-to-retail conversions, maintaining 100% accurate ledger states and real-time stock valuation.</p>
-
-<h2>The SaaS Founder’s View: MandiGrow vs Tally & Zoho</h2>
-<p>If you run an agricultural wholesale business, you've likely tried to force-fit your operations into Tally or Zoho. Generic ERPs assume an item arrives in a box and leaves in that exact same box.</p>
-<p>Agricultural produce is fluid. It shrinks, it spoils, and most importantly, it is constantly repackaged. <strong>MandiGrow's proprietary Repack & UOM engine</strong> is our competitive moat. While a generic ERP user is forced to create complex "Bill of Materials" or "Manufacturing Assemblies" just to move apples from a 20kg crate into four 5kg boxes, a MandiGrow user does this in a single click. We don't treat repacking as a manufacturing process; we treat it as a fundamental state change of the produce.</p>
-
-<h2>The Mandi Business Expert’s View: Real-World Usability</h2>
-<p>We’ve spent 20 years on the Mandi floor. We’ve seen software companies try to sell "retail" software that completely fails the moment a truck unloads. In the real world, a farmer brings a loose tractor trolley of potatoes. We weigh it in quintals. Then, we sort it and pack it into 50kg gunny bags for wholesalers, and maybe 5kg plastic bags for local retailers.</p>
-<p>Most software forces you to create fake items or do manual math in a notebook to track this. MandiGrow is the first system that actually gets it. You tell the system: "I took this trolley of potatoes, and I packed it into 100 bags of 50kg." The system instantly updates your stock, calculates your labor packing costs, and makes those bags ready for billing. No headaches, no missing stock, no end-of-day mismatch.</p>
-
-<h2>The Product Manager’s View: Seamless Bulk to Retail</h2>
-<p>We know that flexibility is the most critical part of your daily operations. You buy in bulk, but you sell in whatever packaging the market demands.</p>
+<h2>For the Mandi Owner: Stop Stock Leakage & Protect Margins</h2>
+<p>As a business owner, your biggest silent killer is untracked shrinkage. When 1000kg of onions are repacked into twenty 45kg sacks, where did the remaining 100kg go? Was it spoiled? Was it stolen? Or was it just bad math by the warehouse staff?</p>
+<p>MandiGrow’s Repack Engine gives you 100% visibility into your conversions:</p>
 <ul>
-  <li><strong>Instant Conversions:</strong> Easily convert incoming Sacks, Crates, or Quintals into smaller retail units like KGs, Grams, or custom boxes.</li>
-  <li><strong>Lossless Tracking:</strong> When you repackage 100kg of onions into twenty 5kg mesh bags, the system tracks the exact origin of those bags. If there's 1kg of spoilage during repacking, you record it as shrinkage—keeping books balanced.</li>
-  <li><strong>Smart Pricing:</strong> Set different selling prices based on the UOM. A 25kg crate has a different margin profile than a 1kg premium pack, and MandiGrow handles this automatically at the point of sale.</li>
+  <li><strong>Lossless Tracking:</strong> The system forces staff to account for every gram. If 1000kg turns into 900kg of packed goods, the remaining 100kg is explicitly recorded as "Shrinkage/Spoilage."</li>
+  <li><strong>Margin Control:</strong> A 50kg sack has a different profit margin than a premium 5kg retail box. MandiGrow lets you track the exact labor and packing costs of the conversion, so you know exactly how much profit you make on every box size.</li>
 </ul>
 
-<h2>The UI/UX Expert’s View: Designing Clarity</h2>
-<p>When designing the Repack interface, our primary goal was cognitive offloading. Managing dynamic inventory states can be overwhelming, so we stripped away the complexity and focused on a highly visual, linear flow.</p>
-<p>The repack modal uses a clear "Left-to-Right" mental model:</p>
+<h2>For the Accountant: Perfect Ledger Matching & Audit Readiness</h2>
+<p>Accountants hate when warehouse staff "magically" create new items out of thin air because it breaks the financial ledger and causes GST matching nightmares.</p>
+<p>MandiGrow solves this by treating repacking as a secure, traceable transaction:</p>
 <ul>
-  <li><strong>Left Panel (Source):</strong> Select the origin lot. Visual indicators show current UOM and available volume.</li>
-  <li><strong>Center (The Action):</strong> A prominent arrow icon denoting transformation.</li>
-  <li><strong>Right Panel (Target):</strong> Dropdowns for target UOM and output quantity. The system provides real-time validation, visually highlighting if the target output exceeds the source volume, preventing user error before the form is even submitted.</li>
+  <li><strong>Instant Valuation Transfer:</strong> When a 50kg sack (valued at ₹1000) is converted into ten 5kg bags, the system automatically transfers the exact proportional value to the new bags. No manual journal entries required.</li>
+  <li><strong>Traceability:</strong> Every new 5kg bag is permanently linked to the original farmer's lot. If a buyer returns a bag for bad quality, your accountant can trace it directly back to the exact truck it arrived on.</li>
 </ul>
 
-<h2>The Trainer’s View: Simple Enough for Anyone</h2>
-<p>If you have semi-literate staff managing your warehouse, they don't need to understand database schemas. They just need to know how to change big boxes into small packets.</p>
+<h2>For the Mandi Clerk: One-Click Sorting Anyone Can Learn</h2>
+<p>If you have semi-literate staff managing your warehouse, they don't have time to navigate complex database screens or understand "Bill of Materials." They just need to know how to turn big boxes into small packets.</p>
+<p>We designed the Repack screen to be incredibly simple and visual:</p>
 <ol>
   <li>Open the Stock screen.</li>
-  <li>Tap the <strong>Repack</strong> button (look for the icon with the changing boxes).</li>
-  <li>Choose the big 50 KG sack.</li>
-  <li>The computer will ask: "What are you making?" You select <strong>5 KG Bag</strong>.</li>
-  <li>The computer will ask: "How many bags did you make?" You type <strong>10</strong>.</li>
+  <li>Tap the <strong>Repack</strong> button.</li>
+  <li><strong>Select the Source:</strong> Choose the big 50kg sack from the list.</li>
+  <li><strong>Select the Target:</strong> The system asks "What are you making?" You select <em>5kg Box</em>.</li>
+  <li><strong>Enter Quantity:</strong> The system asks "How many boxes did you make?" You type <em>10</em>.</li>
   <li>Press <strong>Save</strong>.</li>
 </ol>
-<p>That's it! The math is done automatically.</p>
+<p>That's it! The system instantly deducts the 50kg sack, adds the ten 5kg boxes to your available stock, calculates the labor costs, and makes them ready for billing. No calculators, no rough notebooks, no end-of-day stock mismatches.</p>
+
+<h2>Stop Adapting to Bad Software</h2>
+<p>MandiGrow is the first system that adapts to how produce actually moves. <strong>[Start your free trial today](/signup)</strong> and experience an inventory system built for the real world.</p>
 `
     }
 ];
