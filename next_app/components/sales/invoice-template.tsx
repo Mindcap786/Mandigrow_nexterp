@@ -22,7 +22,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
     if (!sale) return null
 
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
-    const gstEnabled = organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1' || totalGst > 0;
+    const gstEnabled = organization?.gst_enabled === true || organization?.gst_enabled === 'true' || organization?.gst_enabled === 1 || organization?.gst_enabled === '1' || organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1' || totalGst > 0;
 
     const rawBillNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
     // Clean invoice number: if it's a Frappe docname like INV-SALE-ORG00001-2026-00017,
@@ -125,9 +125,9 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             {/* Header - Only on First Page */}
             {isFirstPage && (
                 <>
-            <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:justify-between">
+            <div className="flex flex-col md:flex-row md:justify-between print:flex-row print:justify-between gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10">
                 {/* Left: Identity */}
-                <div className="flex items-start gap-4 min-w-0 print:w-1/3">
+                <div className="flex items-start gap-4 min-w-0 md:flex-[1.35] print:flex-[1.35]">
                     {organization?.logo_url ? (
                         <img src={organization.logo_url} alt="Logo" className="h-20 w-auto object-contain" style={{ borderRadius: 12 }} />
                     ) : (
@@ -153,7 +153,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
 
                 {/* Center: Title */}
-                <div className="self-center flex flex-col items-center text-center print:shrink-0">
+                <div className="self-center flex flex-col items-center text-center md:flex-none print:flex-none">
                     <h2
                         data-invoice-title
                         className="text-3xl font-black uppercase tracking-[0.28em] leading-[1.08] text-black"
@@ -164,9 +164,9 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
 
                 {/* Right: Contact Details */}
-                <div className="text-right space-y-0.5 print:items-end">
+                <div className="text-right space-y-0.5 md:min-w-[180px] md:flex-1 print:min-w-[180px] print:flex-1 md:flex md:flex-col md:items-end print:flex print:flex-col print:items-end">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Contact Details</p>
-                    <div className="space-y-0 text-xs font-black">
+                    <div className="space-y-0 text-xs font-black md:text-right print:text-right">
                         <p>Ph: {organization?.phone || '+91 98765 43210'}</p>
                         {organization?.gstin && <p className="italic">GST: {organization.gstin}</p>}
                         {organization?.email && <p className="text-[10px] lowercase border-t border-gray-100 pt-0.5 mt-0.5">{organization.email}</p>}
@@ -175,9 +175,9 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             </div>
 
             {/* Parties & Invoice Details Consolidated */}
-            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:gap-4">
+            <div className="py-2 flex flex-col md:flex-row print:flex-row gap-8 border-b border-gray-100 mb-2 relative z-10 print:gap-4">
                 {/* Left: Billed To */}
-                <div className="space-y-1 print:w-1/2">
+                <div className="space-y-1 md:w-1/2 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Billed To</p>
                     <h3 className="text-2xl font-black tracking-tight">{sale.contact?.name || sale.buyer_name || 'Walk-in Buyer'}</h3>
                     {sale.buyer_phone && <p className="text-gray-600 font-bold text-xs tracking-wider">Ph: {sale.buyer_phone}</p>}
@@ -195,7 +195,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
 
                     {/* Right: Invoice Details */}
-                <div className="text-right space-y-0.5 text-xs self-end print:items-end">
+                <div className="text-left md:text-right space-y-0.5 text-xs self-end md:w-1/2 print:w-1/2 md:flex md:flex-col md:items-end print:flex print:flex-col print:items-end">
                     <div className="flex justify-end gap-2">
                         <span className="text-gray-400 font-bold uppercase">Invoice No:</span>
                         <span className="font-black">#{displayBillNo}</span>
@@ -340,10 +340,10 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             {isLastPage && (
                 <>
             {/* Bottom Section: Payment (Left) and Totals (Right) */}
-            <div className="mt-6 flex flex-col md:flex-row gap-8 items-start relative z-10 w-full">
+            <div className="mt-6 flex flex-col md:flex-row print:flex-row gap-8 print:gap-4 items-start relative z-10 w-full">
                 
                 {/* Left Side: Payment Details */}
-                <div className="space-y-4 w-full md:w-1/2 print:w-[48%]">
+                <div className="space-y-4 w-full md:w-1/2 print:w-1/2">
                     {/* Bank Details & QR from Settings → Bank Details page */}
                     {(organization?.settings?.payment?.print_upi_qr || organization?.settings?.payment?.print_bank_details) && (() => {
                         const defaultPayment = organization?.settings?.payment || {};
@@ -407,7 +407,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     })()}
                 </div>
                 {/* Right Side: Indices & Totals */}
-                <div className="space-y-6 w-full md:w-1/2 print:w-[48%]">
+                <div className="space-y-6 w-full md:w-1/2 print:w-1/2">
                     {/* Totals Section */}
                     <div className="space-y-1.5 border-t-2 border-black pt-4">
                         <div className="flex justify-between items-center text-xs">
@@ -618,8 +618,21 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             <style jsx>{`
                 @media print {
                     @page { margin: 0; }
-                    body { background: white; }
-                    #invoice-print { width: 100%; max-width: none; border: none; box-shadow: none; }
+                    html, body { 
+                        background: white; 
+                        -webkit-print-color-adjust: exact !important; 
+                        print-color-adjust: exact !important; 
+                        color-adjust: exact !important;
+                    }
+                    #invoice-print { 
+                        width: 100%; 
+                        max-width: none; 
+                        border: none; 
+                        box-shadow: none; 
+                        -webkit-print-color-adjust: exact !important; 
+                        print-color-adjust: exact !important; 
+                        color-adjust: exact !important;
+                    }
                     .no-print { display: none !important; }
                     .break-after-page { page-break-after: always; break-after: page; }
                 }

@@ -31,13 +31,14 @@ export default function PurchaseBillInvoice({
 }: PurchaseInvoiceTemplateProps) {
     const { branding } = usePlatformBranding();
 
-    const gstEnabled = organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1';
+    const isConfigGstEnabled = organization?.gst_enabled === true || organization?.gst_enabled === 'true' || organization?.gst_enabled === 1 || organization?.gst_enabled === '1' || organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1';
 
     if (!lot) return null
 
     // ── Data extraction ──────────────────────────────────────────
     const farmerName = lot.farmer?.name || lot.contact?.name || 'Unknown Supplier'
     const farmerCity = lot.farmer?.city || lot.contact?.city || ''
+    const supplierHasGst = !!(lot.farmer?.gstin || lot.contact?.gstin)
     const itemName = formatCommodityName(lot.item?.name, lot.custom_attributes || lot.item?.custom_attributes)
     const lotCode = lot.lot_code || arrival?.lot_prefix || 'N/A'
     const unit = lot.unit || 'Unit'
@@ -190,6 +191,9 @@ export default function PurchaseBillInvoice({
         else finalExclusiveGst = legacyGstTotal;
     }
 
+    const anyGstCalculated = finalInclusiveGst > 0 || finalExclusiveGst > 0 || legacyGstTotal > 0;
+    const gstEnabled = isConfigGstEnabled || anyGstCalculated;
+
     const exclusiveGstToAdd = arrivalType === 'direct' && !arrival?.is_rcm ? finalExclusiveGst : 0;
     
     const finalPayable = arrivalType === 'direct' 
@@ -232,9 +236,9 @@ export default function PurchaseBillInvoice({
                     <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "print:break-after-page print:mb-0 mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0")}>
 
             {/* ───── Header ───── */}
-            <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1.35fr)_auto_minmax(180px,1fr)] gap-4 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="flex flex-col md:flex-row gap-4 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:flex-row print:w-full print:justify-between">
                 {/* Left: Identity */}
-                <div className="flex items-start gap-4 min-w-0 print:w-[42%]">
+                <div className="flex items-start gap-4 min-w-0 md:flex-[1.35] print:flex-[1.35]">
                     {organization?.logo_url ? (
                         <img src={organization.logo_url} alt="Logo" className="h-20 w-auto object-contain" style={{ borderRadius: 12 }} />
                     ) : (
@@ -266,7 +270,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Center: Title */}
-                <div className="self-center flex flex-col items-center text-center print:w-[16%] print:shrink-0">
+                <div className="self-center flex flex-col items-center text-center md:flex-none print:flex-none">
                     <h2
                         data-invoice-title
                         className="text-2xl font-black uppercase tracking-[0.2em] leading-[1.08] text-black"
@@ -280,7 +284,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Right: Contact Details */}
-                <div className="text-right space-y-0.5 print:w-[42%] print:flex print:flex-col print:items-end">
+                <div className="text-right space-y-0.5 md:min-w-[180px] md:flex-1 print:min-w-[180px] print:flex-1 md:flex md:flex-col md:items-end print:flex print:flex-col print:items-end">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Contact Details</p>
                     <div className="space-y-0 text-xs font-black">
                         <p>Ph: {organization?.phone || '+91 98765 43210'}</p>
@@ -293,9 +297,9 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Parties & Bill Details ───── */}
-            <div className="py-2 flex flex-col lg:grid lg:grid-cols-2 gap-6 border-b border-gray-100 mb-2 relative z-10 print:grid print:grid-cols-2 print:w-full print:gap-4">
+            <div className="py-2 flex flex-col md:flex-row gap-6 border-b border-gray-100 mb-2 relative z-10 print:flex print:flex-row print:w-full print:gap-4">
                 {/* Left: Purchased From */}
-                <div className="space-y-1 print:w-1/2">
+                <div className="space-y-1 md:w-1/2 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Purchased From</p>
                     <h3 className="text-2xl font-black tracking-tight">{farmerName}</h3>
                     {(lot.farmer?.billing_address_line1 || lot.contact?.billing_address_line1) && <p className="text-gray-700 font-bold text-xs">{lot.farmer?.billing_address_line1 || lot.contact?.billing_address_line1}</p>}
@@ -313,7 +317,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Right: Bill Details */}
-                <div className="text-left lg:text-right space-y-0.5 text-xs self-end print:w-1/2 print:flex print:flex-col print:items-end">
+                <div className="text-left md:text-right space-y-0.5 text-xs self-end md:w-1/2 print:w-1/2 md:flex md:flex-col md:items-end print:flex print:flex-col print:items-end">
                     <div className="flex justify-end gap-2 items-center">
                         <span className="text-gray-400 font-bold uppercase">Invoice No:</span>
                         <span className="font-black">#{billNo}</span>
@@ -394,13 +398,13 @@ export default function PurchaseBillInvoice({
                                         <div className="font-bold text-sm tracking-tighter">
                                             ₹{toNumber(l.supplier_rate).toLocaleString()}
                                         </div>
-                                        {gstEnabled && toNumber(l.purchase_gst_rate) > 0 && arrivalType === 'direct' && !arrival?.is_rcm && (
+                                        {gstEnabled && (toNumber(l.purchase_gst_rate) > 0 || supplierHasGst) && arrivalType === 'direct' && !arrival?.is_rcm && (
                                             <div className={`text-[9px] font-bold mt-0.5 uppercase ${
                                                 String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' 
                                                 ? 'text-gray-500' 
                                                 : 'text-blue-600'
                                             }`}>
-                                                {String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' ? 'Incl.' : '+'} {l.purchase_gst_rate}% GST
+                                                {String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' ? 'Incl.' : '+'} {toNumber(l.purchase_gst_rate)}% GST
                                             </div>
                                         )}
                                     </td>
@@ -423,10 +427,10 @@ export default function PurchaseBillInvoice({
             {isLastPage && (
                 <>
             {/* ───── Settlement Breakdown ───── */}
-            <div className="mt-6 flex flex-col lg:flex-row gap-8 items-start relative z-10 print:flex print:flex-row print:gap-4 print:mt-4 print:break-inside-avoid w-full">
+            <div className="mt-6 flex flex-col md:flex-row gap-8 items-start relative z-10 print:flex print:flex-row print:gap-4 print:mt-4 print:break-inside-avoid w-full">
 
                 {/* Left Side: Transport & Payment Info */}
-                <div className="space-y-4 w-full lg:w-1/2 print:w-[48%]">
+                <div className="space-y-4 w-full md:w-1/2 print:w-[48%]">
                     {/* Payment Details Card */}
                     <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block border-b border-slate-200 pb-1">
@@ -488,7 +492,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Right Side: Totals & Settlement */}
-                <div className="space-y-6 w-full lg:w-1/2 print:w-[48%]">
+                <div className="space-y-6 w-full md:w-1/2 print:w-[48%]">
                     <div className="space-y-1.5 border-t-2 border-black pt-4">
                         {/* Gross Value */}
                         <div className="flex justify-between items-center text-xs">
@@ -562,7 +566,7 @@ export default function PurchaseBillInvoice({
                         )}
 
                         {/* GST Breakdown (Direct Purchase Only) */}
-                        {gstEnabled && arrivalType === 'direct' && finalExclusiveGst > 0 && !arrival?.is_rcm && (
+                        {gstEnabled && arrivalType === 'direct' && (finalExclusiveGst > 0 || supplierHasGst) && !arrival?.is_rcm && (
                             <>
                                 <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
                                     <span className="text-blue-600 font-bold uppercase tracking-widest">GST Applied (Exclusive)</span>
@@ -599,7 +603,7 @@ export default function PurchaseBillInvoice({
                                 )}
                             </>
                         )}
-                        {gstEnabled && arrivalType === 'direct' && finalInclusiveGst > 0 && !arrival?.is_rcm && (
+                        {gstEnabled && arrivalType === 'direct' && (finalInclusiveGst > 0 || (supplierHasGst && finalExclusiveGst === 0 && anyInclusive)) && !arrival?.is_rcm && (
                             <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
                                 <span className="text-gray-500 font-medium uppercase tracking-widest text-[10px]">GST Included (Inclusive)</span>
                                 <span className="font-medium text-gray-500 text-[10px]">
