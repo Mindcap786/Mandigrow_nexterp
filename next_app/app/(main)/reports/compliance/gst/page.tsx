@@ -88,10 +88,8 @@ export default function GSTReportsPage() {
             const data = response?.data;
 
             if (data) {
-                // Filter to ONLY include transactions where GST was actually collected
-                const taxFilteredData = (data || []).filter((sale: any) => 
-                    Number(sale.igst_amount || 0) + Number(sale.cgst_amount || 0) + Number(sale.sgst_amount || 0) > 0
-                );
+                // Include all outward supplies, even if GST was not collected, so B2C and HSN reflect total volume
+                const taxFilteredData = data || [];
                 setSales(taxFilteredData);
                 
                 const purchasesData = (response?.purchases || []).filter((purchase: any) => 
@@ -140,8 +138,10 @@ export default function GSTReportsPage() {
                         hsnMap[key].taxable_value += itemTaxable;
                         hsnMap[key].total_tax += itemTax;
 
+                        const isIgst = Number(sale.igst_amount) > 0 || profile?.organization?.settings?.gst_type === 'inter';
+
                         // Split tax based on sale type
-                        if (Number(sale.igst_amount) > 0) {
+                        if (isIgst) {
                             hsnMap[key].igst += itemTax;
                         } else {
                             hsnMap[key].cgst += itemTax / 2;
@@ -149,9 +149,9 @@ export default function GSTReportsPage() {
                         }
 
                         taxable += itemTaxable;
-                        igst += (Number(sale.igst_amount) > 0 ? itemTax : 0);
-                        cgst += (Number(sale.igst_amount) > 0 ? 0 : itemTax / 2);
-                        sgst += (Number(sale.igst_amount) > 0 ? 0 : itemTax / 2);
+                        igst += (isIgst ? itemTax : 0);
+                        cgst += (isIgst ? 0 : itemTax / 2);
+                        sgst += (isIgst ? 0 : itemTax / 2);
                     });
                 });
 

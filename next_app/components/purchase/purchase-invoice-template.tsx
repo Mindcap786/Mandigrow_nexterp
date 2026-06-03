@@ -31,6 +31,8 @@ export default function PurchaseBillInvoice({
 }: PurchaseInvoiceTemplateProps) {
     const { branding } = usePlatformBranding();
 
+    const gstEnabled = organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1';
+
     if (!lot) return null
 
     // ── Data extraction ──────────────────────────────────────────
@@ -291,7 +293,7 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Parties & Bill Details ───── */}
-            <div className="py-2 flex flex-col lg:grid lg:grid-cols-2 gap-6 border-b border-gray-100 mb-2 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="py-2 flex flex-col lg:grid lg:grid-cols-2 gap-6 border-b border-gray-100 mb-2 relative z-10 print:grid print:grid-cols-2 print:w-full print:gap-4">
                 {/* Left: Purchased From */}
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Purchased From</p>
@@ -392,7 +394,7 @@ export default function PurchaseBillInvoice({
                                         <div className="font-bold text-sm tracking-tighter">
                                             ₹{toNumber(l.supplier_rate).toLocaleString()}
                                         </div>
-                                        {toNumber(l.purchase_gst_rate) > 0 && arrivalType === 'direct' && !arrival?.is_rcm && (
+                                        {gstEnabled && toNumber(l.purchase_gst_rate) > 0 && arrivalType === 'direct' && !arrival?.is_rcm && (
                                             <div className={`text-[9px] font-bold mt-0.5 uppercase ${
                                                 String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' 
                                                 ? 'text-gray-500' 
@@ -421,7 +423,7 @@ export default function PurchaseBillInvoice({
             {isLastPage && (
                 <>
             {/* ───── Settlement Breakdown ───── */}
-            <div className="mt-6 flex flex-col lg:grid lg:grid-cols-2 gap-8 items-start relative z-10">
+            <div className="mt-6 flex flex-col lg:grid lg:grid-cols-2 gap-8 items-start relative z-10 print:grid print:grid-cols-2 print:gap-4">
 
                 {/* Left Side: Transport & Payment Info */}
                 <div className="space-y-4">
@@ -560,7 +562,7 @@ export default function PurchaseBillInvoice({
                         )}
 
                         {/* GST Breakdown (Direct Purchase Only) */}
-                        {arrivalType === 'direct' && finalExclusiveGst > 0 && !arrival?.is_rcm && (
+                        {gstEnabled && arrivalType === 'direct' && finalExclusiveGst > 0 && !arrival?.is_rcm && (
                             <>
                                 <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
                                     <span className="text-blue-600 font-bold uppercase tracking-widest">GST Applied (Exclusive)</span>
@@ -597,7 +599,7 @@ export default function PurchaseBillInvoice({
                                 )}
                             </>
                         )}
-                        {arrivalType === 'direct' && finalInclusiveGst > 0 && !arrival?.is_rcm && (
+                        {gstEnabled && arrivalType === 'direct' && finalInclusiveGst > 0 && !arrival?.is_rcm && (
                             <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1 mt-1">
                                 <span className="text-gray-500 font-medium uppercase tracking-widest text-[10px]">GST Included (Inclusive)</span>
                                 <span className="font-medium text-gray-500 text-[10px]">

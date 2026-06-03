@@ -21,6 +21,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
     if (!sale) return null
 
+    const gstEnabled = organization?.settings?.gst_enabled === true || organization?.settings?.gst_enabled === 'true' || organization?.settings?.gst_enabled === 1 || organization?.settings?.gst_enabled === '1';
+
     const rawBillNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
     // Clean invoice number: if it's a Frappe docname like INV-SALE-ORG00001-2026-00017,
     // strip org/year prefixes and show only the sequence number (e.g., "17")
@@ -172,7 +174,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             </div>
 
             {/* Parties & Invoice Details Consolidated */}
-            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:flex print:w-full print:justify-between">
+            <div className="py-2 flex flex-col md:grid md:grid-cols-2 gap-8 border-b border-gray-100 mb-2 relative z-10 print:grid print:grid-cols-2 print:w-full print:gap-4">
                 {/* Left: Billed To */}
                 <div className="space-y-1 print:w-1/2">
                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Billed To</p>
@@ -259,7 +261,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">HSN</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-center">Qty</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Rate</th>
-                            <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">GST</th>
+                            {gstEnabled && <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">GST</th>}
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-right">Amount</th>
                             <th className="py-2 w-10 no-print"></th>
                         </tr>
@@ -308,14 +310,16 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                         return null;
                                     })()}
                                 </td>
-                                <td className="py-0.5 text-right font-bold text-sm tracking-tighter">
-                                    {Number(item.gst_rate) > 0 ? (
-                                        <div className="flex flex-col items-end leading-tight mt-0.5">
-                                            <span className="text-xs text-gray-700">{item.gst_rate}%</span>
-                                            <span className="text-[10px] text-gray-400">₹{Number(item.gst_amount || 0).toLocaleString()}</span>
-                                        </div>
-                                    ) : <span className="text-gray-300">-</span>}
-                                </td>
+                                {gstEnabled && (
+                                    <td className="py-0.5 text-right font-bold text-sm tracking-tighter">
+                                        {Number(item.gst_rate) > 0 ? (
+                                            <div className="flex flex-col items-end leading-tight mt-0.5">
+                                                <span className="text-xs text-gray-700">{item.gst_rate}%</span>
+                                                <span className="text-[10px] text-gray-400">₹{Number(item.gst_amount || 0).toLocaleString()}</span>
+                                            </div>
+                                        ) : <span className="text-gray-300">-</span>}
+                                    </td>
+                                )}
                                 <td className="py-0.5 text-right font-black text-sm tracking-tighter">₹{Math.round(Number(item.amount || 0)).toLocaleString()}</td>
                                 <td className="py-1 pl-4 no-print text-right opacity-50 hover:opacity-100 transition-opacity">
                                     <AdjustmentDialog saleItem={item} onRefresh={onRefresh!} />
@@ -335,7 +339,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             {isLastPage && (
                 <>
             {/* Bottom Section: Payment (Left) and Totals (Right) */}
-            <div className="mt-6 flex flex-col md:grid md:grid-cols-2 gap-8 items-start relative z-10">
+            <div className="mt-6 flex flex-col md:grid md:grid-cols-2 gap-8 items-start relative z-10 print:grid print:grid-cols-2 print:gap-4">
                 
                 {/* Left Side: Payment Details */}
                 <div className="space-y-4">
@@ -416,26 +420,26 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                             </div>
                         )}
                         {/* GST Breakdown - individual lines for compliance */}
-                        {Number(sale.cgst_amount || 0) > 0 && (
+                        {gstEnabled && Number(sale.cgst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
                                 <span className="text-gray-400 font-bold uppercase tracking-widest">CGST ({sale.cgst_rate || (items.find((i: any) => Number(i.gst_rate) > 0)?.gst_rate / 2) || ''}%)</span>
                                 <span className="font-bold">₹{Number(sale.cgst_amount).toLocaleString()}</span>
                             </div>
                         )}
-                        {Number(sale.sgst_amount || 0) > 0 && (
+                        {gstEnabled && Number(sale.sgst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
                                 <span className="text-gray-400 font-bold uppercase tracking-widest">SGST ({sale.sgst_rate || (items.find((i: any) => Number(i.gst_rate) > 0)?.gst_rate / 2) || ''}%)</span>
                                 <span className="font-bold">₹{Number(sale.sgst_amount).toLocaleString()}</span>
                             </div>
                         )}
-                        {Number(sale.igst_amount || 0) > 0 && (
+                        {gstEnabled && Number(sale.igst_amount || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
                                 <span className="text-gray-400 font-bold uppercase tracking-widest">IGST ({sale.igst_rate || items.find((i: any) => Number(i.gst_rate) > 0)?.gst_rate || ''}%)</span>
                                 <span className="font-bold">₹{Number(sale.igst_amount).toLocaleString()}</span>
                             </div>
                         )}
                         {/* Legacy fallback: if only gst_total stored without breakdown */}
-                        {Number(sale.cgst_amount || 0) === 0 && Number(sale.sgst_amount || 0) === 0 && Number(sale.igst_amount || 0) === 0 && Number(sale.gst_total || 0) > 0 && (
+                        {gstEnabled && Number(sale.cgst_amount || 0) === 0 && Number(sale.sgst_amount || 0) === 0 && Number(sale.igst_amount || 0) === 0 && Number(sale.gst_total || 0) > 0 && (
                             <div className="flex justify-between items-center text-xs">
                                 <span className="font-bold text-slate-500 uppercase">GST</span>
                                 <span className="font-bold text-slate-700">+ ₹{Number(sale.gst_total).toLocaleString()}</span>
