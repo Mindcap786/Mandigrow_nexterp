@@ -11345,7 +11345,7 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
     sales_docs = frappe.get_all(
         "Mandi Sale",
         filters={"organization_id": org_id, "docstatus": 1, "saledate": ["between", [date_from, date_to]]},
-        fields=["name", "buyerid", "bookno", "saledate", "totalamount", "invoice_total", "gsttotal"]
+        fields=["name", "buyerid", "bookno", "saledate", "totalamount", "invoice_total", "gsttotal", "igst_amount", "cgst_amount", "sgst_amount"]
     )
     
     sales_data = []
@@ -11377,7 +11377,15 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
             })
             
         gst_total = float(s.gsttotal or 0)
-        
+        igst = float(s.igst_amount or 0)
+        cgst = float(s.cgst_amount or 0)
+        sgst = float(s.sgst_amount or 0)
+
+        # Fallback for old records where only gsttotal was saved
+        if gst_total > 0 and igst == 0 and cgst == 0 and sgst == 0:
+            cgst = gst_total / 2
+            sgst = gst_total / 2
+
         sales_data.append({
             "id": s.name,
             "buyer_gstin": buyer.get("gstin") or "",
@@ -11390,9 +11398,9 @@ def get_gst_report(date_from: str, date_to: str) -> dict:
             "place_of_supply": buyer.get("city") or "Local",
             "total_amount_inc_tax": float(s.invoice_total or 0),
             "total_amount": float(s.totalamount or 0),
-            "igst_amount": 0.0,
-            "cgst_amount": gst_total / 2,
-            "sgst_amount": gst_total / 2,
+            "igst_amount": igst,
+            "cgst_amount": cgst,
+            "sgst_amount": sgst,
             "sale_items": sale_items
         })
         
