@@ -35,6 +35,12 @@ export default function ItemsPage() {
         return true;
     })
     const [searchTerm, setSearchTerm] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 15
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm])
 
     useEffect(() => {
         if (profile?.organization_id) {
@@ -72,6 +78,10 @@ export default function ItemsPage() {
         item.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.internal_id?.toLowerCase().includes(searchTerm.toLowerCase())
     )
+
+    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE)
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const paginatedItems = filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE)
 
     const handleDelete = async (id: string) => {
         try {
@@ -160,7 +170,7 @@ export default function ItemsPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredItems.map((item) => (
+                                paginatedItems.map((item) => (
                                     <TableRow key={item.id} className="border-slate-100 hover:bg-slate-50 transition-colors group">
                                         <TableCell className="font-bold py-4">
                                             <div className="flex items-center gap-3">
@@ -255,6 +265,32 @@ export default function ItemsPage() {
                         </TableBody>
                     </Table>
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-6">
+                        <span className="text-sm text-slate-500 font-bold">
+                            Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredItems.length)} of {filteredItems.length} items
+                        </span>
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="outline" 
+                                disabled={currentPage === 1} 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                className="font-bold border-slate-200"
+                            >
+                                Previous
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                disabled={currentPage === totalPages} 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                className="font-bold border-slate-200"
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
