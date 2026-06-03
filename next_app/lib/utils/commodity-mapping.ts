@@ -201,7 +201,7 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
     },
     'drumstick': {
         aliases: ['sahjan', 'moringa', 'murungakkai'],
-        asset: { type: 'icon', iconName: 'Sprout' }
+        asset: { type: 'img', src: '/assets/3d/drumstick.png' }
     },
     'sweet_potato': {
         aliases: ['shakarkand', 'shakarkandi'],
