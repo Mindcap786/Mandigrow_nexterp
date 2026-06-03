@@ -423,10 +423,10 @@ export default function PurchaseBillInvoice({
             {isLastPage && (
                 <>
             {/* ───── Settlement Breakdown ───── */}
-            <div className="mt-6 flex flex-col lg:grid lg:grid-cols-2 gap-8 items-start relative z-10 print:grid print:grid-cols-2 print:gap-4">
+            <div className="mt-6 flex flex-col lg:flex-row gap-8 items-start relative z-10 print:flex print:flex-row print:gap-4 print:mt-4 print:break-inside-avoid w-full">
 
                 {/* Left Side: Transport & Payment Info */}
-                <div className="space-y-4">
+                <div className="space-y-4 w-full lg:w-1/2 print:w-[48%]">
                     {/* Payment Details Card */}
                     <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block border-b border-slate-200 pb-1">
@@ -488,7 +488,7 @@ export default function PurchaseBillInvoice({
                 </div>
 
                 {/* Right Side: Totals & Settlement */}
-                <div className="space-y-6">
+                <div className="space-y-6 w-full lg:w-1/2 print:w-[48%]">
                     <div className="space-y-1.5 border-t-2 border-black pt-4">
                         {/* Gross Value */}
                         <div className="flex justify-between items-center text-xs">

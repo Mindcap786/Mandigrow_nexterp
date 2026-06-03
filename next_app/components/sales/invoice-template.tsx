@@ -339,10 +339,10 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             {isLastPage && (
                 <>
             {/* Bottom Section: Payment (Left) and Totals (Right) */}
-            <div className="mt-6 flex flex-col md:grid md:grid-cols-2 gap-8 items-start relative z-10 print:grid print:grid-cols-2 print:gap-4">
+            <div className="mt-6 flex flex-col md:flex-row gap-8 items-start relative z-10 print:flex print:flex-row print:gap-4 print:mt-4 print:break-inside-avoid w-full">
                 
                 {/* Left Side: Payment Details */}
-                <div className="space-y-4">
+                <div className="space-y-4 w-full md:w-1/2 print:w-[48%]">
                     {/* Bank Details & QR from Settings → Bank Details page */}
                     {(organization?.settings?.payment?.print_upi_qr || organization?.settings?.payment?.print_bank_details) && (() => {
                         const defaultPayment = organization?.settings?.payment || {};
@@ -406,7 +406,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     })()}
                 </div>
                 {/* Right Side: Indices & Totals */}
-                <div className="space-y-6">
+                <div className="space-y-6 w-full md:w-1/2 print:w-[48%]">
                     {/* Totals Section */}
                     <div className="space-y-1.5 border-t-2 border-black pt-4">
                         <div className="flex justify-between items-center text-xs">
