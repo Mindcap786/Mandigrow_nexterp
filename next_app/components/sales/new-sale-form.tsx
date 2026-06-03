@@ -330,7 +330,7 @@ function NewSaleForm() {
                     market_fee_percent: Number(settingsData.market_fee_percent) || 0,
                     nirashrit_percent: Number(settingsData.nirashrit_percent) || 0,
                     misc_fee_percent: Number(settingsData.misc_fee_percent) || 0,
-                    gst_enabled: settingsData.gst_enabled || false,
+                    gst_enabled: settingsData.gst_enabled === true || settingsData.gst_enabled === 1 || settingsData.gst_enabled === "1" || settingsData.gst_enabled === "true",
                     gst_type: settingsData.gst_type || 'intra',
                     cgst_percent: Number(settingsData.cgst_percent) || 0,
                     sgst_percent: Number(settingsData.sgst_percent) || 0,

@@ -43,8 +43,13 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
     const subtotal = sale.total_amount || items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
     const totalGst = (Number(sale.cgst_amount || sale.cgst || 0) + Number(sale.sgst_amount || sale.sgst || 0) + Number(sale.igst_amount || sale.igst || 0)) || Number(sale.gst_total || 0);
+    const isInclusive = items.some((i: any) => i.sale_gst_type?.toLowerCase() === 'inclusive' || i.gst_inclusive);
+    const gstToAdd = sale.exclusive_gst_total !== undefined 
+        ? Number(sale.exclusive_gst_total) 
+        : (isInclusive ? 0 : totalGst);
+        
     const totalInvoiceAmount = Number(
-        sale.total_amount_inc_tax ||
+        sale.total_amount_inc_tax || sale.grand_total ||
         (
             subtotal +
             Number(sale.market_fee || 0) +
@@ -53,7 +58,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             Number(sale.loading_charges || 0) +
             Number(sale.unloading_charges || 0) +
             Number(sale.other_expenses || 0) +
-            totalGst -
+            gstToAdd -
             Number(sale.discount_amount || 0)
         )
     );
