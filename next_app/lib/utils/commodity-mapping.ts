@@ -184,8 +184,16 @@ const COMMODITY_LIBRARY: Record<string, { aliases: string[], asset: VisualAsset 
         asset: { type: 'icon', iconName: 'Sprout' }
     },
     'gourd': {
-        aliases: ['parwal', 'pointed gourd', 'turai', 'ridge gourd', 'nenua', 'sponge gourd', 'gilki', 'tindora', 'ivy gourd', 'kundru', 'ash gourd', 'petha', 'bottle gourd', 'lauki', 'bitter gourd', 'karela', 'pumpkin', 'kaddu'],
+        aliases: ['parwal', 'pointed gourd', 'turai', 'ridge gourd', 'nenua', 'sponge gourd', 'gilki', 'ash gourd', 'petha', 'bottle gourd', 'lauki', 'bitter gourd', 'karela'],
         asset: { type: 'icon', iconName: 'Sprout' }
+    },
+    'ivy_gourd': {
+        aliases: ['tindora', 'ivy gourd', 'kundru'],
+        asset: { type: 'img', src: '/assets/3d/ivy_gourd.png' }
+    },
+    'pumpkin': {
+        aliases: ['pumpkin', 'kaddu'],
+        asset: { type: 'img', src: '/assets/3d/pumpkin.png' }
     },
     'beans': {
         aliases: ['gawar phali', 'cluster beans', 'french beans', 'green beans', 'lobia', 'beans'],
