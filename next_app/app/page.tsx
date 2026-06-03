@@ -180,7 +180,7 @@ export default function LandingPage() {
             <InteractivePattiGenerator />
 
             {/* Features Grid */}
-            <section id="features" className="py-24 px-6 bg-[#e8f1d4] relative z-10 border-t border-[#c8d6b0]">
+            <section id="features" className="scroll-mt-28 py-24 px-6 bg-[#e8f1d4] relative z-10 border-t border-[#c8d6b0]">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-20">
                         <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">{t('landing.enterprise_title')}</h2>
@@ -387,7 +387,7 @@ export default function LandingPage() {
             </section>
 
 
-            <section id="solutions" className="py-24 px-6 bg-[#dce7c8] relative z-10 border-t border-[#c8d6b0]">
+            <section id="solutions" className="scroll-mt-28 py-24 px-6 bg-[#dce7c8] relative z-10 border-t border-[#c8d6b0]">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-20 px-4">
                         <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">{t('landing.solutions_title')}</h2>
@@ -424,7 +424,7 @@ export default function LandingPage() {
             </section>
 
             {/* Compliance Section */}
-            <section id="compliance" className="py-24 px-6 bg-white relative z-10 border-t border-[#c8d6b0]">
+            <section id="compliance" className="scroll-mt-28 py-24 px-6 bg-white relative z-10 border-t border-[#c8d6b0]">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row items-center gap-16">
                         <div className="flex-1">
