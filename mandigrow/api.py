@@ -10214,7 +10214,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
         
         # ── Global GST Compliance Master Override ────────────────────────────────
-        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled"))
+        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled", cache=False))
         # ─────────────────────────────────────────────────────────────────────────
 
         if not buyer_id:
@@ -10636,7 +10636,7 @@ def confirm_arrival_transaction(**kwargs) -> dict:
         org_id = payload.get("org_id") or payload.get("organization_id") or _get_user_org()
         
         # ── Global GST Compliance Master Override ────────────────────────────────
-        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled"))
+        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled", cache=False))
         # ─────────────────────────────────────────────────────────────────────────
         
         doc = frappe.get_doc({
