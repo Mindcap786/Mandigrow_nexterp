@@ -10411,12 +10411,18 @@ def confirm_sale_transaction(**kwargs) -> dict:
             
             # ── Per-item GST & HSN ────────────────────────────────────────────
             # Priority 1: value explicitly sent from frontend (e.g. user overrode it)
-            item_gst_rate = flt(item.get("gst_rate"))
+            raw_item_gst_rate = item.get("gst_rate")
             item_hsn = item.get("hsn_code") or ""
             
             # Priority 2: read from Item master if not sent
-            if not item_gst_rate and item_id:
-                item_gst_rate = flt(frappe.db.get_value("Item", item_id, "sale_gst_rate") or frappe.db.get_value("Item", item_id, "gst_rate") or 0)
+            if raw_item_gst_rate is None or str(raw_item_gst_rate).strip() == "":
+                if item_id:
+                    item_gst_rate = flt(frappe.db.get_value("Item", item_id, "sale_gst_rate") or frappe.db.get_value("Item", item_id, "gst_rate") or 0)
+                else:
+                    item_gst_rate = 0.0
+            else:
+                item_gst_rate = flt(raw_item_gst_rate)
+                
             if not item_hsn and item_id:
                 item_hsn = frappe.db.get_value("Item", item_id, "customs_tariff_number") or ""
             
@@ -10775,10 +10781,12 @@ def confirm_arrival_transaction(**kwargs) -> dict:
             
             final_purchase_gst_rate = 0.0
             if not is_ob:
-                # We honor the input_gst_rate (from frontend or item master).
-                # Responsibility for compliance is on the user/frontend, as silently dropping it 
-                # causes critical mismatches between frontend payload and backend bill.
-                final_purchase_gst_rate = input_gst_rate
+                if not org_gst_enabled:
+                    final_purchase_gst_rate = 0.0
+                elif not supplier_gstin:
+                    final_purchase_gst_rate = 0.0
+                else:
+                    final_purchase_gst_rate = input_gst_rate
             
             lot_data = {
                 "doctype": "Mandi Lot",
