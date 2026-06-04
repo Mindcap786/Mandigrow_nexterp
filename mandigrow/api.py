@@ -95,7 +95,7 @@ def _map_voucher_type(vtype, is_debit):
 
 
 _LOT_OPEN_STATUSES = {"", "active", "available", "partial", "pending"}
-_LOT_SOLD_STATUSES = {"sold", "sold out", "closed"}
+_LOT_SOLD_STATUSES = {"sold", "sold out", "closed", "repacked"}
 
 
 def _lot_get(row: Any, fieldname: str, default: Any = None) -> Any:
@@ -6812,7 +6812,7 @@ def get_lots_for_item(item_id: str = None) -> list:
 
     lots = frappe.get_all(
         "Mandi Lot",
-        filters={"item_id": item_id},
+        filters={"item_id": item_id, "status": ["not in", ["Repacked"]]},
         fields=_lot_query_fields(
             ["name", "item_id", "lot_code", "unit", "sale_price",
              "supplier_rate", "storage_location", "commission_percent",
@@ -6941,7 +6941,7 @@ def get_stock_summary(org_id: str = None) -> dict:
 
     lots = frappe.get_all(
         "Mandi Lot",
-        filters={"qty": [">", 0], "parent": ["in", valid_arrivals]},
+        filters={"qty": [">", 0], "parent": ["in", valid_arrivals], "status": ["not in", ["Repacked"]]},
         fields=_lot_query_fields(
             [
                 "item_id", "qty", "unit", "sale_price", "supplier_rate",
