@@ -7150,7 +7150,11 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             item_master = frappe.db.get_value("Item", item.item_id, ["item_name", "customs_tariff_number", "gst_rate"], as_dict=True) if item.item_id else {}
             item_name = item_master.get("item_name") or ""
             hsn_code = item.get("hsn_code") or item_master.get("customs_tariff_number") or ""
-            gst_rate = float(item.get("gst_rate") or item_master.get("gst_rate") or 0)
+            db_gst_rate = item.get("gst_rate")
+            if db_gst_rate is not None:
+                gst_rate = float(db_gst_rate)
+            else:
+                gst_rate = float(item_master.get("gst_rate") or 0)
             lot_code = frappe.db.get_value("Mandi Lot", item.lot_id, "lot_code") if item.lot_id else ""
             items.append({
                 "id": item.name,
