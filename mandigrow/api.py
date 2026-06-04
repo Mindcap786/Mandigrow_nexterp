@@ -14479,7 +14479,7 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
             fields=["name", "lot_code", "initial_qty", "current_qty",
                     "supplier_rate", "commission_percent", "less_percent",
                     "less_units", "packing_cost", "loading_cost",
-                    "farmer_charges", "item_id", "unit"]
+                    "farmer_charges", "item_id", "unit", "unit_weight"]
         )
         if not lots:
             frappe.throw("No lots found for this arrival.")
@@ -14494,9 +14494,31 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
         lot_ids = [l.name for l in lots]
         lot_map = {l.name: l for l in lots}
 
+        # ── Build RPK → Original lot mapping ────────────────────────────────
+        # Repacked lots have lot_code = "RPK-{original_lot_code}".
+        # We resolve each RPK lot back to its original lot so that sales made
+        # against the RPK lot are attributed to the original farmer lot.
+        # This is required to compute the correct avg rate in the original UOM.
+        lot_code_to_id = {l.lot_code: l.name for l in lots}  # lot_code → lot name
+        rpk_to_original = {}   # RPK lot name → original lot name
+        rpk_unit_weight  = {}  # RPK lot name → conversion factor (orig_unit → rpk_unit)
+        for lot in lots:
+            if lot.lot_code and str(lot.lot_code).startswith("RPK-"):
+                original_code = str(lot.lot_code)[len("RPK-"):]
+                original_id   = lot_code_to_id.get(original_code)
+                if original_id:
+                    rpk_to_original[lot.name] = original_id
+                    # unit_weight on RPK lot = conversion factor stored by create_repack_entry
+                    rpk_unit_weight[lot.name] = float(lot.unit_weight or 1)
+
         # ── 3. Aggregate actual sale values ─────────────────────────────────
         # Find all Mandi Sale Items referencing lots in this arrival.
         # We use docstatus=1 (submitted) to only count confirmed sales.
+        #
+        # GST NOTE: si.amount = qty × rate (pre-tax, EXCLUDING GST).
+        # GST is stored separately in si.gst_amount and is collected from the
+        # buyer. It must NOT be included in the farmer's payout basis.
+        # This is already correct — we never add si.gst_amount here.
         if not lot_ids:
             frappe.throw("No lot IDs found.")
 
@@ -14517,12 +14539,26 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
         if not sale_items:
             frappe.throw("No submitted sales found for lots in this arrival.")
 
-        # Aggregate per-lot actual sale values
-        lot_sales = {}  # lot_id → {qty_sold, total_amount}
+        # Aggregate per-lot actual sale values.
+        # Sales made against RPK lots are back-mapped to their original lot:
+        #   qty_sold is converted to original UOM by dividing by unit_weight.
+        #   amount is taken as-is (same money, different unit doesn't change value).
+        lot_sales = {}  # original_lot_id → {qty_sold_in_orig_uom, total_amount}
         for si in sale_items:
-            entry = lot_sales.setdefault(si.lot_id, {"qty_sold": 0.0, "total_amount": 0.0})
-            entry["qty_sold"]     += float(si.qty or 0)
-            entry["total_amount"] += float(si.amount or 0)
+            target_lot_id = si.lot_id
+            qty           = float(si.qty or 0)
+            amount        = float(si.amount or 0)
+
+            if si.lot_id in rpk_to_original:
+                # Back-map to original lot; convert qty to original UOM
+                target_lot_id = rpk_to_original[si.lot_id]
+                uw = rpk_unit_weight.get(si.lot_id, 1.0)
+                if uw > 0:
+                    qty = qty / uw  # e.g. 500 Kg / 10 Kg per Box = 50 Boxes
+
+            entry = lot_sales.setdefault(target_lot_id, {"qty_sold": 0.0, "total_amount": 0.0})
+            entry["qty_sold"]     += qty
+            entry["total_amount"] += amount
 
         # ── 4. Compute settlement financials ────────────────────────────────
         # For each lot: apply the less%, commission% on actual realized amount.
@@ -14537,6 +14573,10 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
         lot_computed_rates = {}  # lot_id → avg rate computed from actual sales
 
         for lot in lots:
+            # Skip RPK lots — their sales have been rolled up into the original lot above.
+            if lot.lot_code and str(lot.lot_code).startswith("RPK-") and lot.name in rpk_to_original:
+                continue
+
             ls = lot_sales.get(lot.name)
             if not ls or ls["qty_sold"] <= 0:
                 # Lot might have been fully returned — skip (no sale value)
@@ -14611,11 +14651,21 @@ def finalize_commission_settlement(arrival_name: str) -> dict:
             "commission_settlement_status": "Settled",
         }, update_modified=False)
 
-        # Update supplier_rate on each lot to the computed avg rate
+        # Update supplier_rate on each original lot to the computed avg rate
         # so that get_trading_pl() can compute COGS correctly going forward.
+        # Also update RPK lots: their rate = original_avg_rate / unit_weight.
         for lot_id, avg_rate in lot_computed_rates.items():
             frappe.db.set_value("Mandi Lot", lot_id, "supplier_rate", round(avg_rate, 4),
                                 update_modified=False)
+
+        # Back-fill supplier_rate on any RPK child lots
+        for rpk_lot_id, orig_lot_id in rpk_to_original.items():
+            if orig_lot_id in lot_computed_rates:
+                orig_avg = lot_computed_rates[orig_lot_id]
+                uw = rpk_unit_weight.get(rpk_lot_id, 1.0)
+                rpk_rate = round(orig_avg / uw, 4) if uw > 0 else 0.0
+                frappe.db.set_value("Mandi Lot", rpk_lot_id, "supplier_rate", rpk_rate,
+                                    update_modified=False)
 
         frappe.db.commit()
 
@@ -14776,15 +14826,27 @@ def get_commission_settlement_preview(arrival_name: str) -> dict:
 
         lots = frappe.get_all(
             "Mandi Lot", filters={"parent": arrival_name},
-            fields=["name", "initial_qty", "current_qty", "commission_percent",
-                    "less_percent", "less_units", "packing_cost", "loading_cost",
-                    "farmer_charges", "item_id"]
+            fields=["name", "lot_code", "initial_qty", "current_qty", "unit_weight",
+                    "commission_percent", "less_percent", "less_units",
+                    "packing_cost", "loading_cost", "farmer_charges", "item_id"]
         )
         lot_ids = [l.name for l in lots]
         if not lot_ids:
             return {"success": False, "error": "No lots found"}
 
         total_remaining = sum(float(l.current_qty or 0) for l in lots)
+
+        # ── Build RPK → Original lot mapping (same logic as finalize_commission_settlement) ──
+        lot_code_to_id = {l.lot_code: l.name for l in lots}
+        rpk_to_original = {}
+        rpk_unit_weight  = {}
+        for lot in lots:
+            if lot.lot_code and str(lot.lot_code).startswith("RPK-"):
+                original_code = str(lot.lot_code)[len("RPK-"):]
+                original_id   = lot_code_to_id.get(original_code)
+                if original_id:
+                    rpk_to_original[lot.name] = original_id
+                    rpk_unit_weight[lot.name] = float(lot.unit_weight or 1)
 
         lot_placeholders = ", ".join(["%s"] * len(lot_ids))
         sale_items = frappe.db.sql(f"""
@@ -14794,17 +14856,32 @@ def get_commission_settlement_preview(arrival_name: str) -> dict:
             WHERE si.lot_id IN ({lot_placeholders}) AND s.docstatus = 1
         """, lot_ids, as_dict=True)
 
+        # Aggregate sales; back-map RPK lots to their original lot.
+        # GST NOTE: si.amount is pre-GST (qty × rate). GST is excluded automatically.
         lot_sales = {}
         for si in sale_items:
-            entry = lot_sales.setdefault(si.lot_id, {"qty_sold": 0.0, "total_amount": 0.0})
-            entry["qty_sold"]     += float(si.qty or 0)
-            entry["total_amount"] += float(si.amount or 0)
+            target_lot_id = si.lot_id
+            qty           = float(si.qty or 0)
+            amount        = float(si.amount or 0)
+
+            if si.lot_id in rpk_to_original:
+                target_lot_id = rpk_to_original[si.lot_id]
+                uw = rpk_unit_weight.get(si.lot_id, 1.0)
+                if uw > 0:
+                    qty = qty / uw
+
+            entry = lot_sales.setdefault(target_lot_id, {"qty_sold": 0.0, "total_amount": 0.0})
+            entry["qty_sold"]     += qty
+            entry["total_amount"] += amount
 
         grand_realized   = 0.0
         grand_commission = 0.0
         grand_charges    = 0.0
 
         for lot in lots:
+            # Skip RPK lots — their sales are rolled up into the original lot.
+            if lot.lot_code and str(lot.lot_code).startswith("RPK-") and lot.name in rpk_to_original:
+                continue
             ls = lot_sales.get(lot.name)
             if not ls or ls["qty_sold"] <= 0:
                 continue
@@ -17694,7 +17771,10 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
         new_lot.organization_id = org_id
     new_lot.item_id = lot.item_id
     new_lot.unit = secondary_uom
-    new_lot.unit_weight = 0  # Base unit, no further conversion
+    # unit_weight on RPK lot stores the CONVERSION FACTOR from original UOM → secondary UOM.
+    # This is used during commission settlement to back-map RPK sales → original lot's UOM.
+    # e.g. if 1 Box = 10 Kg, unit_weight = 10. So 500 Kg sold / 10 = 50 Boxes equivalent.
+    new_lot.unit_weight = unit_weight
     new_lot.qty = secondary_qty
     new_lot.initial_qty = secondary_qty
     new_lot.current_qty = secondary_qty
@@ -17705,6 +17785,21 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     new_lot.parent = lot.parent
     new_lot.parenttype = lot.parenttype
     new_lot.parentfield = lot.parentfield
+
+    # ── Copy commission & billing config from parent lot ──────────────────────
+    # Commission settlement uses these to compute farmer payout correctly for
+    # RPK lots. Without this copy, the settlement skips the parent lot entirely.
+    for _field in ("commission_percent", "less_percent", "less_units",
+                   "packing_cost", "loading_cost", "farmer_charges",
+                   "gst_rate", "purchase_gst_rate", "purchase_gst_type",
+                   "is_rcm", "hsn_code"):
+        val = getattr(lot, _field, None)
+        if val is not None:
+            try:
+                setattr(new_lot, _field, val)
+            except Exception:
+                pass  # Field may not exist on every installation; non-fatal
+
     new_lot.insert(ignore_permissions=True)
     
     # 2. Close source lot
