@@ -124,6 +124,7 @@ function NewSaleForm() {
     const [accounts, setAccounts] = useState<any[]>([]);
     const [priceLists, setPriceLists] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false); // Hard guard against double-invoke
     const [amountPaid, setAmountPaid] = useState<number>(0);
     const amountPaidManuallyEdited = useRef(false);
     const discountManuallyEdited = useRef<'percent' | 'amount' | null>(null);
@@ -483,6 +484,9 @@ function NewSaleForm() {
 
     const handleConfirmPost = async () => {
         if (!pendingValues) return;
+        // Hard guard: prevent double-submit if user clicks Confirm twice rapidly
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
         const values = pendingValues;
 
         // --- MANDATORY PAYMENT VALIDATION ---
@@ -665,6 +669,7 @@ function NewSaleForm() {
             console.error('[NewSaleForm] post failed:', e);
             toast({ title: "Transaction Failed", description, variant: "destructive" });
         } finally {
+            isSubmittingRef.current = false;
             setIsSubmitting(false);
         }
     };

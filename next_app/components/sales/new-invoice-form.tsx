@@ -79,6 +79,7 @@ const NewInvoiceForm = () => {
     const router = useRouter();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false); // Hard guard against double-invoke
     const [showConfirm, setShowConfirm] = useState(false);
     const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
 
@@ -266,6 +267,9 @@ const syncBasis = watchedDistributions?.map(d => ({
 
     const handleConfirmPost = async () => {
         if (!pendingValues || !selectedLot) return;
+        // Hard guard: prevent double-submit if user clicks Confirm twice rapidly
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
         setIsSubmitting(true);
         setShowConfirm(false);
 
@@ -278,7 +282,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                         amount: dist.qty * dist.rate,
                         gst_rate: itemInfo?.sale_gst_rate,
                         is_gst_exempt: itemInfo?.is_gst_exempt,
-                        gst_inclusive: itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
+                        // Only treat as inclusive if GST switch is ON
+                        gst_inclusive: taxSettings.gst_enabled && itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive',
                     }],
                     taxSettings,
                     orgStateCode,
@@ -293,7 +298,8 @@ const syncBasis = watchedDistributions?.map(d => ({
                 
                 const idempotencyKey = crypto.randomUUID();
 
-                const isInclusiveGst = itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive';
+                // Only pass inclusive GST type if the org GST switch is ON
+                const isInclusiveGst = taxSettings.gst_enabled && itemInfo?.sale_gst_type?.toLowerCase() === 'inclusive';
 
                 const { error, data: rpcResponse, warning } = await confirmSaleTransactionWithFallback({
                     organizationId: profile!.organization_id,
@@ -309,9 +315,11 @@ const syncBasis = watchedDistributions?.map(d => ({
                         amount: totalItemsRaw,
                         unit: selectedLot.unit,
                         // Forward the GST type so the backend uses it instead of re-reading
-                        // from Item master (which might differ from what the user configured)
+                        // from Item master (which might differ from what the user configured).
+                        // When GST switch is OFF, always send Exclusive + rate=0 so backend
+                        // never applies any extraction regardless of item master config.
                         gst_type: isInclusiveGst ? 'Inclusive' : 'Exclusive',
-                        gst_rate: itemInfo?.sale_gst_rate ?? 0,
+                        gst_rate: taxSettings.gst_enabled ? (itemInfo?.sale_gst_rate ?? 0) : 0,
                     }],
                     marketFee: totals.marketFee,
                     nirashrit: totals.nirashrit,
@@ -355,6 +363,7 @@ const syncBasis = watchedDistributions?.map(d => ({
             console.error(e);
             toast({ title: "Error Saving", description: e.message, variant: "destructive" });
         } finally {
+            isSubmittingRef.current = false;
             setIsSubmitting(false);
         }
     };

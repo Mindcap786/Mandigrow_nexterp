@@ -10248,6 +10248,52 @@ def confirm_sale_transaction(**kwargs) -> dict:
         org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", org_id, "gst_enabled", cache=False))
         # ─────────────────────────────────────────────────────────────────────────
 
+        # ── Idempotency Guard: Prevent duplicate invoices from double-clicks ─────
+        # The frontend sends a unique UUID per submit attempt. If we already have
+        # a committed sale with this key, return it immediately — do NOT create a
+        # second invoice. The key is scoped per org for tenant safety.
+        idempotency_key = (
+            payload.get("p_idempotency_key")
+            or payload.get("idempotency_key")
+            or payload.get("idempotencyKey")
+        )
+        if idempotency_key:
+            # Ensure the idempotency_key column exists on Mandi Sale
+            if not frappe.db.has_column("Mandi Sale", "idempotency_key"):
+                try:
+                    frappe.get_doc({
+                        "doctype": "Custom Field",
+                        "dt": "Mandi Sale",
+                        "fieldname": "idempotency_key",
+                        "label": "Idempotency Key",
+                        "fieldtype": "Data",
+                        "insert_after": "exclusive_gst_total",
+                        "read_only": 1,
+                        "in_list_view": 0,
+                        "search_index": 1,
+                    }).insert(ignore_permissions=True)
+                    frappe.db.commit()
+                    frappe.clear_cache(doctype="Mandi Sale")
+                except Exception:
+                    pass  # Column creation is best-effort; don't block the sale
+            existing_sale = frappe.db.get_value(
+                "Mandi Sale",
+                {"idempotency_key": idempotency_key, "organization_id": org_id},
+                "name",
+            )
+            if existing_sale:
+                frappe.log_error(
+                    f"Idempotency hit: key={idempotency_key} → existing sale={existing_sale}",
+                    "confirm_sale_transaction: duplicate blocked"
+                )
+                return {
+                    "success": True,
+                    "id": existing_sale,
+                    "sale_id": existing_sale,
+                    "message": "Duplicate request — returning existing sale.",
+                }
+        # ─────────────────────────────────────────────────────────────────────────
+
         if not buyer_id:
             walkin_buyer = frappe.db.get_value("Mandi Contact", {"organization_id": org_id, "contact_type": "buyer", "full_name": "Walk-in Buyer"}, "name")
             if not walkin_buyer:
@@ -10360,8 +10406,10 @@ def confirm_sale_transaction(**kwargs) -> dict:
             "bookno": payload.get("p_book_no") or payload.get("book_no") or "",
             "lotno": payload.get("p_lot_no") or payload.get("lot_no") or "",
             "contact_bill_no": _get_next_annual_bill_no("Mandi Sale", "buyerid", buyer_id) if buyer_id else None,
+            "idempotency_key": idempotency_key or "",
             "items": []
         })
+
         
         # ── Ensure exclusive_gst_total field exists ───────────────────────
         if not frappe.db.has_column("Mandi Sale", "exclusive_gst_total"):
@@ -10430,19 +10478,23 @@ def confirm_sale_transaction(**kwargs) -> dict:
             if not item_hsn and item_id:
                 item_hsn = frappe.db.get_value("Item", item_id, "customs_tariff_number") or ""
             
-            # Master Override: If organization GST is disabled, strictly enforce 0% tax compliance
+            # Master Override: If organization GST is disabled, strictly enforce 0% tax compliance.
+            # CRITICAL: Also force sale_gst_type to "Exclusive" so the inclusive extraction
+            # block (which divides by 1 + gst_rate/100) never mutates the user-entered rate,
+            # regardless of what the frontend or item master says about GST type.
             if not org_gst_enabled:
                 item_gst_rate = 0.0
-
-            # ── GST type: prefer value explicitly sent from frontend per-item ─
-            # The frontend has already resolved the correct type for the user's
-            # selection; trusting it avoids a stale Item-master re-read that can
-            # flip an Inclusive item to Exclusive (causing double-GST).
-            frontend_gst_type = str(item.get("gst_type") or "").strip().capitalize()
-            if frontend_gst_type in ("Inclusive", "Exclusive"):
-                sale_gst_type = frontend_gst_type
+                sale_gst_type = "Exclusive"  # Non-negotiable: GST switch is OFF
             else:
-                sale_gst_type = str(frappe.db.get_value("Item", item_id, "sale_gst_type") or "Exclusive").strip().capitalize()
+                # ── GST type: prefer value explicitly sent from frontend per-item ─
+                # The frontend has already resolved the correct type for the user's
+                # selection; trusting it avoids a stale Item-master re-read that can
+                # flip an Inclusive item to Exclusive (causing double-GST).
+                frontend_gst_type = str(item.get("gst_type") or "").strip().capitalize()
+                if frontend_gst_type in ("Inclusive", "Exclusive"):
+                    sale_gst_type = frontend_gst_type
+                else:
+                    sale_gst_type = str(frappe.db.get_value("Item", item_id, "sale_gst_type") or "Exclusive").strip().capitalize()
             # ─────────────────────────────────────────────────────────────────
 
             base_amount = float(item.get("amount") or (qty * rate))
