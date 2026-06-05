@@ -2194,13 +2194,13 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> dict:
 
 
 @frappe.whitelist(allow_guest=False)
-def get_commodities() -> list:
+def get_commodities(status="active") -> list:
     """
     Returns available commodity/item list for the Arrivals form.
     Schema-aware: uses has_column guards so this never crashes if custom
     fields haven't been migrated to the cloud DB yet.
     """
-    item_filters = [["is_stock_item", "=", 1], ["disabled", "=", 0]]
+    item_filters = [["is_stock_item", "=", 1], ["disabled", "=", 1 if status == "disabled" else 0]]
     if frappe.db.has_column("Item", "organization_id"):
         item_filters.append(["organization_id", "=", _get_user_org()])
 
@@ -8911,6 +8911,11 @@ def commit_mandi_session(**kwargs) -> dict:
     buyer_loading = float(kwargs.get("buyer_loading_charges") or 0)
     buyer_packing = float(kwargs.get("buyer_packing_charges") or 0)
     buyer_payable = float(kwargs.get("buyer_payable") or 0)
+    organization_id = kwargs.get("organization_id")
+    
+    org_gst_enabled = False
+    if organization_id:
+        org_gst_enabled = bool(frappe.db.get_value("Mandi Organization", organization_id, "gst_enabled", cache=False))
     
     # Auto-generate a unified lot_prefix if not provided from UI
     if not lot_prefix:
@@ -9046,8 +9051,13 @@ def commit_mandi_session(**kwargs) -> dict:
                 item_gross = qty * rate
                 item_taxable = max(item_gross - less_amt, 0)
                 
-                gst_rate = float(row.get("gst_rate") or 0)
-                sale_gst_type = row.get("sale_gst_type") or "Exclusive"
+                if not org_gst_enabled:
+                    gst_rate = 0.0
+                    sale_gst_type = "Exclusive"
+                else:
+                    gst_rate = float(row.get("gst_rate") or 0)
+                    sale_gst_type = row.get("sale_gst_type") or "Exclusive"
+                
                 hsn_code = row.get("hsn_code") or ""
                 
                 gst_amount = 0.0
@@ -10168,6 +10178,29 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
         for arr_name in ob_arrivals:
             if frappe.db.exists("Mandi Arrival", arr_name):
                 arr_doc = frappe.get_doc("Mandi Arrival", arr_name)
+
+@frappe.whitelist(allow_guest=False)
+def restore_commodity(id: str = None) -> dict:
+    if not id:
+        return {"success": False, "error": "Item ID is required"}
+        
+    # Tenant guard: verify item belongs to user's organization
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    if not is_super_admin():
+        org_id = _get_user_org()
+        item_org = frappe.db.get_value("Item", id, "organization_id")
+        if not item_org or item_org != org_id:
+            frappe.throw(_("You do not have permission to restore this item."), frappe.PermissionError)
+
+    try:
+        if not frappe.db.exists("Item", id):
+            return {"success": False, "error": "Item not found"}
+            
+        frappe.db.set_value("Item", id, "disabled", 0, update_modified=True)
+        return {"success": True, "message": "Item restored successfully and is now active."}
+    except Exception as e:
+        frappe.log_error(title="Mandi API Error - restore_commodity", message=frappe.get_traceback())
+        return {"success": False, "error": str(e)}
                 if arr_doc.docstatus == 1:
                     arr_doc.cancel()
                 frappe.delete_doc("Mandi Arrival", arr_name, force=True, ignore_permissions=True)

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCommodityName } from "@/lib/utils/commodity-utils"
-import { Plus, Search, Package, Scale, Tag, Loader2, Pencil, Trash2 } from "lucide-react"
+import { Plus, Search, Package, Tag, Loader2, Pencil, Trash2, ArchiveRestore, Archive } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
@@ -36,11 +36,12 @@ export default function ItemsPage() {
     })
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
+    const [showArchived, setShowArchived] = useState(false)
     const ITEMS_PER_PAGE = 15
 
     useEffect(() => {
         setCurrentPage(1)
-    }, [searchTerm])
+    }, [searchTerm, showArchived])
 
     useEffect(() => {
         if (profile?.organization_id) {
@@ -48,7 +49,7 @@ export default function ItemsPage() {
         } else if (!authLoading) {
             setLoading(false)
         }
-    }, [profile?.organization_id, authLoading])
+    }, [profile?.organization_id, authLoading, showArchived])
 
     const fetchItems = useCallback(async (showLoading = true) => {
         const currentOrgId = String(profile?.organization_id || "");
@@ -56,18 +57,22 @@ export default function ItemsPage() {
 
         try {
             if (showLoading && items.length === 0) setLoading(true)
-            const res = await callApi('mandigrow.api.get_commodities')
+            const status = showArchived ? "disabled" : "active";
+            const res = await callApi('mandigrow.api.get_commodities', { status })
             
             if (res && res.commodities) {
                 setItems(res.commodities)
-                cacheSet('commodity_master', currentOrgId, res.commodities)
+                // Only cache active items to avoid confusion on reload
+                if (!showArchived) {
+                    cacheSet('commodity_master', currentOrgId, res.commodities)
+                }
             }
         } catch (error) {
             console.error("Error fetching items:", error)
         } finally {
             setLoading(false)
         }
-    }, [profile?.organization_id, items.length])
+    }, [profile?.organization_id, items.length, showArchived])
 
     const filteredItems = items.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,6 +112,22 @@ export default function ItemsPage() {
         }
     }
 
+    const handleRestore = async (id: string) => {
+        try {
+            const res = await callApi('mandigrow.api.restore_commodity', { id });
+            if (res && res.success) {
+                toast({ title: "Restored", description: "Item has been successfully restored to active status." });
+                fetchItems(false);
+            }
+        } catch (error: any) {
+            toast({
+                title: "Restore Failed",
+                description: error.message || "Cannot restore item.",
+                variant: "destructive"
+            });
+        }
+    }
+
     return (
         <div className="p-8 space-y-6 text-slate-900 min-h-screen">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -129,8 +150,8 @@ export default function ItemsPage() {
             </header>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="relative flex-1 max-w-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div className="relative flex-1 max-w-sm w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input
                             placeholder="Search by name or local name..."
@@ -138,6 +159,24 @@ export default function ItemsPage() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+                        <Button
+                            variant={!showArchived ? "default" : "ghost"}
+                            className={`rounded-lg px-4 font-bold text-sm h-9 ${!showArchived ? 'bg-white text-black shadow-sm' : 'text-slate-500 hover:text-black'}`}
+                            onClick={() => setShowArchived(false)}
+                        >
+                            Active
+                        </Button>
+                        <Button
+                            variant={showArchived ? "default" : "ghost"}
+                            className={`rounded-lg px-4 font-bold text-sm h-9 ${showArchived ? 'bg-white text-black shadow-sm' : 'text-slate-500 hover:text-black'}`}
+                            onClick={() => setShowArchived(true)}
+                        >
+                            <Archive className="w-4 h-4 mr-2" />
+                            Archived
+                        </Button>
                     </div>
                 </div>
 
@@ -224,38 +263,49 @@ export default function ItemsPage() {
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1 pr-2">
                                                 {profile?.organization_id && (
-                                                    <>
-                                                        <ItemDialog onSuccess={() => fetchItems(false)} initialItem={item}>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-slate-100 text-slate-400 hover:text-black">
-                                                                <Pencil className="w-4 h-4" />
-                                                            </Button>
-                                                        </ItemDialog>
-                                                        
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-red-50 text-slate-300 hover:text-red-500">
-                                                                    <Trash2 className="w-4 h-4" />
+                                                    showArchived ? (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            onClick={() => handleRestore(item.id)}
+                                                            className="h-8 px-3 rounded-full hover:bg-green-50 text-slate-500 hover:text-green-600 font-bold text-xs"
+                                                        >
+                                                            <ArchiveRestore className="w-4 h-4 mr-1" />
+                                                            Restore
+                                                        </Button>
+                                                    ) : (
+                                                        <>
+                                                            <ItemDialog onSuccess={() => fetchItems(false)} initialItem={item}>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-slate-100 text-slate-400 hover:text-black">
+                                                                    <Pencil className="w-4 h-4" />
                                                                 </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent className="rounded-2xl border-slate-200 shadow-2xl">
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">Delete {item.name}?</AlertDialogTitle>
-                                                                    <AlertDialogDescription className="text-slate-500 font-medium">
-                                                                        Are you sure you want to remove this commodity? This action cannot be undone if the item has no transactions.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel className="rounded-xl font-bold border-slate-200">Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction 
-                                                                        onClick={() => handleDelete(item.id)}
-                                                                        className="bg-red-500 text-white hover:bg-red-600 rounded-xl font-black uppercase tracking-widest px-6"
-                                                                    >
-                                                                        Delete Item
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </>
+                                                            </ItemDialog>
+                                                            
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-red-50 text-slate-300 hover:text-red-500">
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent className="rounded-2xl border-slate-200 shadow-2xl">
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">Delete {item.name}?</AlertDialogTitle>
+                                                                        <AlertDialogDescription className="text-slate-500 font-medium">
+                                                                            Are you sure you want to remove this commodity? This action cannot be undone if the item has no transactions.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel className="rounded-xl font-bold border-slate-200">Cancel</AlertDialogCancel>
+                                                                        <AlertDialogAction 
+                                                                            onClick={() => handleDelete(item.id)}
+                                                                            className="bg-red-500 text-white hover:bg-red-600 rounded-xl font-black uppercase tracking-widest px-6"
+                                                                        >
+                                                                            Delete Item
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        </>
+                                                    )
                                                 )}
                                             </div>
                                         </TableCell>
