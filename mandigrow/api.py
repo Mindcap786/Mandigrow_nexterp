@@ -10178,6 +10178,17 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
         for arr_name in ob_arrivals:
             if frappe.db.exists("Mandi Arrival", arr_name):
                 arr_doc = frappe.get_doc("Mandi Arrival", arr_name)
+                if arr_doc.docstatus == 1:
+                    arr_doc.cancel()
+                frappe.delete_doc("Mandi Arrival", arr_name, force=1)
+                
+        frappe.delete_doc("Item", target_id, force=1)
+        frappe.flags.ignore_permissions = False
+        
+        return {"success": True, "message": "Item fully deleted.", "action": "deleted"}
+    except Exception as e:
+        frappe.log_error(title="Delete Commodity Error", message=str(e))
+        return {"success": False, "error": str(e)}
 
 @frappe.whitelist(allow_guest=False)
 def restore_commodity(id: str = None) -> dict:
@@ -10201,23 +10212,7 @@ def restore_commodity(id: str = None) -> dict:
     except Exception as e:
         frappe.log_error(title="Mandi API Error - restore_commodity", message=frappe.get_traceback())
         return {"success": False, "error": str(e)}
-                if arr_doc.docstatus == 1:
-                    arr_doc.cancel()
-                frappe.delete_doc("Mandi Arrival", arr_name, force=True, ignore_permissions=True)
 
-        # Now delete the item
-        frappe.delete_doc("Item", target_id, force=True, ignore_permissions=True)
-        return {"success": True, "message": "Item completely deleted along with its Opening Balance.", "action": "deleted"}
-
-    except frappe.LinkExistsError:
-        # Fallback if there's an unknown linked document
-        frappe.db.set_value("Item", target_id, "disabled", 1, update_modified=True)
-        return {"success": True, "message": "Item disabled (could not be fully deleted due to linked records).", "action": "disabled"}
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "delete_commodity Failed")
-        return {"success": False, "error": str(e)}
-    finally:
-        frappe.flags.ignore_permissions = False
 
 def _get_next_annual_bill_no(doctype: str, party_field: str, party_id: str) -> str:
     """
