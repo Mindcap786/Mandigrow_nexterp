@@ -143,9 +143,20 @@ export default function ContactsPage() {
         if (!confirm(`RESET SEQUENCES: Are you sure you want to reset sequences for ALL ${count} filtered contacts?`)) return
         setLoading(true)
         try {
-            // Bulk sequence reset is a no-op in Frappe
-            toast.success(`Reset sequences for ${count} contacts`)
-        } catch { toast.error("Bulk reset failed") }
+            const contactIds = filteredContacts.map(c => c.id)
+            const res: any = await callApi('mandigrow.api.bulk_reset_invoice_sequence', { contact_ids: JSON.stringify(contactIds) })
+            
+            if (res?.success === false) {
+                toast.error(`Bulk reset failed: ${res.error || 'Unknown error'}`)
+            } else {
+                let msg = `Reset sequences for ${count} contacts`
+                if (res?.reset_count) msg += ` (${res.reset_count} invoices archived)`
+                if (res?.errors?.length > 0) msg += `. Failed for ${res.errors.length} contacts.`
+                toast.success(msg)
+            }
+        } catch (error: any) { 
+            toast.error(`Bulk reset failed: ${error?.message || 'Network error'}`) 
+        }
         finally { setLoading(false) }
     }
 

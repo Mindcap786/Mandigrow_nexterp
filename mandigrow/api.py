@@ -15344,6 +15344,40 @@ def return_stock(lot_id: str, return_qty: float, reason: str = "Returned to Supp
     }
 
 @frappe.whitelist()
+def bulk_reset_invoice_sequence(contact_ids: str):
+    """
+    Resets the invoice sequence for a list of contacts.
+    contact_ids: JSON array of contact IDs
+    """
+    import json
+    try:
+        c_ids = json.loads(contact_ids)
+    except Exception:
+        c_ids = []
+        
+    if not isinstance(c_ids, list) or not c_ids:
+        return {"success": False, "error": "Invalid contact_ids list"}
+        
+    total_reset_count = 0
+    errors = []
+    
+    for c_id in c_ids:
+        res = reset_invoice_sequence(c_id)
+        if res.get("success"):
+            total_reset_count += res.get("reset_count", 0)
+        else:
+            errors.append(f"{c_id}: {res.get('error')}")
+            
+    if errors and total_reset_count == 0:
+        return {"success": False, "error": f"Failed for all contacts: {', '.join(errors)}"}
+        
+    return {
+        "success": True,
+        "reset_count": total_reset_count,
+        "errors": errors
+    }
+
+@frappe.whitelist()
 def reset_invoice_sequence(contact_id: str):
     """
     Resets the invoice sequence for a specific contact (farmer/supplier).
