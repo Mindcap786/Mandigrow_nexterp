@@ -2369,7 +2369,7 @@ def get_financial_summary(p_org_id: str = None, _cache_bust: any = None) -> dict
 @frappe.whitelist(allow_guest=False)
 def get_accounts(account_type: str = None, sub_type: str = None) -> list:
     """Returns a list of accounts filtered by type."""
-    filters = [["company", "=", _get_user_company()]]
+    filters = [["company", "=", _get_user_company()], ["is_group", "=", 0]]
     if account_type:
         filters.append(["root_type", "=", (account_type or "").title()])
     if sub_type:
