@@ -329,7 +329,7 @@ export default function StockPage() {
                     shelf_life_days: item.shelf_life_days,
                     critical_age_days: item.critical_age_days,
                     current_stock: lot.qty || 0,
-                    total_inward: lot.qty || 0,
+                    total_inward: lot.initial_qty || lot.qty || 0,
                     unit: lot.unit || item.unit || 'Kg',
                     secondary_uom: lot.secondary_uom || 'Kg',
                     secondary_equivalent: lot.secondary_equivalent || 0,
