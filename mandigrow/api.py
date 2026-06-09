@@ -10208,7 +10208,7 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
     if not is_super_admin():
         org_id = _get_user_org()
         item_org = frappe.db.get_value("Item", target_id, "organization_id")
-        if not item_org or item_org != org_id:
+        if item_org != org_id:
             frappe.throw(_("You do not have permission to delete this item."), frappe.PermissionError)
 
     try:
@@ -10250,8 +10250,16 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
         
         return {"success": True, "message": "Item fully deleted.", "action": "deleted"}
     except Exception as e:
-        frappe.log_error(title="Delete Commodity Error", message=str(e))
-        return {"success": False, "error": str(e)}
+        msg = str(e)
+        if not msg and getattr(frappe.local, 'message_log', None):
+            import json
+            try:
+                msgs = [json.loads(m).get("message") for m in frappe.local.message_log]
+                msg = " | ".join(filter(None, msgs))
+            except Exception:
+                pass
+        frappe.log_error(title="Delete Commodity Error", message=msg or "Unknown Error")
+        return {"success": False, "error": msg or "Unknown Error"}
 
 @frappe.whitelist(allow_guest=False)
 def restore_commodity(id: str = None) -> dict:
