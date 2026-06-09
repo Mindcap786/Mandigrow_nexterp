@@ -2243,6 +2243,10 @@ def get_contacts(org_id: str = None, contact_type: str = None) -> dict:
         elif f[1] == "!=":
             where_parts.append(f"`{f[0]}` != %s")
             params.append(f[2])
+            
+    # Safely hide archived contacts without breaking older NULL status contacts
+    where_parts.append("(status IS NULL OR status != 'inactive')")
+    
     where_sql = " AND ".join(where_parts) if where_parts else "1=1"
 
     contacts_raw = frappe.db.sql(f"""
@@ -4903,6 +4907,10 @@ def get_master_data(org_id: str = None, contact_type: str = None) -> dict:
     # result parsing, causing empty contact lists even when records exist.
     contact_where = ["1=1"]
     contact_where.append("full_name != 'Opening Balance'")
+    
+    # Safely hide archived contacts
+    contact_where.append("(status IS NULL OR status != 'inactive')")
+    
     contact_params = []
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         contact_where.append("organization_id = %s")
@@ -6705,6 +6713,8 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
 
     # Build WHERE clause from filters list for raw SQL
     sql_where = ["1=1"]
+    sql_where.append("(status IS NULL OR status != 'inactive')")
+    
     sql_params = []
     for f in filters:
         if f[1] == "=":
@@ -7479,22 +7489,27 @@ def update_contact(contact_id: str = None, **kwargs) -> dict:
 
 @frappe.whitelist(allow_guest=False)
 def delete_contact(contact_id: str = None) -> dict:
-    """Delete a Mandi Contact.
-    
-    Deletes ONLY the contact record. All linked financial records
-    (arrivals, ledger entries, daybook, invoices) are fully preserved.
-    force=True bypasses Frappe's link-existence check without cascading.
-    """
     if not contact_id:
         frappe.throw("Contact ID required")
     from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
     enforce_org_match_by_name("Mandi Contact", contact_id)
     
-    contact = frappe.get_doc("Mandi Contact", contact_id)
-    # Instead of deleting, we archive the contact to preserve historical integrity
-    frappe.db.set_value("Mandi Contact", contact_id, "status", "inactive")
-    frappe.db.commit()
-    return {"status": "deleted"}
+    # Check for historical records
+    has_arrivals = frappe.db.count("Mandi Arrival", {"party_id": contact_id}) > 0
+    has_sales = frappe.db.count("Mandi Sale", {"buyerid": contact_id}) > 0
+    has_gl = frappe.db.count("GL Entry", {"party": contact_id}) > 0
+    has_payments = frappe.db.count("Payment Entry", {"party": contact_id}) > 0
+    
+    if has_arrivals or has_sales or has_gl or has_payments:
+        # Instead of deleting, we archive the contact to preserve historical integrity
+        frappe.db.set_value("Mandi Contact", contact_id, "status", "inactive")
+        frappe.db.commit()
+        return {"status": "archived", "message": "Contact archived successfully. It cannot be permanently deleted because it has historical transactions."}
+    else:
+        # Safe to permanently delete
+        frappe.delete_doc("Mandi Contact", contact_id, force=1)
+        frappe.db.commit()
+        return {"status": "deleted", "message": "Contact permanently deleted."}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -10234,7 +10249,7 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
         if has_real_sales or has_real_purchases:
             # We must Disable instead of Delete to protect ledger
             frappe.db.set_value("Item", target_id, "disabled", 1, update_modified=True)
-            return {"success": True, "message": "Item disabled successfully. It cannot be permanently deleted because it has real sales or purchases attached.", "action": "disabled"}
+            return {"success": True, "message": "Item archived (disabled) successfully because it has historical transactions.", "action": "disabled"}
 
         # 2. It's safe to fully delete. First, cancel and delete OB Arrivals if any
         frappe.flags.ignore_permissions = True
