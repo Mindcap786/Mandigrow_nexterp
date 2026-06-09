@@ -16,7 +16,7 @@ export default function FollowUpsPage() {
     const [filterType, setFilterType] = useState<'receivable' | 'payable'>('receivable')
     const [parties, setParties] = useState<any[]>([])
     const [page, setPage] = useState(0)
-    const [pageSize, setPageSize] = useState(10)
+    const [pageSize, setPageSize] = useState(20)
 
     const fetchBalances = async () => {
         if (!profile?.organization_id) return
