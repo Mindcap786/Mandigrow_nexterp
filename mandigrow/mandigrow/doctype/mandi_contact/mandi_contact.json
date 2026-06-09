@@ -26,7 +26,8 @@
   "billing_address_line2",
   "sb_erpnext",
   "supplier",
-  "customer"
+  "customer",
+  "status"
  ],
  "fields": [
   {
@@ -153,6 +154,13 @@
    "label": "Linked Customer",
    "options": "Customer",
    "read_only": 1
+  },
+  {
+   "default": "active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "active\ninactive"
   }
  ],
  "grid_page_length": 50,

@@ -32,7 +32,7 @@ export default function ContactsPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [typeFilter, setTypeFilter] = useState("all")
     const [locationFilter, setLocationFilter] = useState("all")
-    const [statusFilter, setStatusFilter] = useState("all")
+    const [statusFilter, setStatusFilter] = useState("active")
     const [isUpdating, setIsUpdating] = useState<string | null>(null)
     const [contactToDelete, setContactToDelete] = useState<{ id: string, name: string, error?: string } | null>(null)
     const [resetConfirm, setResetConfirm] = useState<{ id: string, name: string, type: string } | null>(null)
@@ -70,7 +70,7 @@ export default function ContactsPage() {
             const contacts = (data?.contacts || []).map((c: any) => ({
                 ...c,
                 type: c.contact_type || 'buyer',
-                status: 'active',
+                status: c.status || 'active',
             }));
             setContacts(contacts);
         } catch (error) {
@@ -88,7 +88,7 @@ export default function ContactsPage() {
         setContacts(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c))
 
         try {
-            await callApi('mandigrow.api.update_contact', { contact_id: id });
+            await callApi('mandigrow.api.update_contact', { contact_id: id, status: newStatus });
             toast.success(`Status updated to ${newStatus}`)
         } catch (error) {
             toast.error("Error updating status")
@@ -286,9 +286,9 @@ export default function ContactsPage() {
                         {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
                         {statusFilter !== 'all' && ` · ${statusFilter}`}
                     </p>
-                    {typeFilter !== 'all' || locationFilter !== 'all' || statusFilter !== 'all' ?
+                    {typeFilter !== 'all' || locationFilter !== 'all' || statusFilter !== 'active' ?
                         <button
-                            onClick={() => { setTypeFilter('all'); setLocationFilter('all'); setStatusFilter('all') }}
+                            onClick={() => { setTypeFilter('all'); setLocationFilter('all'); setStatusFilter('active') }}
                             className="text-xs text-[#DC2626] font-semibold"
                         >
                             Clear filters
