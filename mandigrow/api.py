@@ -1994,44 +1994,121 @@ def get_stock_alerts() -> list:
     if not org_id:
         return []
         
-    # Find low stock lots (qty > 0 but low)
     valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
     if not valid_arrivals:
         return []
         
-    # Note: two filters on same field need frappe.db.sql or fetch+filter in Python
-    # Frappe get_all dict filters drop duplicate keys (Python dict behavior)
-    # Fetch all active lots and filter in-memory for threshold < 20
+    # Check if Mandi Lot has the age columns, fallback safely if not migrated yet
+    lot_fields = ["name", "item_id", "current_qty", "qty", "unit", "parent", "creation", "storage_location"]
+    if frappe.db.has_column("Mandi Lot", "shelf_life_days"):
+        lot_fields.append("shelf_life_days")
+    if frappe.db.has_column("Mandi Lot", "critical_age_days"):
+        lot_fields.append("critical_age_days")
+
     all_active_lots = frappe.get_all("Mandi Lot",
         filters={"parent": ["in", valid_arrivals], "qty": [">", 0]},
-        fields=["name", "item_id", "current_qty", "qty", "unit", "parent", "creation", "storage_location"],
+        fields=lot_fields,
         ignore_permissions=True,
         limit_page_length=500,
     )
-    low_stock_lots = [l for l in all_active_lots if (l.get("current_qty") or l.get("qty") or 0) < 20 and (l.get("current_qty") or l.get("qty") or 0) > 0][:10]
     
+    # Fetch Item defaults for shelf_life and critical_age
+    item_ids = list(set([l.get("item_id") for l in all_active_lots if l.get("item_id")]))
+    item_defaults = {}
+    if item_ids:
+        item_fields = ["name", "shelf_life_in_days"]
+        if frappe.db.has_column("Item", "critical_age_days"):
+            item_fields.append("critical_age_days")
+            
+        items = frappe.get_all("Item", filters={"name": ["in", item_ids]}, fields=item_fields, ignore_permissions=True)
+        for i in items:
+            item_defaults[i.name] = {
+                "shelf_life_days": i.get("shelf_life_in_days") or 0,
+                "critical_age_days": i.get("critical_age_days") or 0
+            }
+
+    from frappe.utils import date_diff, nowdate, getdate
+    today = getdate(nowdate())
+
     alerts = []
-    for lot in low_stock_lots:
-        alerts.append({
-            "id": f"alert-{lot.name}",
-            "organization_id": org_id,
-            "alert_type": "LOW_STOCK",
-            "severity": "medium",
-            "commodity_id": lot.item_id,
-            "commodity_name": lot.item_id or "Unknown",
-            "associated_lot_id": lot.name,
-            "location_name": None,
-            "current_value": lot.current_qty,
-            "threshold_value": 20,
-            "unit": lot.unit,
-            "is_seen": False,
-            "seen_at": None,
-            "is_resolved": False,
-            "resolved_at": None,
-            "created_at": str(lot.creation)
-        })
+    
+    for lot in all_active_lots:
+        current_qty = lot.get("current_qty") or lot.get("qty") or 0
+        if current_qty <= 0:
+            continue
+            
+        # 1. Check for LOW STOCK
+        if current_qty < 20:
+            alerts.append({
+                "id": f"alert-low-{lot.name}",
+                "organization_id": org_id,
+                "alert_type": "LOW_STOCK",
+                "severity": "medium",
+                "commodity_id": lot.item_id,
+                "commodity_name": lot.item_id or "Unknown",
+                "associated_lot_id": lot.name,
+                "location_name": lot.get("storage_location"),
+                "current_value": current_qty,
+                "threshold_value": 20,
+                "unit": lot.unit,
+                "is_seen": False,
+                "seen_at": None,
+                "is_resolved": False,
+                "resolved_at": None,
+                "created_at": str(lot.creation)
+            })
+
+        # 2. Check for AGING
+        if not lot.creation:
+            continue
+            
+        age_days = date_diff(today, getdate(lot.creation))
         
-    return alerts
+        lot_shelf = lot.get("shelf_life_days") or 0
+        lot_critical = lot.get("critical_age_days") or 0
+        
+        i_def = item_defaults.get(lot.item_id, {})
+        shelf_life = lot_shelf or i_def.get("shelf_life_days") or 0
+        critical_age = lot_critical or i_def.get("critical_age_days") or 0
+        
+        alert_type = None
+        severity = None
+        threshold = 0
+        
+        if critical_age > 0 and age_days >= critical_age:
+            alert_type = "AGING_CRITICAL"
+            severity = "critical"
+            threshold = critical_age
+        elif shelf_life > 0 and age_days >= shelf_life:
+            alert_type = "AGING_WARNING"
+            severity = "high"
+            threshold = shelf_life
+            
+        if alert_type:
+            alerts.append({
+                "id": f"alert-age-{lot.name}",
+                "organization_id": org_id,
+                "alert_type": alert_type,
+                "severity": severity,
+                "commodity_id": lot.item_id,
+                "commodity_name": lot.item_id or "Unknown",
+                "associated_lot_id": lot.name,
+                "location_name": lot.get("storage_location"),
+                "current_value": age_days,
+                "threshold_value": threshold,
+                "unit": "Days",
+                "is_seen": False,
+                "seen_at": None,
+                "is_resolved": False,
+                "resolved_at": None,
+                "created_at": str(lot.creation)
+            })
+            
+    # Sort by severity
+    severity_rank = {"emergency": 0, "critical": 1, "high": 2, "medium": 3, "low": 4}
+    alerts.sort(key=lambda x: severity_rank.get(x["severity"], 5))
+    
+    return alerts[:30]
 
 
 @frappe.whitelist(allow_guest=False)
@@ -6640,7 +6717,7 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
 
     contacts_raw = frappe.db.sql(f"""
         SELECT name AS id, full_name AS display_name, contact_type, phone, city, address, internal_id,
-               gstin, pan_number, state, pincode, billing_address_line1, billing_address_line2
+               gstin, pan_number, state, pincode, billing_address_line1, billing_address_line2, status
         FROM `tabMandi Contact`
         WHERE {where_sql}
         ORDER BY full_name ASC
@@ -6658,6 +6735,7 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
         "gstin": c.get("gstin") or "",
         "pan_number": c.get("pan_number") or "",
         "state": c.get("state") or "",
+        "status": c.get("status") or "active",
         "pincode": c.get("pincode") or "",
         "billing_address_line1": c.get("billing_address_line1") or "",
         "billing_address_line2": c.get("billing_address_line2") or "",
@@ -7409,27 +7487,8 @@ def delete_contact(contact_id: str = None) -> dict:
     enforce_org_match_by_name("Mandi Contact", contact_id)
     
     contact = frappe.get_doc("Mandi Contact", contact_id)
-    if contact.supplier:
-        balance = frappe.db.sql("""
-            SELECT SUM(debit - credit)
-            FROM `tabGL Entry`
-            WHERE party_type='Supplier' AND party=%s AND is_cancelled=0
-        """, (contact.supplier,))
-        bal_val = balance[0][0] if balance and balance[0][0] else 0
-        if round(float(bal_val), 2) != 0.0:
-            frappe.throw("Cannot delete contact. They have an outstanding balance. Please clear the balance first.")
-            
-    if contact.customer:
-        balance = frappe.db.sql("""
-            SELECT SUM(debit - credit)
-            FROM `tabGL Entry`
-            WHERE party_type='Customer' AND party=%s AND is_cancelled=0
-        """, (contact.customer,))
-        bal_val = balance[0][0] if balance and balance[0][0] else 0
-        if round(float(bal_val), 2) != 0.0:
-            frappe.throw("Cannot delete contact. They have an outstanding balance. Please clear the balance first.")
-
-    frappe.delete_doc("Mandi Contact", contact_id, ignore_permissions=True, force=True)
+    # Instead of deleting, we archive the contact to preserve historical integrity
+    frappe.db.set_value("Mandi Contact", contact_id, "status", "inactive")
     frappe.db.commit()
     return {"status": "deleted"}
 
