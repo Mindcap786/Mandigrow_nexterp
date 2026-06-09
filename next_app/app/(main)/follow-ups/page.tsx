@@ -16,6 +16,7 @@ export default function FollowUpsPage() {
     const [filterType, setFilterType] = useState<'receivable' | 'payable'>('receivable')
     const [parties, setParties] = useState<any[]>([])
     const [page, setPage] = useState(0)
+    const [pageSize, setPageSize] = useState(10)
 
     const fetchBalances = async () => {
         if (!profile?.organization_id) return
@@ -24,8 +25,8 @@ export default function FollowUpsPage() {
             const res: any = await callApi('mandigrow.api.get_party_balances', {
                 sub_filter: filterType,
                 search_query: search,
-                limit_start: page * 50,
-                limit_page_length: 50
+                limit_start: page * pageSize,
+                limit_page_length: pageSize
             })
             let data = [];
             if (Array.isArray(res)) data = res;
@@ -45,7 +46,7 @@ export default function FollowUpsPage() {
             fetchBalances()
         }, 300) // debounce
         return () => clearTimeout(timeout)
-    }, [search, filterType, page, profile?.organization_id])
+    }, [search, filterType, page, pageSize, profile?.organization_id])
 
     const handleWhatsApp = (party: any) => {
         if (!party.contact_phone) {
@@ -94,7 +95,7 @@ export default function FollowUpsPage() {
                     <Input
                         placeholder="Search Party Name..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                         className="pl-10 h-12 rounded-xl text-lg font-bold border-slate-200"
                     />
                 </div>
@@ -211,7 +212,7 @@ export default function FollowUpsPage() {
                     <span className="text-xs font-black tracking-widest text-slate-400">Page {page + 1}</span>
                     <button
                         onClick={() => setPage(p => p + 1)}
-                        disabled={parties.length < 50}
+                        disabled={parties.length < pageSize}
                         className="px-6 py-3 font-bold text-xs uppercase tracking-widest text-slate-500 disabled:opacity-50 hover:bg-slate-50 rounded-xl"
                     >
                         Next
