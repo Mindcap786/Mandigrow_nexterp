@@ -1994,9 +1994,12 @@ def get_stock_alerts() -> list:
     if not org_id:
         return []
         
-    valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
-    if not valid_arrivals:
+    valid_arrivals_data = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, fields=["name", "arrival_date"])
+    if not valid_arrivals_data:
         return []
+        
+    arrival_map = {a.name: a.arrival_date for a in valid_arrivals_data}
+    valid_arrivals = list(arrival_map.keys())
         
     # Check if Mandi Lot has the age columns, fallback safely if not migrated yet
     lot_fields = ["name", "item_id", "current_qty", "qty", "unit", "parent", "creation", "storage_location"]
@@ -2059,10 +2062,11 @@ def get_stock_alerts() -> list:
             })
 
         # 2. Check for AGING
-        if not lot.creation:
+        arrival_date = arrival_map.get(lot.parent)
+        if not arrival_date:
             continue
             
-        age_days = date_diff(today, getdate(lot.creation))
+        age_days = date_diff(today, getdate(arrival_date))
         
         lot_shelf = lot.get("shelf_life_days") or 0
         lot_critical = lot.get("critical_age_days") or 0

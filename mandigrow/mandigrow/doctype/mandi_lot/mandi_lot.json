@@ -68,7 +68,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Available\nPartial\nSold Out"
+   "options": "Available\nPartial\nSold Out\nRepacked"
   },
   {
    "fieldname": "unit",

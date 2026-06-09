@@ -36,7 +36,7 @@ function LotRow({ lot, itemDefaults, onMoveStock, onWastage, onUpdate, onReturn,
     const [savingConfig, setSavingConfig] = useState(false)
     const [configOpen, setConfigOpen] = useState(false)
 
-    const arrivalDate = new Date(lot.created_at)
+    const arrivalDate = new Date(lot.mfg_date || lot.created_at)
     const daysSinceArrival = differenceInDays(new Date(), arrivalDate)
     const effectiveShelfLife = lot.shelf_life_days || itemDefaults?.shelf_life_days || 7
     const effectiveCriticalAge = lot.critical_age_days || itemDefaults?.critical_age_days || 14
