@@ -7551,7 +7551,7 @@ def delete_contact(contact_id: str = None) -> dict:
                 """, (company, customer_id, supplier_id, contact_id))
                 outstanding_balance = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
         except Exception as e:
-            frappe.log_error(str(e), "Delete Contact Balance Check Error")
+            frappe.log_error(frappe.get_traceback(), "Delete Contact Balance Check Error")
             pass
                 
         # 3. Execution Rules
@@ -18138,3 +18138,8 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
     
     frappe.db.commit()
     return {"success": True, "new_lot_id": new_lot.name, "secondary_qty": secondary_qty, "rate_per_secondary": rate_per_secondary}
+
+@frappe.whitelist(allow_guest=True)
+def get_debug_logs():
+    return frappe.db.sql("SELECT creation, method, error FROM `tabError Log` ORDER BY creation DESC LIMIT 10", as_dict=True)
+
