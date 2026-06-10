@@ -12,7 +12,7 @@ import {
     Loader2, MoreHorizontal, Power, PowerOff, Trash2, Building2, Plus,
     Eye, Search, Filter, ShieldCheck, RefreshCw, ArrowUpRight,
     AlertTriangle, CheckCircle2, TrendingDown, ChevronRight, Users, Zap,
-    Key, Phone, Link as LinkIcon
+    Key, Phone, Link as LinkIcon, FileDown, FileText
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -66,7 +66,9 @@ export default function TenantsPage() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterPlan, setFilterPlan] = useState('all');
     const [filterCity, setFilterCity] = useState('all');
-    const [filterExpiryBefore, setFilterExpiryBefore] = useState(''); // YYYY-MM-DD
+    const [filterExpiryFrom, setFilterExpiryFrom] = useState(''); // YYYY-MM-DD
+    const [filterExpiryTo, setFilterExpiryTo] = useState('');   // YYYY-MM-DD
+    const [isExporting, setIsExporting] = useState(false);
 
     const [isProvisioning, setIsProvisioning] = useState(false);
     const [provisionOpen, setProvisionOpen] = useState(false);
@@ -333,17 +335,24 @@ export default function TenantsPage() {
                 (filterStatus === 'suspended' && !t.status && !t.is_active);
         }
 
-        // "Expiring Before" date filter — works across all statuses
+        // Expiry date range filter — works across all statuses
         let matchExpiry = true;
-        if (filterExpiryBefore) {
+        if (filterExpiryFrom || filterExpiryTo) {
             const expiresAt = t.status === 'trial' ? t.trial_ends_at : (t.current_period_end || t.trial_ends_at);
             if (!expiresAt) {
                 matchExpiry = false;
             } else {
                 const expiryDate = new Date(expiresAt);
-                const cutoff = new Date(filterExpiryBefore);
-                cutoff.setHours(23, 59, 59, 999); // include entire cutoff day
-                matchExpiry = expiryDate <= cutoff && expiryDate >= new Date();
+                if (filterExpiryFrom) {
+                    const from = new Date(filterExpiryFrom);
+                    from.setHours(0, 0, 0, 0);
+                    if (expiryDate < from) matchExpiry = false;
+                }
+                if (matchExpiry && filterExpiryTo) {
+                    const to = new Date(filterExpiryTo);
+                    to.setHours(23, 59, 59, 999);
+                    if (expiryDate > to) matchExpiry = false;
+                }
             }
         }
 
@@ -361,6 +370,103 @@ export default function TenantsPage() {
         totalUsers: tenants.reduce((acc, t) => acc + (t.profiles?.length || 0), 0)
     };
 
+    // ── Export helpers ──────────────────────────────────────────────────────
+    const buildExportRows = () =>
+        filtered.map(t => {
+            const lifecycle = getLifecycleState(t);
+            const expiresAt = t.status === 'trial' ? t.trial_ends_at : (t.current_period_end || t.trial_ends_at);
+            const daysLeft = expiresAt ? differenceInDays(new Date(expiresAt), new Date()) : null;
+            return {
+                'Tenant Name':      t.name || '',
+                'Owner Name':       t.owner?.full_name || '',
+                'Username':         t.owner?.username ? `@${t.owner.username}` : '',
+                'Email':            t.owner?.email || '',
+                'Phone':            t.owner?.phone || t.phone || '',
+                'City':             t.city || '',
+                'Plan':             t.subscription_tier || 'basic',
+                'Status':           lifecycle.label,
+                'Expiry Date':      expiresAt ? format(new Date(expiresAt), 'dd MMM yyyy') : 'Lifetime',
+                'Days Until Expiry': daysLeft !== null ? daysLeft : 'N/A',
+                'Partner':          t.onboarding_partner || '',
+            };
+        });
+
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            const XLSX = await import('xlsx');
+            const rows = buildExportRows();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            // Auto column widths
+            const colWidths = Object.keys(rows[0] || {}).map(k =>
+                ({ wch: Math.max(k.length, ...rows.map(r => String(r[k as keyof typeof r] ?? '').length)) + 2 })
+            );
+            ws['!cols'] = colWidths;
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Tenants');
+            const filename = `tenants_export_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            toast({ title: '✅ Excel Downloaded', description: `${rows.length} tenants exported.` });
+        } catch (e: any) {
+            toast({ title: 'Export Failed', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportPDF = async () => {
+        setIsExporting(true);
+        try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+            const rows = buildExportRows();
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+            // Header
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Tenant Report', 14, 18);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, 25);
+
+            // Active filters summary
+            const filterParts: string[] = [];
+            if (filterStatus !== 'all') filterParts.push(`Status: ${filterStatus}`);
+            if (filterPlan !== 'all') filterParts.push(`Plan: ${filterPlan}`);
+            if (filterCity !== 'all') filterParts.push(`Location: ${filterCity}`);
+            if (filterExpiryFrom) filterParts.push(`Expiry From: ${filterExpiryFrom}`);
+            if (filterExpiryTo) filterParts.push(`Expiry To: ${filterExpiryTo}`);
+            if (filterParts.length > 0) {
+                doc.text(`Filters: ${filterParts.join(' | ')}`, 14, 31);
+            }
+            doc.text(`Total Records: ${rows.length}`, 14, filterParts.length > 0 ? 37 : 31);
+
+            const startY = filterParts.length > 0 ? 42 : 36;
+            const columns = Object.keys(rows[0] || {});
+            const tableRows = rows.map(r => columns.map(c => String(r[c as keyof typeof r] ?? '')));
+
+            autoTable(doc, {
+                head: [columns],
+                body: tableRows,
+                startY,
+                styles: { fontSize: 7, cellPadding: 2 },
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+                alternateRowStyles: { fillColor: [248, 249, 250] },
+                columnStyles: { 9: { halign: 'center' } },
+                margin: { left: 14, right: 14 },
+            });
+
+            const filename = `tenants_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+            doc.save(filename);
+            toast({ title: '✅ PDF Downloaded', description: `${rows.length} tenants exported.` });
+        } catch (e: any) {
+            toast({ title: 'Export Failed', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="p-8 space-y-6 animate-in fade-in duration-500">
             {/* Header */}
@@ -370,6 +476,26 @@ export default function TenantsPage() {
                     <p className="text-slate-500 text-sm font-medium">Lifecycle management for all registered MandiGrow tenants.</p>
                 </div>
                 <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-2 font-black text-xs"
+                        onClick={handleExportExcel}
+                        disabled={isExporting || filtered.length === 0}
+                        title="Download filtered data as Excel"
+                    >
+                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                        Excel ({filtered.length})
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="border-red-200 text-red-700 hover:bg-red-50 gap-2 font-black text-xs"
+                        onClick={handleExportPDF}
+                        disabled={isExporting || filtered.length === 0}
+                        title="Download filtered data as PDF"
+                    >
+                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        PDF ({filtered.length})
+                    </Button>
                     <Button variant="outline" className="border-slate-200 text-slate-900 hover:bg-white/5 gap-2" onClick={() => fetchTenants(false)}>
                         <RefreshCw className="w-4 h-4" /> Refresh
                     </Button>
@@ -529,7 +655,7 @@ export default function TenantsPage() {
                             const d = differenceInDays(new Date(exp), new Date());
                             return d >= 0 && d <= 15;
                         }).length,
-                        click: () => { setFilterStatus('expiring_soon'); setFilterExpiryBefore(''); }
+                        click: () => { setFilterStatus('expiring_soon'); setFilterExpiryFrom(''); setFilterExpiryTo(''); }
                     },
                 ].map(s => (
                     <Card
@@ -559,7 +685,7 @@ export default function TenantsPage() {
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setFilterExpiryBefore(''); }}>
+                <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setFilterExpiryFrom(''); setFilterExpiryTo(''); }}>
                     <SelectTrigger className="w-44 bg-white shadow-sm border-slate-200 text-slate-900">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -595,26 +721,33 @@ export default function TenantsPage() {
                         ))}
                     </SelectContent>
                 </Select>
-                {/* ── Expiring Before Date Picker ── */}
-                <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-orange-500 pointer-events-none" />
-                        <input
-                            type="date"
-                            value={filterExpiryBefore}
-                            min={new Date().toISOString().split('T')[0]}
-                            onChange={e => { setFilterExpiryBefore(e.target.value); setFilterStatus('all'); }}
-                            className="pl-9 pr-3 h-9 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-300 cursor-pointer w-44"
-                            title="Show users expiring before this date"
-                        />
-                    </div>
-                    {filterExpiryBefore && (
+                {/* ── Expiry Date Range Filter ── */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+                    <Filter className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Expiry</span>
+                    <input
+                        type="date"
+                        value={filterExpiryFrom}
+                        onChange={e => { setFilterExpiryFrom(e.target.value); setFilterStatus('all'); }}
+                        className="h-7 px-2 rounded border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-300 cursor-pointer w-36"
+                        title="Expiry from date"
+                    />
+                    <span className="text-[10px] text-slate-400 font-bold">to</span>
+                    <input
+                        type="date"
+                        value={filterExpiryTo}
+                        min={filterExpiryFrom || undefined}
+                        onChange={e => { setFilterExpiryTo(e.target.value); setFilterStatus('all'); }}
+                        className="h-7 px-2 rounded border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-300 cursor-pointer w-36"
+                        title="Expiry to date"
+                    />
+                    {(filterExpiryFrom || filterExpiryTo) && (
                         <button
-                            onClick={() => setFilterExpiryBefore('')}
-                            className="text-xs text-slate-400 hover:text-red-500 font-bold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                            onClick={() => { setFilterExpiryFrom(''); setFilterExpiryTo(''); }}
+                            className="text-[10px] text-slate-400 hover:text-red-500 font-black px-1.5 py-0.5 rounded hover:bg-red-50 transition-colors"
                             title="Clear date filter"
                         >
-                            ✕ Clear
+                            ✕
                         </button>
                     )}
                 </div>
