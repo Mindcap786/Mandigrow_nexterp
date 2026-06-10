@@ -10218,15 +10218,16 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
     if not target_id:
         return {"success": False, "error": "Item ID is required"}
         
-    # Tenant guard: verify item belongs to user's organization
-    from mandigrow.mandigrow.logic.tenancy import is_super_admin
-    if not is_super_admin():
-        org_id = _get_user_org()
-        item_org = frappe.db.get_value("Item", target_id, "organization_id")
-        if item_org != org_id:
-            frappe.throw(_("You do not have permission to delete this item."), frappe.PermissionError)
-
     try:
+        # Tenant guard: verify item belongs to user's organization
+        from mandigrow.mandigrow.logic.tenancy import is_super_admin
+        if not is_super_admin():
+            org_id = _get_user_org()
+            item_org = frappe.db.get_value("Item", target_id, "organization_id")
+            # Allow deletion if item_org is None (legacy items) or matches user's org
+            if item_org and item_org != org_id:
+                return {"success": False, "error": "You do not have permission to delete this item."}
+                
         if not frappe.db.exists("Item", target_id):
             return {"success": False, "error": "Item not found"}
 
@@ -10267,14 +10268,21 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
     except Exception as e:
         msg = str(e)
         if not msg and getattr(frappe.local, 'message_log', None):
-            import json
-            try:
-                msgs = [json.loads(m).get("message") for m in frappe.local.message_log]
-                msg = " | ".join(filter(None, msgs))
-            except Exception:
-                pass
-        frappe.log_error(title="Delete Commodity Error", message=msg or "Unknown Error")
-        return {"success": False, "error": msg or "Unknown Error"}
+            msgs = []
+            for m in frappe.local.message_log:
+                try:
+                    if isinstance(m, str):
+                        import json
+                        msgs.append(json.loads(m).get("message"))
+                    elif isinstance(m, dict):
+                        msgs.append(m.get("message"))
+                except Exception:
+                    pass
+            msg = " | ".join(filter(None, msgs))
+            
+        final_msg = msg or "System Error: Unable to delete item due to linked records."
+        frappe.log_error(title="Delete Commodity Error", message=final_msg)
+        return {"success": False, "error": final_msg}
 
 @frappe.whitelist(allow_guest=False)
 def restore_commodity(id: str = None) -> dict:
