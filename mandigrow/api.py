@@ -6800,7 +6800,7 @@ def search_contacts(query: str = None, contact_type: str = None, org_id: str = N
         filters.append(["full_name", "like", f"%{query}%"])
         
     # Build WHERE and use raw SQL to avoid frappe.get_all alias conflict
-    s_where = ["full_name != 'Walk-in Buyer'"]
+    s_where = ["full_name != 'Walk-in Buyer'", "(status IS NULL OR status != 'inactive')"]
     s_params = []
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         s_where.append("organization_id = %s")
@@ -7524,10 +7524,15 @@ def delete_contact(contact_id: str = None) -> dict:
                 if company:
                     account = get_party_account("Customer", customer_id, company)
                     if account:
-                        bal = frappe.db.get_value("GL Entry", 
-                            {"party_type": "Customer", "party": customer_id, "account": account}, 
-                            "sum(debit) - sum(credit)"
-                        ) or 0.0
+                        bal_data = frappe.db.sql("""
+                            SELECT SUM(debit) - SUM(credit)
+                            FROM `tabGL Entry`
+                            WHERE party_type = 'Customer' 
+                            AND party = %s 
+                            AND account = %s
+                            AND is_cancelled = 0
+                        """, (customer_id, account))
+                        bal = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
                         outstanding_balance += bal
             except Exception:
                 pass
@@ -7547,10 +7552,15 @@ def delete_contact(contact_id: str = None) -> dict:
                     account = get_party_account("Supplier", supplier_id, company)
                     if account:
                         # For supplier, balance is credit - debit
-                        bal = frappe.db.get_value("GL Entry", 
-                            {"party_type": "Supplier", "party": supplier_id, "account": account}, 
-                            "sum(credit) - sum(debit)"
-                        ) or 0.0
+                        bal_data = frappe.db.sql("""
+                            SELECT SUM(credit) - SUM(debit)
+                            FROM `tabGL Entry`
+                            WHERE party_type = 'Supplier' 
+                            AND party = %s 
+                            AND account = %s
+                            AND is_cancelled = 0
+                        """, (supplier_id, account))
+                        bal = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
                         outstanding_balance += bal
             except Exception:
                 pass
@@ -7572,11 +7582,11 @@ def delete_contact(contact_id: str = None) -> dict:
             # No history exists: Hard delete contact and linked standard parties
             frappe.flags.ignore_permissions = True
             if customer_id and frappe.db.exists("Customer", customer_id):
-                frappe.delete_doc("Customer", customer_id, force=1)
+                frappe.delete_doc("Customer", customer_id, force=1, ignore_permissions=True)
             if supplier_id and frappe.db.exists("Supplier", supplier_id):
-                frappe.delete_doc("Supplier", supplier_id, force=1)
+                frappe.delete_doc("Supplier", supplier_id, force=1, ignore_permissions=True)
             
-            frappe.delete_doc("Mandi Contact", contact_id, force=1)
+            frappe.delete_doc("Mandi Contact", contact_id, force=1, ignore_permissions=True)
             frappe.flags.ignore_permissions = False
             frappe.db.commit()
             return {"success": True, "status": "deleted", "message": "Contact permanently deleted."}
@@ -7875,7 +7885,7 @@ def get_sale_master_data(org_id: str = None) -> dict:
         return {}
 
     # Buyers from Mandi Contact — raw SQL to avoid frappe.get_all alias conflict
-    b_where = ["contact_type IN ('buyer','staff')"]
+    b_where = ["contact_type IN ('buyer','staff')", "(status IS NULL OR status != 'inactive')"]
     b_params = []
     if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
         b_where.append("organization_id = %s")
@@ -9761,7 +9771,7 @@ def get_pos_master_data() -> dict:
         
         # 2. Fetch Buyers — use raw SQL to avoid frappe.get_all 'name as id' alias conflict
         # (frappe.get_all always adds `name` PK to SELECT, creating duplicate column with alias)
-        buyer_where = ["contact_type IN ('buyer','staff')", "full_name != 'Walk-in Buyer'"]
+        buyer_where = ["contact_type IN ('buyer','staff')", "full_name != 'Walk-in Buyer'", "(status IS NULL OR status != 'inactive')"]
         buyer_params = []
         if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
             buyer_where.append("organization_id = %s")
