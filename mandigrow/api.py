@@ -7528,7 +7528,15 @@ def delete_contact(contact_id: str = None) -> dict:
                 
         # Consolidate balance calculation identical to Finance Overview (get_party_balances)
         try:
-            company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value("Global Defaults", "default_company")
+            company = None
+            if contact_doc.organization_id:
+                try:
+                    org_company = frappe.db.get_value("Mandi Organization", contact_doc.organization_id, "erp_company")
+                    if org_company: company = org_company
+                except: pass
+            if not company:
+                company = _get_user_company()
+                
             if company:
                 bal_data = frappe.db.sql("""
                     SELECT SUM(debit - credit)
