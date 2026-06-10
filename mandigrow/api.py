@@ -10346,11 +10346,12 @@ def delete_commodity(id: str = None, item_id: str = None) -> dict:
         for arr_name in ob_arrivals:
             if frappe.db.exists("Mandi Arrival", arr_name):
                 arr_doc = frappe.get_doc("Mandi Arrival", arr_name)
+                arr_doc.flags.ignore_permissions = True
                 if arr_doc.docstatus == 1:
                     arr_doc.cancel()
-                frappe.delete_doc("Mandi Arrival", arr_name, force=1)
+                frappe.delete_doc("Mandi Arrival", arr_name, force=1, ignore_permissions=True)
                 
-        frappe.delete_doc("Item", target_id, force=1)
+        frappe.delete_doc("Item", target_id, force=1, ignore_permissions=True)
         frappe.flags.ignore_permissions = False
         
         return {"success": True, "message": "Item fully deleted.", "action": "deleted"}
