@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box } from "lucide-react"
+import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
@@ -469,27 +469,42 @@ export default function ContactsPage() {
             </header>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm print:border-none print:p-0 print:shadow-none">
-                <div className="flex flex-col md:flex-row items-center gap-4 mb-6 print:hidden">
-                    <div className="relative flex-1 w-full md:max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <Input placeholder="Search name, city, or type..." className="pl-9 bg-slate-50 border-slate-200 text-black font-bold focus:border-blue-500 rounded-xl h-11" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 print:hidden">
+                    <div className="flex flex-col md:flex-row items-center gap-4 w-full">
+                        <div className="relative flex-1 w-full md:max-w-sm">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Input placeholder="Search name, city, or type..." className="pl-9 bg-slate-50 border-slate-200 text-black font-bold focus:border-blue-500 rounded-xl h-11" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        </div>
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <select className="h-11 px-4 bg-slate-50 border-slate-200 text-black font-bold rounded-xl text-xs focus:ring-0 focus:border-blue-500 outline-none transition-all cursor-pointer" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                                <option value="all">All Types</option>
+                                <option value="farmer">Farmer</option>
+                                <option value="buyer">Buyer</option>
+                                <option value="supplier">Supplier</option>
+                            </select>
+                            <select className="h-11 px-4 bg-slate-50 border-slate-200 text-black font-bold rounded-xl text-xs focus:ring-0 focus:border-blue-500 outline-none transition-all cursor-pointer" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+                                <option value="all">All Locations</option>
+                                {locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                            </select>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <select className="h-11 px-4 bg-slate-50 border-slate-200 text-black font-bold rounded-xl text-xs focus:ring-0 focus:border-blue-500 outline-none transition-all cursor-pointer" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                            <option value="all">All Types</option>
-                            <option value="farmer">Farmer</option>
-                            <option value="buyer">Buyer</option>
-                            <option value="supplier">Supplier</option>
-                        </select>
-                        <select className="h-11 px-4 bg-slate-50 border-slate-200 text-black font-bold rounded-xl text-xs focus:ring-0 focus:border-blue-500 outline-none transition-all cursor-pointer" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
-                            <option value="all">All Locations</option>
-                            {locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                        </select>
-                        <select className="h-11 px-4 bg-slate-50 border-slate-200 text-black font-bold rounded-xl text-xs focus:ring-0 focus:border-blue-500 outline-none transition-all cursor-pointer" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                            <option value="all">All Statuses</option>
-                            <option value="active">Active Only</option>
-                            <option value="inactive">Archived</option>
-                        </select>
+                    
+                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+                        <Button
+                            variant={statusFilter === 'active' ? "default" : "ghost"}
+                            className={`rounded-lg px-6 font-bold text-sm h-11 transition-all flex-1 md:flex-none ${statusFilter === 'active' ? 'bg-white text-black shadow-sm' : 'text-slate-500 hover:text-black'}`}
+                            onClick={() => setStatusFilter('active')}
+                        >
+                            Active
+                        </Button>
+                        <Button
+                            variant={statusFilter === 'inactive' ? "default" : "ghost"}
+                            className={`rounded-lg px-6 font-bold text-sm h-11 transition-all flex-1 md:flex-none ${statusFilter === 'inactive' ? 'bg-white text-black shadow-sm' : 'text-slate-500 hover:text-black'}`}
+                            onClick={() => setStatusFilter('inactive')}
+                        >
+                            <Archive className="w-4 h-4 mr-2" />
+                            Archived
+                        </Button>
                     </div>
                 </div>
 
@@ -542,10 +557,23 @@ export default function ContactsPage() {
                                         </TableCell>
                                         <TableCell className="text-right print:hidden">
                                             <div className="flex justify-end gap-1">
-                                                <ContactDialog onSuccess={fetchContacts} initialData={contact}>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors" title="Edit Contact"><Pencil className="w-3.5 h-3.5" /></Button>
-                                                </ContactDialog>
-                                                <Button variant="ghost" size="sm" type="button" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setContactToDelete({ id: contact.id, name: contact.name }) }} title="Delete Contact" disabled={isUpdating === contact.id}><Trash2 className="w-4 h-4" /></Button>
+                                                {(contact.status || 'active') === 'inactive' ? (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        onClick={() => toggleStatus(contact.id, 'inactive')}
+                                                        className="h-8 px-3 rounded-full hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 font-bold text-xs transition-colors"
+                                                    >
+                                                        <ArchiveRestore className="w-4 h-4 mr-1" />
+                                                        Restore
+                                                    </Button>
+                                                ) : (
+                                                    <>
+                                                        <ContactDialog onSuccess={fetchContacts} initialData={contact}>
+                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors" title="Edit Contact"><Pencil className="w-3.5 h-3.5" /></Button>
+                                                        </ContactDialog>
+                                                        <Button variant="ghost" size="sm" type="button" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setContactToDelete({ id: contact.id, name: contact.name }) }} title="Delete Contact" disabled={isUpdating === contact.id}><Trash2 className="w-4 h-4" /></Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
