@@ -6715,7 +6715,6 @@ def get_contacts_page(org_id: str = None, contact_type: str = None, search: str 
 
     # Build WHERE clause from filters list for raw SQL
     sql_where = ["1=1"]
-    sql_where.append("(status IS NULL OR status != 'inactive')")
     
     sql_params = []
     for f in filters:
