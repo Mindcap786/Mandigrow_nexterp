@@ -228,7 +228,7 @@ export default function ContactsPage() {
         status: [
             { label: 'All Statuses', value: 'all' },
             { label: 'Active Only', value: 'active' },
-            { label: 'Inactive', value: 'inactive' },
+            { label: 'Archived', value: 'inactive' },
         ],
     }
 
@@ -488,7 +488,7 @@ export default function ContactsPage() {
                         <select className="h-11 px-4 bg-slate-50 border-slate-200 text-black font-bold rounded-xl text-xs focus:ring-0 focus:border-blue-500 outline-none transition-all cursor-pointer" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                             <option value="all">All Statuses</option>
                             <option value="active">Active Only</option>
-                            <option value="inactive">Inactive Only</option>
+                            <option value="inactive">Archived</option>
                         </select>
                     </div>
                 </div>
@@ -538,7 +538,7 @@ export default function ContactsPage() {
                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-orange-50 text-slate-400 hover:text-orange-600 transition-colors" onClick={() => resetSequence(contact.id, contact.name, contact.type)} title="Reset Invoice Sequence"><RotateCcw className="w-3.5 h-3.5" /></Button>
                                         </TableCell>
                                         <TableCell className="text-right print:hidden">
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wide border ${(contact.status || 'active') === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{contact.status || 'active'}</span>
+                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wide border ${(contact.status || 'active') === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{(contact.status || 'active') === 'inactive' ? 'archived' : contact.status || 'active'}</span>
                                         </TableCell>
                                         <TableCell className="text-right print:hidden">
                                             <div className="flex justify-end gap-1">
