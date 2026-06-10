@@ -7526,33 +7526,54 @@ def delete_contact(contact_id: str = None) -> dict:
             if frappe.db.count("Payment Entry", {"party_type": "Supplier", "party": supplier_id}) > 0:
                 has_history = True
                 
-        # Consolidate balance calculation identical to Finance Overview (get_party_balances)
+        # Consolidate balance calculation identical to Finance Overview (get_party_balances).
+        # CRITICAL: Dynamically build party conditions to avoid "party = NULL" which never
+        # matches in SQL and would cause a contact with a real balance to return 0.
         try:
             company = None
             if contact_doc.organization_id:
                 try:
                     org_company = frappe.db.get_value("Mandi Organization", contact_doc.organization_id, "erp_company")
-                    if org_company: company = org_company
-                except: pass
+                    if org_company:
+                        company = org_company
+                except Exception:
+                    pass
             if not company:
                 company = _get_user_company()
-                
+
             if company:
-                bal_data = frappe.db.sql("""
-                    SELECT SUM(debit - credit)
-                    FROM `tabGL Entry`
-                    WHERE is_cancelled = 0
-                      AND company = %s
-                      AND (
-                          (party_type = 'Customer' AND party = %s)
-                          OR (party_type = 'Supplier' AND party = %s)
-                          OR (party_type IN ('Supplier', 'Customer') AND party = %s)
-                      )
-                """, (company, customer_id, supplier_id, contact_id))
-                outstanding_balance = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
-        except Exception as e:
+                # Build party OR conditions only for IDs that actually exist.
+                # GL Entries may use customer_id, supplier_id, OR the Mandi Contact name directly.
+                party_conditions = []
+                params = [company]
+
+                if customer_id:
+                    party_conditions.append("(party_type = 'Customer' AND party = %s)")
+                    params.append(customer_id)
+
+                if supplier_id:
+                    party_conditions.append("(party_type = 'Supplier' AND party = %s)")
+                    params.append(supplier_id)
+
+                # Always include the Mandi Contact name itself as a possible party value
+                party_conditions.append("(party_type IN ('Supplier', 'Customer') AND party = %s)")
+                params.append(contact_id)
+
+                if party_conditions:
+                    where_clause = " OR ".join(party_conditions)
+                    bal_data = frappe.db.sql(f"""
+                        SELECT SUM(debit - credit)
+                        FROM `tabGL Entry`
+                        WHERE is_cancelled = 0
+                          AND company = %s
+                          AND ({where_clause})
+                    """, tuple(params))
+                    outstanding_balance = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
+                else:
+                    outstanding_balance = 0.0
+        except Exception:
             frappe.log_error(frappe.get_traceback(), "Delete Contact Balance Check Error")
-            pass
+            outstanding_balance = 0.0
                 
         # 3. Execution Rules
         if has_history:
