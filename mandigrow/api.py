@@ -7511,34 +7511,14 @@ def delete_contact(contact_id: str = None) -> dict:
             
         # 2. Check standard Frappe Customer/Supplier ledgers and calculate balances
         if customer_id:
-            from erpnext.accounts.party import get_party_account, get_party_details
             if frappe.db.count("Sales Invoice", {"customer": customer_id}) > 0:
                 has_history = True
             if frappe.db.count("GL Entry", {"party_type": "Customer", "party": customer_id}) > 0:
                 has_history = True
             if frappe.db.count("Payment Entry", {"party_type": "Customer", "party": customer_id}) > 0:
                 has_history = True
-                
-            try:
-                company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value("Global Defaults", "default_company")
-                if company:
-                    account = get_party_account("Customer", customer_id, company)
-                    if account:
-                        bal_data = frappe.db.sql("""
-                            SELECT SUM(debit) - SUM(credit)
-                            FROM `tabGL Entry`
-                            WHERE party_type = 'Customer' 
-                            AND party = %s 
-                            AND account = %s
-                            AND is_cancelled = 0
-                        """, (customer_id, account))
-                        bal = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
-                        outstanding_balance += bal
-            except Exception:
-                pass
 
         if supplier_id:
-            from erpnext.accounts.party import get_party_account
             if frappe.db.count("Purchase Invoice", {"supplier": supplier_id}) > 0:
                 has_history = True
             if frappe.db.count("GL Entry", {"party_type": "Supplier", "party": supplier_id}) > 0:
@@ -7546,24 +7526,25 @@ def delete_contact(contact_id: str = None) -> dict:
             if frappe.db.count("Payment Entry", {"party_type": "Supplier", "party": supplier_id}) > 0:
                 has_history = True
                 
-            try:
-                company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value("Global Defaults", "default_company")
-                if company:
-                    account = get_party_account("Supplier", supplier_id, company)
-                    if account:
-                        # For supplier, balance is credit - debit
-                        bal_data = frappe.db.sql("""
-                            SELECT SUM(credit) - SUM(debit)
-                            FROM `tabGL Entry`
-                            WHERE party_type = 'Supplier' 
-                            AND party = %s 
-                            AND account = %s
-                            AND is_cancelled = 0
-                        """, (supplier_id, account))
-                        bal = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
-                        outstanding_balance += bal
-            except Exception:
-                pass
+        # Consolidate balance calculation identical to Finance Overview (get_party_balances)
+        try:
+            company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value("Global Defaults", "default_company")
+            if company:
+                bal_data = frappe.db.sql("""
+                    SELECT SUM(debit - credit)
+                    FROM `tabGL Entry`
+                    WHERE is_cancelled = 0
+                      AND company = %s
+                      AND (
+                          (party_type = 'Customer' AND party = %s)
+                          OR (party_type = 'Supplier' AND party = %s)
+                          OR (party_type IN ('Supplier', 'Customer') AND party = %s)
+                      )
+                """, (company, customer_id, supplier_id, contact_id))
+                outstanding_balance = bal_data[0][0] if bal_data and bal_data[0][0] else 0.0
+        except Exception as e:
+            frappe.log_error(str(e), "Delete Contact Balance Check Error")
+            pass
                 
         # 3. Execution Rules
         if has_history:
