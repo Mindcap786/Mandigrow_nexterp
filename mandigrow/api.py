@@ -2545,7 +2545,9 @@ def get_party_balances(p_org_id: str = None, filter_type: str = 'all', sub_filte
                 ), 0
             ) as net_balance
         FROM `tabMandi Contact` c
-        WHERE c.full_name != 'Walk-in Buyer' AND LOWER(c.full_name) != 'opening balance'
+        WHERE c.full_name != 'Walk-in Buyer' 
+          AND LOWER(c.full_name) != 'opening balance'
+          AND (c.status IS NULL OR c.status != 'inactive')
     """
     params = {"company": company, "today": frappe.utils.today()}
 
@@ -7491,25 +7493,113 @@ def update_contact(contact_id: str = None, **kwargs) -> dict:
 def delete_contact(contact_id: str = None) -> dict:
     if not contact_id:
         frappe.throw("Contact ID required")
-    from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
-    enforce_org_match_by_name("Mandi Contact", contact_id)
-    
-    # Check for historical records
-    has_arrivals = frappe.db.count("Mandi Arrival", {"party_id": contact_id}) > 0
-    has_sales = frappe.db.count("Mandi Sale", {"buyerid": contact_id}) > 0
-    has_gl = frappe.db.count("GL Entry", {"party": contact_id}) > 0
-    has_payments = frappe.db.count("Payment Entry", {"party": contact_id}) > 0
-    
-    if has_arrivals or has_sales or has_gl or has_payments:
-        # Instead of deleting, we archive the contact to preserve historical integrity
-        frappe.db.set_value("Mandi Contact", contact_id, "status", "inactive")
-        frappe.db.commit()
-        return {"status": "archived", "message": "Contact archived successfully. It cannot be permanently deleted because it has historical transactions."}
-    else:
-        # Safe to permanently delete
-        frappe.delete_doc("Mandi Contact", contact_id, force=1)
-        frappe.db.commit()
-        return {"status": "deleted", "message": "Contact permanently deleted."}
+    try:
+        from mandigrow.mandigrow.logic.tenancy import enforce_org_match_by_name
+        enforce_org_match_by_name("Mandi Contact", contact_id)
+        
+        contact_doc = frappe.get_doc("Mandi Contact", contact_id)
+        customer_id = contact_doc.customer
+        supplier_id = contact_doc.supplier
+        
+        has_history = False
+        outstanding_balance = 0.0
+        
+        # 1. Check direct Mandi records
+        if frappe.db.count("Mandi Arrival", {"party_id": contact_id}) > 0:
+            has_history = True
+        if frappe.db.count("Mandi Sale", {"buyerid": contact_id}) > 0:
+            has_history = True
+            
+        # 2. Check standard Frappe Customer/Supplier ledgers and calculate balances
+        if customer_id:
+            from erpnext.accounts.party import get_party_account, get_party_details
+            if frappe.db.count("Sales Invoice", {"customer": customer_id}) > 0:
+                has_history = True
+            if frappe.db.count("GL Entry", {"party_type": "Customer", "party": customer_id}) > 0:
+                has_history = True
+            if frappe.db.count("Payment Entry", {"party_type": "Customer", "party": customer_id}) > 0:
+                has_history = True
+                
+            try:
+                company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value("Global Defaults", "default_company")
+                if company:
+                    account = get_party_account("Customer", customer_id, company)
+                    if account:
+                        bal = frappe.db.get_value("GL Entry", 
+                            {"party_type": "Customer", "party": customer_id, "account": account}, 
+                            "sum(debit) - sum(credit)"
+                        ) or 0.0
+                        outstanding_balance += bal
+            except Exception:
+                pass
+
+        if supplier_id:
+            from erpnext.accounts.party import get_party_account
+            if frappe.db.count("Purchase Invoice", {"supplier": supplier_id}) > 0:
+                has_history = True
+            if frappe.db.count("GL Entry", {"party_type": "Supplier", "party": supplier_id}) > 0:
+                has_history = True
+            if frappe.db.count("Payment Entry", {"party_type": "Supplier", "party": supplier_id}) > 0:
+                has_history = True
+                
+            try:
+                company = frappe.defaults.get_user_default("company") or frappe.db.get_single_value("Global Defaults", "default_company")
+                if company:
+                    account = get_party_account("Supplier", supplier_id, company)
+                    if account:
+                        # For supplier, balance is credit - debit
+                        bal = frappe.db.get_value("GL Entry", 
+                            {"party_type": "Supplier", "party": supplier_id, "account": account}, 
+                            "sum(credit) - sum(debit)"
+                        ) or 0.0
+                        outstanding_balance += bal
+            except Exception:
+                pass
+                
+        # 3. Execution Rules
+        if has_history:
+            # If absolute balance is not practically 0 (allow tiny floating point drift)
+            if abs(outstanding_balance) > 0.01:
+                return {
+                    "success": False, 
+                    "error": f"Cannot delete or archive contact. There is an outstanding balance of ₹{abs(outstanding_balance):.2f}. Please settle the balance first."
+                }
+            else:
+                # History exists but balance is 0: Archive the contact
+                frappe.db.set_value("Mandi Contact", contact_id, "status", "inactive")
+                frappe.db.commit()
+                return {"success": True, "status": "archived", "message": "Contact archived successfully. It cannot be permanently deleted because it has historical transactions."}
+        else:
+            # No history exists: Hard delete contact and linked standard parties
+            frappe.flags.ignore_permissions = True
+            if customer_id and frappe.db.exists("Customer", customer_id):
+                frappe.delete_doc("Customer", customer_id, force=1)
+            if supplier_id and frappe.db.exists("Supplier", supplier_id):
+                frappe.delete_doc("Supplier", supplier_id, force=1)
+            
+            frappe.delete_doc("Mandi Contact", contact_id, force=1)
+            frappe.flags.ignore_permissions = False
+            frappe.db.commit()
+            return {"success": True, "status": "deleted", "message": "Contact permanently deleted."}
+            
+    except Exception as e:
+        msg = str(e)
+        if not msg and getattr(frappe.local, 'message_log', None):
+            msgs = []
+            for m in frappe.local.message_log:
+                try:
+                    if isinstance(m, str):
+                        import json
+                        msgs.append(json.loads(m).get("message"))
+                    elif isinstance(m, dict):
+                        msgs.append(m.get("message"))
+                except Exception:
+                    pass
+            msg = " | ".join(filter(None, msgs))
+            
+        final_msg = msg or "System Error: Unable to delete contact due to linked records."
+        frappe.log_error(title="Delete Contact Error", message=final_msg)
+        return {"success": False, "error": final_msg}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

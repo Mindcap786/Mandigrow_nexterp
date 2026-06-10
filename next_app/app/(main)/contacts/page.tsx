@@ -124,8 +124,8 @@ export default function ContactsPage() {
     const deleteContact = async (id: string, name: string) => {
         setIsUpdating(id)
         try {
-            await callApi('mandigrow.api.delete_contact', { contact_id: id });
-            toast.success(`Contact ${name} deleted successfully.`)
+            const res: any = await callApi('mandigrow.api.delete_contact', { contact_id: id });
+            toast.success(res?.message || `Contact ${name} deleted successfully.`)
             fetchContacts()
             setContactToDelete(null)
         } catch (error: any) {
