@@ -117,7 +117,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
             {/* Header */}
             <div className="flex flex-col md:flex-row md:justify-between print:flex-row print:justify-between gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10">
                 {/* Left: Identity */}
-                <div className="flex items-start gap-4 min-w-0 md:flex-[1.35] print:flex-[1.35]">
+                <div className="flex items-start gap-4 w-full md:w-[45%] print:w-[45%]">
                     {organization?.logo_url ? (
                         <img src={organization.logo_url} alt="Logo" className="h-20 w-auto object-contain" style={{ borderRadius: 12 }} />
                     ) : (
@@ -130,10 +130,10 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                             </span>
                         </div>
                     )}
-                    <div className="space-y-1 min-w-0">
+                    <div className="space-y-1 w-full">
                         <p
                             data-invoice-org-name
-                            className="text-black text-[29px] font-black tracking-tight uppercase leading-[1.12] break-words"
+                            className="text-black text-[29px] font-black tracking-tight uppercase leading-[1.12]"
                         >
                             {organization?.name || 'Mandi HQ Enterprise'}
                         </p>
@@ -592,7 +592,6 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
             <style jsx>{`
                 @media print {
-                    @page { margin: 0; }
                     html, body { 
                         background: white; 
                         -webkit-print-color-adjust: exact !important; 

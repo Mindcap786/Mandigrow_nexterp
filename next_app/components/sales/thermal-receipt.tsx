@@ -49,7 +49,7 @@ export default function ThermalReceipt({ sale, organization }: ThermalReceiptPro
     const billNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
 
     return (
-        <div className="bg-white text-black font-mono text-[12px] leading-tight w-full mx-auto" style={{ maxWidth: '100%' }}>
+        <div className="bg-white text-black font-mono text-[12px] leading-tight w-full mx-auto" style={{ maxWidth: '400px' }}>
             <div className="text-center mb-4">
                 <h1 className="font-bold text-lg leading-tight uppercase">{orgName}</h1>
                 <p className="text-[10px] uppercase mt-1 tracking-widest">Tax Invoice / Bill</p>

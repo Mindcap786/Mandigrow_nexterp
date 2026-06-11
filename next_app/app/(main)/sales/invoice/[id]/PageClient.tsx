@@ -23,12 +23,21 @@ export default function SaleInvoicePage() {
     const [loading, setLoading] = useState(true)
     const [fetchError, setFetchError] = useState<string | null>(null)
     const [printMode, setPrintMode] = useState<'a4' | 'thermal'>('a4')
+    const [triggerPrint, setTriggerPrint] = useState(0)
 
     useEffect(() => {
         if (id && profile?.organization_id) {
             fetchSale()
         }
     }, [id, profile])
+
+    useEffect(() => {
+        if (triggerPrint > 0) {
+            // Give React and browser engine ample time to apply print-specific DOM changes
+            const timer = setTimeout(() => window.print(), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [triggerPrint]);
 
     const fetchSale = async (isRefresh = false, retryCount = 0) => {
         if (!isRefresh && retryCount === 0) setLoading(true)
@@ -77,9 +86,7 @@ export default function SaleInvoicePage() {
 
     const handlePrint = (mode: 'a4' | 'thermal') => {
         setPrintMode(mode);
-        setTimeout(() => {
-            window.print();
-        }, 100);
+        setTriggerPrint(prev => prev + 1);
     };
 
     const handleDownload = async () => {
@@ -108,7 +115,7 @@ export default function SaleInvoicePage() {
     </div>
 
     return (
-        <div className="min-h-screen bg-zinc-950 p-4 md:p-8 space-y-8 print:p-0 print:space-y-0 print:bg-white">
+        <div className="min-h-screen print:min-h-0 bg-zinc-950 p-4 md:p-8 space-y-8 print:p-0 print:space-y-0 print:bg-white">
             {/* Header / Actions */}
             <div className="max-w-[800px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4 no-print">
                 <Button variant="ghost" className="text-gray-500 hover:text-white pl-0 md:pl-4" onClick={() => router.back()}>
