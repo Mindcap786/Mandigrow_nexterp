@@ -5,12 +5,13 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Printer, ChevronLeft, Download, ShieldCheck, Loader2 } from "lucide-react"
+import { Printer, ChevronLeft, Download, ShieldCheck, Loader2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { callApi } from "@/lib/frappeClient";
  // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import BuyerInvoice from "@/components/sales/invoice-template"
+import ThermalReceipt from "@/components/sales/thermal-receipt"
 import SmartShareButton from "@/components/billing/smart-share-button"
 
 export default function SaleInvoicePage() {
@@ -21,6 +22,7 @@ export default function SaleInvoicePage() {
     const [sale, setSale] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [fetchError, setFetchError] = useState<string | null>(null)
+    const [printMode, setPrintMode] = useState<'a4' | 'thermal'>('a4')
 
     useEffect(() => {
         if (id && profile?.organization_id) {
@@ -73,8 +75,11 @@ export default function SaleInvoicePage() {
 
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const handlePrint = () => {
-        window.print();   // CSS @media print below isolates #invoice-print from the dark shell
+    const handlePrint = (mode: 'a4' | 'thermal') => {
+        setPrintMode(mode);
+        setTimeout(() => {
+            window.print();
+        }, 100);
     };
 
     const handleDownload = async () => {
@@ -111,9 +116,13 @@ export default function SaleInvoicePage() {
                 </Button>
 
                 <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-4 w-full md:w-auto">
-                    <Button className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm" onClick={handlePrint}>
+                    <Button className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm" onClick={() => handlePrint('thermal')}>
                         <Printer className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
-                        PRINT
+                        THERMAL
+                    </Button>
+                    <Button className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm" onClick={() => handlePrint('a4')}>
+                        <FileText className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
+                        A4 INVOICE
                     </Button>
                     <Button disabled={isDownloading} className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm" onClick={handleDownload}>
                         {isDownloading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 animate-spin shrink-0" /> : <Download className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />}
@@ -142,7 +151,12 @@ export default function SaleInvoicePage() {
 
             {/* Template */}
             <div className="relative">
-                <BuyerInvoice sale={sale} organization={organization} onRefresh={() => fetchSale(true)} />
+                <div className={printMode === 'thermal' ? "hidden print:hidden" : "block print:block"}>
+                    <BuyerInvoice sale={sale} organization={organization} onRefresh={() => fetchSale(true)} />
+                </div>
+                <div className={printMode === 'a4' ? "hidden print:hidden" : "hidden print:block"}>
+                    <ThermalReceipt sale={sale} organization={organization} />
+                </div>
             </div>
 
             <style jsx global>{`
@@ -171,7 +185,10 @@ export default function SaleInvoicePage() {
                     }
 
                     /* Remove page margins so the invoice fills the sheet */
-                    @page { margin: 10mm; size: A4 portrait; }
+                    @page { 
+                        margin: ${printMode === 'thermal' ? '0' : '10mm'}; 
+                        size: ${printMode === 'thermal' ? 'auto' : 'A4 portrait'}; 
+                    }
                 }
             `}</style>
         </div>

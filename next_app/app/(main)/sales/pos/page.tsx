@@ -1712,9 +1712,14 @@ export default function POSPage() {
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-8">Transaction completed successfully</p>
 
                         <div className="space-y-4">
-                            <button onClick={() => window.print()} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-black transition-all">
-                                <Printer className="w-5 h-5" /> PRINT RECEIPT
-                            </button>
+                            <div className="grid grid-cols-2 gap-3 mt-2">
+                                <button onClick={() => window.print()} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-black transition-all text-sm">
+                                    <Printer className="w-5 h-5" /> THERMAL RECEIPT
+                                </button>
+                                <button onClick={() => window.open(`/sales/invoice/${lastInvoiceId}`, '_blank')} className="w-full py-4 bg-white border-2 border-slate-200 text-slate-900 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all text-sm">
+                                    <FileText className="w-5 h-5" /> A4 INVOICE
+                                </button>
+                            </div>
                             <button onClick={resetPOS} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-200 transition-all">
                                 NEXT TRANSACTION <ChevronRight className="w-5 h-5" />
                             </button>
@@ -1723,18 +1728,18 @@ export default function POSPage() {
                 </div>
             )}
 
-            {/* Print POS Receipt Component - Hidden normally, visible on print */}
+            {/* Print POS Receipt Component - Hidden normally, visible on print. Responsive to 58mm/80mm/110mm via 100% width */}
             {showSuccess && (
-                <div className="hidden print:block bg-white text-black p-4 font-mono text-[12px] leading-tight print:p-0 print:m-0 w-full mx-auto" style={{ maxWidth: '80mm' }}>
+                <div className="hidden print:block bg-white text-black font-mono text-[12px] leading-tight print:p-0 print:m-0 w-full mx-auto" style={{ maxWidth: '100%' }}>
                     <style type="text/css" media="print">
                         {`
-                            @page { size: 80mm auto; margin: 0; }
-                            body, html { margin: 0 !important; padding: 0 !important; background-color: white !important; }
+                            @page { margin: 0; size: auto; } /* Let printer driver define exact mm width */
+                            body, html { margin: 0 !important; padding: 0 !important; background-color: white !important; width: 100% !important; }
                             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         `}
                     </style>
                     <div className="text-center mb-4">
-                        <h1 className="font-bold text-lg leading-tight uppercase">{orgName}</h1>
+                        <h1 className="font-bold text-lg leading-tight uppercase">{profile?.organization?.name || orgName}</h1>
                         <p className="text-[10px] uppercase mt-1 tracking-widest">Tax Invoice / Bill</p>
                     </div>
                     

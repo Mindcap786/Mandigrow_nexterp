@@ -100,12 +100,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
         organization?.pincode
     ].filter(Boolean).join(", ");
 
-    const ROWS_PER_PAGE = 15;
-    const itemChunks = [];
-    for (let i = 0; i < items.length; i += ROWS_PER_PAGE) {
-        itemChunks.push(items.slice(i, i + ROWS_PER_PAGE));
-    }
-    if (itemChunks.length === 0) itemChunks.push([]);
+    // We use native CSS table pagination instead of artificial chunking
+    // to prevent unwanted blank pages and broken layouts.
 
     return (
         <div id="invoice-print" className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
@@ -116,15 +112,9 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 enabled={branding?.is_watermark_enabled} 
             />
 
-            {itemChunks.map((chunk, pageIndex) => {
-                const isFirstPage = pageIndex === 0;
-                const isLastPage = pageIndex === itemChunks.length - 1;
-                return (
-                    <div key={pageIndex} className={cn("invoice-page-chunk relative flex flex-col", !isLastPage && "break-after-page print:break-after-page mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0 print:mb-0")}>
+            <div className="invoice-page-chunk relative flex flex-col">
 
-            {/* Header - Only on First Page */}
-            {isFirstPage && (
-                <>
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:justify-between print:flex-row print:justify-between gap-6 items-start border-b-4 border-black pb-3 mb-3 relative z-10">
                 {/* Left: Identity */}
                 <div className="flex items-start gap-4 min-w-0 md:flex-[1.35] print:flex-[1.35]">
@@ -250,14 +240,13 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     )}
                 </div>
             </div>
-            </>
-            )}
+            </div>
 
             {/* Table */}
             <div className="relative z-10 overflow-x-auto">
                 <table className="w-full text-left">
-                    <thead>
-                        <tr className="border-b-2 border-black">
+                    <thead className="print:table-header-group">
+                        <tr className="border-b-2 border-black break-inside-avoid print:break-inside-avoid">
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">Item / Lot</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">HSN</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-center">Qty</th>
@@ -268,8 +257,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {chunk.map((item: any) => (
-                            <tr key={item.id} className="group">
+                        {items.map((item: any) => (
+                            <tr key={item.id} className="group break-inside-avoid print:break-inside-avoid">
                                 <td className="py-0.5">
                                     <p className="font-black text-xs tracking-tight uppercase leading-none">
                                         {formatCommodityName(item.lot?.item?.name || item.item_name || 'Item', item.lot?.item?.custom_attributes)}
@@ -331,16 +320,8 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </table>
             </div>
 
-            {!isLastPage && (
-                <div className="text-center text-[10px] text-gray-400 mt-6 font-bold uppercase tracking-widest no-print print:block">
-                    Continued on next page...
-                </div>
-            )}
-
-            {isLastPage && (
-                <>
             {/* Bottom Section: Payment (Left) and Totals (Right) */}
-            <div className="mt-6 flex flex-col md:flex-row print:flex-row gap-8 print:gap-4 items-start relative z-10 w-full">
+            <div className="mt-6 flex flex-col md:flex-row print:flex-row gap-8 print:gap-4 items-start relative z-10 w-full break-inside-avoid print:break-inside-avoid">
                 
                 {/* Left Side: Payment Details */}
                 <div className="space-y-4 w-full md:w-1/2 print:w-1/2">
@@ -609,11 +590,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     <span className="text-[8px] font-bold text-gray-300 italic">{branding?.document_footer_developed_by_text }</span>
                 </div>
             </div>
-            </>
-            )}
             </div>
-            );
-        })}
 
             <style jsx>{`
                 @media print {
