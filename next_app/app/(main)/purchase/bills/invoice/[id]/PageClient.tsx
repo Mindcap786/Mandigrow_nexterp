@@ -95,7 +95,7 @@ export default function PurchaseBillInvoicePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8 space-y-8 print:p-0 print:space-y-0 print:bg-white">
+        <div className="min-h-screen print:min-h-0 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8 space-y-8 print:p-0 print:space-y-0 print:bg-white">
             {/* Header / Actions */}
             <div className="max-w-[800px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4 no-print">
                 <Button variant="ghost" className="text-gray-500 hover:text-white pl-0 md:pl-4" onClick={() => router.back()}>

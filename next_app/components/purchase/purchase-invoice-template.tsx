@@ -214,12 +214,8 @@ export default function PurchaseBillInvoice({
         catch { return '-'; }
     })()
 
-    const ROWS_PER_PAGE = 15;
-    const itemChunks = [];
-    for (let i = 0; i < lotsToProcess.length; i += ROWS_PER_PAGE) {
-        itemChunks.push(lotsToProcess.slice(i, i + ROWS_PER_PAGE));
-    }
-    if (itemChunks.length === 0) itemChunks.push([]);
+    // We use native CSS table pagination instead of artificial chunking
+    // to prevent unwanted blank pages and broken layouts.
 
     return (
         <div id="purchase-invoice-print" className="bg-white text-black p-4 sm:p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
@@ -230,15 +226,12 @@ export default function PurchaseBillInvoice({
                 enabled={branding?.is_watermark_enabled}
             />
 
-            {itemChunks.map((chunk, pageIndex) => {
-                const isLastPage = pageIndex === itemChunks.length - 1;
-                return (
-                    <div key={pageIndex} className={cn("relative flex flex-col", !isLastPage && "print:break-after-page print:mb-0 mb-8 pb-8 border-b-4 border-dashed border-gray-200 print:border-none print:pb-0")}>
+            <div className="invoice-page-chunk relative flex flex-col">
 
             {/* ───── Header ───── */}
             <div className="flex flex-col md:flex-row gap-4 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:flex-row print:w-full print:justify-between">
                 {/* Left: Identity */}
-                <div className="flex items-start gap-4 min-w-0 md:flex-[1.35] print:flex-[1.35]">
+                <div className="flex items-start gap-4 w-full md:w-[45%] print:w-[45%]">
                     {organization?.logo_url ? (
                         <img src={organization.logo_url} alt="Logo" className="h-20 w-auto object-contain" style={{ borderRadius: 12 }} />
                     ) : (
@@ -251,10 +244,10 @@ export default function PurchaseBillInvoice({
                             </span>
                         </div>
                     )}
-                    <div className="space-y-1 min-w-0">
+                    <div className="space-y-1 w-full">
                         <p
                             data-invoice-org-name
-                            className="text-black text-[24px] md:text-[29px] print:text-[24px] font-black tracking-tight uppercase leading-[1.12] print:break-normal"
+                            className="text-black text-[24px] md:text-[29px] print:text-[24px] font-black tracking-tight uppercase leading-[1.12]"
                         >
                             {organization?.name || 'Mandi HQ Enterprise'}
                         </p>
@@ -360,7 +353,7 @@ export default function PurchaseBillInvoice({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {chunk.map((l: any) => {
+                        {lotsToProcess.map((l: any) => {
                             const lGrossQty = toNumber(l.gross_quantity) || toNumber(l.initial_qty);
                             let itemLessQty = 0;
                             const itemLessUnits = toNumber(l.less_units);
@@ -418,14 +411,7 @@ export default function PurchaseBillInvoice({
                 </table>
             </div>
 
-            {!isLastPage && (
-                <div className="text-center text-[10px] text-gray-400 mt-6 font-bold uppercase tracking-widest no-print print:block">
-                    Continued on next page...
-                </div>
-            )}
-
-            {isLastPage && (
-                <>
+            {/* Settlement starts here */}
             {/* ───── Settlement Breakdown ───── */}
             <div className="mt-6 flex flex-col md:flex-row gap-8 items-start relative z-10 print:flex print:flex-row print:gap-4 print:mt-4 print:break-inside-avoid w-full">
 
@@ -648,15 +634,10 @@ export default function PurchaseBillInvoice({
                     </span>
                 </div>
             </div>
-            </>
-            )}
             </div>
-            );
-        })}
 
             <style jsx>{`
                 @media print {
-                    @page { margin: 0; }
                     body { background: white; }
                     #purchase-invoice-print { width: 100%; max-width: none; border: none; shadow: none; }
                     .no-print { display: none !important; }
