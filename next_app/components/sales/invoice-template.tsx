@@ -240,8 +240,6 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     )}
                 </div>
             </div>
-            </div>
-
             {/* Table */}
             <div className="relative z-10 overflow-x-auto">
                 <table className="w-full text-left">
