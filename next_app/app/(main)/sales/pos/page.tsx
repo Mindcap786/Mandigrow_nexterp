@@ -751,6 +751,47 @@ export default function POSPage() {
         setShowConfirm(true);
     }
 
+    const handleThermalPrint = async () => {
+        try {
+            // Determine width
+            const thermalWidth = profile?.organization?.settings?.thermal_printer_width === '58mm' ? 32 : 
+                                 profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 48;
+                                 
+            const { generateSaleReceiptESCPOS } = await import('@/lib/generate-thermal-escpos');
+            
+            // Reconstruct sale payload for encoder
+            const posSaleData = {
+                contact_bill_no: lastRefNo,
+                transaction_date: new Date().toISOString(),
+                buyer: { name: buyers.find(b => b.id === selectedBuyerId)?.name || 'Walk-in' },
+                payment_mode: paymentMode,
+                amount_received: amountReceived,
+                grand_total: grandTotal,
+                gst_total: gstTotal,
+                sale_items: cart.map(c => ({
+                    item_name: c.item.name,
+                    qty: c.qty,
+                    rate: c.price,
+                    amount: c.qty * c.price
+                })),
+                discount_amount: 0,
+                market_fee: marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
+            };
+
+            const escposData = generateSaleReceiptESCPOS(posSaleData, profile?.organization, thermalWidth);
+            
+            const { BluetoothPrinter } = await import('@/lib/bluetooth-printer');
+            const printer = new BluetoothPrinter();
+            await printer.connect();
+            await printer.print(escposData);
+            printer.disconnect();
+            return;
+        } catch (e: any) {
+            console.warn('Bluetooth print skipped or failed, falling back to OS print dialog:', e);
+            window.print();
+        }
+    };
+
     const resetPOS = () => {
             setShowSuccess(false)
             setSearch('')
@@ -1713,7 +1754,7 @@ export default function POSPage() {
 
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3 mt-2">
-                                <button onClick={() => window.print()} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-black transition-all text-sm">
+                                <button onClick={handleThermalPrint} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-black transition-all text-sm">
                                     <Printer className="w-5 h-5" /> THERMAL RECEIPT
                                 </button>
                                 <button onClick={() => window.open(`/sales/invoice/${lastInvoiceId}`, '_blank')} className="w-full py-4 bg-white border-2 border-slate-200 text-slate-900 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all text-sm">

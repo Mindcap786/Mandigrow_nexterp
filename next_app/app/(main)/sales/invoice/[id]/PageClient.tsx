@@ -13,6 +13,8 @@ import { useAuth } from "@/components/auth/auth-provider"
 import BuyerInvoice from "@/components/sales/invoice-template"
 import ThermalReceipt from "@/components/sales/thermal-receipt"
 import SmartShareButton from "@/components/billing/smart-share-button"
+import { generateSaleReceiptESCPOS } from "@/lib/generate-thermal-escpos"
+import { BluetoothPrinter } from "@/lib/bluetooth-printer"
 
 export default function SaleInvoicePage() {
     const { id } = useParams()
@@ -84,9 +86,29 @@ export default function SaleInvoicePage() {
 
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const handlePrint = (mode: 'a4' | 'thermal') => {
+    const handlePrint = async (mode: 'a4' | 'thermal') => {
         setPrintMode(mode);
-        setTriggerPrint(prev => prev + 1);
+        if (mode === 'thermal') {
+            try {
+                // Determine width based on organization setting or default to 80mm (48 chars)
+                const thermalWidth = organization?.settings?.thermal_printer_width === '58mm' ? 32 : 
+                                     organization?.settings?.thermal_printer_width === '110mm' ? 64 : 48;
+                                     
+                const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
+                const printer = new BluetoothPrinter();
+                await printer.connect();
+                await printer.print(escposData);
+                printer.disconnect();
+                // Successfully printed via Bluetooth, do not open OS print dialog
+                return;
+            } catch (e: any) {
+                console.warn('Bluetooth print skipped or failed, falling back to OS print dialog:', e);
+                // Fallback to system print dialog
+                setTriggerPrint(prev => prev + 1);
+            }
+        } else {
+            setTriggerPrint(prev => prev + 1);
+        }
     };
 
     const handleDownload = async () => {
