@@ -1753,12 +1753,9 @@ export default function POSPage() {
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-8">Transaction completed successfully</p>
 
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3 mt-2">
+                            <div className="mt-2">
                                 <button onClick={handleThermalPrint} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-black transition-all text-sm">
                                     <Printer className="w-5 h-5" /> THERMAL RECEIPT
-                                </button>
-                                <button onClick={() => window.open(`/sales/invoice/${lastInvoiceId}`, '_blank')} className="w-full py-4 bg-white border-2 border-slate-200 text-slate-900 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-50 transition-all text-sm">
-                                    <FileText className="w-5 h-5" /> A4 INVOICE
                                 </button>
                             </div>
                             <button onClick={resetPOS} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-200 transition-all">

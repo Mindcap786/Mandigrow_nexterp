@@ -354,7 +354,6 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                                 <span className="text-[8px] font-black text-gray-900 uppercase">Pending Amount</span>
                                                 <span className="text-[10px] font-black text-black">₹{balanceDue.toLocaleString()}</span>
                                             </div>
-                                            <span className="text-[7px] font-bold text-gray-400">{upiId}</span>
                                         </div>
                                     );
                                 })()}
@@ -564,7 +563,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                             {adj.old_value !== adj.new_value && `Rate: ${adj.old_value} → ${adj.new_value}`}
                                         </span>
                                         <span className="mx-2 text-gray-400">|</span>
-                                        <span className="italic text-gray-500">"{adj.reason || 'No reason provided'}"</span>
+                                            <span className="italic text-gray-500">"{adj.reason || 'No reason provided'}"</span>
                                     </div>
                                     <div className="font-mono font-bold text-orange-600">
                                         {delta > 0 ? '+' : ''}₹{delta.toLocaleString()}
@@ -583,11 +582,26 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     <div className="mt-6 print:mt-4 h-px w-32 bg-gray-200" />
                 </div>
                 <div className="text-right text-[10px] font-black text-gray-400 flex flex-col items-end gap-1 uppercase tracking-widest">
-                    <span>{branding?.document_footer_presented_by_text }</span>
-                    <span className="text-gray-900 border-t border-gray-100 mt-1 pt-1">{branding?.document_footer_powered_by_text }</span>
-                    <span className="text-[8px] font-bold text-gray-300 italic">{branding?.document_footer_developed_by_text }</span>
+                    {/* Authorized Signatory placeholder */}
+                    <div className="mt-6 print:mt-4 h-px w-32 bg-gray-200 ml-auto" />
+                    <span className="text-[9px]">Authorized Signatory</span>
                 </div>
             </div>
+
+            {/* Platform Branding Footer Bar — all 3 fields set from Super Admin */}
+            {(branding?.document_footer_presented_by_text || branding?.document_footer_powered_by_text || branding?.document_footer_developed_by_text) && (
+                <div className="invoice-footer-bar mt-4 pt-3 border-t border-gray-200 flex justify-between items-center relative z-10 print:fixed print:bottom-0 print:left-0 print:w-full print:bg-white print:px-8 print:py-4 print:break-inside-avoid">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                        {branding?.document_footer_presented_by_text}
+                    </span>
+                    <span className="text-[9px] font-black text-gray-800 uppercase tracking-widest">
+                        {branding?.document_footer_powered_by_text}
+                    </span>
+                    <span className="text-[9px] font-bold text-gray-500 tracking-widest">
+                        {branding?.document_footer_developed_by_text}
+                    </span>
+                </div>
+            )}
             </div>
 
             <style jsx>{`

@@ -12,15 +12,16 @@ export interface BrandingSettings {
 
 let cachedSettings: BrandingSettings | null = null;
 let lastFetchTime = 0;
-const CACHE_TTL = 300000; // 5 minutes
+const CACHE_TTL = 30000; // 30 seconds — super admin changes reflect quickly
 
 const DEFAULT_BRANDING: BrandingSettings = {
     id: 'default',
-    document_footer_powered_by_text: 'Powered by MindT Corporation',
-    document_footer_presented_by_text: 'Presented by MandiGrow',
-    document_footer_developed_by_text: 'Developed by MindT Solutions',
+    document_footer_presented_by_text: '',
+    document_footer_powered_by_text: '',
+    document_footer_developed_by_text: '',
     watermark_text: '',
-    is_watermark_enabled: false
+    is_watermark_enabled: false,
+    support_phone: ''
 };
 
 export async function getPlatformBranding(): Promise<BrandingSettings> {

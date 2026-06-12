@@ -142,16 +142,27 @@ export const PrintableFinancialReport = React.forwardRef<HTMLDivElement, Printab
 
                 {/* Footer Signature */}
                 <div className="mt-16 pt-8 border-t border-slate-300 flex justify-between items-end break-inside-avoid page-break-after-always relative z-10">
-                    <div className="text-[10px] font-black uppercase text-slate-400 flex flex-col gap-1 tracking-widest">
-                        <span>{branding?.document_footer_presented_by_text }</span>
-                        <span className="text-slate-900 border-t border-slate-100 mt-1 pt-1">{branding?.document_footer_powered_by_text }</span>
-                        <span className="text-[8px] font-bold text-slate-300 italic">{branding?.document_footer_developed_by_text }</span>
-                    </div>
+                    <div></div>
                     <div className="flex flex-col items-center gap-2">
                         <div className="h-12 w-48 border-b border-slate-300"></div>
                         <p className="text-xs font-black uppercase tracking-widest text-slate-600">Accountant Signature</p>
                     </div>
                 </div>
+
+                {/* Platform Branding Footer Bar */}
+                {(branding?.document_footer_presented_by_text || branding?.document_footer_powered_by_text || branding?.document_footer_developed_by_text) && (
+                    <div className="invoice-footer-bar mt-4 pt-3 border-t border-gray-200 flex justify-between items-center relative z-10 print:fixed print:bottom-0 print:left-0 print:w-full print:bg-white print:px-8 print:py-4 print:break-inside-avoid">
+                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                            {branding?.document_footer_presented_by_text}
+                        </span>
+                        <span className="text-[9px] font-black text-gray-800 uppercase tracking-widest">
+                            {branding?.document_footer_powered_by_text}
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-500 tracking-widest">
+                            {branding?.document_footer_developed_by_text || 'www.mandigrow.com'}
+                        </span>
+                    </div>
+                )}
             </div>
         );
     }

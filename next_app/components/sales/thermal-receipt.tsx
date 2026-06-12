@@ -121,9 +121,9 @@ export default function ThermalReceipt({ sale, organization }: ThermalReceiptPro
             <div className="mt-8 pt-4 border-t border-black text-center text-[10px] uppercase font-bold tracking-widest">
                 Thank you for your business
             </div>
-            {branding?.document_footer_developed_by_text && (
-                <div className="text-center text-[8px] font-bold mt-2 italic text-gray-500">
-                    {branding.document_footer_developed_by_text}
+            {organization?.phone && (
+                <div className="text-center text-[8px] font-bold mt-2 italic text-gray-800">
+                    {organization.phone}
                 </div>
             )}
         </div>

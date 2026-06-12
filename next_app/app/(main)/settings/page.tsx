@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 interface OrgSettings {
     id: string;
     name: string;
-    gstin: string | null;
     address_line1: string | null;
     address_line2: string | null;
     settings: { mandi_license?: string } | null;
@@ -45,7 +44,6 @@ interface OrgSettings {
 
 function createDefaultSettings(): Omit<OrgSettings, 'id' | 'name'> {
     return {
-        gstin: null,
         address_line1: null,
         address_line2: null,
         settings: null,
@@ -98,9 +96,8 @@ export default function Settings() {
                 setOrgData({
                     id: data.id,
                     name: data.name || "",
-                    gstin: data.gstin || "",
-                    address_line1: data.address || "",
-                    address_line2: data.city || "",
+                    address_line1: data.address_line1 || null,
+                    address_line2: data.address_line2 || null,
                     settings: { mandi_license: data.mandi_license || "" },
                     period_lock_enabled: Boolean(data.period_lock_enabled),
                     period_locked_until: data.period_locked_until || null,
@@ -136,7 +133,6 @@ export default function Settings() {
 
         const payload = {
             organization_name: orgData.name,
-            gstin: orgData.gstin,
             address: orgData.address_line1,
             city: orgData.address_line2,
             mandi_license: orgData.settings?.mandi_license || "",
@@ -199,21 +195,12 @@ export default function Settings() {
                                 onChange={(e) => setOrgData({ ...orgData, name: e.target.value })}
                                 placeholder="e.g. Sharma Mandi"
                             />
-                            <div className="grid grid-cols-2 gap-3">
-                                <NativeInput
-                                    label="GST Number"
-                                    value={orgData?.gstin || ""}
-                                    onChange={(e) => setOrgData({ ...orgData, gstin: e.target.value.toUpperCase() })}
-                                    placeholder="27AAAAA0000A1Z5"
-                                    className="uppercase font-mono"
-                                />
-                                <NativeInput
-                                    label="Mandi License"
-                                    value={orgData?.settings?.mandi_license || ""}
-                                    onChange={(e) => setOrgData({ ...orgData, settings: { ...orgData?.settings, mandi_license: e.target.value } })}
-                                    placeholder="LIC-12345"
-                                />
-                            </div>
+                            <NativeInput
+                                label="Mandi License"
+                                value={orgData?.settings?.mandi_license || ""}
+                                onChange={(e) => setOrgData({ ...orgData, settings: { ...orgData?.settings, mandi_license: e.target.value } })}
+                                placeholder="LIC-12345"
+                            />
                             <NativeInput
                                 label="Address Line 1"
                                 value={orgData?.address_line1 || ""}
@@ -397,10 +384,7 @@ export default function Settings() {
                                 <div className="flex items-center gap-3 text-black font-black italic tracking-tighter uppercase text-xs"><div className="w-8 h-px bg-black/20" />BUSINESS IDENTITY</div>
                                 <div className="space-y-6">
                                     <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Legal Mandi Name</Label><Input value={orgData?.name || ""} onChange={(e) => setOrgData({ ...orgData, name: e.target.value })} className="bg-slate-50 border-slate-200 h-14 text-lg font-black text-black rounded-2xl focus:border-blue-500" /></div>
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">GST Registration</Label><Input placeholder="27AAAAA0000A1Z5" value={orgData?.gstin || ""} onChange={(e) => setOrgData({ ...orgData, gstin: e.target.value })} className="bg-slate-50 border-slate-200 h-12 font-mono font-bold text-black rounded-xl uppercase" /></div>
                                         <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mandi License #</Label><Input placeholder="LIC-12345" value={orgData?.settings?.mandi_license || ""} onChange={(e) => setOrgData({ ...orgData, settings: { ...orgData?.settings, mandi_license: e.target.value } })} className="bg-slate-50 border-slate-200 h-12 font-bold text-black rounded-xl" /></div>
-                                    </div>
                                 </div>
                                 <div className="flex items-center gap-3 text-purple-600 font-black italic tracking-tighter uppercase text-xs pt-4"><div className="w-8 h-px bg-purple-200" />GLOBAL RATES (%)</div>
                                 <div className="grid grid-cols-2 gap-6">

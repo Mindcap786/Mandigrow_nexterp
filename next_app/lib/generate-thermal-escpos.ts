@@ -93,6 +93,9 @@ export function generateSaleReceiptESCPOS(sale: any, organization: any, width: n
   // Footer
   esc.feed(2);
   esc.align('center').textLine("Thank you for your business!");
+  if (organization?.phone) {
+      esc.textLine(organization.phone);
+  }
   esc.feed(4); // Feed enough to tear
   esc.cut();
 

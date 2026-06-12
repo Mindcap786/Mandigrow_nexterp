@@ -96,7 +96,8 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         const React = await import("react");
 
         offScreenContainer = document.createElement("div");
-        offScreenContainer.style.cssText = "position:fixed;left:-9999px;top:0;width:800px;background:white;z-index:-1;";
+        // Use a wider container and let it size naturally (no overflow hidden)
+        offScreenContainer.style.cssText = "position:fixed;left:-9999px;top:0;width:840px;background:white;z-index:-1;visibility:hidden;";
         document.body.appendChild(offScreenContainer);
 
         offScreenRoot = createRoot(offScreenContainer);
@@ -106,7 +107,8 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
                     React.createElement(BuyerInvoice, { sale, organization })
                 )
             );
-            setTimeout(resolve, 800);
+            // Wait longer for fonts, images, and hooks (usePlatformBranding) to load
+            setTimeout(resolve, 1200);
         });
 
         sourceElement = offScreenContainer.querySelector("#invoice-print") as HTMLElement | null;
@@ -116,14 +118,21 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
 
     try {
         await waitForDocumentFonts();
-        const renderWidth = Math.max(Math.ceil(sourceElement.getBoundingClientRect().width || sourceElement.scrollWidth || 0), 800);
-        
-        // Find all page chunks
-        const chunks = Array.from(sourceElement.querySelectorAll(".invoice-page-chunk")) as HTMLElement[];
-        
-        if (chunks.length === 0) {
-            // Fallback to legacy single-canvas mode
-            chunks.push(sourceElement);
+        // Get the full scrollable height — not just the visible portion
+        const renderWidth = Math.max(
+            Math.ceil(sourceElement.getBoundingClientRect().width || sourceElement.scrollWidth || 0),
+            800
+        );
+        // Force full height by temporarily expanding any overflow-hidden ancestors
+        sourceElement.style.overflow = 'visible';
+        sourceElement.style.height = 'auto';
+        await sleep(80); // allow reflow
+        // Extract footer text before capturing canvas
+        let footerTexts: string[] = [];
+        const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
+        if (footerElement) {
+            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => el.textContent?.trim() || '');
+            footerElement.style.display = 'none'; // hide it so it doesn't render in canvas
         }
 
         const { default: jsPDF } = await import("jspdf");
@@ -131,20 +140,146 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
 
-        for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            
-            // Render each chunk as its own canvas
-            const canvas = await renderCanvasFromElement(chunk, renderWidth);
-            const imageData = canvas.toDataURL("image/jpeg", 0.75);
-            
-            // Calculate how much height this chunk takes on the A4 page
-            const chunkImageHeight = (canvas.height * pageWidth) / canvas.width;
-            
-            if (i > 0) pdf.addPage();
-            
-            pdf.addImage(imageData, "JPEG", 0, 0, pageWidth, chunkImageHeight);
+        const drawFooter = () => {
+            if (footerTexts.length >= 3) {
+                pdf.setFontSize(8);
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(150, 150, 150);
+                pdf.text(footerTexts[0], 10, pageHeight - 8);
+                
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(50, 50, 50);
+                pdf.text(footerTexts[1], pageWidth / 2, pageHeight - 8, { align: "center" });
+                
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(150, 150, 150);
+                pdf.text(footerTexts[2], pageWidth - 10, pageHeight - 8, { align: "right" });
+            }
+        };
+
+        // Render the entire invoice as a single canvas
+        const canvas = await renderCanvasFromElement(sourceElement, renderWidth);
+        const imageData = canvas.toDataURL("image/jpeg", 0.75);
+        
+        // Calculate how much height this takes on the A4 page
+        const totalImageHeight = (canvas.height * pageWidth) / canvas.width;
+        
+        let heightLeft = totalImageHeight;
+        let position = 0;
+
+        pdf.addImage(imageData, "JPEG", 0, position, pageWidth, totalImageHeight);
+        drawFooter();
+        
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+            position -= pageHeight;
+            pdf.addPage();
+            pdf.addImage(imageData, "JPEG", 0, position, pageWidth, totalImageHeight);
+            drawFooter();
+            heightLeft -= pageHeight;
         }
+
+        if (footerElement) footerElement.style.display = '';
+
+        return pdf.output("blob");
+    } finally {
+        offScreenRoot?.unmount();
+        offScreenContainer?.remove();
+    }
+}
+
+export async function generatePurchaseBillPDF(lot: any, arrival: any, organization: any, arrivalLots: any[]): Promise<Blob> {
+    let sourceElement = document.getElementById("purchase-invoice-print") as HTMLElement | null;
+    let offScreenRoot: { render: (node: unknown) => void; unmount: () => void } | null = null;
+    let offScreenContainer: HTMLElement | null = null;
+
+    if (!sourceElement) {
+        const { default: PurchaseBillInvoice } = await import("@/components/purchase/purchase-invoice-template");
+        const { createRoot } = await import("react-dom/client");
+        const { LanguageProvider } = await import("@/components/i18n/language-provider");
+        const React = await import("react");
+
+        offScreenContainer = document.createElement("div");
+        offScreenContainer.style.cssText = "position:fixed;left:-9999px;top:0;width:840px;background:white;z-index:-1;visibility:hidden;";
+        document.body.appendChild(offScreenContainer);
+
+        offScreenRoot = createRoot(offScreenContainer);
+        await new Promise<void>((resolve) => {
+            offScreenRoot!.render(
+                React.createElement(LanguageProvider, null, 
+                    React.createElement(PurchaseBillInvoice, { lot, arrival, organization, arrivalLots })
+                )
+            );
+            setTimeout(resolve, 1200);
+        });
+
+        sourceElement = offScreenContainer.querySelector("#purchase-invoice-print") as HTMLElement | null;
+    }
+
+    if (!sourceElement) throw new Error("Invoice content not found for export");
+
+    try {
+        await waitForDocumentFonts();
+        const renderWidth = Math.max(
+            Math.ceil(sourceElement.getBoundingClientRect().width || sourceElement.scrollWidth || 0),
+            800
+        );
+        sourceElement.style.overflow = 'visible';
+        sourceElement.style.height = 'auto';
+        await sleep(80);
+        
+        let footerTexts: string[] = [];
+        const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
+        if (footerElement) {
+            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => el.textContent?.trim() || '');
+            footerElement.style.display = 'none';
+        }
+
+        const { default: jsPDF } = await import("jspdf");
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const drawFooter = () => {
+            if (footerTexts.length >= 3) {
+                pdf.setFontSize(8);
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(150, 150, 150);
+                pdf.text(footerTexts[0], 10, pageHeight - 8);
+                
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(50, 50, 50);
+                pdf.text(footerTexts[1], pageWidth / 2, pageHeight - 8, { align: "center" });
+                
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(150, 150, 150);
+                pdf.text(footerTexts[2], pageWidth - 10, pageHeight - 8, { align: "right" });
+            }
+        };
+
+        const canvas = await renderCanvasFromElement(sourceElement, renderWidth);
+        const imageData = canvas.toDataURL("image/jpeg", 0.75);
+        
+        const totalImageHeight = (canvas.height * pageWidth) / canvas.width;
+        
+        let heightLeft = totalImageHeight;
+        let position = 0;
+
+        pdf.addImage(imageData, "JPEG", 0, position, pageWidth, totalImageHeight);
+        drawFooter();
+        
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+            position -= pageHeight;
+            pdf.addPage();
+            pdf.addImage(imageData, "JPEG", 0, position, pageWidth, totalImageHeight);
+            drawFooter();
+            heightLeft -= pageHeight;
+        }
+
+        if (footerElement) footerElement.style.display = '';
 
         return pdf.output("blob");
     } finally {

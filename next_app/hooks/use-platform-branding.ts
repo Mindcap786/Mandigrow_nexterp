@@ -4,9 +4,9 @@ import { getPlatformBranding, BrandingSettings } from '@/lib/services/branding-s
 export function usePlatformBranding() {
     const [branding, setBranding] = useState<BrandingSettings>({
         id: 'default',
-        document_footer_powered_by_text: 'Powered by MindT Corporation',
-        document_footer_presented_by_text: 'Presented by MandiGrow',
-        document_footer_developed_by_text: 'Developed by MindT Solutions',
+        document_footer_presented_by_text: '',
+        document_footer_powered_by_text: '',
+        document_footer_developed_by_text: '',
         watermark_text: '',
         is_watermark_enabled: false
     });

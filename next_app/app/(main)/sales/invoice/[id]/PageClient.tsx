@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Printer, ChevronLeft, Download, ShieldCheck, Loader2, FileText } from "lucide-react"
+import { Printer, ChevronLeft, Download, Loader2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { callApi } from "@/lib/frappeClient";
  // proxy fallback
@@ -117,11 +117,20 @@ export default function SaleInvoicePage() {
         try {
             const { generateInvoicePDF } = await import('@/lib/generate-invoice-pdf');
             const { downloadBlob } = await import('@/lib/capacitor-share');
+            // Temporarily hide the on-screen element so generateInvoicePDF
+            // always does a fresh off-screen render of the complete invoice
+            // (avoiding viewport-clipping issues with the on-screen version)
+            const existing = document.getElementById('invoice-print');
+            if (existing) existing.id = 'invoice-print-hidden';
             const blob = await generateInvoicePDF(sale, organization);
+            if (existing) existing.id = 'invoice-print';
             const billNo = sale.contact_bill_no ?? sale.bill_no;
             await downloadBlob(blob, `Invoice_${billNo}.pdf`);
         } catch (e) {
             console.error('Invoice Download Error:', e);
+            // Restore ID if something went wrong
+            const hidden = document.getElementById('invoice-print-hidden');
+            if (hidden) hidden.id = 'invoice-print';
             alert('Failed to generate PDF.');
         } finally {
             setIsDownloading(false);
@@ -167,16 +176,6 @@ export default function SaleInvoicePage() {
                 </div>
             </div>
 
-            {/* Verification Header */}
-            <div className="max-w-[800px] mx-auto bg-green-950/20 border border-green-500/20 p-4 rounded-2xl flex items-center gap-4 no-print">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
-                    <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                    <h3 className="text-white font-bold text-sm tracking-tight uppercase">Double-Entry Verified</h3>
-                    <p className="text-green-500/60 text-xs font-medium">This transaction has been cryptographically signed and logged in the organization ledger.</p>
-                </div>
-            </div>
 
             {/* Template */}
             <div className="relative">

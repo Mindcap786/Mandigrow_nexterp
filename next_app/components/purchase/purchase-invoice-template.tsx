@@ -624,16 +624,27 @@ export default function PurchaseBillInvoice({
                     <p>Farmer / Supplier Signature</p>
                     <div className="mt-6 print:mt-4 h-px w-32 bg-gray-200" />
                 </div>
-                <div className="text-right text-[10px] font-black text-gray-400 flex flex-col items-end gap-1 uppercase tracking-widest">
-                    <span>{branding?.document_footer_presented_by_text }</span>
-                    <span className="text-gray-900 border-t border-gray-100 mt-1 pt-1">
-                        {branding?.document_footer_powered_by_text }
-                    </span>
-                    <span className="text-[8px] font-bold text-gray-300 italic">
-                        {branding?.document_footer_developed_by_text }
-                    </span>
+                <div className="text-right text-[10px] font-black uppercase text-gray-400">
+                    <p>For {organization?.name || 'Mandi HQ'}</p>
+                    <div className="mt-6 print:mt-4 h-px w-32 bg-gray-200 ml-auto" />
+                    <span className="text-[9px]">Authorized Signatory</span>
                 </div>
             </div>
+
+            {/* Platform Branding Footer Bar — all 3 fields set from Super Admin */}
+            {(branding?.document_footer_presented_by_text || branding?.document_footer_powered_by_text || branding?.document_footer_developed_by_text) && (
+                <div className="invoice-footer-bar mt-4 pt-3 border-t border-gray-200 flex justify-between items-center relative z-10 print:fixed print:bottom-0 print:left-0 print:w-full print:bg-white print:px-8 print:py-4 print:break-inside-avoid">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                        {branding?.document_footer_presented_by_text}
+                    </span>
+                    <span className="text-[9px] font-black text-gray-800 uppercase tracking-widest">
+                        {branding?.document_footer_powered_by_text}
+                    </span>
+                    <span className="text-[9px] font-bold text-gray-500 tracking-widest">
+                        {branding?.document_footer_developed_by_text || 'www.mandigrow.com'}
+                    </span>
+                </div>
+            )}
             </div>
 
             <style jsx>{`
