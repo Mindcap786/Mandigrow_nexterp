@@ -115,9 +115,15 @@ export default function SaleInvoicePage() {
                 // Successfully printed via Bluetooth, do not open OS print dialog
                 return;
             } catch (e: any) {
-                console.warn('Bluetooth print skipped or failed, falling back to OS print dialog:', e);
-                // Fallback to system print dialog
-                setTriggerPrint(prev => prev + 1);
+                console.error('Bluetooth print skipped or failed:', e);
+                // Import toast dynamically if not imported, or just use alert if we don't have toast imported here.
+                // Wait, toast is already imported in this file.
+                import('sonner').then(({ toast }) => {
+                    toast.error("Thermal Print Failed", {
+                        description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
+                        position: 'top-center'
+                    });
+                });
             }
         } else {
             setTriggerPrint(prev => prev + 1);

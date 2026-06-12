@@ -84,30 +84,37 @@ export class BluetoothPrinter {
       if (!forcePrompt && bt.getDevices) {
         try {
           const devices = await bt.getDevices();
-          for (const d of devices) {
-            try {
-              this.device = d;
-              // 2.5s timeout so it doesn't hang forever if the printer is off
-              this.server = await Promise.race([
-                d.gatt.connect(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
-              ]);
-              
-              const services = await this.server.getPrimaryServices();
-              for (const service of services) {
-                const characteristics = await service.getCharacteristics();
-                for (const char of characteristics) {
-                  if (char.properties.write || char.properties.writeWithoutResponse) {
-                    this.characteristic = char;
-                    return; // Successfully auto-connected!
+          if (devices.length > 0) {
+            for (const d of devices) {
+              try {
+                this.device = d;
+                // 5s timeout so it doesn't hang forever if the printer is off
+                this.server = await Promise.race([
+                  d.gatt.connect(),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                ]);
+                
+                const services = await this.server.getPrimaryServices();
+                for (const service of services) {
+                  const characteristics = await service.getCharacteristics();
+                  for (const char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                      this.characteristic = char;
+                      return; // Successfully auto-connected!
+                    }
                   }
                 }
+              } catch (e) {
+                this.disconnect(); // Failed to connect (off or out of range), try next
               }
-            } catch (e) {
-              this.disconnect(); // Failed to connect (off or out of range), try next
             }
+            // If we get here, we had permitted devices but NONE connected
+            throw new Error("Could not connect to the paired printer. Please ensure it is turned on and in range, or use 'Connect New Printer'.");
           }
-        } catch (e) {
+        } catch (e: any) {
+          if (e.message.includes("Could not connect")) {
+              throw e;
+          }
           console.warn('Auto-connect to previously paired devices failed:', e);
         }
       }

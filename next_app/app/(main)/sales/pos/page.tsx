@@ -754,8 +754,14 @@ export default function POSPage() {
     const handleThermalPrint = async () => {
         try {
             // Determine width
-            const thermalWidth = profile?.organization?.settings?.thermal_printer_width === '80mm' ? 48 : 
-                                 profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 32;
+            let thermalWidth = 48; // default 80mm
+            const savedWidth = localStorage.getItem('thermalWidth');
+            if (savedWidth) {
+                thermalWidth = parseInt(savedWidth, 10);
+            } else {
+                thermalWidth = profile?.organization?.settings?.thermal_printer_width === '58mm' ? 32 : 
+                               profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 48;
+            }
                                  
             const { generateSaleReceiptESCPOS } = await import('@/lib/generate-thermal-escpos');
             
@@ -787,8 +793,11 @@ export default function POSPage() {
             printer.disconnect();
             return;
         } catch (e: any) {
-            console.warn('Bluetooth print skipped or failed, falling back to OS print dialog:', e);
-            window.print();
+            console.error('Bluetooth print skipped or failed:', e);
+            toast.error("Thermal Print Failed", {
+                description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
+                position: 'top-center'
+            });
         }
     };
 
