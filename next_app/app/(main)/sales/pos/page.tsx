@@ -754,8 +754,8 @@ export default function POSPage() {
     const handleThermalPrint = async () => {
         try {
             // Determine width
-            const thermalWidth = profile?.organization?.settings?.thermal_printer_width === '58mm' ? 32 : 
-                                 profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 48;
+            const thermalWidth = profile?.organization?.settings?.thermal_printer_width === '80mm' ? 48 : 
+                                 profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 32;
                                  
             const { generateSaleReceiptESCPOS } = await import('@/lib/generate-thermal-escpos');
             

@@ -9114,30 +9114,24 @@ def commit_mandi_session(**kwargs) -> dict:
                 break
 
     purchase_bill_ids = []
-    lot_names = []
+    lot_names = [None] * len(farmers) if farmers else []
     total_commission = 0.0
     total_purchase = 0.0
     total_net_qty = 0.0
 
     try:
         n_items = len(farmers)
+        
+        # Group farmers by farmer_id so we generate one Arrival per farmer
+        from collections import defaultdict
+        grouped_farmers = defaultdict(list)
         for idx, row in enumerate(farmers):
             farmer_id = row.get("farmer_id")
-            if not farmer_id:
-                continue
-
-            qty = float(row.get("qty") or 0)
-            rate = float(row.get("rate") or 0)
-            less_pct = float(row.get("less_percent") or 0)
-            less_units = float(row.get("less_units") or 0)
-            commission_pct = float(row.get("commission_percent") or 0)
-            loading = float(row.get("loading_charges") or 0)
-            other = float(row.get("other_charges") or 0)
-            net_qty = float(row.get("net_qty") or max(qty - less_units, 0))
-            net_amount = float(row.get("net_amount") or net_qty * rate)
-            commission_amount = float(row.get("commission_amount") or net_amount * commission_pct / 100)
-            net_payable = float(row.get("net_payable") or (net_amount - commission_amount - loading - other))
-
+            if farmer_id:
+                row["_original_idx"] = idx
+                grouped_farmers[farmer_id].append(row)
+                
+        for farmer_id, rows in grouped_farmers.items():
             arrival = frappe.new_doc("Mandi Arrival")
             arrival.arrival_date = session_date
             arrival.party_id = farmer_id
@@ -9152,44 +9146,52 @@ def commit_mandi_session(**kwargs) -> dict:
             # Auto-assign sequential contact_bill_no for this farmer
             arrival.contact_bill_no = _get_next_annual_bill_no("Mandi Arrival", "party_id", farmer_id)
 
-            lot = arrival.append("items", {})
-            lot.item_id = row.get("item_id")
-            lot.qty = qty
-            lot.initial_qty = qty
-            # current_qty tracks PHYSICAL UNITS in stock — always use original qty.
-            # net_qty is a BILLING field (less_percent deduction) — not a stock field.
-            # less/cutting reduces what we PAY the farmer, not how many boxes we received.
-            lot.current_qty = qty
-            if lot_prefix:
-                lot.lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(idx + 1).zfill(2)}"
-            lot.unit = row.get("unit")
-            lot.supplier_rate = rate
-            lot.commission_percent = commission_pct
-            lot.less_percent = less_pct
-            lot.less_units = less_units
-            lot.loading_cost = loading
-            lot.farmer_charges = other
-            lot.net_qty = net_qty   # billing/settlement field only
-            lot.net_amount = net_amount
-            lot.commission_amount = commission_amount
+            for row in rows:
+                qty = float(row.get("qty") or 0)
+                rate = float(row.get("rate") or 0)
+                less_pct = float(row.get("less_percent") or 0)
+                less_units = float(row.get("less_units") or 0)
+                commission_pct = float(row.get("commission_percent") or 0)
+                loading = float(row.get("loading_charges") or 0)
+                other = float(row.get("other_charges") or 0)
+                net_qty = float(row.get("net_qty") or max(qty - less_units, 0))
+                net_amount = float(row.get("net_amount") or net_qty * rate)
+                commission_amount = float(row.get("commission_amount") or net_amount * commission_pct / 100)
+                net_payable = float(row.get("net_payable") or (net_amount - commission_amount - loading - other))
 
-            # Insert + Submit: the on_submit hook (automation.on_arrival_submit)
-            # fires post_arrival_ledger which creates:
-            #   Dr Stock In Hand  (total_realized)
-            #   Cr Creditors      (net_payable_farmer — farmer ledger)
-            #   Cr Commission Income
-            #   Cr Expense Recovery
-            arrival.insert(ignore_permissions=True)
+                lot = arrival.append("items", {})
+                lot.item_id = row.get("item_id")
+                lot.qty = qty
+                lot.initial_qty = qty
+                lot.current_qty = qty
                 
-            arrival.submit()  # ← THIS posts the GL entries and farmer ledger
+                orig_idx = row["_original_idx"]
+                if lot_prefix:
+                    lot.lot_code = lot_prefix if n_items == 1 else f"{lot_prefix}-{str(orig_idx + 1).zfill(2)}"
+                lot.unit = row.get("unit")
+                lot.supplier_rate = rate
+                lot.commission_percent = commission_pct
+                lot.less_percent = less_pct
+                lot.less_units = less_units
+                lot.loading_cost = loading
+                lot.farmer_charges = other
+                lot.net_qty = net_qty
+                lot.net_amount = net_amount
+                lot.commission_amount = commission_amount
+
+                total_purchase += net_payable
+                total_commission += commission_amount
+                total_net_qty += net_qty
+
+            arrival.insert(ignore_permissions=True)
+            arrival.submit()
 
             purchase_bill_ids.append(arrival.name)
-            if arrival.items:
-                lot_names.append(arrival.items[0].name)
-
-            total_purchase += net_payable
-            total_commission += commission_amount
-            total_net_qty += net_qty
+            
+            # Map created lot names back to their original index for the sale side
+            for i, lot in enumerate(arrival.items):
+                orig_idx = rows[i]["_original_idx"]
+                lot_names[orig_idx] = lot.name
 
         sale_bill_id = None
         if buyer_id and farmers:

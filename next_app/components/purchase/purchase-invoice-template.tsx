@@ -218,7 +218,7 @@ export default function PurchaseBillInvoice({
     // to prevent unwanted blank pages and broken layouts.
 
     return (
-        <div id="purchase-invoice-print" className="bg-white text-black p-4 sm:p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
+        <div id="purchase-invoice-print" className="bg-white text-black p-4 sm:p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-[10mm] relative overflow-hidden print:overflow-visible">
 
             {/* Global Watermark */}
             <DocumentWatermark
@@ -341,10 +341,10 @@ export default function PurchaseBillInvoice({
             </div>
 
             {/* ───── Items Table ───── */}
-            <div className="relative z-10 overflow-x-auto">
+            <div className="relative z-10 overflow-x-auto print:overflow-visible">
                 <table className="w-full text-left">
-                    <thead>
-                        <tr className="border-b-2 border-black">
+                    <thead className="print:table-header-group">
+                        <tr className="border-b-2 border-black break-inside-avoid print:break-inside-avoid">
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">Item Details</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-left">HSN</th>
                             <th className="py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black text-center">Quantity</th>
@@ -641,7 +641,7 @@ export default function PurchaseBillInvoice({
                         {branding?.document_footer_powered_by_text}
                     </span>
                     <span className="text-[9px] font-bold text-gray-500 tracking-widest">
-                        {branding?.document_footer_developed_by_text || 'www.mandigrow.com'}
+                        www.mandigrow.com
                     </span>
                 </div>
             )}

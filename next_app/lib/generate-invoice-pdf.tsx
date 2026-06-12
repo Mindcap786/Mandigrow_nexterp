@@ -71,8 +71,6 @@ async function renderCanvasFromElement(target: HTMLElement, renderWidth: number)
         height: renderHeight,
         windowWidth: renderWidth,
         windowHeight: renderHeight,
-        scrollX: 0,
-        scrollY: -window.scrollY,
         onclone: (clonedDocument) => {
             clonedDocument.body.style.margin = "0";
             clonedDocument.body.style.background = "#ffffff";
@@ -96,8 +94,8 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         const React = await import("react");
 
         offScreenContainer = document.createElement("div");
-        // Use a wider container and let it size naturally (no overflow hidden)
-        offScreenContainer.style.cssText = "position:fixed;left:-9999px;top:0;width:840px;background:white;z-index:-1;visibility:hidden;";
+        // Use absolute positioning at top:0 instead of fixed, to prevent html2canvas from capturing blank areas due to scroll offset
+        offScreenContainer.style.cssText = "position:absolute;left:-9999px;top:0;width:840px;background:white;z-index:-1;visibility:hidden;";
         document.body.appendChild(offScreenContainer);
 
         offScreenRoot = createRoot(offScreenContainer);
@@ -201,7 +199,7 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
         const React = await import("react");
 
         offScreenContainer = document.createElement("div");
-        offScreenContainer.style.cssText = "position:fixed;left:-9999px;top:0;width:840px;background:white;z-index:-1;visibility:hidden;";
+        offScreenContainer.style.cssText = "position:absolute;left:-9999px;top:0;width:840px;background:white;z-index:-1;visibility:hidden;";
         document.body.appendChild(offScreenContainer);
 
         offScreenRoot = createRoot(offScreenContainer);

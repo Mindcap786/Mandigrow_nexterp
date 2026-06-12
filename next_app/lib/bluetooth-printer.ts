@@ -68,21 +68,52 @@ export class BluetoothPrinter {
   server: any = null;
   characteristic: any = null;
 
-  async connect() {
+  async connect(forcePrompt: boolean = false) {
     if (typeof navigator === 'undefined' || !(navigator as any).bluetooth) {
       throw new Error('Web Bluetooth is not supported in this browser. Please use Chrome on Desktop or Android.');
     }
 
     try {
-      // We request any device, but we must list the common ESC/POS service UUIDs in optionalServices
-      // so we have permission to communicate with them if the user selects it.
       const COMMON_PRINTER_SERVICES = [
         '000018f0-0000-1000-8000-00805f9b34fb',
-        'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-        '000018f0-0000-1000-8000-00805f9b34fb' // Add more if needed
+        'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
       ];
+      const bt = (navigator as any).bluetooth;
 
-      this.device = await (navigator as any).bluetooth.requestDevice({
+      // 1. Try to auto-connect to previously permitted devices to bypass prompt
+      if (!forcePrompt && bt.getDevices) {
+        try {
+          const devices = await bt.getDevices();
+          for (const d of devices) {
+            try {
+              this.device = d;
+              // 2.5s timeout so it doesn't hang forever if the printer is off
+              this.server = await Promise.race([
+                d.gatt.connect(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+              ]);
+              
+              const services = await this.server.getPrimaryServices();
+              for (const service of services) {
+                const characteristics = await service.getCharacteristics();
+                for (const char of characteristics) {
+                  if (char.properties.write || char.properties.writeWithoutResponse) {
+                    this.characteristic = char;
+                    return; // Successfully auto-connected!
+                  }
+                }
+              }
+            } catch (e) {
+              this.disconnect(); // Failed to connect (off or out of range), try next
+            }
+          }
+        } catch (e) {
+          console.warn('Auto-connect to previously paired devices failed:', e);
+        }
+      }
+
+      // 2. Fallback to requesting a new device via browser prompt
+      this.device = await bt.requestDevice({
         acceptAllDevices: true,
         optionalServices: COMMON_PRINTER_SERVICES
       });

@@ -104,7 +104,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
     // to prevent unwanted blank pages and broken layouts.
 
     return (
-        <div id="invoice-print" className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-0 relative overflow-hidden">
+        <div id="invoice-print" className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-[10mm] relative overflow-hidden print:overflow-visible">
             
             {/* Global Watermark */}
             <DocumentWatermark 
@@ -241,7 +241,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                 </div>
             </div>
             {/* Table */}
-            <div className="relative z-10 overflow-x-auto">
+            <div className="relative z-10 overflow-x-auto print:overflow-visible">
                 <table className="w-full text-left">
                     <thead className="print:table-header-group">
                         <tr className="border-b-2 border-black break-inside-avoid print:break-inside-avoid">
@@ -598,7 +598,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         {branding?.document_footer_powered_by_text}
                     </span>
                     <span className="text-[9px] font-bold text-gray-500 tracking-widest">
-                        {branding?.document_footer_developed_by_text}
+                        www.mandigrow.com
                     </span>
                 </div>
             )}

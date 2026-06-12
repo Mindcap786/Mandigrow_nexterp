@@ -257,3 +257,9 @@ html.capacitor-native .native-pt-20 {
 .is-native-app .mobile-nav-item[data-active="true"]::after {
     background: #1A6B3C !important;
 }
+
+@media print {
+  @page {
+    margin: 0;
+  }
+}
