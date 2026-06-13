@@ -22,6 +22,51 @@ async function waitForImages(root: ParentNode) {
     );
 }
 
+function applySmartPaginationSpacers(sourceElement: HTMLElement, renderWidth: number) {
+    const pdfPageWidth = 210;
+    const pdfPageHeight = 297;
+    const footerHeightMm = 18; // Give it 18mm to be safe
+    const mmToPx = renderWidth / pdfPageWidth;
+    const pageHeightPx = pdfPageHeight * mmToPx;
+    
+    let pageCount = 1;
+    const elementsToCheck = Array.from(sourceElement.querySelectorAll('tr, .prevent-split'));
+    
+    for (let i = 0; i < elementsToCheck.length; i++) {
+        const el = elementsToCheck[i] as HTMLElement;
+        const elRect = el.getBoundingClientRect();
+        const sourceRect = sourceElement.getBoundingClientRect();
+        const topInImage = elRect.top - sourceRect.top;
+        const bottomInImage = elRect.bottom - sourceRect.top;
+        
+        const currentPageBottom = pageCount * pageHeightPx;
+        const usableBoundary = currentPageBottom - (footerHeightMm * mmToPx);
+
+        if (bottomInImage > usableBoundary) {
+            if (topInImage < currentPageBottom) {
+                const pushAmount = currentPageBottom - topInImage;
+                
+                if (el.tagName.toLowerCase() === 'tr') {
+                    const spacer = document.createElement('tr');
+                    spacer.className = "pdf-spacer print-spacer";
+                    const td = document.createElement('td');
+                    td.colSpan = 20; 
+                    td.style.height = `${pushAmount}px`;
+                    td.style.border = 'none';
+                    spacer.appendChild(td);
+                    el.parentNode?.insertBefore(spacer, el);
+                } else {
+                    const spacer = document.createElement('div');
+                    spacer.className = "pdf-spacer print-spacer";
+                    spacer.style.height = `${pushAmount}px`;
+                    el.parentNode?.insertBefore(spacer, el);
+                }
+            }
+            pageCount++;
+        }
+    }
+}
+
 function prepareInvoiceCloneForExport(clone: HTMLElement, renderWidth: number) {
     clone.querySelectorAll(".no-print").forEach((el) => el.remove());
     clone.style.width = `${renderWidth}px`;
@@ -125,6 +170,9 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         sourceElement.style.overflow = 'visible';
         sourceElement.style.height = 'auto';
         await sleep(80); // allow reflow
+
+        applySmartPaginationSpacers(sourceElement, renderWidth);
+
         // Extract footer text before capturing canvas
         let footerTexts: string[] = [];
         const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
@@ -139,6 +187,10 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         const pageHeight = pdf.internal.pageSize.getHeight();
 
         const drawFooter = () => {
+            // Draw a white rectangle at the bottom to cover any overlapping table content
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+
             if (footerTexts.length >= 3) {
                 pdf.setFontSize(8);
                 pdf.setFont("helvetica", "bold");
@@ -182,6 +234,7 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
 
         return pdf.output("blob");
     } finally {
+        sourceElement?.querySelectorAll('.pdf-spacer').forEach(el => el.remove());
         offScreenRoot?.unmount();
         offScreenContainer?.remove();
     }
@@ -227,6 +280,8 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
         sourceElement.style.height = 'auto';
         await sleep(80);
         
+        applySmartPaginationSpacers(sourceElement, renderWidth);
+        
         let footerTexts: string[] = [];
         const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
         if (footerElement) {
@@ -240,6 +295,10 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
         const pageHeight = pdf.internal.pageSize.getHeight();
 
         const drawFooter = () => {
+            // Draw a white rectangle at the bottom to cover any overlapping table content
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+
             if (footerTexts.length >= 3) {
                 pdf.setFontSize(8);
                 pdf.setFont("helvetica", "bold");
@@ -281,6 +340,7 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
 
         return pdf.output("blob");
     } finally {
+        sourceElement?.querySelectorAll('.pdf-spacer').forEach(el => el.remove());
         offScreenRoot?.unmount();
         offScreenContainer?.remove();
     }
