@@ -15,6 +15,7 @@ import { AdjustBalanceDialog } from "./opening-balance-dialog";
 import { Input } from "@/components/ui/input";
 import { PrintableFinancialReport } from "./printable-financial-report";
 import SmartShareFinanceButton from "./smart-share-finance-button";
+import { QuickShareLedgerButton } from "./quick-share-ledger-button";
 import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache";
 import { usePlatformBranding } from "@/hooks/use-platform-branding";
 import { summarizeVoucherHealth } from "@/lib/finance/voucher-integrity";
@@ -621,18 +622,11 @@ export default function FinancialDashboard() {
                                                     >
                                                         <Download className="w-4 h-4" />
                                                     </Button>
-                                                    <Button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const bal = Math.abs(row.net_balance || 0).toLocaleString('en-IN');
-                                                            const side = (row.net_balance || 0) >= 0 ? 'DR' : 'CR';
-                                                            const text = `*Balance Statement: ${row.contact_name}*\nOutstanding: ₹${bal} ${side}\nCity: ${row.contact_city || '-'}`;
-                                                            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                                                        }}
-                                                        size="sm" variant="ghost" className="w-9 h-9 p-0 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-slate-100"
-                                                    >
-                                                        <MessageCircle className="w-4 h-4" />
-                                                    </Button>
+                                                    <QuickShareLedgerButton
+                                                        contactId={row.contact_id}
+                                                        contactName={row.contact_name}
+                                                        contactType={row.contact_type}
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>
