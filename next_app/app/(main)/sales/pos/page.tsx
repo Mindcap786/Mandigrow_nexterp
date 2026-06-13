@@ -781,7 +781,11 @@ export default function POSPage() {
                     amount: c.qty * c.price
                 })),
                 discount_amount: discountAmount || 0,
-                market_fee: marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
+                market_fee: marketFeeAmount,
+                nirashrit: nirashritAmount,
+                misc_fee: miscFeeAmount,
+                extra_charges: extraChargesTotal,
+                crate_total: crateTotal
             };
 
             const escposData = generateSaleReceiptESCPOS(posSaleData, profile?.organization, thermalWidth);

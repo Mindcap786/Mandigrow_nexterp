@@ -75,6 +75,10 @@ export function generateSaleReceiptESCPOS(sale: any, organization: any, width: n
   esc.row('Subtotal', subtotal.toFixed(2), width);
   if (totalGst > 0) esc.row('Tax', totalGst.toFixed(2), width);
   if (Number(sale.market_fee || 0) > 0) esc.row('Market Fee', Number(sale.market_fee).toFixed(2), width);
+  if (Number(sale.nirashrit || 0) > 0) esc.row('Nirashrit', Number(sale.nirashrit).toFixed(2), width);
+  if (Number(sale.misc_fee || 0) > 0) esc.row('Misc Fee', Number(sale.misc_fee).toFixed(2), width);
+  if (Number(sale.extra_charges || 0) > 0) esc.row('Extra Charges', Number(sale.extra_charges).toFixed(2), width);
+  if (Number(sale.crate_total || 0) > 0) esc.row('Crate Charges', Number(sale.crate_total).toFixed(2), width);
   if (Number(sale.discount_amount || 0) > 0) esc.row('Discount', '-' + Number(sale.discount_amount).toFixed(2), width);
 
   const grandTotal = Number(
@@ -213,8 +217,10 @@ export function generatePurchaseReceiptESCPOS(lot: any, arrival: any, organizati
   if (totalLessAmount > 0) esc.row('Less/Cutting', '-' + Math.round(totalLessAmount).toString(), width);
   esc.row('Net Goods Val', Math.round(totalNetGoodsValue).toString(), width);
 
+  if (totalArrivalExpenseShare > 0) esc.row('Farmer Charges', '-' + Math.round(totalArrivalExpenseShare).toString(), width);
   if (totalCommission > 0) esc.row('Commission', '-' + Math.round(totalCommission).toString(), width);
   if (combinedExpenses > 0) esc.row('Expenses', (arrivalType === 'direct' ? '+' : '-') + Math.round(combinedExpenses).toString(), width);
+  if (totalOtherCharges > 0) esc.row('Other Charges', '-' + Math.round(totalOtherCharges).toString(), width);
   if (combinedPaid > 0) esc.row('Amount Paid', '-' + Math.round(combinedPaid).toString(), width);
 
   const finalPayable = arrivalType === 'direct' 
