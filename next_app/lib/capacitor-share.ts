@@ -116,7 +116,7 @@ export async function shareBlob(
             return;
         } catch (err: any) {
             // User dismissed the share sheet — do NOT fall through to download.
-            if (err?.name === 'AbortError' || err?.name === 'NotAllowedError') return;
+            if (err?.name === 'AbortError') return;
             console.warn('[capacitor-share] navigator.share failed, falling back:', err);
         }
     }
