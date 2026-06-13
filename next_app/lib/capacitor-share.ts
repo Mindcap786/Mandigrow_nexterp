@@ -109,10 +109,9 @@ export async function shareBlob(
     const file = new File([blob], filename, { type: fileType });
 
     if (typeof navigator !== 'undefined' && navigator.share) {
-        const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
-
-        const executeShare = async () => {
-            if (canShareFiles) {
+        
+        const attemptShare = async (withFile: boolean) => {
+            if (withFile) {
                 await navigator.share({ files: [file], title: opts.title, text: opts.text });
             } else {
                 downloadBlobSilent(blob, filename);
@@ -121,111 +120,117 @@ export async function shareBlob(
         };
 
         try {
-            await executeShare();
+            // Optimistic first try (often fails due to PDF generation taking too long)
+            await attemptShare(true);
             return;
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
-            
-            if (err?.name === 'NotAllowedError') {
-                return new Promise<void>((resolve) => {
-                    const overlay = document.createElement('div');
-                    overlay.style.position = 'fixed';
-                    overlay.style.top = '0'; overlay.style.left = '0';
-                    overlay.style.width = '100vw'; overlay.style.height = '100vh';
-                    overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                    overlay.style.zIndex = '999999';
-                    overlay.style.display = 'flex';
-                    overlay.style.alignItems = 'center';
-                    overlay.style.justifyContent = 'center';
-                    overlay.style.backdropFilter = 'blur(4px)';
 
-                    const modal = document.createElement('div');
-                    modal.style.backgroundColor = '#fff';
-                    modal.style.padding = '24px';
-                    modal.style.borderRadius = '16px';
-                    modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-                    modal.style.textAlign = 'center';
-                    modal.style.maxWidth = '300px';
-                    modal.style.fontFamily = 'inherit';
+            // Regardless of whether it failed due to timeout (NotAllowedError) or lack of file support (TypeError),
+            // we MUST get a fresh user gesture to reliably open the share menu, because the original click has expired.
+            return new Promise<void>((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0'; overlay.style.left = '0';
+                overlay.style.width = '100vw'; overlay.style.height = '100vh';
+                overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                overlay.style.zIndex = '999999';
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.style.backdropFilter = 'blur(4px)';
 
-                    const title = document.createElement('h3');
-                    title.textContent = 'Document Ready';
-                    title.style.margin = '0 0 8px 0';
-                    title.style.fontSize = '18px';
-                    title.style.color = '#0f172a';
-                    title.style.fontWeight = '800';
+                const modal = document.createElement('div');
+                modal.style.backgroundColor = '#fff';
+                modal.style.padding = '24px';
+                modal.style.borderRadius = '16px';
+                modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                modal.style.textAlign = 'center';
+                modal.style.maxWidth = '300px';
+                modal.style.fontFamily = 'inherit';
 
-                    const desc = document.createElement('p');
-                    desc.textContent = 'Your PDF has been generated and is ready to share.';
-                    desc.style.margin = '0 0 20px 0';
-                    desc.style.fontSize = '14px';
-                    desc.style.color = '#64748b';
+                const title = document.createElement('h3');
+                title.textContent = 'Document Ready';
+                title.style.margin = '0 0 8px 0';
+                title.style.fontSize = '18px';
+                title.style.color = '#0f172a';
+                title.style.fontWeight = '800';
 
-                    const btnContainer = document.createElement('div');
-                    btnContainer.style.display = 'flex';
-                    btnContainer.style.gap = '8px';
+                const desc = document.createElement('p');
+                desc.textContent = 'Your PDF has been generated and is ready to share.';
+                desc.style.margin = '0 0 20px 0';
+                desc.style.fontSize = '14px';
+                desc.style.color = '#64748b';
 
-                    const cancelBtn = document.createElement('button');
-                    cancelBtn.textContent = 'Cancel';
-                    cancelBtn.style.flex = '1';
-                    cancelBtn.style.padding = '10px';
-                    cancelBtn.style.borderRadius = '8px';
-                    cancelBtn.style.border = '1px solid #e2e8f0';
-                    cancelBtn.style.backgroundColor = '#f8fafc';
-                    cancelBtn.style.color = '#475569';
-                    cancelBtn.style.fontWeight = 'bold';
-                    cancelBtn.style.cursor = 'pointer';
+                const btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.gap = '8px';
 
-                    const shareBtn = document.createElement('button');
-                    shareBtn.textContent = 'Open Share Menu';
-                    shareBtn.style.flex = '2';
-                    shareBtn.style.padding = '10px';
-                    shareBtn.style.borderRadius = '8px';
-                    shareBtn.style.border = 'none';
-                    shareBtn.style.backgroundColor = '#10b981';
-                    shareBtn.style.color = '#fff';
-                    shareBtn.style.fontWeight = 'bold';
-                    shareBtn.style.cursor = 'pointer';
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.style.flex = '1';
+                cancelBtn.style.padding = '10px';
+                cancelBtn.style.borderRadius = '8px';
+                cancelBtn.style.border = '1px solid #e2e8f0';
+                cancelBtn.style.backgroundColor = '#f8fafc';
+                cancelBtn.style.color = '#475569';
+                cancelBtn.style.fontWeight = 'bold';
+                cancelBtn.style.cursor = 'pointer';
 
-                    const cleanup = () => {
-                        if (document.body.contains(overlay)) {
-                            document.body.removeChild(overlay);
-                        }
-                    };
+                const shareBtn = document.createElement('button');
+                shareBtn.textContent = 'Open Share Menu';
+                shareBtn.style.flex = '2';
+                shareBtn.style.padding = '10px';
+                shareBtn.style.borderRadius = '8px';
+                shareBtn.style.border = 'none';
+                shareBtn.style.backgroundColor = '#10b981';
+                shareBtn.style.color = '#fff';
+                shareBtn.style.fontWeight = 'bold';
+                shareBtn.style.cursor = 'pointer';
 
-                    cancelBtn.onclick = () => {
-                        cleanup();
-                        resolve();
-                    };
+                const cleanup = () => {
+                    if (document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                    }
+                };
 
-                    shareBtn.onclick = async () => {
-                        cleanup();
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    resolve();
+                };
+
+                shareBtn.onclick = async () => {
+                    cleanup();
+                    try {
+                        // Fresh user gesture! Try attaching the file again.
+                        await attemptShare(true);
+                    } catch (err2: any) {
+                        if (err2?.name === 'AbortError') { resolve(); return; }
+                        
+                        console.warn('[capacitor-share] fresh file share failed, trying text fallback:', err2);
+                        // If file attachment fails (e.g. TypeError, unsupported OS/browser),
+                        // instantly fallback to text share WITHIN THE SAME CLICK HANDLER!
                         try {
-                            // Fresh user gesture!
-                            await executeShare();
-                        } catch (err2: any) {
-                            if (err2?.name !== 'AbortError') {
-                                console.warn('[capacitor-share] fresh share failed:', err2);
+                            await attemptShare(false);
+                        } catch (err3: any) {
+                            if (err3?.name !== 'AbortError') {
+                                console.warn('[capacitor-share] text fallback failed:', err3);
                                 await downloadBlob(blob, filename);
                                 alert(`File downloaded as ${filename}. Your browser does not support direct file sharing.`);
                             }
                         }
-                        resolve();
-                    };
+                    }
+                    resolve();
+                };
 
-                    btnContainer.appendChild(cancelBtn);
-                    btnContainer.appendChild(shareBtn);
-                    modal.appendChild(title);
-                    modal.appendChild(desc);
-                    modal.appendChild(btnContainer);
-                    overlay.appendChild(modal);
-                    document.body.appendChild(overlay);
-                });
-            }
-
-            console.warn('[capacitor-share] share failed:', err);
-            await downloadBlob(blob, filename);
-            alert(`File downloaded as ${filename}. Your browser does not support direct file sharing to other apps.`);
+                btnContainer.appendChild(cancelBtn);
+                btnContainer.appendChild(shareBtn);
+                modal.appendChild(title);
+                modal.appendChild(desc);
+                modal.appendChild(btnContainer);
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+            });
         }
     } else {
         // Fallback for completely unsupported browsers (very old)
