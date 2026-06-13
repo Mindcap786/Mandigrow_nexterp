@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Printer, ChevronLeft, Download, ShieldCheck, Loader2 } from "lucide-react"
+import { Printer, ChevronLeft, Download, ShieldCheck, Loader2, Settings, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { callApi } from "@/lib/frappeClient";
  // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import PurchaseBillInvoice from "@/components/purchase/purchase-invoice-template"
+import { BluetoothPrinter } from "@/lib/bluetooth-printer"
+import { generatePurchaseReceiptESCPOS } from "@/lib/generate-thermal-escpos"
 
 export default function PurchaseBillInvoicePage() {
     const { id } = useParams()    // This is the lot_id
@@ -20,6 +23,22 @@ export default function PurchaseBillInvoicePage() {
     const [loading, setLoading] = useState(true)
     const [isDownloading, setIsDownloading] = useState(false)
     const [isSharing, setIsSharing] = useState(false)
+    const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
+
+    useEffect(() => {
+        const savedWidth = localStorage.getItem('thermalWidth');
+        if (savedWidth) {
+            setThermalWidth(parseInt(savedWidth, 10));
+        } else if (organization?.settings?.thermal_printer_width) {
+            setThermalWidth(organization.settings.thermal_printer_width === '58mm' ? 32 : 
+                            organization.settings.thermal_printer_width === '110mm' ? 64 : 48);
+        }
+    }, [organization]);
+
+    const handleWidthChange = (width: number) => {
+        setThermalWidth(width);
+        localStorage.setItem('thermalWidth', width.toString());
+    };
 
     useEffect(() => {
         if (id && profile?.organization_id) {
@@ -55,6 +74,44 @@ export default function PurchaseBillInvoicePage() {
     const handlePrint = () => {
         window.print()
     }
+
+    const handleThermalPrint = async (forcePrompt: boolean = false) => {
+        try {
+            const escposData = generatePurchaseReceiptESCPOS(lot, arrival, organization, arrivalLots, thermalWidth);
+            const printer = new BluetoothPrinter();
+            await printer.connect(forcePrompt);
+            await printer.print(escposData);
+        } catch (e: any) {
+            console.error('Bluetooth print skipped or failed:', e);
+            import('sonner').then(({ toast }) => {
+                toast.error("Thermal Print Failed", {
+                    description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
+                    position: 'top-center'
+                });
+            });
+        }
+    };
+
+    const handlePairPrinter = async () => {
+        try {
+            const printer = new BluetoothPrinter();
+            await printer.connect(true);
+            import('sonner').then(({ toast }) => {
+                toast.success("Printer Paired Successfully", {
+                    description: "You can now click THERMAL to print.",
+                    position: 'top-center'
+                });
+            });
+        } catch (e: any) {
+            console.error('Bluetooth pairing failed:', e);
+            import('sonner').then(({ toast }) => {
+                toast.error("Pairing Failed", {
+                    description: e.message || "Could not connect to printer.",
+                    position: 'top-center'
+                });
+            });
+        }
+    };
 
     const handleDownload = async () => {
         if (!lot || isDownloading || isSharing) return;
@@ -123,12 +180,41 @@ export default function PurchaseBillInvoicePage() {
                 </Button>
 
                 <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-4 w-full md:w-auto">
+                    <div className="flex-1 md:flex-none flex items-center bg-white text-black rounded-md overflow-hidden">
+                        <Button className="flex-1 md:flex-none bg-transparent text-black hover:bg-black/5 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm rounded-none border-r border-black/10" onClick={() => handleThermalPrint()}>
+                            <Printer className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
+                            THERMAL
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button className="bg-transparent text-black hover:bg-black/5 h-10 md:h-12 px-2 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0">
+                                    <Settings className="w-4 h-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={handlePairPrinter} className="cursor-pointer">
+                                    Connect New Printer...
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Paper Size</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleWidthChange(32)} className="cursor-pointer">
+                                    {thermalWidth === 32 ? "✓ " : ""}58mm (Small)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleWidthChange(48)} className="cursor-pointer">
+                                    {thermalWidth === 48 ? "✓ " : ""}80mm (Standard)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleWidthChange(64)} className="cursor-pointer">
+                                    {thermalWidth === 64 ? "✓ " : ""}110mm (Large)
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                     <Button
                         className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm"
                         onClick={handlePrint}
                     >
-                        <Printer className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
-                        PRINT
+                        <FileText className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
+                        A4 INVOICE
                     </Button>
                     <Button
                         disabled={isDownloading || isSharing}

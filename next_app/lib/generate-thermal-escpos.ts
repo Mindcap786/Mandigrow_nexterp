@@ -17,8 +17,9 @@ export function generateSaleReceiptESCPOS(sale: any, organization: any, width: n
   // Details
   esc.align('left');
   esc.row(`Bill No: ${billNo}`, `Date: ${dateStr}`, width);
-  if (sale.buyer?.name) {
-    esc.row('Buyer:', sale.buyer.name.substring(0, width - 8), width);
+  const buyerName = sale.contact?.name || sale.buyer_name || sale.buyer?.name;
+  if (buyerName) {
+    esc.row('Buyer:', buyerName.substring(0, width - 8), width);
   }
   
   const amountReceived = Math.max(
@@ -97,6 +98,119 @@ export function generateSaleReceiptESCPOS(sale: any, organization: any, width: n
       esc.textLine(organization.phone);
   }
   esc.feed(4); // Feed enough to tear
+  esc.cut();
+
+  return esc.getBuffer();
+}
+
+export function generatePurchaseReceiptESCPOS(lot: any, arrival: any, organization: any, arrivalLots: any[] = [], width: number = 48) {
+  const esc = new ESCPOS();
+  esc.init();
+
+  const padR = (str: string, len: number) => (str + ' '.repeat(len)).substring(0, len);
+  const padL = (str: string, len: number) => (' '.repeat(len) + str).slice(-len);
+  const toNumber = (v: any) => Number(v) || 0;
+
+  const orgName = organization?.name || 'Store';
+  const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot?.lot_code || 'N/A';
+  const arrivalDate = arrival?.arrival_date || lot?.created_at;
+  const dateStr = arrivalDate ? format(new Date(arrivalDate), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy');
+  const farmerName = lot?.farmer?.name || lot?.contact?.name || 'Unknown Supplier';
+
+  esc.align('center').bold(true).textLine(orgName).bold(false);
+  esc.textLine("Purchase Bill");
+  esc.line(width, '-');
+
+  esc.align('left');
+  esc.row(`Bill No: ${billNo}`, `Date: ${dateStr}`, width);
+  esc.row('Supplier:', farmerName.substring(0, width - 10), width);
+  esc.line(width, '-');
+
+  const qtyW = 4;
+  const rateW = 6;
+  const amtW = 8;
+  const itemW = width - qtyW - rateW - amtW - 3; 
+
+  esc.bold(true);
+  esc.textLine(padR('Item', itemW) + ' ' + padL('Qty', qtyW) + ' ' + padL('Rate', rateW) + ' ' + padL('Amt', amtW));
+  esc.bold(false);
+  esc.line(width, '-');
+
+  const lotsToProcess = arrivalLots.length > 0 ? arrivalLots : [lot];
+  let totalGrossGoodsValue = 0;
+  let totalLessAmount = 0;
+  let totalCommission = 0;
+  let totalLotExpenses = 0;
+  let totalAdvance = 0;
+  let totalPaidAmount = 0;
+  let totalOtherCharges = 0;
+  let totalArrivalExpenseShare = 0;
+
+  for (const l of lotsToProcess) {
+      if (!l) continue;
+      const gQty = toNumber(l.gross_quantity) || toNumber(l.initial_qty);
+      const isSettled = !!l.settlement_at;
+      let lLessQty = 0;
+      const lLessUnits = toNumber(l.less_units);
+      const lLessPercent = toNumber(l.less_percent);
+      if (lLessUnits > 0) lLessQty = lLessUnits;
+      else if (lLessPercent > 0) lLessQty = gQty * (lLessPercent / 100);
+      
+      const rate = toNumber(l.supplier_rate);
+      const gGoodsVal = gQty * rate;
+      const lLessAmount = lLessQty * rate;
+      const nGoodsVal = Math.max(0, gGoodsVal - lLessAmount - toNumber(l.farmer_charges || 0));
+
+      totalGrossGoodsValue += gGoodsVal;
+      totalLessAmount += lLessAmount;
+      totalCommission += isSettled ? toNumber(l.settlement_commission) : (nGoodsVal * toNumber(l.commission_percent)) / 100;
+      totalLotExpenses += isSettled ? toNumber(l.settlement_expenses) : (toNumber(l.packing_cost) + toNumber(l.loading_cost));
+      totalAdvance += toNumber(l.advance);
+      totalPaidAmount += toNumber(l.paid_amount);
+      totalOtherCharges += toNumber(l.other_charges || 0);
+      totalArrivalExpenseShare += toNumber(l.farmer_charges || 0);
+
+      const itemName = (l.item?.name || lot?.item?.name || 'Item').substring(0, itemW);
+      const lGoodsValFinal = isSettled ? toNumber(l.settlement_goods_value) : (gQty * rate);
+
+      esc.textLine(padR(itemName, itemW) + ' ' + padL(Math.round(gQty).toString(), qtyW) + ' ' + padL(Math.round(rate).toString(), rateW) + ' ' + padL(Math.round(lGoodsValFinal).toString(), amtW));
+  }
+  esc.line(width, '-');
+
+  if (totalAdvance === 0 && arrival?.advance) totalAdvance = toNumber(arrival.advance);
+  if (totalPaidAmount === 0 && arrival?.paid_amount) totalPaidAmount = toNumber(arrival.paid_amount);
+
+  const tripExpenses = toNumber(arrival?.hire_charges) + toNumber(arrival?.hamali_expenses) + toNumber(arrival?.other_expenses);
+  const combinedExpenses = totalLotExpenses + tripExpenses;
+  const totalNetGoodsValue = Math.max(0, totalGrossGoodsValue - totalLessAmount - totalArrivalExpenseShare);
+
+  const isChequeMode = (arrival?.advance_payment_mode || '').toLowerCase() === 'cheque';
+  const isChequeCleared = !isChequeMode ? true : (arrival?.is_cheque_cleared === true);
+  const effectiveAdvance = isChequeCleared ? totalAdvance : 0;
+  const effectivePaidAmount = isChequeCleared ? totalPaidAmount : 0;
+  const combinedPaid = effectiveAdvance === effectivePaidAmount ? effectiveAdvance : effectiveAdvance + effectivePaidAmount;
+
+  const arrivalType = arrival?.arrival_type || (lot?.mandi_owned ? 'direct' : 'commission');
+
+  esc.row('Gross Value', Math.round(totalGrossGoodsValue).toString(), width);
+  if (totalLessAmount > 0) esc.row('Less/Cutting', '-' + Math.round(totalLessAmount).toString(), width);
+  esc.row('Net Goods Val', Math.round(totalNetGoodsValue).toString(), width);
+
+  if (totalCommission > 0) esc.row('Commission', '-' + Math.round(totalCommission).toString(), width);
+  if (combinedExpenses > 0) esc.row('Expenses', (arrivalType === 'direct' ? '+' : '-') + Math.round(combinedExpenses).toString(), width);
+  if (combinedPaid > 0) esc.row('Amount Paid', '-' + Math.round(combinedPaid).toString(), width);
+
+  const finalPayable = arrivalType === 'direct' 
+        ? Math.max(0, totalNetGoodsValue + combinedExpenses - combinedPaid - totalOtherCharges) 
+        : Math.max(0, totalNetGoodsValue - totalCommission - combinedExpenses - combinedPaid - totalOtherCharges);
+
+  esc.line(width, '-');
+  esc.bold(true).row('TOTAL PAYABLE', Math.round(finalPayable).toString(), width).bold(false);
+  esc.line(width, '-');
+
+  esc.feed(2);
+  esc.align('center').textLine("Thank you!");
+  esc.feed(4);
   esc.cut();
 
   return esc.getBuffer();
