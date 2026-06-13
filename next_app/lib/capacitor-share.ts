@@ -228,8 +228,23 @@ export async function shareToWhatsApp(
         await shareBlob(blob, filename, { title: filename, text });
         return;
     }
-    // On web, wa.me can't attach files — download the PDF, then open WhatsApp
-    // with the message so the user can attach manually.
+    
+    // On web, try Web Share API first to allow seamless file attachment
+    // This will surface the OS share sheet where the user can pick WhatsApp
+    if (typeof navigator !== 'undefined' && navigator.share) {
+        let fileType = blob.type || 'application/pdf';
+        const file = new File([blob], filename, { type: fileType });
+        try {
+            await navigator.share({ files: [file], title: filename, text });
+            return;
+        } catch (err: any) {
+            if (err?.name === 'AbortError' || err?.name === 'NotAllowedError') return;
+            console.warn('[capacitor-share] navigator.share failed, falling back to wa.me:', err);
+        }
+    }
+
+    // Fallback for browsers that don't support file sharing via API
+    // wa.me can't attach files — download the PDF, then open WhatsApp
     await downloadBlob(blob, filename);
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');

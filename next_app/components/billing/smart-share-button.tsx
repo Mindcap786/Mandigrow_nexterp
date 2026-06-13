@@ -74,16 +74,8 @@ export default function SmartShareButton({ sale, organization }: { sale: any, or
         setLoadingId('email');
         try {
             const blob = await generatePDF();
-            const { downloadBlobSilent } = await import('@/lib/capacitor-share');
-            // Trigger download in background — don't await so Mail opens immediately
-            downloadBlobSilent(blob, filename);
-            const subject = encodeURIComponent(shareTitle);
-            const body = encodeURIComponent(
-                `${shareText}\n\n` +
-                `The invoice PDF (${filename}) has been saved to your Downloads folder.\n` +
-                `Please attach it to this email before sending.`
-            );
-            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            const { shareBlob } = await import('@/lib/capacitor-share');
+            await shareBlob(blob, filename, { title: shareTitle, text: shareText });
         } catch (err: any) {
             console.error('[SmartShare] Email failed:', err);
             alert(`Failed: ${err?.message || err}`);

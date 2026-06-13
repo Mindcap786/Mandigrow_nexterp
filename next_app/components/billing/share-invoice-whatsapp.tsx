@@ -87,11 +87,8 @@ export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any
         setLoadingId('email');
         try {
             const blob = await generatePDF();
-            const { downloadBlob } = await import('@/lib/capacitor-share');
-            await downloadBlob(blob, filename);
-            const subject = encodeURIComponent(shareTitle);
-            const body = encodeURIComponent(`${shareText}\n\nPlease find the attached invoice PDF.`);
-            setTimeout(() => { window.location.href = `mailto:?subject=${subject}&body=${body}`; }, 600);
+            const { shareBlob } = await import('@/lib/capacitor-share');
+            await shareBlob(blob, filename, { title: shareTitle, text: shareText });
         } catch (err: any) {
             alert(`Failed: ${err?.message || err}`);
         } finally { setLoadingId(null); }
