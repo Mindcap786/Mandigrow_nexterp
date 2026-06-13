@@ -247,10 +247,10 @@ export default function SaleInvoicePage() {
                         border: none !important;
                     }
 
-                    /* Remove page margins so the invoice fills the sheet */
+                    /* Remove page margins so the browser doesn't print its own header/footer URLs */
                     @page { 
-                        margin: ${printMode === 'thermal' ? '0' : '10mm'}; 
-                        size: ${printMode === 'thermal' ? 'auto' : 'A4 portrait'}; 
+                        margin: 0; 
+                        size: auto; 
                     }
                 }
             `}</style>

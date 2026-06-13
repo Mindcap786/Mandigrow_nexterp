@@ -370,7 +370,7 @@ export default function PurchaseBillInvoice({
                                 : lGrossQty * toNumber(l.supplier_rate);
 
                             return (
-                                <tr key={l.id}>
+                                <tr key={l.id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className="break-inside-avoid print:break-inside-avoid">
                                     <td className="py-2">
                                         <p className="font-black text-xs tracking-tight uppercase leading-none">
                                             {formatCommodityName(l.item?.name || lot.item?.name, l.custom_attributes || l.item?.custom_attributes || lot.custom_attributes)}

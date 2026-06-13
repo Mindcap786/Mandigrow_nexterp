@@ -256,7 +256,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {items.map((item: any) => (
-                            <tr key={item.id} className="group break-inside-avoid print:break-inside-avoid">
+                            <tr key={item.id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className="group break-inside-avoid print:break-inside-avoid">
                                 <td className="py-0.5">
                                     <p className="font-black text-xs tracking-tight uppercase leading-none">
                                         {formatCommodityName(item.lot?.item?.name || item.item_name || 'Item', item.lot?.item?.custom_attributes)}

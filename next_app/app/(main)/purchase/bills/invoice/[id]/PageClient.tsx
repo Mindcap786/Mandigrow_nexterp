@@ -172,7 +172,7 @@ export default function PurchaseBillInvoicePage() {
                     }
 
                     /* Remove page margins so the invoice fills the sheet */
-                    @page { margin: 10mm; size: A4 portrait; }
+                    @page { margin: 0; size: auto; }
                 }
             `}</style>
         </div>
