@@ -57,6 +57,15 @@ export function generateSaleReceiptESCPOS(sale: any, organization: any, width: n
       subtotal += Number(amt);
 
       esc.textLine(padR(itemName, itemW) + ' ' + padL(qty, qtyW) + ' ' + padL(rate, rateW) + ' ' + padL(amt, amtW));
+      
+      const gstRate = Number(c.gst_rate || 0);
+      const gstAmt = Number(c.gst_amount || 0);
+      if (gstRate > 0) {
+          const isIncl = String(c.sale_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' || c.gst_inclusive;
+          const typeStr = isIncl ? 'Incl.' : '+';
+          const gstStr = `${typeStr} GST ${gstRate}% (Rs.${gstAmt.toFixed(2)})`;
+          esc.textLine(padR('  ' + gstStr, width));
+      }
   }
   esc.line(width, '-');
 
@@ -174,6 +183,14 @@ export function generatePurchaseReceiptESCPOS(lot: any, arrival: any, organizati
       const lGoodsValFinal = isSettled ? toNumber(l.settlement_goods_value) : (gQty * rate);
 
       esc.textLine(padR(itemName, itemW) + ' ' + padL(Math.round(gQty).toString(), qtyW) + ' ' + padL(Math.round(rate).toString(), rateW) + ' ' + padL(Math.round(lGoodsValFinal).toString(), amtW));
+      
+      const gstRate = toNumber(l.purchase_gst_rate || 0);
+      const gstAmt = toNumber(l.purchase_gst_amount || 0);
+      if (gstRate > 0) {
+          const typeStr = String(l.purchase_gst_type || 'Exclusive').trim().toLowerCase() === 'inclusive' ? 'Incl.' : '+';
+          const gstStr = `${typeStr} GST ${gstRate}% (Rs.${gstAmt.toFixed(2)})`;
+          esc.textLine(padR('  ' + gstStr, width));
+      }
   }
   esc.line(width, '-');
 
