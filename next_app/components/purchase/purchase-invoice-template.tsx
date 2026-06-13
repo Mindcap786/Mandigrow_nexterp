@@ -666,6 +666,7 @@ export default function PurchaseBillInvoice({
 
             <style jsx>{`
                 @media print {
+                    @page { margin: 0; }
                     body { background: white; }
                     #purchase-invoice-print { width: 100%; max-width: none; border: none; shadow: none; }
                     .no-print { display: none !important; }

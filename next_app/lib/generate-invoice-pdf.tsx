@@ -177,7 +177,7 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         let footerTexts: string[] = [];
         const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
         if (footerElement) {
-            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => el.textContent?.trim() || '');
+            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => (el.textContent?.trim() || '').toUpperCase());
             footerElement.style.display = 'none'; // hide it so it doesn't render in canvas
         }
 
@@ -285,7 +285,7 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
         let footerTexts: string[] = [];
         const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
         if (footerElement) {
-            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => el.textContent?.trim() || '');
+            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => (el.textContent?.trim() || '').toUpperCase());
             footerElement.style.display = 'none';
         }
 

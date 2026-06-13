@@ -37,7 +37,7 @@ export function FAB() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setOpen(false)}
-                        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]"
+                        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] print:hidden"
                     />
                 )}
             </AnimatePresence>
@@ -45,7 +45,7 @@ export function FAB() {
             {/* Speed Dial Actions */}
             <AnimatePresence>
                 {open && (
-                    <div className="fixed bottom-[88px] right-4 z-50 flex flex-col-reverse items-end gap-3">
+                    <div className="fixed bottom-[88px] right-4 z-50 flex flex-col-reverse items-end gap-3 print:hidden">
                         {SPEED_DIAL_ACTIONS.map((action, i) => (
                             <motion.div
                                 key={action.href}
@@ -81,7 +81,7 @@ export function FAB() {
             <button
                 onClick={() => setOpen(!open)}
                 className={cn(
-                    "fixed bottom-[88px] right-4 z-50",
+                    "fixed bottom-[88px] right-4 z-50 print:hidden",
                     "w-14 h-14 rounded-full bg-[#F97316]",
                     "shadow-[0_4px_16px_rgba(249,115,22,0.45)]",
                     "flex items-center justify-center",
