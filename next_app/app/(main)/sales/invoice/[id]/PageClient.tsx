@@ -130,6 +130,27 @@ export default function SaleInvoicePage() {
         }
     };
 
+    const handlePairPrinter = async () => {
+        try {
+            const printer = new BluetoothPrinter();
+            await printer.connect(true); // force prompt to pair
+            import('sonner').then(({ toast }) => {
+                toast.success("Printer Paired Successfully", {
+                    description: "You can now click THERMAL to print.",
+                    position: 'top-center'
+                });
+            });
+        } catch (e: any) {
+            console.error('Bluetooth pairing failed:', e);
+            import('sonner').then(({ toast }) => {
+                toast.error("Pairing Failed", {
+                    description: e.message || "Could not connect to printer.",
+                    position: 'top-center'
+                });
+            });
+        }
+    };
+
     const handleDownload = async () => {
         if (!sale || isDownloading) return;
         setIsDownloading(true);
@@ -176,7 +197,7 @@ export default function SaleInvoicePage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handlePrint('thermal', true)} className="cursor-pointer">
+                                <DropdownMenuItem onClick={handlePairPrinter} className="cursor-pointer">
                                     Connect New Printer...
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
