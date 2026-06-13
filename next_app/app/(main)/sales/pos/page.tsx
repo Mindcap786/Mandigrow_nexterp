@@ -780,7 +780,7 @@ export default function POSPage() {
                     rate: c.price,
                     amount: c.qty * c.price
                 })),
-                discount_amount: 0,
+                discount_amount: discountAmount || 0,
                 market_fee: marketFeeAmount + nirashritAmount + miscFeeAmount + extraChargesTotal + crateTotal
             };
 
