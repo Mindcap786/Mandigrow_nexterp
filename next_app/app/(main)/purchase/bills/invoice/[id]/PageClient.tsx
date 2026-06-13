@@ -19,6 +19,7 @@ export default function PurchaseBillInvoicePage() {
     const [arrivalLots, setArrivalLots] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [isDownloading, setIsDownloading] = useState(false)
+    const [isSharing, setIsSharing] = useState(false)
 
     useEffect(() => {
         if (id && profile?.organization_id) {
@@ -56,7 +57,7 @@ export default function PurchaseBillInvoicePage() {
     }
 
     const handleDownload = async () => {
-        if (!lot || isDownloading) return;
+        if (!lot || isDownloading || isSharing) return;
         setIsDownloading(true);
         try {
             const { generatePurchaseBillPDF } = await import('@/lib/generate-invoice-pdf').catch(() => ({ generatePurchaseBillPDF: null })) as any;
@@ -66,14 +67,33 @@ export default function PurchaseBillInvoicePage() {
                 const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'bill';
                 await downloadBlob(blob, `PurchaseBill_${billNo}.pdf`);
             } else {
-                // Fallback: print to PDF
                 handlePrint();
             }
         } catch {
-            // Fallback: print to PDF
             handlePrint();
         } finally {
             setIsDownloading(false);
+        }
+    };
+
+    const handleShare = async () => {
+        if (!lot || isDownloading || isSharing) return;
+        setIsSharing(true);
+        try {
+            const { generatePurchaseBillPDF } = await import('@/lib/generate-invoice-pdf').catch(() => ({ generatePurchaseBillPDF: null })) as any;
+            if (generatePurchaseBillPDF) {
+                const { shareBlob } = await import('@/lib/capacitor-share');
+                const blob = await generatePurchaseBillPDF(lot, arrival, organization, arrivalLots);
+                const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'bill';
+                const shareTitle = `Purchase Bill #${billNo}`;
+                const shareText = `Purchase Bill #${billNo} from ${organization?.name || 'Mandi'}`;
+                await shareBlob(blob, `PurchaseBill_${billNo}.pdf`, { title: shareTitle, text: shareText });
+            }
+        } catch (err: any) {
+            if (err?.name === 'AbortError') return;
+            alert(`Failed to share: ${err?.message || err}`);
+        } finally {
+            setIsSharing(false);
         }
     };
 
@@ -111,12 +131,20 @@ export default function PurchaseBillInvoicePage() {
                         PRINT
                     </Button>
                     <Button
-                        disabled={isDownloading}
+                        disabled={isDownloading || isSharing}
                         className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm"
                         onClick={handleDownload}
                     >
                         {isDownloading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 animate-spin shrink-0" /> : <Download className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />}
                         <span className="truncate">{isDownloading ? "SAVING..." : "DOWNLOAD"}</span>
+                    </Button>
+                    <Button
+                        disabled={isDownloading || isSharing}
+                        className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm"
+                        onClick={handleShare}
+                    >
+                        {isSharing ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 animate-spin shrink-0" /> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0 lucide lucide-share-2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>}
+                        <span className="truncate">{isSharing ? "SHARING..." : "SHARE"}</span>
                     </Button>
                 </div>
             </div>

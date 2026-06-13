@@ -1,24 +1,15 @@
 "use client";
 
-import { Share2, Loader2, MessageCircle, Mail, Download } from 'lucide-react';
+import { Share2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useState } from 'react';
 import { useLanguage } from '@/components/i18n/language-provider';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 
 export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any, organization?: any }) {
     const auth = useAuth?.();
     const profile = auth?.profile;
     const { t } = useLanguage();
-    const [loadingId, setLoadingId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const org = organization || profile?.organization || { name: "Mandi Organization", city: "Main Market Yard" };
     const displayBillNo = sale.contact_bill_no || sale.bill_no;
@@ -56,10 +47,10 @@ export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any
         return generateInvoicePDF(fullSale, org);
     };
 
-    const handleNativeShare = async (e: React.MouseEvent) => {
+    const handleShare = async (e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
-        if (loadingId) return;
-        setLoadingId('native');
+        if (isLoading) return;
+        setIsLoading(true);
         try {
             const blob = await generatePDF();
             const { shareBlob } = await import('@/lib/capacitor-share');
@@ -67,81 +58,17 @@ export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
             alert(`Failed: ${err?.message || err}`);
-        } finally { setLoadingId(null); }
+        } finally { setIsLoading(false); }
     };
 
-    const handleWhatsApp = async () => {
-        if (loadingId) return;
-        setLoadingId('whatsapp');
-        try {
-            const blob = await generatePDF();
-            const { shareToWhatsApp } = await import('@/lib/capacitor-share');
-            await shareToWhatsApp(blob, filename, shareText);
-        } catch (err: any) {
-            alert(`Failed: ${err?.message || err}`);
-        } finally { setLoadingId(null); }
-    };
-
-    const handleEmail = async () => {
-        if (loadingId) return;
-        setLoadingId('email');
-        try {
-            const blob = await generatePDF();
-            const { shareBlob } = await import('@/lib/capacitor-share');
-            await shareBlob(blob, filename, { title: shareTitle, text: shareText });
-        } catch (err: any) {
-            alert(`Failed: ${err?.message || err}`);
-        } finally { setLoadingId(null); }
-    };
-
-
-    const isLoading = loadingId !== null;
-
-    // Native: single tap → system share sheet
-    if (isMobileAppView()) {
-        return (
-            <div onClick={handleNativeShare} className="flex items-center w-full cursor-pointer hover:bg-slate-50 px-2 py-1.5 rounded-lg transition-colors group">
-                {isLoading
-                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-600" />
-                    : <Share2 className="w-4 h-4 mr-2 text-emerald-600 group-hover:scale-110 transition-transform" />}
-                <span className="text-sm font-bold text-slate-700">
-                    {isLoading ? 'Generating...' : t('common.share')}
-                </span>
-            </div>
-        );
-    }
-
-    // Web: show share options dropdown immediately on click
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <div className="flex items-center w-full cursor-pointer hover:bg-slate-50 px-2 py-1.5 rounded-lg transition-colors group">
-                    {isLoading
-                        ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-600" />
-                        : <Share2 className="w-4 h-4 mr-2 text-emerald-600 group-hover:scale-110 transition-transform" />}
-                    <span className="text-sm font-bold text-slate-700">
-                        {isLoading
-                            ? (loadingId === 'whatsapp' ? 'WhatsApp...' : loadingId === 'email' ? 'Mail...' : 'Downloading...')
-                            : t('common.share')}
-                    </span>
-                </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-white shadow-xl rounded-xl border-slate-200 z-50">
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-slate-400">Share via</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer font-bold text-emerald-700 focus:bg-emerald-50"
-                    onSelect={(e) => { e.preventDefault(); handleWhatsApp(); }}
-                >
-                    <MessageCircle className="w-4 h-4" /> WhatsApp
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer font-bold text-blue-700 focus:bg-blue-50"
-                    onSelect={(e) => { e.preventDefault(); handleEmail(); }}
-                >
-                    <Mail className="w-4 h-4" /> Email
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <div onClick={handleShare} className="flex items-center w-full cursor-pointer hover:bg-slate-50 px-2 py-1.5 rounded-lg transition-colors group">
+            {isLoading
+                ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-600" />
+                : <Share2 className="w-4 h-4 mr-2 text-emerald-600 group-hover:scale-110 transition-transform" />}
+            <span className="text-sm font-bold text-slate-700">
+                {isLoading ? 'Generating...' : t('common.share')}
+            </span>
+        </div>
     );
 }

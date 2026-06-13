@@ -1,25 +1,16 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
-import { Loader2, Share2, Mail, MessageCircle, Download } from 'lucide-react';
+import { Loader2, Share2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useLanguage } from '@/components/i18n/language-provider';
-import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils';
 
 export default function SmartShareButton({ sale, organization }: { sale: any, organization?: any }) {
     const auth = useAuth?.();
     const profile = auth?.profile;
     const { t } = useLanguage();
-    const [loadingId, setLoadingId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const org = organization || profile?.organization || {
         name: "Mandi Organization",
@@ -37,107 +28,32 @@ export default function SmartShareButton({ sale, organization }: { sale: any, or
         return generateInvoicePDF(sale, org);
     };
 
-    // On native Capacitor: use the system share sheet directly (no dropdown needed)
-    const handleNativeShare = async () => {
-        if (loadingId) return;
-        setLoadingId('native');
+    const handleShare = async () => {
+        if (isLoading) return;
+        setIsLoading(true);
         try {
             const blob = await generatePDF();
             const { shareBlob } = await import('@/lib/capacitor-share');
             await shareBlob(blob, filename, { title: shareTitle, text: shareText });
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
-            console.error('[SmartShare] native failed:', err);
+            console.error('[SmartShare] share failed:', err);
             alert(`Failed: ${err?.message || err}`);
         } finally {
-            setLoadingId(null);
+            setIsLoading(false);
         }
     };
 
-    const handleWhatsApp = async () => {
-        if (loadingId) return;
-        setLoadingId('whatsapp');
-        try {
-            const blob = await generatePDF();
-            const { shareToWhatsApp } = await import('@/lib/capacitor-share');
-            await shareToWhatsApp(blob, filename, shareText);
-        } catch (err: any) {
-            console.error('[SmartShare] WhatsApp failed:', err);
-            alert(`Failed: ${err?.message || err}`);
-        } finally {
-            setLoadingId(null);
-        }
-    };
-
-    const handleEmail = async () => {
-        if (loadingId) return;
-        setLoadingId('email');
-        try {
-            const blob = await generatePDF();
-            const { shareBlob } = await import('@/lib/capacitor-share');
-            await shareBlob(blob, filename, { title: shareTitle, text: shareText });
-        } catch (err: any) {
-            console.error('[SmartShare] Email failed:', err);
-            alert(`Failed: ${err?.message || err}`);
-        } finally {
-            setLoadingId(null);
-        }
-    };
-
-
-    const isLoading = loadingId !== null;
-
-    // Native: single button → system share sheet
-    if (isMobileAppView()) {
-        return (
-            <Button
-                onClick={handleNativeShare}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="gap-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-bold h-10 shadow-sm"
-            >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-                {isLoading ? t('common.loading') : t('common.share')}
-            </Button>
-        );
-    }
-
-    // Web: dropdown share sheet — shown immediately so gesture is preserved
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    disabled={isLoading}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-bold h-10 shadow-sm"
-                >
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-                    {isLoading
-                        ? (loadingId === 'whatsapp' ? 'Opening WhatsApp...'
-                            : loadingId === 'email' ? 'Opening Mail...'
-                            : loadingId === 'download' ? 'Downloading...'
-                            : t('common.loading'))
-                        : t('common.share')}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white shadow-xl rounded-xl border-slate-200">
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-slate-400">Share Invoice</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer font-bold text-emerald-700 focus:bg-emerald-50"
-                    onSelect={(e) => { e.preventDefault(); handleWhatsApp(); }}
-                >
-                    <MessageCircle className="w-4 h-4" /> WhatsApp
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer font-bold text-blue-700 focus:bg-blue-50"
-                    onSelect={(e) => { e.preventDefault(); handleEmail(); }}
-                >
-                    <Mail className="w-4 h-4" /> Email
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+            onClick={handleShare}
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+            className="gap-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-bold h-10 shadow-sm"
+        >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+            {isLoading ? t('common.loading') : t('common.share')}
+        </Button>
     );
 }
