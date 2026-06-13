@@ -31,19 +31,17 @@ export default function SmartShareFinanceButton({
     const shareText = `*Financial Summary from ${organizationName}*\nType: ${filterType.toUpperCase()}\nDate: ${new Date().toLocaleDateString('en-IN')}`;
 
     const fetchAndGenerate = async () => {
-        let query = supabase
-            .schema('mandi')
-            .from('view_party_balances')
-            .select('*')
-            .eq('organization_id', orgId);
+        const { callApi } = await import('@/lib/frappeClient');
+        const res = await callApi('mandigrow.api.get_party_balances', {
+            p_org_id: orgId,
+            filter_type: filterType,
+            sub_filter: subFilter,
+            search_query: searchQuery || '',
+            limit_start: 0,
+            limit_page_length: 5000
+        });
 
-        if (filterType !== 'all') query = query.eq('contact_type', filterType);
-        if (subFilter === 'receivable') query = query.gt('net_balance', 0);
-        else if (subFilter === 'payable') query = query.lt('net_balance', 0);
-        if (searchQuery) query = query.or(`contact_name.ilike.%${searchQuery}%,contact_city.ilike.%${searchQuery}%`);
-
-        const { data, error } = await query;
-        if (error) throw error;
+        const data = res?.data;
         if (!data || data.length === 0) throw new Error("No data available for this report.");
 
         const { generateFinancePDF } = await import('@/lib/generate-finance-pdf');
