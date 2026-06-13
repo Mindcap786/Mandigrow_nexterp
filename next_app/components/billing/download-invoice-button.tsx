@@ -28,7 +28,32 @@ export default function DownloadInvoiceButton({ sale, organization }: { sale: an
             setIsGenerating(true);
             const { generateInvoicePDF } = await import('@/lib/generate-invoice-pdf');
             const { downloadBlob } = await import('@/lib/capacitor-share');
-            const blob = await generateInvoicePDF(sale, org);
+
+            let fullSale = sale;
+            // If items are missing (e.g. when called from Dashboard summary row), fetch the full detail
+            if (!sale.sale_items && !sale.items && sale.id) {
+                const { callApi } = await import('@/lib/frappeClient');
+                const saleData: any = await callApi('mandigrow.api.get_sales_invoice_detail', { sale_id: sale.id });
+                if (saleData) {
+                    fullSale = {
+                        ...saleData,
+                        contact: {
+                            name: saleData.buyer_name,
+                            city: saleData.buyer_city,
+                            gstin: saleData.buyer_gstin
+                        },
+                        sale_items: saleData.items,
+                        payment_summary: {
+                            amount_paid: saleData.amount_received,
+                            amount_received: saleData.amount_received,
+                            balance_due: saleData.balance_due,
+                            status: saleData.payment_status
+                        }
+                    };
+                }
+            }
+
+            const blob = await generateInvoicePDF(fullSale, org);
             await downloadBlob(blob, filename);
         } catch (err: any) {
             console.error('[Download] PDF failed:', err);

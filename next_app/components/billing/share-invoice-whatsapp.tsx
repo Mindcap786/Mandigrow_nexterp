@@ -29,7 +29,31 @@ export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any
 
     const generatePDF = async () => {
         const { generateInvoicePDF } = await import('@/lib/generate-invoice-pdf');
-        return generateInvoicePDF(sale, org);
+        
+        let fullSale = sale;
+        if (!sale.sale_items && !sale.items && sale.id) {
+            const { callApi } = await import('@/lib/frappeClient');
+            const saleData: any = await callApi('mandigrow.api.get_sales_invoice_detail', { sale_id: sale.id });
+            if (saleData) {
+                fullSale = {
+                    ...saleData,
+                    contact: {
+                        name: saleData.buyer_name,
+                        city: saleData.buyer_city,
+                        gstin: saleData.buyer_gstin
+                    },
+                    sale_items: saleData.items,
+                    payment_summary: {
+                        amount_paid: saleData.amount_received,
+                        amount_received: saleData.amount_received,
+                        balance_due: saleData.balance_due,
+                        status: saleData.payment_status
+                    }
+                };
+            }
+        }
+        
+        return generateInvoicePDF(fullSale, org);
     };
 
     const handleNativeShare = async (e: React.MouseEvent) => {
