@@ -111,12 +111,112 @@ export async function shareBlob(
     if (typeof navigator !== 'undefined' && navigator.share) {
         try {
             // Pass files — macOS Safari / iOS / Android Chrome will show the native share sheet.
-            // On desktop Chrome this will throw; we catch and fall back below.
+            // On desktop Chrome this will throw if PDF generation takes > 5s (NotAllowedError)
             await navigator.share({ files: [file], title: opts.title, text: opts.text });
             return;
         } catch (err: any) {
             // User dismissed the share sheet — do NOT fall through to download.
             if (err?.name === 'AbortError') return;
+            
+            if (err?.name === 'NotAllowedError') {
+                // PDF generation took too long, browser revoked share permission.
+                // We show a quick overlay to get a fresh click (user gesture) and try again.
+                return new Promise<void>((resolve) => {
+                    const overlay = document.createElement('div');
+                    overlay.style.position = 'fixed';
+                    overlay.style.top = '0'; overlay.style.left = '0';
+                    overlay.style.width = '100vw'; overlay.style.height = '100vh';
+                    overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                    overlay.style.zIndex = '999999';
+                    overlay.style.display = 'flex';
+                    overlay.style.alignItems = 'center';
+                    overlay.style.justifyContent = 'center';
+                    overlay.style.backdropFilter = 'blur(4px)';
+
+                    const modal = document.createElement('div');
+                    modal.style.backgroundColor = '#fff';
+                    modal.style.padding = '24px';
+                    modal.style.borderRadius = '16px';
+                    modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+                    modal.style.textAlign = 'center';
+                    modal.style.maxWidth = '300px';
+                    modal.style.fontFamily = 'inherit';
+
+                    const title = document.createElement('h3');
+                    title.textContent = 'Document Ready';
+                    title.style.margin = '0 0 8px 0';
+                    title.style.fontSize = '18px';
+                    title.style.color = '#0f172a';
+                    title.style.fontWeight = '800';
+
+                    const desc = document.createElement('p');
+                    desc.textContent = 'Your PDF has been generated and is ready to share.';
+                    desc.style.margin = '0 0 20px 0';
+                    desc.style.fontSize = '14px';
+                    desc.style.color = '#64748b';
+
+                    const btnContainer = document.createElement('div');
+                    btnContainer.style.display = 'flex';
+                    btnContainer.style.gap = '8px';
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.style.flex = '1';
+                    cancelBtn.style.padding = '10px';
+                    cancelBtn.style.borderRadius = '8px';
+                    cancelBtn.style.border = '1px solid #e2e8f0';
+                    cancelBtn.style.backgroundColor = '#f8fafc';
+                    cancelBtn.style.color = '#475569';
+                    cancelBtn.style.fontWeight = 'bold';
+                    cancelBtn.style.cursor = 'pointer';
+
+                    const shareBtn = document.createElement('button');
+                    shareBtn.textContent = 'Open Share Menu';
+                    shareBtn.style.flex = '2';
+                    shareBtn.style.padding = '10px';
+                    shareBtn.style.borderRadius = '8px';
+                    shareBtn.style.border = 'none';
+                    shareBtn.style.backgroundColor = '#10b981';
+                    shareBtn.style.color = '#fff';
+                    shareBtn.style.fontWeight = 'bold';
+                    shareBtn.style.cursor = 'pointer';
+
+                    const cleanup = () => {
+                        if (document.body.contains(overlay)) {
+                            document.body.removeChild(overlay);
+                        }
+                    };
+
+                    cancelBtn.onclick = () => {
+                        cleanup();
+                        resolve();
+                    };
+
+                    shareBtn.onclick = async () => {
+                        cleanup();
+                        try {
+                            // Fresh user gesture!
+                            await navigator.share({ files: [file], title: opts.title, text: opts.text });
+                        } catch (err2: any) {
+                            if (err2?.name !== 'AbortError') {
+                                console.warn('[capacitor-share] navigator.share retry failed:', err2);
+                                await downloadBlob(blob, filename);
+                                alert(`File downloaded as ${filename}. Your browser does not support direct file sharing.`);
+                            }
+                        }
+                        resolve();
+                    };
+
+                    btnContainer.appendChild(cancelBtn);
+                    btnContainer.appendChild(shareBtn);
+                    modal.appendChild(title);
+                    modal.appendChild(desc);
+                    modal.appendChild(btnContainer);
+                    overlay.appendChild(modal);
+                    document.body.appendChild(overlay);
+                });
+            }
+
             console.warn('[capacitor-share] navigator.share with files failed:', err);
             
             // Fallback 1: Try sharing just the text (which often works on Desktop Chrome)
