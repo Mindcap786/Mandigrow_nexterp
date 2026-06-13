@@ -157,8 +157,9 @@ export class BluetoothPrinter {
     }
 
     // Bluetooth LE typically has a 20-512 byte MTU (Maximum Transmission Unit).
-    // It's safest to chunk the data into 256 byte segments to prevent buffer overruns.
-    const CHUNK_SIZE = 256;
+    // It's safest to chunk the data into small segments to prevent buffer overruns.
+    // 100 bytes with a 40ms delay is highly compatible with most cheap thermal printers.
+    const CHUNK_SIZE = 100;
     for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
       const chunk = escposData.slice(i, i + CHUNK_SIZE);
       if (BluetoothPrinter.characteristic.properties.writeWithoutResponse) {
@@ -167,8 +168,8 @@ export class BluetoothPrinter {
         await BluetoothPrinter.characteristic.writeValue(chunk);
       }
       
-      // Small delay between chunks to let the printer process
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Delay between chunks to let the printer process and avoid dropping packets
+      await new Promise(resolve => setTimeout(resolve, 40));
     }
   }
 
