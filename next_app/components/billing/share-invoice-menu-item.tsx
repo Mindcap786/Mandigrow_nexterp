@@ -5,7 +5,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { useState } from 'react';
 import { useLanguage } from '@/components/i18n/language-provider';
 
-export default function ShareInvoiceWhatsApp({ sale, organization }: { sale: any, organization?: any }) {
+export default function ShareInvoiceMenuItem({ sale, organization }: { sale: any, organization?: any }) {
     const auth = useAuth?.();
     const profile = auth?.profile;
     const { t } = useLanguage();

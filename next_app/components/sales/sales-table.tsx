@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import { NewPaymentDialog } from "@/components/finance/new-payment-dialog";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { cn } from "@/lib/utils";
-import ShareInvoiceWhatsApp from "@/components/billing/share-invoice-whatsapp";
+import ShareInvoiceMenuItem from "@/components/billing/share-invoice-menu-item";
 
 export default function SalesTable({ data, isLoading }: { data: any[], isLoading: boolean }) {
     const { t } = useLanguage();
@@ -225,7 +225,7 @@ export default function SalesTable({ data, isLoading }: { data: any[], isLoading
 
                                                 <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                                                     <div className="w-full p-0 outline-none ring-0 hover:bg-slate-50 rounded-lg m-1">
-                                                        <ShareInvoiceWhatsApp sale={row} />
+                                                        <ShareInvoiceMenuItem sale={row} />
                                                     </div>
                                                 </DropdownMenuItem>
 

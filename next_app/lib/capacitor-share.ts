@@ -117,22 +117,26 @@ export async function shareBlob(
         } catch (err: any) {
             // User dismissed the share sheet — do NOT fall through to download.
             if (err?.name === 'AbortError') return;
-            console.warn('[capacitor-share] navigator.share failed, falling back:', err);
+            console.warn('[capacitor-share] navigator.share with files failed:', err);
+            
+            // Fallback 1: Try sharing just the text (which often works on Desktop Chrome)
+            try {
+                await downloadBlob(blob, filename);
+                await navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` });
+                return;
+            } catch (fallbackErr: any) {
+                if (fallbackErr?.name === 'AbortError') return;
+                console.warn('[capacitor-share] navigator.share text fallback failed:', fallbackErr);
+            }
         }
+    } else {
+        // Fallback for completely unsupported browsers (very old)
+        await downloadBlob(blob, filename);
     }
-
-    // Fallback (desktop Chrome / Firefox): download the PDF, then open the mail
-    // client so the user can send it — they just need to attach the downloaded file.
-    await downloadBlob(blob, filename);
-    const subject = encodeURIComponent(opts.title ?? filename);
-    const body = encodeURIComponent(
-        (opts.text ? opts.text + '\n\n' : '') +
-        `Please find the attached file: ${filename}`
-    );
-    // Small delay so the save dialog doesn't race with the mailto open
-    setTimeout(() => {
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    }, 600);
+    
+    // If we reach here, we've downloaded the file but couldn't open a share sheet.
+    // We do NOT force open Mail or WhatsApp anymore, as the user requested to choose the platform.
+    alert(`File downloaded as ${filename}. Your browser does not support direct file sharing to other apps.`);
 }
 
 /**
@@ -229,8 +233,6 @@ export async function shareToWhatsApp(
         return;
     }
     
-    // On web, try Web Share API first to allow seamless file attachment
-    // This will surface the OS share sheet where the user can pick WhatsApp
     if (typeof navigator !== 'undefined' && navigator.share) {
         let fileType = blob.type || 'application/pdf';
         const file = new File([blob], filename, { type: fileType });
@@ -238,14 +240,21 @@ export async function shareToWhatsApp(
             await navigator.share({ files: [file], title: filename, text });
             return;
         } catch (err: any) {
-            if (err?.name === 'AbortError' || err?.name === 'NotAllowedError') return;
-            console.warn('[capacitor-share] navigator.share failed, falling back to wa.me:', err);
+            if (err?.name === 'AbortError') return;
+            console.warn('[capacitor-share] navigator.share with files failed for WhatsApp fallback:', err);
+            
+            try {
+                await downloadBlob(blob, filename);
+                await navigator.share({ title: filename, text: text + `\n\nDownloaded file: ${filename}` });
+                return;
+            } catch (fallbackErr: any) {
+                if (fallbackErr?.name === 'AbortError') return;
+                console.warn('[capacitor-share] navigator.share text fallback failed:', fallbackErr);
+            }
         }
+    } else {
+        await downloadBlob(blob, filename);
     }
 
-    // Fallback for browsers that don't support file sharing via API
-    // wa.me can't attach files — download the PDF, then open WhatsApp
-    await downloadBlob(blob, filename);
-    const encoded = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    alert(`File downloaded as ${filename}. Your browser does not support direct file sharing to other apps.`);
 }
