@@ -109,18 +109,24 @@ export async function shareBlob(
     const file = new File([blob], filename, { type: fileType });
 
     if (typeof navigator !== 'undefined' && navigator.share) {
+        const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+
+        const executeShare = async () => {
+            if (canShareFiles) {
+                await navigator.share({ files: [file], title: opts.title, text: opts.text });
+            } else {
+                downloadBlobSilent(blob, filename);
+                await navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` });
+            }
+        };
+
         try {
-            // Pass files — macOS Safari / iOS / Android Chrome will show the native share sheet.
-            // On desktop Chrome this will throw if PDF generation takes > 5s (NotAllowedError)
-            await navigator.share({ files: [file], title: opts.title, text: opts.text });
+            await executeShare();
             return;
         } catch (err: any) {
-            // User dismissed the share sheet — do NOT fall through to download.
             if (err?.name === 'AbortError') return;
             
             if (err?.name === 'NotAllowedError') {
-                // PDF generation took too long, browser revoked share permission.
-                // We show a quick overlay to get a fresh click (user gesture) and try again.
                 return new Promise<void>((resolve) => {
                     const overlay = document.createElement('div');
                     overlay.style.position = 'fixed';
@@ -196,10 +202,10 @@ export async function shareBlob(
                         cleanup();
                         try {
                             // Fresh user gesture!
-                            await navigator.share({ files: [file], title: opts.title, text: opts.text });
+                            await executeShare();
                         } catch (err2: any) {
                             if (err2?.name !== 'AbortError') {
-                                console.warn('[capacitor-share] navigator.share retry failed:', err2);
+                                console.warn('[capacitor-share] fresh share failed:', err2);
                                 await downloadBlob(blob, filename);
                                 alert(`File downloaded as ${filename}. Your browser does not support direct file sharing.`);
                             }
@@ -217,26 +223,15 @@ export async function shareBlob(
                 });
             }
 
-            console.warn('[capacitor-share] navigator.share with files failed:', err);
-            
-            // Fallback 1: Try sharing just the text (which often works on Desktop Chrome)
-            try {
-                await downloadBlob(blob, filename);
-                await navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` });
-                return;
-            } catch (fallbackErr: any) {
-                if (fallbackErr?.name === 'AbortError') return;
-                console.warn('[capacitor-share] navigator.share text fallback failed:', fallbackErr);
-            }
+            console.warn('[capacitor-share] share failed:', err);
+            await downloadBlob(blob, filename);
+            alert(`File downloaded as ${filename}. Your browser does not support direct file sharing to other apps.`);
         }
     } else {
         // Fallback for completely unsupported browsers (very old)
         await downloadBlob(blob, filename);
+        alert(`File downloaded as ${filename}. Your browser does not support direct file sharing to other apps.`);
     }
-    
-    // If we reach here, we've downloaded the file but couldn't open a share sheet.
-    // We do NOT force open Mail or WhatsApp anymore, as the user requested to choose the platform.
-    alert(`File downloaded as ${filename}. Your browser does not support direct file sharing to other apps.`);
 }
 
 /**
