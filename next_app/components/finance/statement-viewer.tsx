@@ -178,6 +178,29 @@ export default function StatementViewer({ contactId, contactName, contactType, o
         }
     };
 
+    const [isSharing, setIsSharing] = useState(false);
+    const handleShare = async () => {
+        if (!data || isSharing) return;
+        setIsSharing(true);
+        try {
+            const { pdf, doc } = await buildPDFDoc();
+            const blob = await pdf(doc as any).toBlob();
+            const filename = `Statement-${contactName}-${format(dateRange.from, 'ddMMMyy')}.pdf`;
+            const shareTitle = `Statement for ${contactName}`;
+            const shareText = `*Statement of Account*\nContact: ${contactName}\nPeriod: ${format(dateRange.from, 'dd-MM-yyyy')} to ${format(dateRange.to, 'dd-MM-yyyy')}\nBalance: ${formatCurrency(data?.closing_balance || 0)}\n\nPlease find the attached statement PDF.`;
+            
+            const { shareBlob } = await import('@/lib/capacitor-share');
+            await shareBlob(blob, filename, { title: shareTitle, text: shareText });
+        } catch (e: any) {
+            if (e?.name !== 'AbortError') {
+                console.error('[StatementShare]', e);
+                alert(`Failed to share: ${e?.message || e}`);
+            }
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
     const fetchStatement = async (retryCount = 0, isManualRefresh = false) => {
         const currentOrgId = String(profile?.organization_id || "");
         if (!currentOrgId || currentOrgId === '[object Object]' || currentOrgId === 'undefined' || !contactId) return;
@@ -365,13 +388,11 @@ export default function StatementViewer({ contactId, contactName, contactType, o
                                     {isPrinting ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" /> : <Printer className="w-4 h-4 text-slate-600" />}
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        const text = `*Statement: ${contactName}*\nBalance: ${formatCurrency(data?.closing_balance || 0)}\nPeriod: ${format(dateRange.from, 'dd-MM-yy')} to ${format(dateRange.to, 'dd-MM-yy')}`;
-                                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                                    }}
-                                    className="w-10 h-10 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] flex items-center justify-center active:scale-95"
+                                    onClick={handleShare}
+                                    disabled={isSharing}
+                                    className="w-10 h-10 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] flex items-center justify-center active:scale-95 disabled:opacity-50"
                                 >
-                                    <MessageCircle className="w-4 h-4 text-[#16A34A]" />
+                                    {isSharing ? <Loader2 className="w-4 h-4 animate-spin text-[#16A34A]" /> : <MessageCircle className="w-4 h-4 text-[#16A34A]" />}
                                 </button>
                             </div>
                         </div>
@@ -550,16 +571,15 @@ export default function StatementViewer({ contactId, contactName, contactType, o
                 </div>
 
                 <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 w-full md:w-auto mt-2 md:mt-0">
-                    <Button variant="outline" size="sm" onClick={() => {
-                        const text = `*Statement of Account*\n` +
-                            `Contact: ${contactName}\n` +
-                            `Period: ${format(dateRange.from, 'dd-MM-yyyy')} to ${format(dateRange.to, 'dd-MM-yyyy')}\n` +
-                            `Opening Balance: ${formatCurrency(data?.opening_balance || 0)}\n` +
-                            `Closing Balance: ${formatCurrency(data?.closing_balance || 0)}\n\n` +
-                            `_Generated via MindT_`;
-                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                    }} className="flex-1 md:flex-none border-emerald-100 bg-emerald-50 text-emerald-700 font-bold px-2 md:px-4 h-10 hover:bg-emerald-100 rounded-xl transition-all text-xs md:text-sm">
-                        <MessageCircle className="w-4 h-4 mr-1.5 md:mr-2 shrink-0" /> Share
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        disabled={!data || isSharing}
+                        onClick={handleShare} 
+                        className="flex-1 md:flex-none border-emerald-100 bg-emerald-50 text-emerald-700 font-bold px-2 md:px-4 h-10 hover:bg-emerald-100 rounded-xl transition-all text-xs md:text-sm"
+                    >
+                        {isSharing ? <Loader2 className="w-4 h-4 mr-1.5 md:mr-2 animate-spin shrink-0" /> : <MessageCircle className="w-4 h-4 mr-1.5 md:mr-2 shrink-0" />} 
+                        <span className="truncate">{isSharing ? 'Sharing...' : 'Share'}</span>
                     </Button>
                     <Button
                         variant="outline"
