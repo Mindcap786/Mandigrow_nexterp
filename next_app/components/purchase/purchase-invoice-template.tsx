@@ -228,6 +228,13 @@ export default function PurchaseBillInvoice({
 
             <div className="invoice-page-chunk relative flex flex-col">
 
+            <table className="w-full border-collapse border-spacing-0">
+                <thead className="print:table-header-group">
+                    <tr><td className="p-0 border-none"></td></tr>
+                </thead>
+                <tbody>
+                    <tr><td className="p-0 border-none align-top">
+
             {/* ───── Header ───── */}
             <div className="flex flex-col md:flex-row gap-4 items-start border-b-4 border-black pb-3 mb-3 relative z-10 print:flex print:flex-row print:w-full print:justify-between">
                 {/* Left: Identity */}
@@ -630,6 +637,16 @@ export default function PurchaseBillInvoice({
                     <span className="text-[9px]">Authorized Signatory</span>
                 </div>
             </div>
+
+                    </td></tr>
+                </tbody>
+                <tfoot className="print:table-footer-group">
+                    <tr><td className="p-0 border-none">
+                        {/* Space reserved for fixed footer on every printed page */}
+                        <div className="h-0 print:h-[60px] w-full"></div>
+                    </td></tr>
+                </tfoot>
+            </table>
 
             {/* Platform Branding Footer Bar — all 3 fields set from Super Admin */}
             {(branding?.document_footer_presented_by_text || branding?.document_footer_powered_by_text || branding?.document_footer_developed_by_text) && (
