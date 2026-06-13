@@ -92,20 +92,6 @@ export default function SmartShareButton({ sale, organization }: { sale: any, or
         }
     };
 
-    const handleDownload = async () => {
-        if (loadingId) return;
-        setLoadingId('download');
-        try {
-            const blob = await generatePDF();
-            const { downloadBlob } = await import('@/lib/capacitor-share');
-            await downloadBlob(blob, filename);
-        } catch (err: any) {
-            console.error('[SmartShare] Download failed:', err);
-            alert(`Failed: ${err?.message || err}`);
-        } finally {
-            setLoadingId(null);
-        }
-    };
 
     const isLoading = loadingId !== null;
 
@@ -158,13 +144,6 @@ export default function SmartShareButton({ sale, organization }: { sale: any, or
                     onSelect={(e) => { e.preventDefault(); handleEmail(); }}
                 >
                     <Mail className="w-4 h-4" /> Email
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer font-bold text-slate-700 focus:bg-slate-50"
-                    onSelect={(e) => { e.preventDefault(); handleDownload(); }}
-                >
-                    <Download className="w-4 h-4" /> Download PDF
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
