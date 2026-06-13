@@ -110,7 +110,6 @@ export default function SaleInvoicePage() {
                 const printer = new BluetoothPrinter();
                 await printer.connect(forcePrompt);
                 await printer.print(escposData);
-                printer.disconnect();
                 // Successfully printed via Bluetooth, do not open OS print dialog
                 return;
             } catch (e: any) {

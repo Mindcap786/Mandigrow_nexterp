@@ -790,7 +790,6 @@ export default function POSPage() {
             const printer = new BluetoothPrinter();
             await printer.connect();
             await printer.print(escposData);
-            printer.disconnect();
             return;
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
