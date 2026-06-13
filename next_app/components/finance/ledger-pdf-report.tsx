@@ -205,18 +205,24 @@ export const LedgerPDFReport = ({
                     </View>
                 </View>
 
-                {/* ── Footer ── */}
-                <View style={s.footer} fixed>
-                    <View>
-                        <Text style={s.footerTxt}>{branding?.document_footer_presented_by_text }</Text>
-                        <Text style={[s.footerTxt, { fontWeight: "bold", color: "#666", marginTop: 2 }]}>
-                            {branding?.document_footer_powered_by_text}
-                        </Text>
-                    </View>
+                {/* ── Signature ── */}
+                <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "flex-end" }} wrap={false}>
                     <View style={{ alignItems: "center" }}>
                         <View style={s.sigLine} />
                         <Text style={s.sigLbl}>Accountant Signature</Text>
                     </View>
+                </View>
+
+                {/* ── Footer Branding ── */}
+                <View style={[s.footer, { flexDirection: "column", alignItems: "stretch", borderTopWidth: 0 }]} fixed>
+                    <View style={{ borderTopWidth: 0.5, borderTopColor: "#ddd", paddingTop: 10, flexDirection: "row", justifyContent: "space-between", marginBottom: 2 }}>
+                        <Text style={[s.footerTxt, { textAlign: "left" }]}>{branding?.document_footer_presented_by_text}</Text>
+                        <Text style={[s.footerTxt, { fontWeight: "bold", color: "#666", textAlign: "center" }]}>
+                            {branding?.document_footer_powered_by_text}
+                        </Text>
+                        <Text style={[s.footerTxt, { textAlign: "right" }]}>{branding?.document_footer_developed_by_text}</Text>
+                    </View>
+                    <Text style={[s.footerTxt, { textAlign: "left" }]}>www.mandigrow.com</Text>
                 </View>
             </Page>
         </Document>
