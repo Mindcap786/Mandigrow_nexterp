@@ -17,6 +17,8 @@ async function waitForImages(root: ParentNode) {
                 const done = () => resolve();
                 img.addEventListener("load", done, { once: true });
                 img.addEventListener("error", done, { once: true });
+                // Fallback timeout in case image loading hangs indefinitely
+                setTimeout(done, 1500);
             });
         })
     );

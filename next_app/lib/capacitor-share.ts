@@ -121,7 +121,12 @@ export async function shareBlob(
 
         try {
             // Optimistic first try (often fails due to PDF generation taking too long)
-            await attemptShare(true);
+            // Or hangs silently if OS rejects the file without throwing
+            let timeoutId: NodeJS.Timeout;
+            const timeoutPromise0 = new Promise<void>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 2500);
+            });
+            await Promise.race([attemptShare(true), timeoutPromise0]).finally(() => clearTimeout(timeoutId));
             return;
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
@@ -203,20 +208,27 @@ export async function shareBlob(
                     cleanup();
                     try {
                         // Fresh user gesture! Try attaching the file again.
-                        await attemptShare(true);
+                        // Add a timeout to prevent hanging on macOS Chrome
+                        let timeoutId1: NodeJS.Timeout;
+                        const timeoutPromise1 = new Promise<void>((_, reject) => {
+                            timeoutId1 = setTimeout(() => reject(new Error('TIMEOUT')), 10000);
+                        });
+                        await Promise.race([attemptShare(true), timeoutPromise1]).finally(() => clearTimeout(timeoutId1));
                     } catch (err2: any) {
                         if (err2?.name === 'AbortError') { resolve(); return; }
                         
                         console.warn('[capacitor-share] fresh file share failed, trying text fallback:', err2);
-                        // If file attachment fails (e.g. TypeError, unsupported OS/browser),
-                        // instantly fallback to text share WITHIN THE SAME CLICK HANDLER!
                         try {
-                            await attemptShare(false);
+                            let timeoutId2: NodeJS.Timeout;
+                            const timeoutPromise2 = new Promise<void>((_, reject) => {
+                                timeoutId2 = setTimeout(() => reject(new Error('TIMEOUT')), 10000);
+                            });
+                            await Promise.race([attemptShare(false), timeoutPromise2]).finally(() => clearTimeout(timeoutId2));
                         } catch (err3: any) {
                             if (err3?.name !== 'AbortError') {
                                 console.warn('[capacitor-share] text fallback failed:', err3);
                                 await downloadBlob(blob, filename);
-                                alert(`File downloaded as ${filename}. Your browser does not support direct file sharing.`);
+                                alert(`File downloaded as ${filename}. Direct sharing is blocked or not supported by your OS.`);
                             }
                         }
                     }
@@ -229,7 +241,12 @@ export async function shareBlob(
                 modal.appendChild(desc);
                 modal.appendChild(btnContainer);
                 overlay.appendChild(modal);
-                document.body.appendChild(overlay);
+                // Ensure it's appended to the document body reliably
+                if (document.body) {
+                    document.body.appendChild(overlay);
+                } else {
+                    document.documentElement.appendChild(overlay);
+                }
             });
         }
     } else {
