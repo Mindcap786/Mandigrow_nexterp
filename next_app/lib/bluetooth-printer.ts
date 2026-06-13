@@ -64,13 +64,18 @@ export class ESCPOS {
 }
 
 export class BluetoothPrinter {
-  device: any = null;
-  server: any = null;
-  characteristic: any = null;
+  private static device: any = null;
+  private static server: any = null;
+  private static characteristic: any = null;
 
   async connect(forcePrompt: boolean = false) {
     if (typeof navigator === 'undefined' || !(navigator as any).bluetooth) {
       throw new Error('Web Bluetooth is not supported in this browser. Please use Chrome on Desktop or Android.');
+    }
+
+    // Reuse existing connection if valid and not forcing a prompt
+    if (!forcePrompt && BluetoothPrinter.characteristic && BluetoothPrinter.device?.gatt?.connected) {
+      return;
     }
 
     try {
@@ -87,19 +92,19 @@ export class BluetoothPrinter {
           if (devices.length > 0) {
             for (const d of devices) {
               try {
-                this.device = d;
+                BluetoothPrinter.device = d;
                 // 5s timeout so it doesn't hang forever if the printer is off
-                this.server = await Promise.race([
+                BluetoothPrinter.server = await Promise.race([
                   d.gatt.connect(),
                   new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
                 ]);
                 
-                const services = await this.server.getPrimaryServices();
+                const services = await BluetoothPrinter.server.getPrimaryServices();
                 for (const service of services) {
                   const characteristics = await service.getCharacteristics();
                   for (const char of characteristics) {
                     if (char.properties.write || char.properties.writeWithoutResponse) {
-                      this.characteristic = char;
+                      BluetoothPrinter.characteristic = char;
                       return; // Successfully auto-connected!
                     }
                   }
@@ -120,20 +125,20 @@ export class BluetoothPrinter {
       }
 
       // 2. Fallback to requesting a new device via browser prompt
-      this.device = await bt.requestDevice({
+      BluetoothPrinter.device = await bt.requestDevice({
         acceptAllDevices: true,
         optionalServices: COMMON_PRINTER_SERVICES
       });
 
-      this.server = await this.device.gatt.connect();
+      BluetoothPrinter.server = await BluetoothPrinter.device.gatt.connect();
 
       // Find the writable characteristic
-      const services = await this.server.getPrimaryServices();
+      const services = await BluetoothPrinter.server.getPrimaryServices();
       for (const service of services) {
         const characteristics = await service.getCharacteristics();
         for (const char of characteristics) {
           if (char.properties.write || char.properties.writeWithoutResponse) {
-            this.characteristic = char;
+            BluetoothPrinter.characteristic = char;
             return; // Connected successfully
           }
         }
@@ -146,23 +151,33 @@ export class BluetoothPrinter {
     }
   }
 
-  async print(data: Uint8Array) {
-    if (!this.characteristic) throw new Error('Not connected to a Bluetooth printer.');
-    
-    // Web Bluetooth can only write in chunks
-    const CHUNK_SIZE = 512;
-    for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-      const chunk = data.slice(i, i + CHUNK_SIZE);
-      await this.characteristic.writeValue(chunk);
+  async print(escposData: Uint8Array) {
+    if (!BluetoothPrinter.characteristic) {
+      throw new Error('Printer not connected');
+    }
+
+    // Bluetooth LE typically has a 20-512 byte MTU (Maximum Transmission Unit).
+    // It's safest to chunk the data into 256 byte segments to prevent buffer overruns.
+    const CHUNK_SIZE = 256;
+    for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
+      const chunk = escposData.slice(i, i + CHUNK_SIZE);
+      if (BluetoothPrinter.characteristic.properties.writeWithoutResponse) {
+        await BluetoothPrinter.characteristic.writeValueWithoutResponse(chunk);
+      } else {
+        await BluetoothPrinter.characteristic.writeValue(chunk);
+      }
+      
+      // Small delay between chunks to let the printer process
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
   }
 
   disconnect() {
-    if (this.device && this.device.gatt && this.device.gatt.connected) {
-      this.device.gatt.disconnect();
+    if (BluetoothPrinter.device && BluetoothPrinter.device.gatt.connected) {
+      BluetoothPrinter.device.gatt.disconnect();
     }
-    this.device = null;
-    this.server = null;
-    this.characteristic = null;
+    // We intentionally DO NOT clear the static variables here!
+    // This allows the connection to remain active for the next print.
+    // If the user forces a new connection, it will disconnect and reconnect naturally.
   }
 }

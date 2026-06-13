@@ -104,7 +104,6 @@ export default function SaleInvoicePage() {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const handlePrint = async (mode: 'a4' | 'thermal', forcePrompt: boolean = false) => {
-        setPrintMode(mode);
         if (mode === 'thermal') {
             try {
                 const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
@@ -126,6 +125,7 @@ export default function SaleInvoicePage() {
                 });
             }
         } else {
+            setPrintMode('a4');
             setTriggerPrint(prev => prev + 1);
         }
     };
