@@ -151,17 +151,22 @@ export const PrintableFinancialReport = React.forwardRef<HTMLDivElement, Printab
 
                 {/* Platform Branding Footer Bar */}
                 {(branding?.document_footer_presented_by_text || branding?.document_footer_powered_by_text || branding?.document_footer_developed_by_text) && (
-                    <div className="invoice-footer-bar mt-4 pt-3 border-t border-gray-200 flex justify-between items-center relative z-10 print:fixed print:bottom-0 print:left-0 print:w-full print:bg-white print:px-8 print:py-4 print:break-inside-avoid">
-                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                    <div className="invoice-footer-bar mt-4 pt-3 border-t border-gray-200 flex flex-col relative z-10 print:fixed print:bottom-0 print:left-0 print:w-full print:bg-white print:px-8 print:py-4 print:break-inside-avoid">
+                    <div className="flex justify-between items-center mb-1 w-full">
+                        <span className="text-[9px] font-bold text-gray-500 tracking-widest">
                             {branding?.document_footer_presented_by_text}
                         </span>
-                        <span className="text-[9px] font-black text-gray-800 uppercase tracking-widest">
+                        <span className="text-[9px] font-black text-gray-800 tracking-widest">
                             {branding?.document_footer_powered_by_text}
                         </span>
-                        <span className="text-[9px] font-bold text-gray-500 tracking-widest">
-                            {branding?.document_footer_developed_by_text || 'www.mandigrow.com'}
+                        <span className="text-[9px] font-bold text-gray-500 tracking-widest text-right">
+                            {branding?.document_footer_developed_by_text}
                         </span>
                     </div>
+                    <span className="text-[8px] font-semibold text-gray-400 tracking-widest w-full">
+                        www.mandigrow.com
+                    </span>
+                </div>
                 )}
             </div>
         );

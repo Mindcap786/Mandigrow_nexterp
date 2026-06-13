@@ -177,7 +177,7 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         let footerTexts: string[] = [];
         const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
         if (footerElement) {
-            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => (el.textContent?.trim() || '').toUpperCase());
+            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => (el.textContent?.trim() || ''));
             footerElement.style.display = 'none'; // hide it so it doesn't render in canvas
         }
 
@@ -189,21 +189,27 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         const drawFooter = () => {
             // Draw a white rectangle at the bottom to cover any overlapping table content
             pdf.setFillColor(255, 255, 255);
-            pdf.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+            pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
 
             if (footerTexts.length >= 3) {
                 pdf.setFontSize(8);
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(150, 150, 150);
-                pdf.text(footerTexts[0], 10, pageHeight - 8);
+                pdf.text(footerTexts[0], 10, pageHeight - 10);
                 
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(50, 50, 50);
-                pdf.text(footerTexts[1], pageWidth / 2, pageHeight - 8, { align: "center" });
+                pdf.text(footerTexts[1], pageWidth / 2, pageHeight - 10, { align: "center" });
                 
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(150, 150, 150);
-                pdf.text(footerTexts[2], pageWidth - 10, pageHeight - 8, { align: "right" });
+                pdf.text(footerTexts[2], pageWidth - 10, pageHeight - 10, { align: "right" });
+            }
+            if (footerTexts.length >= 4) {
+                pdf.setFontSize(7);
+                pdf.setFont("helvetica", "normal");
+                pdf.setTextColor(150, 150, 150);
+                pdf.text(footerTexts[3], 10, pageHeight - 5);
             }
         };
 
@@ -285,7 +291,7 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
         let footerTexts: string[] = [];
         const footerElement = sourceElement.querySelector('.invoice-footer-bar') as HTMLElement | null;
         if (footerElement) {
-            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => (el.textContent?.trim() || '').toUpperCase());
+            footerTexts = Array.from(footerElement.querySelectorAll('span')).map(el => (el.textContent?.trim() || ''));
             footerElement.style.display = 'none';
         }
 
@@ -297,21 +303,27 @@ export async function generatePurchaseBillPDF(lot: any, arrival: any, organizati
         const drawFooter = () => {
             // Draw a white rectangle at the bottom to cover any overlapping table content
             pdf.setFillColor(255, 255, 255);
-            pdf.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+            pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
 
             if (footerTexts.length >= 3) {
                 pdf.setFontSize(8);
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(150, 150, 150);
-                pdf.text(footerTexts[0], 10, pageHeight - 8);
+                pdf.text(footerTexts[0], 10, pageHeight - 10);
                 
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(50, 50, 50);
-                pdf.text(footerTexts[1], pageWidth / 2, pageHeight - 8, { align: "center" });
+                pdf.text(footerTexts[1], pageWidth / 2, pageHeight - 10, { align: "center" });
                 
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(150, 150, 150);
-                pdf.text(footerTexts[2], pageWidth - 10, pageHeight - 8, { align: "right" });
+                pdf.text(footerTexts[2], pageWidth - 10, pageHeight - 10, { align: "right" });
+            }
+            if (footerTexts.length >= 4) {
+                pdf.setFontSize(7);
+                pdf.setFont("helvetica", "normal");
+                pdf.setTextColor(150, 150, 150);
+                pdf.text(footerTexts[3], 10, pageHeight - 5);
             }
         };
 
