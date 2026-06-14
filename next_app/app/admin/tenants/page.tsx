@@ -39,8 +39,8 @@ function getLifecycleState(t: any): { label: string; color: string; dotClass: st
         case 'past_due':     return { label: 'Grace Period', color: 'text-orange-400', dotClass: 'bg-orange-500 animate-pulse' };
         case 'suspended':
         case 'soft_locked':  return { label: 'Suspended',   color: 'text-red-400',    dotClass: 'bg-red-500' };
+        case 'expired':      return { label: 'Expired',     color: 'text-orange-600',  dotClass: 'bg-orange-700' };
         case 'cancelled':
-        case 'expired':
         case 'archived':     return { label: 'Archived',    color: 'text-slate-500',   dotClass: 'bg-gray-600' };
         default:
             // Fallback for legacy records that only have is_active
@@ -695,6 +695,7 @@ export default function TenantsPage() {
                         <SelectItem value="trial">Trial</SelectItem>
                         <SelectItem value="grace_period">Grace Period</SelectItem>
                         <SelectItem value="expiring_soon">Expiring Soon (≤ 15 Days)</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
                         <SelectItem value="suspended">Suspended</SelectItem>
                         <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>

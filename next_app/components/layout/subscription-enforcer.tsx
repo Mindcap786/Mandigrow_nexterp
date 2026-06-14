@@ -28,8 +28,9 @@ export function SubscriptionEnforcer() {
         const exemptPaths = ['/admin', '/public', '/login', '/signup', '/suspended', '/settings/billing'];
         if (exemptPaths.some(p => pathname?.startsWith(p)) || pathname === '/') return;
 
-        // Super Admin Org (Mandi HQ) is exempt
-        if (profile?.organization?.name === "Mandi HQ" || profile?.role === 'super_admin') return;
+        // Super Admin Org (Mandi HQ) is exempt, unless they are impersonating a tenant
+        const isImpersonating = typeof window !== 'undefined' && localStorage.getItem('mandi_impersonation_mode') === 'true';
+        if (!isImpersonating && (profile?.organization?.name === "Mandi HQ" || profile?.role === 'super_admin')) return;
 
         // Use backend-computed subscription state as the SOURCE OF TRUTH
         const status = subscription?.status || profile?.organization?.status || 'active';
