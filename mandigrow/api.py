@@ -12216,6 +12216,8 @@ def get_admin_tenants() -> list:
         except Exception:
             users = []
 
+    from mandigrow.mandigrow.logic.subscription_guard import get_subscription_state
+
     processed = []
     for org in orgs:
         org_users = [u for u in users if u.get("mandi_organization") == org.name]
@@ -12224,6 +12226,9 @@ def get_admin_tenants() -> list:
             owner = org_users[0]
 
         from frappe.utils import add_days
+
+        # Fetch canonical subscription state to enforce time-boundary rules
+        sub_state = get_subscription_state(org.name)
 
         # Trial ends at: database field, OR 14 days after creation
         trial_ends_at = getattr(org, "trial_ends_at", None)
@@ -12235,9 +12240,9 @@ def get_admin_tenants() -> list:
         processed.append({
             "id": org.name,
             "name": org.organization_name,
-            "subscription_tier": org.subscription_tier or 'basic',
-            "is_active": org.status == 'active',
-            "status": org.status or 'trial',
+            "subscription_tier": sub_state.get("plan") or org.subscription_tier or 'basic',
+            "is_active": sub_state.get("is_active", False),
+            "status": sub_state.get("status") or org.status or 'trial',
             "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
             "current_period_end": str(current_period_end)[:10] if current_period_end else None,
             "created_at": org.creation,
