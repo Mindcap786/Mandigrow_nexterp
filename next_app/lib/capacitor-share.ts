@@ -110,23 +110,33 @@ export async function shareBlob(
 
     if (typeof navigator !== 'undefined' && navigator.share) {
         
-        const attemptShare = async (withFile: boolean) => {
-            if (withFile) {
-                await navigator.share({ files: [file], title: opts.title, text: opts.text });
-            } else {
-                await navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` });
-                downloadBlobSilent(blob, filename);
-            }
+        const attemptShare = async (withFile: boolean): Promise<void> => {
+            const sharePromise = withFile 
+                ? navigator.share({ files: [file], title: opts.title, text: opts.text })
+                : (downloadBlobSilent(blob, filename), navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` }));
+            
+            // If navigator.share throws an error (like NotAllowedError or TypeError), it does so immediately.
+            // If it stays pending for > 500ms, the OS Share Menu successfully opened.
+            // We resolve early so the UI stops showing "Generating..." while the user interacts with the share sheet.
+            return new Promise((resolve, reject) => {
+                let isDone = false;
+                sharePromise.then(() => {
+                    if (!isDone) { isDone = true; resolve(); }
+                }).catch((err) => {
+                    if (!isDone) { isDone = true; reject(err); }
+                });
+                setTimeout(() => {
+                    if (!isDone) {
+                        isDone = true;
+                        resolve(); // Assume success, share menu is open
+                    }
+                }, 500);
+            });
         };
 
         try {
-            // Optimistic first try (often fails due to PDF generation taking too long)
-            // Or hangs silently if OS rejects the file without throwing
-            let timeoutId: NodeJS.Timeout;
-            const timeoutPromise0 = new Promise<void>((_, reject) => {
-                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 2500);
-            });
-            await Promise.race([attemptShare(true), timeoutPromise0]).finally(() => clearTimeout(timeoutId));
+            // Optimistic first try
+            await attemptShare(true);
             return;
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
