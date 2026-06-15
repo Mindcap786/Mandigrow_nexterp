@@ -110,20 +110,23 @@ export async function shareBlob(
 
     if (typeof navigator !== 'undefined' && navigator.share) {
         
-        const attemptShare = async (withFile: boolean): Promise<void> => {
+        const attemptShare = async (withFile: boolean) => {
             if (withFile) {
                 await navigator.share({ files: [file], title: opts.title, text: opts.text });
             } else {
-                // Execute text share FIRST so we don't consume the user gesture
                 await navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` });
-                // Execute silent background download AFTER the share menu successfully opens
                 downloadBlobSilent(blob, filename);
             }
         };
 
         try {
-            // Optimistic first try
-            await attemptShare(true);
+            // Optimistic first try (often fails due to PDF generation taking too long)
+            // Or hangs silently if OS rejects the file without throwing
+            let timeoutId: NodeJS.Timeout;
+            const timeoutPromise0 = new Promise<void>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 2500);
+            });
+            await Promise.race([attemptShare(true), timeoutPromise0]).finally(() => clearTimeout(timeoutId));
             return;
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
