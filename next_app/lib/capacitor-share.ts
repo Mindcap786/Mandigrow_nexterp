@@ -111,29 +111,14 @@ export async function shareBlob(
     if (typeof navigator !== 'undefined' && navigator.share) {
         
         const attemptShare = async (withFile: boolean): Promise<void> => {
-            const sharePromise = withFile 
-                ? navigator.share({ files: [file], title: opts.title, text: opts.text })
-                : navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` }).finally(() => { downloadBlobSilent(blob, filename); });
-            
-            // If navigator.share throws an error (like NotAllowedError or TypeError), it does so immediately (<50ms).
-            // If it stays pending, the OS Share Menu successfully opened. We resolve after 1000ms so the UI stops
-            // showing "Generating..." while the user interacts with the share sheet (fixes Android hanging bug).
-            return new Promise((resolve, reject) => {
-                let isDone = false;
-
-                sharePromise.then(() => {
-                    if (!isDone) { isDone = true; resolve(); }
-                }).catch((err) => {
-                    if (!isDone) { isDone = true; reject(err); }
-                });
-                
-                setTimeout(() => {
-                    if (!isDone) {
-                        isDone = true;
-                        resolve(); // Assume success, share menu is open
-                    }
-                }, 1000);
-            });
+            if (withFile) {
+                await navigator.share({ files: [file], title: opts.title, text: opts.text });
+            } else {
+                // Execute text share FIRST so we don't consume the user gesture
+                await navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` });
+                // Execute silent background download AFTER the share menu successfully opens
+                downloadBlobSilent(blob, filename);
+            }
         };
 
         try {
