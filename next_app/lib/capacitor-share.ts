@@ -115,31 +115,22 @@ export async function shareBlob(
                 ? navigator.share({ files: [file], title: opts.title, text: opts.text })
                 : navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` }).finally(() => { downloadBlobSilent(blob, filename); });
             
-            // If navigator.share throws an error (like NotAllowedError or TypeError), it does so immediately.
-            // If it stays pending, we use window.onblur to check if the OS Share Menu successfully opened.
+            // If navigator.share throws an error (like NotAllowedError or TypeError), it does so immediately (<50ms).
+            // If it stays pending, the OS Share Menu successfully opened. We resolve after 1000ms so the UI stops
+            // showing "Generating..." while the user interacts with the share sheet (fixes Android hanging bug).
             return new Promise((resolve, reject) => {
                 let isDone = false;
-                let hasLostFocus = false;
-                const onBlur = () => { hasLostFocus = true; };
-                window.addEventListener('blur', onBlur);
 
                 sharePromise.then(() => {
-                    window.removeEventListener('blur', onBlur);
                     if (!isDone) { isDone = true; resolve(); }
                 }).catch((err) => {
-                    window.removeEventListener('blur', onBlur);
                     if (!isDone) { isDone = true; reject(err); }
                 });
                 
                 setTimeout(() => {
-                    window.removeEventListener('blur', onBlur);
                     if (!isDone) {
                         isDone = true;
-                        if (hasLostFocus) {
-                            resolve(); // Assume success, share menu is open (fixes UI hanging)
-                        } else {
-                            reject(new Error('Share sheet silently hung (no focus lost)'));
-                        }
+                        resolve(); // Assume success, share menu is open
                     }
                 }, 1000);
             });
