@@ -113,24 +113,35 @@ export async function shareBlob(
         const attemptShare = async (withFile: boolean): Promise<void> => {
             const sharePromise = withFile 
                 ? navigator.share({ files: [file], title: opts.title, text: opts.text })
-                : (downloadBlobSilent(blob, filename), navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` }));
+                : navigator.share({ title: opts.title, text: (opts.text ? opts.text + '\n\n' : '') + `Please find the downloaded attached file: ${filename}` }).finally(() => { downloadBlobSilent(blob, filename); });
             
             // If navigator.share throws an error (like NotAllowedError or TypeError), it does so immediately.
-            // If it stays pending for > 500ms, the OS Share Menu successfully opened.
-            // We resolve early so the UI stops showing "Generating..." while the user interacts with the share sheet.
+            // If it stays pending, we use window.onblur to check if the OS Share Menu successfully opened.
             return new Promise((resolve, reject) => {
                 let isDone = false;
+                let hasLostFocus = false;
+                const onBlur = () => { hasLostFocus = true; };
+                window.addEventListener('blur', onBlur);
+
                 sharePromise.then(() => {
+                    window.removeEventListener('blur', onBlur);
                     if (!isDone) { isDone = true; resolve(); }
                 }).catch((err) => {
+                    window.removeEventListener('blur', onBlur);
                     if (!isDone) { isDone = true; reject(err); }
                 });
+                
                 setTimeout(() => {
+                    window.removeEventListener('blur', onBlur);
                     if (!isDone) {
                         isDone = true;
-                        resolve(); // Assume success, share menu is open
+                        if (hasLostFocus) {
+                            resolve(); // Assume success, share menu is open (fixes UI hanging)
+                        } else {
+                            reject(new Error('Share sheet silently hung (no focus lost)'));
+                        }
                     }
-                }, 500);
+                }, 1000);
             });
         };
 
