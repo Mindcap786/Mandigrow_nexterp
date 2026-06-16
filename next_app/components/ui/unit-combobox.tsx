@@ -13,9 +13,10 @@ interface UnitComboboxProps {
     onChange: (val: string) => void;
     className?: string;
     placeholder?: string;
+    exclude?: string;
 }
 
-export function UnitCombobox({ value, onChange, className, placeholder = "Select unit..." }: UnitComboboxProps) {
+export function UnitCombobox({ value, onChange, className, placeholder = "Select unit...", exclude }: UnitComboboxProps) {
     const { uoms, createUom } = useDynamicUoms();
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -62,7 +63,9 @@ export function UnitCombobox({ value, onChange, className, placeholder = "Select
                             ) : "No units found."}
                         </CommandEmpty>
                         <CommandGroup>
-                            {uoms.map((uom) => (
+                            {uoms
+                                .filter(uom => !exclude || uom.toLowerCase() !== exclude.toLowerCase())
+                                .map((uom) => (
                                 <CommandItem
                                     key={uom}
                                     value={uom}

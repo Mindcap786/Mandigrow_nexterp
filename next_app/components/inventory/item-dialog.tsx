@@ -662,6 +662,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                             <UnitCombobox
                                                 value={form.watch("default_unit")}
                                                 onChange={(val) => form.setValue("default_unit", val)}
+                                                exclude={form.watch("custom_secondary_uom")}
                                                 className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm"
                                             />
                                         </div>
@@ -671,6 +672,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                 <UnitCombobox
                                                     value={form.watch("custom_secondary_uom") || ""}
                                                     onChange={(val) => form.setValue("custom_secondary_uom", val)}
+                                                    exclude={form.watch("default_unit")}
                                                     placeholder="Select (Optional)"
                                                     className="w-full bg-slate-50 border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm"
                                                 />
