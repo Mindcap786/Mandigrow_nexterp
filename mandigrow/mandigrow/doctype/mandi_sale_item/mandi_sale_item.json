@@ -14,7 +14,8 @@
   "amount",
   "gst_rate",
   "gst_amount",
-  "hsn_code"
+  "hsn_code",
+  "uom"
  ],
  "fields": [
   {
@@ -63,6 +64,11 @@
    "fieldname": "hsn_code",
    "fieldtype": "Data",
    "label": "HSN Code"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Data",
+   "label": "UOM"
   }
  ],
  "grid_page_length": 50,

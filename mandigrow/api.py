@@ -7290,6 +7290,8 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
                 "gst_amount": float(item.get("gst_amount") or 0),
                 "hsn_code": hsn_code,
                 "item_name": item_name,
+                "uom": item.get("uom"),
+                "unit": item.get("uom"), # for backwards compatibility with frontend expecting .unit
                 "lot": {
                     "lot_code": lot_code,
                     "item": { "name": item_name }
@@ -10786,6 +10788,7 @@ def confirm_sale_transaction(**kwargs) -> dict:
                 "gst_rate": item_gst_rate,
                 "gst_amount": line_gst_amount,
                 "hsn_code": item_hsn,
+                "uom": item.get("unit") or lot_unit or "Unit",
             })
             
         doc.exclusive_gst_total = round(total_exclusive_gst, 2)
@@ -18208,3 +18211,35 @@ def create_repack_entry(lot_id, source_qty=None, manual_unit_weight=None):
 def get_debug_logs():
     return frappe.db.sql("SELECT creation, method, error FROM `tabError Log` ORDER BY creation DESC LIMIT 10", as_dict=True)
 
+
+@frappe.whitelist()
+def get_all_uoms():
+    """Fetch all available UOMs."""
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    return frappe.get_all("UOM", fields=["name", "uom_name"])
+
+@frappe.whitelist()
+def create_custom_uom(uom_name: str):
+    """Create a new custom UOM if it doesn't exist."""
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    if not uom_name:
+        frappe.throw("UOM name is required")
+        
+    uom_name = str(uom_name).strip()
+    
+    if frappe.db.exists("UOM", uom_name):
+        return {"success": True, "uom": frappe.db.get_value("UOM", uom_name, "uom_name")}
+        
+    try:
+        doc = frappe.get_doc({
+            "doctype": "UOM",
+            "uom_name": uom_name,
+            "must_be_whole_number": 0
+        })
+        doc.insert(ignore_permissions=True)
+        return {"success": True, "uom": doc.uom_name}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "create_custom_uom")
+        return {"success": False, "error": str(e)}
