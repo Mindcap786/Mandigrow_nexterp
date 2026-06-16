@@ -399,7 +399,7 @@ export const InvoiceTemplate = ({
                             </View>
                             <View style={[styles.col3, { flexDirection: 'row', justifyContent: 'flex-end', gap: 2 }]}>
                                 <Text style={{ fontSize: 7.5, fontWeight: 'bold' }}>{item.qty || 0}</Text>
-                                <Text style={{ fontSize: 5, color: '#888', marginTop: 2 }}>{item.unit || 'Unit'}</Text>
+                                <Text style={{ fontSize: 5, color: '#888', marginTop: 2 }}>{item.uom || item.unit || 'Unit'}</Text>
                             </View>
                             <Text style={[styles.col4, { fontSize: 7.5, fontWeight: 'bold' }]}>
                                 {fmtInt(Number(item.rate || 0))}

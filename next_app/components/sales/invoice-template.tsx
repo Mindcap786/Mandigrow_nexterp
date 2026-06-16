@@ -278,7 +278,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                                     {item.hsn_code || '-'}
                                 </td>
                                 <td className="py-0.5 text-center font-bold text-sm tracking-tighter relative group/adj">
-                                    {item.qty || 0} <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{item.unit || 'Unit'}</span>
+                                    {item.qty || 0} <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{item.uom || item.unit || 'Unit'}</span>
                                     {(() => {
                                         const adj = sale.sale_adjustments?.find((a: any) => String(a.item_id) === String(item.id) || String(a.item_name) === String(item.name));
                                         if (adj && adj.old_qty !== adj.new_qty) {
