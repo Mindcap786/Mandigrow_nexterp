@@ -433,7 +433,7 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
                         )}
                         <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-2">
                             <span className="text-gray-400 font-bold uppercase tracking-widest">Total Qty</span>
-                            <span className="font-bold">{totalQty} Units</span>
+                            <span className="font-bold">{totalQty} {items[0]?.uom || items[0]?.unit || 'Units'}</span>
                         </div>
                         {/* Audit Trail */}
                         {(() => {

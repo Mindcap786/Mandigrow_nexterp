@@ -34,6 +34,8 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { Skeleton } from "@/components/ui/skeleton";
+import { UnitCombobox } from "@/components/ui/unit-combobox";
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -878,18 +880,11 @@ export function QuickPurchaseForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel className="text-[9px] font-black uppercase text-slate-400 mb-2 block">Unit</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger className="h-10 bg-indigo-50/50 border-none rounded-xl text-sm font-black shadow-sm">
-                                                                        <SelectValue placeholder="Unit" />
-                                                                    </SelectTrigger>
-                                                                </FormControl>
-                                                                <SelectContent className="rounded-xl border-none shadow-xl">
-                                                                    {COMMODITY_UNITS.map(u => (
-                                                                        <SelectItem key={u} value={u} className="font-bold text-xs">{u}</SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
+                                                            <UnitCombobox
+                                                                value={field.value}
+                                                                onChange={field.onChange}
+                                                                className="h-10 bg-indigo-50/50 border-none rounded-xl text-sm font-black shadow-sm"
+                                                            />
                                                         </FormItem>
                                                     )}
                                                 />

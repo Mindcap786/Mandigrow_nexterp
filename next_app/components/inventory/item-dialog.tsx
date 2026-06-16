@@ -55,6 +55,7 @@ import { getIntelligentVisual } from "@/lib/utils/commodity-mapping"
 import * as LucideIcons from "lucide-react"
 import { useFieldGovernance } from "@/hooks/useFieldGovernance"
 import { getCommodityIdentity, COMMODITY_UNITS } from "@/lib/utils/commodity-utils"
+import { UnitCombobox } from "@/components/ui/unit-combobox"
 
 const itemSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -220,12 +221,8 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
     const [searchTerm, setSearchTerm] = useState("")
     const [storageLocations, setStorageLocations] = useState<any[]>([])
     
-    // UOM specific state
-    const [fetchedUoms, setFetchedUoms] = useState<string[]>(COMMODITY_UNITS)
-    const [openDefaultUom, setOpenDefaultUom] = useState(false)
-    const [searchDefaultUom, setSearchDefaultUom] = useState("")
-    const [openSecondaryUom, setOpenSecondaryUom] = useState(false)
-    const [searchSecondaryUom, setSearchSecondaryUom] = useState("")
+    // State
+
 
     useEffect(() => {
         if (open) {
@@ -244,19 +241,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 }
             };
             
-            const fetchUoms = async () => {
-                try {
-                    const res: any = await callApi('mandigrow.api.get_all_uoms');
-                    const apiUoms = Array.isArray(res) ? res.map(u => u.uom_name) : (res?.message ? res.message.map((u:any) => u.uom_name) : []);
-                    const merged = Array.from(new Set([...COMMODITY_UNITS, ...apiUoms]));
-                    setFetchedUoms(merged);
-                } catch (err) {
-                    console.error("Failed to fetch UOMs:", err);
-                }
-            };
-            
             fetchLocations();
-            fetchUoms();
         }
     }, [open]);
 
@@ -674,145 +659,21 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('default_unit', 'Default Unit')}</Label>
-                                            <Popover open={openDefaultUom} onOpenChange={setOpenDefaultUom}>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        aria-expanded={openDefaultUom}
-                                                        className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm justify-between"
-                                                    >
-                                                        {form.watch("default_unit") || "Select unit"}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[380px] p-0 bg-white border-gray-300 text-gray-900 shadow-xl z-[200]">
-                                                    <Command className="bg-white">
-                                                        <CommandInput placeholder="Search unit..." className="text-gray-900 placeholder:text-gray-400" onValueChange={setSearchDefaultUom} />
-                                                        <CommandList>
-                                                            <CommandEmpty className="py-6 text-center text-sm text-gray-700">
-                                                                <p>No unit found.</p>
-                                                                {searchDefaultUom && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        className="mt-2 text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50"
-                                                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                        onClick={async () => {
-                                                                            try {
-                                                                                await callApi('mandigrow.api.create_custom_uom', { uom_name: searchDefaultUom });
-                                                                                setFetchedUoms(prev => Array.from(new Set([...prev, searchDefaultUom])));
-                                                                                form.setValue("default_unit", searchDefaultUom);
-                                                                                setOpenDefaultUom(false);
-                                                                            } catch(e) { console.error("Error creating UOM", e) }
-                                                                        }}
-                                                                    >
-                                                                        + Create "{searchDefaultUom}"
-                                                                    </Button>
-                                                                )}
-                                                            </CommandEmpty>
-                                                            <CommandGroup heading="Units">
-                                                                {fetchedUoms.map((u) => (
-                                                                    <CommandItem
-                                                                        key={u}
-                                                                        value={u}
-                                                                        onSelect={() => {
-                                                                            form.setValue("default_unit", u)
-                                                                            setOpenDefaultUom(false)
-                                                                        }}
-                                                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                        className="!pointer-events-auto text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
-                                                                    >
-                                                                        <Check
-                                                                            className={cn(
-                                                                                "mr-2 h-4 w-4 text-blue-600 shrink-0",
-                                                                                form.watch("default_unit") === u ? "opacity-100" : "opacity-0"
-                                                                            )}
-                                                                        />
-                                                                        <span className="font-bold flex-1">{u}</span>
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <UnitCombobox
+                                                value={form.watch("default_unit")}
+                                                onChange={(val) => form.setValue("default_unit", val)}
+                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm"
+                                            />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Secondary UOM</Label>
-                                                <Popover open={openSecondaryUom} onOpenChange={setOpenSecondaryUom}>
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            aria-expanded={openSecondaryUom}
-                                                            className="w-full bg-slate-50 border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm justify-between"
-                                                        >
-                                                            {form.watch("custom_secondary_uom") || "Select (Optional)"}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[380px] p-0 bg-white border-gray-300 text-gray-900 shadow-xl z-[200]">
-                                                        <Command className="bg-white">
-                                                            <CommandInput placeholder="Search unit..." className="text-gray-900 placeholder:text-gray-400" onValueChange={setSearchSecondaryUom} />
-                                                            <CommandList>
-                                                                <CommandEmpty className="py-6 text-center text-sm text-gray-700">
-                                                                    <p>No unit found.</p>
-                                                                    {searchSecondaryUom && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            className="mt-2 text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50"
-                                                                            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                            onClick={async () => {
-                                                                                try {
-                                                                                    await callApi('mandigrow.api.create_custom_uom', { uom_name: searchSecondaryUom });
-                                                                                    setFetchedUoms(prev => Array.from(new Set([...prev, searchSecondaryUom])));
-                                                                                    form.setValue("custom_secondary_uom", searchSecondaryUom);
-                                                                                    setOpenSecondaryUom(false);
-                                                                                } catch(e) { console.error("Error creating UOM", e) }
-                                                                            }}
-                                                                        >
-                                                                            + Create "{searchSecondaryUom}"
-                                                                        </Button>
-                                                                    )}
-                                                                </CommandEmpty>
-                                                                <CommandGroup heading="Units">
-                                                                    <CommandItem
-                                                                        value="none"
-                                                                        onSelect={() => {
-                                                                            form.setValue("custom_secondary_uom", "");
-                                                                            form.setValue("custom_uom_conversion_factor", 0);
-                                                                            setOpenSecondaryUom(false);
-                                                                        }}
-                                                                        className="!pointer-events-auto text-gray-400 cursor-pointer font-bold text-xs"
-                                                                    >
-                                                                        None
-                                                                    </CommandItem>
-                                                                    {fetchedUoms.filter(u => u !== form.watch("default_unit")).map((u) => (
-                                                                        <CommandItem
-                                                                            key={u}
-                                                                            value={u}
-                                                                            onSelect={() => {
-                                                                                form.setValue("custom_secondary_uom", u)
-                                                                                setOpenSecondaryUom(false)
-                                                                            }}
-                                                                            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                            className="!pointer-events-auto text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
-                                                                        >
-                                                                            <Check
-                                                                                className={cn(
-                                                                                    "mr-2 h-4 w-4 text-blue-600 shrink-0",
-                                                                                    form.watch("custom_secondary_uom") === u ? "opacity-100" : "opacity-0"
-                                                                                )}
-                                                                            />
-                                                                            <span className="font-bold flex-1">{u}</span>
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
+                                                <UnitCombobox
+                                                    value={form.watch("custom_secondary_uom") || ""}
+                                                    onChange={(val) => form.setValue("custom_secondary_uom", val)}
+                                                    placeholder="Select (Optional)"
+                                                    className="w-full bg-slate-50 border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:ring-blue-500/20 shadow-sm"
+                                                />
                                             </div>
                                             {form.watch("custom_secondary_uom") && (
                                                 <div className="space-y-2">

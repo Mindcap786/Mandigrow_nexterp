@@ -60,6 +60,8 @@ import { ItemDialog } from "@/components/inventory/item-dialog";
 import { cacheGet, cacheSet, cacheIsStale, cacheClearPrefix } from "@/lib/data-cache";
 import { useArrivalsMasterData } from "@/hooks/mandi/useArrivalsMasterData";
 import { useArrivals } from "@/hooks/mandi/useArrivals";
+import { usePrintLayoutGovernance } from "@/hooks/usePrintLayoutGovernance";
+import { UnitCombobox } from "@/components/ui/unit-combobox";
 import { useFieldGovernance } from "@/hooks/useFieldGovernance";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
 
@@ -1354,6 +1356,9 @@ export default function ArrivalsEntryForm() {
                                                                             } else {
                                                                                 form.setValue(`items.${index}.unit_weight`, 0);
                                                                             }
+                                                                            if (item?.default_unit) {
+                                                                                form.setValue(`items.${index}.unit`, item.default_unit);
+                                                                            }
                                                                         }}
                                                                         placeholder="Select Item..."
                                                                         className="h-9 text-xs font-bold bg-white border-slate-300"
@@ -1373,18 +1378,11 @@ export default function ArrivalsEntryForm() {
                                                             render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel className="text-[9px] font-bold text-slate-700 uppercase tracking-wide mb-0.5 block">Unit</FormLabel>
-                                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                                        <FormControl>
-                                                                            <SelectTrigger className="bg-white border border-slate-300 h-9 text-[10px] text-slate-900 font-bold rounded-lg px-2">
-                                                                                <SelectValue placeholder="Unit" />
-                                                                            </SelectTrigger>
-                                                                        </FormControl>
-                                                                        <SelectContent className="bg-white">
-                                                                            {units.map((u) => (
-                                                                                <SelectItem key={u} value={u} className="font-bold text-xs">{u}</SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
+                                                                    <UnitCombobox
+                                                                        value={field.value}
+                                                                        onChange={field.onChange}
+                                                                        className="h-9 text-[10px] text-slate-900 font-bold rounded-lg px-2 border border-slate-300"
+                                                                    />
                                                                     <FormMessage className="text-[9px]" />
                                                                     {(() => {
                                                                         const itmId = form.watch(`items.${index}.item_id`);

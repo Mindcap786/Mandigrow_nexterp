@@ -19,6 +19,7 @@ import { useMandiSession, MandiSessionInput, MandiSessionFarmerRow, computeFarme
 import { AddedFarmerCard } from "./farmer-row";
 import { SummaryPanel } from "./summary-panel";
 import { SessionBillsView } from "./session-bills-view";
+import { UnitCombobox } from "@/components/ui/unit-combobox";
 
 const generateUUID = () => crypto.randomUUID();
 
@@ -39,7 +40,6 @@ export function MandiCommissionForm() {
     const [farmers, setFarmers] = useState<any[]>([]);
     const [buyers, setBuyers] = useState<any[]>([]);
     const [commodities, setCommodities] = useState<any[]>([]);
-    const [units, setUnits] = useState<string[]>(STANDARD_UNITS);
     const [globalUnit, setGlobalUnit] = useState<string>("Box");
     const [settings, setSettings] = useState<any>(null);
 
@@ -109,9 +109,6 @@ export function MandiCommissionForm() {
                 if (data.settings) {
                     setSettings(data.settings);
                     resetCurrentRow(data.settings.commission_rate_default);
-                }
-                if (data.units) {
-                    setUnits(Array.from(new Set([...STANDARD_UNITS, ...data.units, "Kg"])));
                 }
                 if (data.crate_types) {
                     setCrateTypes(data.crate_types);
@@ -188,6 +185,9 @@ export function MandiCommissionForm() {
     const handleItemSelect = useCallback(
         (itemId: string) => {
             const item = commodities.find((i) => i.id === itemId);
+            if (item?.default_unit) {
+                setGlobalUnit(item.default_unit);
+            }
             setCurrentRow(prev => computeFarmerRow({
                 ...prev,
                 itemId,
@@ -367,14 +367,14 @@ export function MandiCommissionForm() {
                     </div>
                 </div>
                 <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Unit</Label>
-                    <select 
-                        value={globalUnit} 
-                        onChange={(e) => setGlobalUnit(e.target.value)} 
-                        className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 text-sm font-bold text-slate-900 px-3 mt-1"
-                    >
-                        {units.map((u) => (<option key={u} value={u}>{u}</option>))}
-                    </select>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Global Unit</Label>
+                    <div className="mt-1">
+                        <UnitCombobox 
+                            value={globalUnit} 
+                            onChange={setGlobalUnit} 
+                            className="h-10 rounded-lg border border-slate-200 bg-slate-50 font-bold"
+                        />
+                    </div>
                 </div>
                 <div>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Vehicle No</Label>
