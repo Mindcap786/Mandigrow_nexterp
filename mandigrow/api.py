@@ -1519,15 +1519,24 @@ def direct_smtp_test(to_email: str = None) -> dict:
 
 @frappe.whitelist(allow_guest=True)
 def signup_user(email: str, password: str, full_name: str, username: str, org_name: str, phone: str, plan: str = "starter", otp: str = None, ref_code: str = None, city: str = None) -> dict:
-    if not otp:
-        frappe.throw(_("OTP is required for registration."))
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    is_sa = False
+    if frappe.session.user != "Guest":
+        try:
+            is_sa = is_super_admin()
+        except Exception:
+            pass
+
+    if not is_sa:
+        if not otp:
+            frappe.throw(_("OTP is required for registration."))
+            
+        cached_otp = frappe.cache().get_value(f"signup_otp_{email}")
+        if not cached_otp or str(cached_otp) != str(otp):
+            frappe.throw(_("Invalid or expired OTP. Please request a new one."))
         
-    cached_otp = frappe.cache().get_value(f"signup_otp_{email}")
-    if not cached_otp or str(cached_otp) != str(otp):
-        frappe.throw(_("Invalid or expired OTP. Please request a new one."))
-    
-    # Delete OTP after successful verification
-    frappe.cache().delete_value(f"signup_otp_{email}")
+        # Delete OTP after successful verification
+        frappe.cache().delete_value(f"signup_otp_{email}")
 
     # Normalize plan — guard against legacy 'basic' being sent from old clients
     VALID_PLANS = {"starter", "standard", "professional", "enterprise"}
