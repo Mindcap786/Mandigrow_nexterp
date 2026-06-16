@@ -5262,6 +5262,7 @@ def get_bank_accounts(org_id: str = None) -> list:
         for acc in user_accounts:
             acc["balance"] = bal_map.get(acc["id"], 0.0)
             acc["is_default"] = 1 if acc.get("is_default") else 0
+            acc["is_system_account"] = not (acc.get("description") and str(acc["description"]).strip().startswith("{"))
 
     return user_accounts
 
