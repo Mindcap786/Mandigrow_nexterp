@@ -18292,3 +18292,52 @@ def create_custom_uom(uom_name: str, organization_id: str = None):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "create_custom_uom")
         return {"success": False, "error": str(e)}
+
+@frappe.whitelist()
+def get_item_images(item_id: str):
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    
+    # Verify access to the item (tenant isolation)
+    try:
+        item = frappe.get_doc("Mandi Item", item_id)
+    except frappe.DoesNotExistError:
+        return {"success": False, "error": "Item not found or you do not have permission"}
+    except frappe.PermissionError:
+        return {"success": False, "error": "Permission denied"}
+        
+    files = frappe.get_all("File", filters={
+        "attached_to_doctype": "Mandi Item",
+        "attached_to_name": item_id
+    }, fields=["name as id", "file_url as url", "is_private", "creation"], order_by="creation asc")
+    
+    primary_image_url = item.image
+    
+    for f in files:
+        f['is_primary'] = (f.url == primary_image_url)
+        
+    return {"success": True, "images": files}
+
+@frappe.whitelist()
+def delete_item_image(file_id: str):
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    
+    try:
+        file_doc = frappe.get_doc("File", file_id)
+        if file_doc.attached_to_doctype != "Mandi Item":
+            return {"success": False, "error": "Invalid file association"}
+            
+        # Verify access to the item
+        item = frappe.get_doc("Mandi Item", file_doc.attached_to_name)
+        
+        # If this was the primary image, clear it
+        if item.image == file_doc.file_url:
+            frappe.db.set_value("Mandi Item", item.name, "image", None)
+            frappe.db.commit()
+            
+        file_doc.delete(ignore_permissions=True)
+        return {"success": True}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "delete_item_image error")
+        return {"success": False, "error": str(e)}
