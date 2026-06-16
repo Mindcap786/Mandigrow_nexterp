@@ -5262,7 +5262,6 @@ def get_bank_accounts(org_id: str = None) -> list:
         for acc in user_accounts:
             acc["balance"] = bal_map.get(acc["id"], 0.0)
             acc["is_default"] = 1 if acc.get("is_default") else 0
-            acc["is_system_account"] = not (acc.get("description") and str(acc["description"]).strip().startswith("{"))
 
     return user_accounts
 
@@ -5511,10 +5510,31 @@ def delete_bank_account(account_id: str) -> dict:
             frappe.db.commit()
             return {"success": True, "message": "Account has transactions; it was disabled instead of deleted. It will no longer appear in new entries."}
 
-        # No transactions — hard delete is safe
-        frappe.delete_doc("Account", account_id, ignore_permissions=True, force=True)
-        frappe.db.commit()
-        return {"success": True, "message": "Account deleted."}
+        # No transactions — try hard delete, fallback to archive if linked
+        try:
+            frappe.delete_doc("Account", account_id, ignore_permissions=True, force=True)
+            frappe.db.commit()
+            return {"success": True, "message": "Account deleted."}
+        except Exception as e:
+            frappe.db.rollback()
+            random_str = frappe.utils.generate_hash()[:6]
+            doc = frappe.get_doc("Account", account_id)
+            
+            # Unlink from company defaults just in case
+            if doc.company:
+                company_doc = frappe.get_doc("Company", doc.company)
+                if company_doc.default_bank_account == account_id:
+                    frappe.db.set_value("Company", doc.company, "default_bank_account", None)
+
+            doc.disabled = 1
+            if doc.account_number:
+                doc.account_number = f"DEL-{random_str}-{doc.account_number}"
+            doc.account_name = f"DEL-{random_str} {doc.account_name}"
+            doc.save(ignore_permissions=True)
+            
+            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}", ignore_permissions=True)
+            frappe.db.commit()
+            return {"success": True, "message": "Account was successfully archived and removed from your list."}
     except frappe.PermissionError as e:
         return {"success": False, "error": str(e)}
     except Exception as e:
