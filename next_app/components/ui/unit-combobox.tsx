@@ -33,7 +33,7 @@ export function UnitCombobox({ value, onChange, className, placeholder = "Select
     };
 
     return (
-        <Popover open={open} onOpenChange={setOpen} modal={true}>
+        <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"

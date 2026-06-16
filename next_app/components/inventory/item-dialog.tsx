@@ -491,7 +491,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                 {isVisible('name') && (
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">{getLabel('name', 'Item Name (Required)')}</Label>
-                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox} modal={true}>
+                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant="outline"
