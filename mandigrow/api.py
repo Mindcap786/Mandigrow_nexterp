@@ -11903,7 +11903,14 @@ def repair_single_party_settlement(contact_id: str, org_id: str = None):
             fifo_pool = max(0, float(unlinked_credits))
 
             for s in sales:
-                total = float(s.invoice_total or 0)
+                # Get the actual billed amount from the ledger (debits) rather than document field
+                # because manual ledger adjustments or rounding might have altered the real total.
+                total = float(frappe.db.sql("""
+                    SELECT SUM(gl.debit) FROM `tabGL Entry` gl
+                    WHERE gl.is_cancelled = 0 AND gl.party IN %s 
+                    AND gl.against_voucher = %s AND gl.debit > 0
+                """, (tuple(party_list), s.name))[0][0] or s.invoice_total or 0)
+                
                 # A. Linked Paid (Submitted GL) — only count credits (actual payments)
                 linked_paid = frappe.db.sql("""
                     SELECT SUM(gl.credit) FROM `tabGL Entry` gl
