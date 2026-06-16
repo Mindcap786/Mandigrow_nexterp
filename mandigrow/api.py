@@ -5505,7 +5505,7 @@ def delete_bank_account(account_id: str) -> dict:
             doc.save(ignore_permissions=True)
             
             # Free up the primary key by renaming the doc
-            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}", ignore_permissions=True)
+            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}")
             
             frappe.db.commit()
             return {"success": True, "message": "Account has transactions; it was disabled instead of deleted. It will no longer appear in new entries."}
@@ -5532,7 +5532,7 @@ def delete_bank_account(account_id: str) -> dict:
             doc.account_name = f"DEL-{random_str} {doc.account_name}"
             doc.save(ignore_permissions=True)
             
-            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}", ignore_permissions=True)
+            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}")
             frappe.db.commit()
             return {"success": True, "message": "Account was successfully archived and removed from your list."}
     except frappe.PermissionError as e:
