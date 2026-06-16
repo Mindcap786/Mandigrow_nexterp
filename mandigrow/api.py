@@ -9300,6 +9300,7 @@ def commit_mandi_session(**kwargs) -> dict:
                 item.qty = qty
                 item.rate = round(rate, 2)
                 item.amount = round(item_gross, 2)
+                item.uom = row.get("unit")
                 item.hsn_code = hsn_code
                 item.gst_rate = gst_rate
                 item.gst_amount = round(gst_amount, 2)
@@ -18213,17 +18214,20 @@ def get_debug_logs():
 
 
 @frappe.whitelist()
-def get_all_uoms():
-    """Fetch only custom created UOMs, not all default Frappe ones."""
+def get_all_uoms(organization_id=None):
+    """Fetch only custom created UOMs, filtered by organization."""
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
     
     if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
-        return frappe.get_all("UOM", filters={"is_custom_mandi_uom": 1}, fields=["name", "uom_name"])
+        filters = {"is_custom_mandi_uom": 1}
+        if organization_id and frappe.db.has_column("UOM", "organization_id"):
+            filters["organization_id"] = ["in", [organization_id, ""]]
+        return frappe.get_all("UOM", filters=filters, fields=["name", "uom_name"])
     return []
 
 @frappe.whitelist()
-def create_custom_uom(uom_name: str):
+def create_custom_uom(uom_name: str, organization_id: str = None):
     """Create a new custom UOM or promote an existing Frappe UOM to custom."""
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
@@ -18247,6 +18251,22 @@ def create_custom_uom(uom_name: str):
             frappe.clear_cache(doctype="UOM")
         except Exception:
             pass
+
+    if not frappe.db.has_column("UOM", "organization_id"):
+        try:
+            frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "UOM",
+                "fieldname": "organization_id",
+                "label": "Organization ID",
+                "fieldtype": "Link",
+                "options": "Mandi Organization",
+                "insert_after": "is_custom_mandi_uom"
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+            frappe.clear_cache(doctype="UOM")
+        except Exception:
+            pass
             
     if frappe.db.exists("UOM", uom_name):
         if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
@@ -18262,6 +18282,8 @@ def create_custom_uom(uom_name: str):
         })
         if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
             doc.is_custom_mandi_uom = 1
+        if organization_id and frappe.db.has_column("UOM", "organization_id"):
+            doc.organization_id = organization_id
             
         doc.insert(ignore_permissions=True)
         return {"success": True, "uom": doc.uom_name}
