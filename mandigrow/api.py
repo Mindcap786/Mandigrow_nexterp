@@ -5505,7 +5505,7 @@ def delete_bank_account(account_id: str) -> dict:
             doc.save(ignore_permissions=True)
             
             # Free up the primary key by renaming the doc
-            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}")
+            new_id = model_rename_doc("Account", account_id, f"DEL-{random_str} {account_id}", ignore_permissions=True)
             
             frappe.db.commit()
             return {"success": True, "message": "Account has transactions; it was disabled instead of deleted. It will no longer appear in new entries."}
@@ -5532,15 +5532,15 @@ def delete_bank_account(account_id: str) -> dict:
             doc.account_name = f"DEL-{random_str} {doc.account_name}"
             doc.save(ignore_permissions=True)
             
-            new_id = frappe.rename_doc("Account", account_id, f"DEL-{random_str} {account_id}")
+            new_id = model_rename_doc("Account", account_id, f"DEL-{random_str} {account_id}", ignore_permissions=True)
             frappe.db.commit()
             return {"success": True, "message": "Account was successfully archived and removed from your list."}
     except frappe.PermissionError as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": str(e) or "Permission Error"}
     except Exception as e:
         frappe.db.rollback()
         frappe.log_error(f"delete_bank_account({account_id}): {e}", "Bank Delete Error")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": str(e) or "An unknown error occurred"}
 
 @frappe.whitelist(allow_guest=False)
 def get_voucher_health(days: int = 90, p_org_id: str = None) -> list:
