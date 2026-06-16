@@ -18214,14 +18214,17 @@ def get_debug_logs():
 
 @frappe.whitelist()
 def get_all_uoms():
-    """Fetch all available UOMs."""
+    """Fetch only custom created UOMs, not all default Frappe ones."""
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
-    return frappe.get_all("UOM", fields=["name", "uom_name"])
+    
+    if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
+        return frappe.get_all("UOM", filters={"is_custom_mandi_uom": 1}, fields=["name", "uom_name"])
+    return []
 
 @frappe.whitelist()
 def create_custom_uom(uom_name: str):
-    """Create a new custom UOM if it doesn't exist."""
+    """Create a new custom UOM or promote an existing Frappe UOM to custom."""
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
     if not uom_name:
@@ -18229,7 +18232,26 @@ def create_custom_uom(uom_name: str):
         
     uom_name = str(uom_name).strip()
     
+    # Ensure custom field exists
+    if not frappe.db.has_column("UOM", "is_custom_mandi_uom"):
+        try:
+            frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "UOM",
+                "fieldname": "is_custom_mandi_uom",
+                "label": "Is Custom Mandi UOM",
+                "fieldtype": "Check",
+                "default": "0"
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+            frappe.clear_cache(doctype="UOM")
+        except Exception:
+            pass
+            
     if frappe.db.exists("UOM", uom_name):
+        if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
+            frappe.db.set_value("UOM", uom_name, "is_custom_mandi_uom", 1)
+            frappe.db.commit()
         return {"success": True, "uom": frappe.db.get_value("UOM", uom_name, "uom_name")}
         
     try:
@@ -18238,6 +18260,9 @@ def create_custom_uom(uom_name: str):
             "uom_name": uom_name,
             "must_be_whole_number": 0
         })
+        if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
+            doc.is_custom_mandi_uom = 1
+            
         doc.insert(ignore_permissions=True)
         return {"success": True, "uom": doc.uom_name}
     except Exception as e:
