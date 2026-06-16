@@ -18271,6 +18271,8 @@ def create_custom_uom(uom_name: str, organization_id: str = None):
     if frappe.db.exists("UOM", uom_name):
         if frappe.db.has_column("UOM", "is_custom_mandi_uom"):
             frappe.db.set_value("UOM", uom_name, "is_custom_mandi_uom", 1)
+            if organization_id and frappe.db.has_column("UOM", "organization_id"):
+                frappe.db.set_value("UOM", uom_name, "organization_id", organization_id)
             frappe.db.commit()
         return {"success": True, "uom": frappe.db.get_value("UOM", uom_name, "uom_name")}
         
