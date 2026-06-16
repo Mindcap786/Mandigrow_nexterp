@@ -253,4 +253,83 @@ export const db = {
 };
 
 // Back-compat: some files import `frappe` as a namespace.
-export const frappe = { callApi, callApiGet, login, logout, db };
+
+export async function uploadFile(
+    file: File,
+    opts: {
+        is_private?: number;
+        folder?: string;
+        doctype?: string;
+        docname?: string;
+        fieldname?: string;
+    } = {}
+): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    if (opts.is_private !== undefined) formData.append('is_private', String(opts.is_private));
+    if (opts.folder) formData.append('folder', opts.folder);
+    if (opts.doctype) formData.append('doctype', opts.doctype);
+    if (opts.docname) formData.append('docname', opts.docname);
+    if (opts.fieldname) formData.append('fieldname', opts.fieldname);
+
+    const url = `${FRAPPE_BASE}/api/method/upload_file`;
+    const headers = new Headers();
+    headers.set('Accept', 'application/json');
+    const siteName = process.env.NEXT_PUBLIC_FRAPPE_SITE_NAME || 
+                     (process.env.NEXT_PUBLIC_FRAPPE_URL ? new URL(process.env.NEXT_PUBLIC_FRAPPE_URL).hostname : 'mandigrow.localhost');
+    headers.set('X-Frappe-Site-Name', siteName);
+
+    const csrf = readCookie('csrf_token');
+    if (csrf) {
+        headers.set('X-Frappe-CSRF-Token', csrf);
+    }
+
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+            credentials: 'include',
+        });
+    } catch (e: any) {
+        throw new FrappeError(e?.message || 'Network error', { status: 0 });
+    }
+
+    const text = await res.text();
+    let json: any = null;
+    try {
+        json = text ? JSON.parse(text) : null;
+    } catch {
+        json = { raw: text };
+    }
+
+    if (json?.session_expired || res.status === 401) {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('frappe.auth.failed', { detail: { status: res.status } }));
+        }
+    }
+
+    if (!res.ok) {
+        const msgs = parseServerMessages(json);
+        const message = extractErrorMessage(json, res, msgs);
+        throw new FrappeError(message, {
+            exc_type: json?.exc_type,
+            server_messages: msgs,
+            status: res.status,
+            raw: json,
+        });
+    }
+
+    if (json?.message && typeof json.message === 'object' && json.message.success === false) {
+        const errorMsg = json.message.error || "Server transaction failed";
+        throw new FrappeError(errorMsg, {
+            status: 200,
+            raw: json
+        });
+    }
+
+    return json.message;
+}
+
+export const frappe = { callApi, callApiGet, login, logout, db, uploadFile };

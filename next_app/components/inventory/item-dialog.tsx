@@ -25,7 +25,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { callApi } from "@/lib/frappeClient";
+import { callApi, uploadFile } from "@/lib/frappeClient";
  // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import {
@@ -157,52 +157,41 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
     }
 
     async function uploadImages(itemId: string): Promise<void> {
-        if (selectedImages.length === 0) return
+        if (selectedImages.length === 0) return;
 
-        let primaryUrl: string | null = null
+        let primaryUrl: string | null = null;
 
         for (let i = 0; i < selectedImages.length; i++) {
-            const file = selectedImages[i]
-            const fileName = `${profile?.organization_id}/${itemId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`
-            const { error: uploadError } = await supabase.storage.from('item_images').upload(fileName, file)
-
-            if (uploadError) {
-                console.error("Item Image Upload Error:", uploadError)
+            const file = selectedImages[i];
+            try {
+                const uploadRes = await uploadFile(file, {
+                    is_private: 1, // Store privately for tenant isolation
+                    doctype: "Mandi Item",
+                    docname: itemId
+                });
+                
+                const fileUrl = uploadRes.file_url;
+                if (!primaryUrl) primaryUrl = fileUrl;
+            } catch (err) {
+                console.error("Item Image Upload Error:", err);
                 toast({
                     title: "Image Upload Failed",
                     description: `Could not upload ${file.name}. Please try again.`,
                     variant: "destructive"
-                })
-                continue
+                });
             }
-
-            const { data: urlData } = supabase.storage.from('item_images').getPublicUrl(fileName)
-            const publicUrl = urlData.publicUrl
-
-            // First successfully uploaded image becomes the primary display image
-            if (!primaryUrl) primaryUrl = publicUrl
-
-            // Store in item_images gallery for history
-            await supabase.schema('mandi').from('item_images').insert({
-                organization_id: profile?.organization_id,
-                commodity_id: itemId,
-                url: publicUrl,
-                is_primary: i === 0
-            })
         }
 
-        // Update the commodity's image_url directly - this is what Stock Status & POS read
         if (primaryUrl) {
-            const { error: updateError } = await supabase
-                .schema('mandi')
-                .from('commodities')
-                .update({ image_url: primaryUrl })
-                .eq('id', itemId)
-
-            if (updateError) {
-                console.error("[Upload] Failed to update commodity image_url:", updateError)
-            } else {
-                console.log('[Upload] Updated commodities.image_url for item:', itemId)
+            try {
+                await callApi('frappe.client.set_value', {
+                    doctype: 'Mandi Item',
+                    name: itemId,
+                    fieldname: 'image',
+                    value: primaryUrl
+                });
+            } catch (err) {
+                console.error("[Upload] Failed to update commodity image:", err);
             }
         }
     }
@@ -355,8 +344,15 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
     }, [open, initialItem, form])
 
     const fetchExistingImages = async () => {
-        // TODO: Implement Frappe File Attachment fetching
-        setExistingImages([])
+        if (!initialItem?.name) return;
+        try {
+            const res: any = await callApi('mandigrow.api.get_item_images', { item_id: initialItem.name });
+            if (res && res.success && res.images) {
+                setExistingImages(res.images);
+            }
+        } catch (err) {
+            console.error("Failed to fetch existing images:", err);
+        }
     }
 
     const onSubmit = async (data: ItemFormValues) => {
@@ -426,7 +422,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             if (res && res.success) {
                 if (selectedImages.length > 0) {
                      // Image upload is still complex, but let's at least get the item created first
-                     // await uploadImages(res.id)
+                     await uploadImages(res.id || initialItem?.name)
                 }
                 toast({ title: "Success", description: initialItem ? "Item updated successfully" : "Item registered successfully" })
                 setLoadingState("Finalizing...")
@@ -743,8 +739,16 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                     <button
                                                         type="button"
                                                         onClick={async () => {
-                                                            await supabase.schema('mandi').from('item_images').delete().eq('id', img.id);
-                                                            fetchExistingImages();
+                                                            try {
+                                                                await callApi('mandigrow.api.delete_item_image', { file_id: img.id });
+                                                                fetchExistingImages();
+                                                            } catch (err) {
+                                                                toast({
+                                                                    title: "Delete Failed",
+                                                                    description: "Could not delete image.",
+                                                                    variant: "destructive"
+                                                                });
+                                                            }
                                                         }}
                                                         className="p-1.5 bg-red-500 rounded-full text-white hover:scale-110 transition-transform"
                                                     >
