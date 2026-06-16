@@ -1215,6 +1215,13 @@ export function calculateDaybookStats(rawData: any, viewMode: string, t: any) {
                     return;
                 }
 
+                // ── STOCK LOSS EXCLUSION ──
+                // Stock Loss is a non-cash expense. It appears in the daybook transaction list 
+                // but should NOT affect Liquid Assets (Outflow) or Daily Expenses cards.
+                const descLower = (leg.displayDescription || '').toLowerCase();
+                const isStockLoss = descLower.includes('stock loss') || descLower.includes('gain/loss on asset disposal') || groupFlow === 'stock_loss';
+                if (isStockLoss) return;
+
                 // 3. FINANCIAL MOVEMENTS (Standalone or Later Clearing)
                 // Hits Card 2 ONLY.
                 // Pure write-offs have no cash leg — skip inflow/outflow entirely.
