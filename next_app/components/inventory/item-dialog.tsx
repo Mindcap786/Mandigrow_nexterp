@@ -572,7 +572,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                 <Button
                                                                     variant="ghost"
                                                                     className="mt-2 text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50"
-                                                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                    onMouseDown={(e) => { e.preventDefault(); }}
                                                                     onClick={() => {
                                                                         form.setValue("name", searchTerm)
                                                                         setOpenCombobox(false)
@@ -601,21 +601,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                             }
                                                                             setOpenCombobox(false)
                                                                         }}
-                                                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                        onClick={() => {
-                                                                            form.setValue("name", item.name)
-                                                                            if (item.local_name) {
-                                                                                form.setValue("local_name", item.local_name)
-                                                                            }
-                                                                            const lookupKey = item.name.toLowerCase();
-                                                                            if (HSN_LOOKUP[lookupKey]) {
-                                                                                form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
-                                                                                form.setValue("sale_gst_rate", HSN_LOOKUP[lookupKey].gst);
-                                                                                form.setValue("purchase_gst_rate", HSN_LOOKUP[lookupKey].gst);
-                                                                            }
-                                                                            setOpenCombobox(false)
-                                                                        }}
-                                                                        className="!pointer-events-auto text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
+                                                                        className="text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
                                                                     >
                                                                         <Check
                                                                             className={cn(
