@@ -7206,10 +7206,13 @@ def get_stock_summary(org_id: str = None) -> dict:
                     sec_factor = flt(item_doc.get("custom_uom_conversion_factor") or 0)
                     shelf_life = int(float(item_doc.get("shelf_life_in_days") or 7))
                     critical_age = int(float(item_doc.get("critical_age_days") or 14))
+                    image_url = item_doc.get("image") or ""
                 else:
                     item_name = iid
+                    image_url = ""
             except Exception as e:
                 item_name = iid
+                image_url = ""
                 
             by_item[iid] = {
                 "item_id": iid,
@@ -7222,6 +7225,7 @@ def get_stock_summary(org_id: str = None) -> dict:
                 "custom_uom_conversion_factor": sec_factor,
                 "shelf_life_days": shelf_life,
                 "critical_age_days": critical_age,
+                "image_url": image_url,
             }
         by_item[iid]["total_qty"] += current_qty
         by_item[iid]["total_initial_qty"] += initial_qty
