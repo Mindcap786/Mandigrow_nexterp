@@ -101,6 +101,22 @@ const NewInvoiceForm = () => {
 
     // UI State for Expandable Rows
     const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({ 0: true });
+    
+    const [prefOtherLabel, setPrefOtherLabel] = useState('Other');
+
+    useEffect(() => {
+        const saved = localStorage.getItem('pref_invoice_other_label');
+        if (saved) {
+            setPrefOtherLabel(saved);
+            setTimeout(() => {
+                const dists = form.getValues('distributions');
+                if (dists?.length > 0 && (dists[0].other_expenses_label === 'Other' || !dists[0].other_expenses_label)) {
+                    form.setValue('distributions.0.other_expenses_label', saved);
+                }
+            }, 100);
+        }
+    }, []);
+
 
     const lastCalculatedTotals = useRef<Record<number, number>>({});
     const form = useForm<FormValues>({
@@ -124,6 +140,7 @@ const NewInvoiceForm = () => {
                 loading_charges: 0,
                 unloading_charges: 0,
                 other_expenses: 0,
+                other_expenses_label: 'Other',
                 vehicle_number: "",
                 transport_name: "",
                 book_no: "",
@@ -543,7 +560,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                     )}
                                     <Button type="button" variant="outline" onClick={() => append({ 
                                         buyer_id: "", qty: selectedLot ? remainingInLot : 0, rate: selectedLot?.sale_price || 0, 
-                                        payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, other_expenses_label: 'Other', cheque_status: false,
+                                        payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, other_expenses_label: prefOtherLabel, cheque_status: false,
                                         vehicle_number: "", transport_name: "", book_no: "", lot_no: "",
                                         cratesEnabled: false, crateCart: [] 
                                     })} className="text-xs font-bold uppercase tracking-widest h-8 rounded-lg text-slate-600">
@@ -991,7 +1008,12 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                             <input
                                                                                 type="text"
                                                                                 value={form.watch(`distributions.${index}.other_expenses_label`) || 'Other'}
-                                                                                onChange={(e) => form.setValue(`distributions.${index}.other_expenses_label`, e.target.value || 'Other')}
+                                                                                onChange={(e) => {
+                                                                                    const val = e.target.value || 'Other';
+                                                                                    form.setValue(`distributions.${index}.other_expenses_label`, val);
+                                                                                    localStorage.setItem('pref_invoice_other_label', val);
+                                                                                    setPrefOtherLabel(val);
+                                                                                }}
                                                                                 className="bg-transparent border-b border-dashed border-slate-400 focus:outline-none focus:border-indigo-500 w-full text-[8px] uppercase font-black text-slate-700 tracking-wider"
                                                                                 placeholder="Other"
                                                                             />

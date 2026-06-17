@@ -161,6 +161,7 @@ export default function ArrivalsEntryForm() {
     const { createArrival, isCreating } = useArrivals();
 
     // QR Code State
+    const [prefLoadingLabel, setPrefLoadingLabel] = useState('Loading');
 
     const [arrivalType, setArrivalType] = useState<"direct" | "commission" | "commission_supplier">("direct");
     const [showUnlock, setShowUnlock] = useState(false);
@@ -245,6 +246,19 @@ export default function ArrivalsEntryForm() {
         control: form.control,
         name: "items"
     });
+
+    useEffect(() => {
+        const saved = localStorage.getItem('pref_arrival_loading_label');
+        if (saved) {
+            setPrefLoadingLabel(saved);
+            setTimeout(() => {
+                const currentItems = form.getValues('items');
+                if (currentItems?.length > 0 && (currentItems[0].loading_label === 'Loading' || currentItems[0].loading_label === 'Hamali')) {
+                    form.setValue('items.0.loading_label', saved);
+                }
+            }, 100);
+        }
+    }, [form]);
 
     // 7. Auto-sync storage location from header to items
     const headerStorage = form.watch('storage_location');
@@ -1266,7 +1280,7 @@ export default function ArrivalsEntryForm() {
                                     variant="outline"
                                     onClick={() => append({ 
                                         item_id: "", 
-                                        qty: 1, 
+                                        qty: 0, 
                                         unit: "Box", 
                                         unit_weight: 0, 
                                         supplier_rate: 0, 
@@ -1275,7 +1289,7 @@ export default function ArrivalsEntryForm() {
                                         less_units: 0, 
                                         packing_cost: 0, 
                                         loading_cost: 0, 
-                                        loading_label: "Loading",
+                                        loading_label: prefLoadingLabel,
                                         farmer_charges: 0,
                                         sale_price: 0,
                                         barcode: "",
