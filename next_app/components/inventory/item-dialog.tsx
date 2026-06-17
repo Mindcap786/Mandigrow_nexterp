@@ -226,7 +226,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             const file = selectedImages[i];
             try {
                 const uploadRes = await uploadFile(file, {
-                    is_private: 1, // Store privately for tenant isolation
+                    is_private: 0, // Make public so Next.js <Image> server can fetch it without Frappe cookies (403 fix)
                     doctype: "Item",
                     docname: itemId
                 });
