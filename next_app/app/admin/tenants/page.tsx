@@ -322,17 +322,16 @@ export default function TenantsPage() {
 
         let matchStatus = true;
         if (filterStatus === 'expiring_soon') {
-            const expiresAt = t.status === 'trial' ? t.trial_ends_at : t.current_period_end;
+            const expiresAt = t.status === 'trial' ? t.trial_ends_at : (t.current_period_end || t.trial_ends_at);
             if (!expiresAt) {
                 matchStatus = false;
             } else {
                 const days = differenceInDays(new Date(expiresAt), new Date());
                 matchStatus = days >= 0 && days <= 15;
             }
-        } else {
-            matchStatus = filterStatus === 'all' || t.status === filterStatus ||
-                (filterStatus === 'active' && !t.status && t.is_active) ||
-                (filterStatus === 'suspended' && !t.status && !t.is_active);
+        } else if (filterStatus !== 'all') {
+            const stateLabel = getLifecycleState(t).label.toLowerCase().replace(' ', '_');
+            matchStatus = stateLabel === filterStatus;
         }
 
         // Expiry date range filter — works across all statuses
@@ -344,12 +343,12 @@ export default function TenantsPage() {
             } else {
                 const expiryDate = new Date(expiresAt);
                 if (filterExpiryFrom) {
-                    const from = new Date(filterExpiryFrom);
+                    const from = new Date(filterExpiryFrom + 'T00:00:00');
                     from.setHours(0, 0, 0, 0);
                     if (expiryDate < from) matchExpiry = false;
                 }
                 if (matchExpiry && filterExpiryTo) {
-                    const to = new Date(filterExpiryTo);
+                    const to = new Date(filterExpiryTo + 'T00:00:00');
                     to.setHours(23, 59, 59, 999);
                     if (expiryDate > to) matchExpiry = false;
                 }
@@ -364,9 +363,11 @@ export default function TenantsPage() {
 
     const stats = {
         total: tenants.length,
-        active: tenants.filter(t => t.status === 'active' || (!t.status && t.is_active)).length,
-        trial: tenants.filter(t => t.status === 'trial').length,
-        suspended: tenants.filter(t => t.status === 'suspended' || (!t.status && !t.is_active)).length,
+        active: tenants.filter(t => getLifecycleState(t).label === 'Active').length,
+        trial: tenants.filter(t => getLifecycleState(t).label === 'Trial').length,
+        suspended: tenants.filter(t => getLifecycleState(t).label === 'Suspended').length,
+        expired: tenants.filter(t => getLifecycleState(t).label === 'Expired').length,
+        archived: tenants.filter(t => getLifecycleState(t).label === 'Archived').length,
         totalUsers: tenants.reduce((acc, t) => acc + (t.profiles?.length || 0), 0)
     };
 
