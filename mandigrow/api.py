@@ -18384,10 +18384,34 @@ def upload_commodity_image():
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
     enforce_active_subscription()
     
-    old_ignore = frappe.flags.ignore_permissions
-    frappe.flags.ignore_permissions = True
-    try:
-        from frappe.core.api.file import handle
-        return handle()
-    finally:
-        frappe.flags.ignore_permissions = old_ignore
+    files = frappe.request.files
+    is_private = frappe.form_dict.get("is_private")
+    doctype = frappe.form_dict.get("doctype")
+    docname = frappe.form_dict.get("docname")
+    fieldname = frappe.form_dict.get("fieldname")
+    folder = frappe.form_dict.get("folder") or "Home"
+    
+    if "file" not in files:
+        frappe.throw("No file uploaded")
+        
+    file = files["file"]
+    filename = file.filename
+    content = file.stream.read()
+    
+    # We explicitly bypass permissions to allow standard users to upload images for Item
+    from frappe.utils import cint
+    
+    doc = frappe.get_doc({
+        "doctype": "File",
+        "attached_to_doctype": doctype,
+        "attached_to_name": docname,
+        "attached_to_field": fieldname,
+        "folder": folder,
+        "file_name": filename,
+        "is_private": cint(is_private),
+        "content": content,
+    })
+    
+    # Save the file while ignoring permissions
+    doc.save(ignore_permissions=True)
+    return doc.as_dict()
