@@ -562,7 +562,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                 </Button>
                                             </PopoverTrigger>
-                                            <PopoverContent className="w-[380px] p-0 bg-white border-gray-300 text-gray-900 shadow-xl z-[200]">
+                                            <PopoverContent portalled={false} className="w-[380px] p-0 bg-white border-gray-300 text-gray-900 shadow-xl z-[200]">
                                                 <Command className="bg-white">
                                                     {!initialItem && <CommandInput placeholder="Search user item..." className="text-gray-900 placeholder:text-gray-400" onValueChange={setSearchTerm} />}
                                                     <CommandList>
