@@ -262,6 +262,7 @@ export async function uploadFile(
         doctype?: string;
         docname?: string;
         fieldname?: string;
+        method?: string;
     } = {}
 ): Promise<any> {
     const formData = new FormData();
@@ -272,7 +273,8 @@ export async function uploadFile(
     if (opts.docname) formData.append('docname', opts.docname);
     if (opts.fieldname) formData.append('fieldname', opts.fieldname);
 
-    const url = `${FRAPPE_BASE}/api/method/upload_file`;
+    const methodPath = opts.method || 'upload_file';
+    const url = `${FRAPPE_BASE}/api/method/${methodPath}`;
     const headers = new Headers();
     headers.set('Accept', 'application/json');
     const siteName = process.env.NEXT_PUBLIC_FRAPPE_SITE_NAME || 

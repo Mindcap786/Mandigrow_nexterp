@@ -226,6 +226,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             const file = selectedImages[i];
             try {
                 const uploadRes = await uploadFile(file, {
+                    method: 'mandigrow.api.upload_commodity_image',
                     is_private: 0, // Make public so Next.js <Image> server can fetch it without Frappe cookies (403 fix)
                     doctype: "Item",
                     docname: itemId
@@ -601,7 +602,21 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                             }
                                                                             setOpenCombobox(false)
                                                                         }}
-                                                                        className="text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
+                                                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                        onClick={(e) => {
+                                                                            form.setValue("name", item.name)
+                                                                            if (item.local_name) {
+                                                                                form.setValue("local_name", item.local_name)
+                                                                            }
+                                                                            const lookupKey = item.name.toLowerCase();
+                                                                            if (HSN_LOOKUP[lookupKey]) {
+                                                                                form.setValue("hsn_code", HSN_LOOKUP[lookupKey].hsn);
+                                                                                form.setValue("sale_gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                                form.setValue("purchase_gst_rate", HSN_LOOKUP[lookupKey].gst);
+                                                                            }
+                                                                            setOpenCombobox(false)
+                                                                        }}
+                                                                        className="!pointer-events-auto text-gray-900 aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
                                                                     >
                                                                         <Check
                                                                             className={cn(
