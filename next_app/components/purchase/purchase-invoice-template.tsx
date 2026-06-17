@@ -534,7 +534,7 @@ export default function PurchaseBillInvoice({
                                 <div className="pl-2 space-y-0.5 mt-0.5">
                                     {totalLotExpenses > 0.01 && (
                                         <div className="flex justify-between items-center text-[9px] text-gray-500">
-                                            <span className="uppercase tracking-widest text-gray-400">↳ Packing & Loading</span>
+                                            <span className="uppercase tracking-widest text-gray-400">↳ Packing & {lotsToProcess[0]?.loading_label || 'Loading'}</span>
                                             <span>₹{Math.round(totalLotExpenses).toLocaleString()}</span>
                                         </div>
                                     )}

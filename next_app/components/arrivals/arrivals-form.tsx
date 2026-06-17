@@ -74,8 +74,8 @@ const itemSchema = z.object({
     commission_percent: z.coerce.number().min(0).default(0),
     less_percent: z.coerce.number().min(0).default(0),
     less_units: z.coerce.number().min(0).default(0),
-    packing_cost: z.coerce.number().min(0).default(0),
     loading_cost: z.coerce.number().min(0).default(0),
+    loading_label: z.string().optional(),
     farmer_charges: z.coerce.number().min(0).default(0),
     sale_price: z.coerce.number().min(0).default(0),
     barcode: z.string().optional(),
@@ -233,6 +233,7 @@ export default function ArrivalsEntryForm() {
                 less_units: 0,
                 packing_cost: 0,
                 loading_cost: 0,
+                loading_label: "Loading",
                 farmer_charges: 0,
                 sale_price: 0,
                 barcode: ""
@@ -558,7 +559,7 @@ export default function ArrivalsEntryForm() {
 
         // 2. Check Item Fields
         values.items.forEach((item, idx) => {
-            const itemFields = ['item_id', 'qty', 'unit', 'unit_weight', 'supplier_rate', 'commission_percent', 'less_percent', 'packing_cost', 'loading_cost', 'advance', 'farmer_charges'];
+            const itemFields = ['item_id', 'qty', 'unit', 'unit_weight', 'supplier_rate', 'commission_percent', 'less_percent', 'packing_cost', 'loading_cost', 'loading_label', 'advance', 'farmer_charges'];
             itemFields.forEach(f => {
                 if (isMandatory(f)) {
                     const val = (item as any)[f];
@@ -837,6 +838,7 @@ export default function ArrivalsEntryForm() {
                     less_units: 0,
                     packing_cost: 0,
                     loading_cost: 0,
+                    loading_label: "Loading",
                     farmer_charges: 0
                 }]
             });
@@ -1273,6 +1275,7 @@ export default function ArrivalsEntryForm() {
                                         less_units: 0, 
                                         packing_cost: 0, 
                                         loading_cost: 0, 
+                                        loading_label: "Loading",
                                         farmer_charges: 0,
                                         sale_price: 0,
                                         barcode: "",
@@ -1569,7 +1572,7 @@ export default function ArrivalsEntryForm() {
                                                                 name={`items.${index}.loading_cost`}
                                                                 render={({ field }) => (
                                                                     <FormItem className="space-y-0.5">
-                                                                        <FormLabel className="text-[8px] font-bold uppercase text-slate-700">{getLabel('loading_cost', 'Loading')}</FormLabel>
+                                                                        <Input type="text" {...form.register(`items.${index}.loading_label`)} placeholder={getLabel('loading_cost', 'Loading')} className="h-6 w-full text-[8px] font-bold uppercase text-slate-700 border-none bg-transparent p-0 placeholder:text-slate-700 focus-visible:ring-0 text-center" />
                                                                         <FormControl>
                                                                             <Input type="number" {...field} required={isMandatory('loading_cost')} className="h-8 bg-white border border-slate-300 text-slate-900 font-bold text-center rounded-md text-xs shadow-sm" />
                                                                         </FormControl>

@@ -38,6 +38,7 @@ const itemSchema = z.object({
     less_units: z.coerce.number().default(0),
     packing_cost: z.coerce.number().default(0),
     loading_cost: z.coerce.number().default(0),
+    loading_label: z.string().optional(),
     farmer_charges: z.coerce.number().default(0),
     lot_code: z.string().optional(),
     storage_location: z.string().optional(),
@@ -147,6 +148,7 @@ export function PurchaseBillDetailsSheet({ lotId, isOpen, onClose, onUpdate }: P
                     less_units: l.less_units || 0,
                     packing_cost: l.packing_cost || 0,
                     loading_cost: l.loading_cost || 0,
+                    loading_label: l.loading_label || "Loading",
                     farmer_charges: l.farmer_charges || 0,
                     lot_code: l.lot_code,
                     storage_location: l.storage_location
