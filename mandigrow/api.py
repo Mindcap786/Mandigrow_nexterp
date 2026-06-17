@@ -17945,6 +17945,16 @@ def get_crate_issues_report(org_id: str = None) -> dict:
         return {"success": False, "error": str(e), "rows": [], "summary": {}}
 
 @frappe.whitelist(allow_guest=False)
+def upload_commodity_image(item_id, file_url):
+    """
+    Saves image to Item and marks as web-viewable.
+    """
+    item = frappe.get_doc("Item", item_id)
+    item.image = file_url
+    item.flags.ignore_permissions = True
+    item.save()
+
+@frappe.whitelist(allow_guest=False)
 def report_crate_loss(crate_type: str, qty: float, notes: str = None):
     org_id = _get_user_org()
     if not crate_type:
@@ -18414,4 +18424,11 @@ def upload_commodity_image():
     
     # Save the file while ignoring permissions
     doc.save(ignore_permissions=True)
+
+    # Also update the image field on Item directly — this bypasses frappe.client.set_value
+    # which would fail with PermissionError for standard users
+    if doctype and docname and doc.file_url:
+        frappe.db.set_value(doctype, docname, "image", doc.file_url, update_modified=False)
+        frappe.db.commit()
+
     return doc.as_dict()
