@@ -53,8 +53,9 @@ export function UnitCombobox({ value, onChange, className, placeholder = "Select
                             {search.trim() ? (
                                 <Button
                                     variant="ghost"
-                                    className="w-full justify-start text-sm font-semibold text-[#1A6B3C] py-2 h-auto"
+                                    className="w-full justify-start text-sm font-semibold text-[#1A6B3C] py-2 h-auto !pointer-events-auto cursor-pointer"
                                     onClick={handleCreate}
+                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                                     disabled={isCreating}
                                 >
                                     {isCreating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -74,6 +75,12 @@ export function UnitCombobox({ value, onChange, className, placeholder = "Select
                                         onChange(original);
                                         setOpen(false);
                                     }}
+                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onClick={() => {
+                                        onChange(uom);
+                                        setOpen(false);
+                                    }}
+                                    className="!pointer-events-auto cursor-pointer"
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", value === uom ? "opacity-100" : "opacity-0")} />
                                     {uom}
