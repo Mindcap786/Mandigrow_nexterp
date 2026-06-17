@@ -148,11 +148,6 @@ function NewSaleForm() {
     const [crateCart, setCrateCart] = useState<{crate_type: string, qty: number, rate: number}[]>([]);
     const [cratePage, setCratePage] = useState(1);
     const [otherExpensesLabel, setOtherExpensesLabel] = useState('Other');
-    useEffect(() => {
-        const saved = localStorage.getItem('pref_sale_other_label');
-        if (saved) setOtherExpensesLabel(saved);
-    }, []);
-
     const CRATES_PER_PAGE = 10;
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('sales');
@@ -1669,11 +1664,7 @@ function NewSaleForm() {
                                                             <input
                                                                 type="text"
                                                                 value={otherExpensesLabel}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value || 'Other';
-                                                                    setOtherExpensesLabel(val);
-                                                                    localStorage.setItem('pref_sale_other_label', val);
-                                                                }}
+                                                                onChange={(e) => setOtherExpensesLabel(e.target.value || 'Other')}
                                                                 className="bg-transparent border-b border-dashed border-slate-400 focus:outline-none focus:border-indigo-500 w-full text-[8px] uppercase font-black text-slate-700 tracking-wider"
                                                                 placeholder="Other"
                                                             />

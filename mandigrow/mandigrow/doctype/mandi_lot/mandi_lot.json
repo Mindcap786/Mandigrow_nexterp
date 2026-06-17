@@ -19,6 +19,7 @@
         "less_units",
         "packing_cost",
         "loading_cost",
+        "custom_loading_label",
         "farmer_charges",
         "sale_price",
         "barcode",
@@ -112,9 +113,10 @@
             "label": "Loading Cost"
         },
         {
-            "fieldname": "loading_label",
+            "fieldname": "custom_loading_label",
             "fieldtype": "Data",
-            "label": "Loading Label"
+            "label": "Custom Loading Label",
+            "default": "Loading"
         },
         {
             "fieldname": "farmer_charges",

@@ -3063,6 +3063,7 @@ def get_purchase_bill_details(lot_id: str) -> dict:
                 "less_units": item.less_units,
                 "packing_cost": item.packing_cost,
                 "loading_cost": item.loading_cost,
+                "loading_label": getattr(item, "loading_label", "Loading"),
                 "farmer_charges": item.farmer_charges,
                 "lot_code": item.lot_code,
                 "storage_location": item.storage_location,
@@ -3246,6 +3247,7 @@ def update_purchase_bill(arrival_id: str, data: str) -> dict:
                 item_doc.less_units = item_data.get('less_units')
                 item_doc.packing_cost = item_data.get('packing_cost')
                 item_doc.loading_cost = item_data.get('loading_cost')
+                item_doc.loading_label = item_data.get('loading_label')
                 item_doc.farmer_charges = item_data.get('farmer_charges')
                 item_doc.storage_location = item_data.get('storage_location')
                 item_doc.lot_code = item_data.get('lot_code')
