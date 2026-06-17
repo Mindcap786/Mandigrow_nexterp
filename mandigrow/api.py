@@ -18378,3 +18378,16 @@ def update_commodity_image(item_code: str, image_url: str):
         doc.insert(ignore_permissions=True)
         
     return {"status": "success", "image_url": image_url}
+
+@frappe.whitelist()
+def upload_commodity_image():
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    
+    old_ignore = frappe.flags.ignore_permissions
+    frappe.flags.ignore_permissions = True
+    try:
+        from frappe.core.api.file import handle
+        return handle()
+    finally:
+        frappe.flags.ignore_permissions = old_ignore
