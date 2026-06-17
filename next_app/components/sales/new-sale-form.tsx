@@ -147,6 +147,7 @@ function NewSaleForm() {
     const [cratesEnabled, setCratesEnabled] = useState(false);
     const [crateCart, setCrateCart] = useState<{crate_type: string, qty: number, rate: number}[]>([]);
     const [cratePage, setCratePage] = useState(1);
+    const [otherExpensesLabel, setOtherExpensesLabel] = useState('Other');
     const CRATES_PER_PAGE = 10;
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('sales');
@@ -594,6 +595,7 @@ function NewSaleForm() {
                 loadingCharges: Number(values.loading_charges) || 0,
                 unloadingCharges: Number(values.unloading_charges) || 0,
                 otherExpenses: Number(values.other_expenses) || 0,
+                otherExpensesLabel: otherExpensesLabel !== 'Other' ? otherExpensesLabel : null,
                 discountAmount: Number(values.discount_amount) || 0,
                 idempotencyKey,
                 dueDate: (values.payment_mode === 'credit' || isPartial) && values.due_date ? values.due_date.toISOString().split('T')[0] : null,
@@ -1658,8 +1660,14 @@ function NewSaleForm() {
                                                 name="other_expenses"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">
-                                                            {getLabel('other_expenses', 'Other')}
+                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider block mb-1">
+                                                            <input
+                                                                type="text"
+                                                                value={otherExpensesLabel}
+                                                                onChange={(e) => setOtherExpensesLabel(e.target.value || 'Other')}
+                                                                className="bg-transparent border-b border-dashed border-slate-400 focus:outline-none focus:border-indigo-500 w-full text-[8px] uppercase font-black text-slate-700 tracking-wider"
+                                                                placeholder="Other"
+                                                            />
                                                         </FormLabel>
                                                         <Input type="number" {...field} className="bg-white border-slate-100 h-9 font-bold rounded-lg shadow-none text-xs" />
                                                     </FormItem>

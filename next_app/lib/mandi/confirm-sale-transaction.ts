@@ -13,6 +13,7 @@ type ConfirmSaleTransactionParams = {
     loadingCharges?: number;
     unloadingCharges?: number;
     otherExpenses?: number;
+    otherExpensesLabel?: string | null;
     idempotencyKey?: string | null;
     dueDate?: string | null;
     bankAccountId?: string | null;
@@ -71,6 +72,7 @@ export async function confirmSaleTransactionWithFallback(
         p_loading_charges: params.loadingCharges || 0,
         p_unloading_charges: params.unloadingCharges || 0,
         p_other_expenses: params.otherExpenses || 0,
+        p_other_expenses_label: params.otherExpensesLabel || '',
         p_amount_received: params.amountReceived ?? 0,
         p_idempotency_key: params.idempotencyKey,
         p_due_date: params.dueDate,

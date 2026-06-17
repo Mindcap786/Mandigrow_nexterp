@@ -327,6 +327,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                     loadingCharges: dist.loading_charges,
                     unloadingCharges: dist.unloading_charges,
                     otherExpenses: dist.other_expenses,
+                    otherExpensesLabel: (dist.other_expenses_label && dist.other_expenses_label !== 'Other') ? dist.other_expenses_label : null,
                     idempotencyKey,
                     dueDate: dist.due_date ? dist.due_date.toISOString().split('T')[0] : null,
                     bankAccountId: dist.bank_account_id || null,
@@ -542,7 +543,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                     )}
                                     <Button type="button" variant="outline" onClick={() => append({ 
                                         buyer_id: "", qty: selectedLot ? remainingInLot : 0, rate: selectedLot?.sale_price || 0, 
-                                        payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, cheque_status: false,
+                                        payment_mode: "credit", amount_received: 0, loading_charges: 0, unloading_charges: 0, other_expenses: 0, other_expenses_label: 'Other', cheque_status: false,
                                         vehicle_number: "", transport_name: "", book_no: "", lot_no: "",
                                         cratesEnabled: false, crateCart: [] 
                                     })} className="text-xs font-bold uppercase tracking-widest h-8 rounded-lg text-slate-600">
@@ -985,7 +986,19 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                     <FormItem><FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Unloading</FormLabel><Input type="number" {...f} className="bg-white border-slate-200 h-9 font-bold text-xs shadow-none"/><FormMessage className="text-[8px] uppercase text-red-500"/></FormItem>
                                                                 )}/>
                                                                 <FormField control={form.control} name={`distributions.${index}.other_expenses`} render={({ field: f }) => (
-                                                                    <FormItem><FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider">Other</FormLabel><Input type="number" {...f} className="bg-white border-slate-200 h-9 font-bold text-xs shadow-none"/><FormMessage className="text-[8px] uppercase text-red-500"/></FormItem>
+                                                                    <FormItem>
+                                                                        <FormLabel className="text-[8px] uppercase font-black text-slate-700 tracking-wider block mb-1">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={form.watch(`distributions.${index}.other_expenses_label`) || 'Other'}
+                                                                                onChange={(e) => form.setValue(`distributions.${index}.other_expenses_label`, e.target.value || 'Other')}
+                                                                                className="bg-transparent border-b border-dashed border-slate-400 focus:outline-none focus:border-indigo-500 w-full text-[8px] uppercase font-black text-slate-700 tracking-wider"
+                                                                                placeholder="Other"
+                                                                            />
+                                                                        </FormLabel>
+                                                                        <Input type="number" {...f} className="bg-white border-slate-200 h-9 font-bold text-xs shadow-none"/>
+                                                                        <FormMessage className="text-[8px] uppercase text-red-500"/>
+                                                                    </FormItem>
                                                                 )}/>
                                                             </div>
                                                         </div>
