@@ -504,7 +504,11 @@ export default function BuyerInvoice({ sale, organization, onRefresh }: InvoiceT
 
                         {(Number(sale.other_expenses || 0) > 0) && (
                             <div className="flex justify-between items-center text-xs">
-                                <span className="font-bold text-slate-500 uppercase">Other Expenses</span>
+                                <span className="font-bold text-slate-500 uppercase">
+                                    {sale.user_remark 
+                                        ? sale.user_remark.split(', ').map((r: string) => r.split(':')[0]).join(' & ') 
+                                        : 'Other Expenses'}
+                                </span>
                                 <span className="font-bold text-slate-700">+ ₹{Number(sale.other_expenses).toLocaleString()}</span>
                             </div>
                         )}
