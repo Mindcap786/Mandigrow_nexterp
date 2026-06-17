@@ -10628,7 +10628,13 @@ def confirm_sale_transaction(**kwargs) -> dict:
         add_charges = sum(flt(c.get("amount")) for c in extra_charges_list)
         charge_remarks = ", ".join([f"{c.get('name') or 'Charge'}: {c.get('amount')}" for c in extra_charges_list if c.get('amount')])
         
+        # p_other_expenses_label is set when user renamed "Other" to something specific (e.g. "Fee")
+        other_label = str(payload.get("p_other_expenses_label") or payload.get("other_expenses_label") or "").strip()
         o_fee = flt(payload.get("other_expenses") or payload.get("p_other_expenses") or 0) + add_charges
+        if o_fee > 0 and other_label and other_label.lower() not in ("other", "other expenses", ""):
+            # Build a human-readable remark with the custom label
+            label_remark = f"{other_label}: {o_fee}"
+            charge_remarks = (charge_remarks + ", " + label_remark).strip(", ") if charge_remarks else label_remark
         disc = flt(payload.get("discount_amount") or payload.get("p_discount_amount") or 0)
         
         # Account for GST that may have been sent from POS frontend payload, to avoid it being treated as gap (Other Expenses)
