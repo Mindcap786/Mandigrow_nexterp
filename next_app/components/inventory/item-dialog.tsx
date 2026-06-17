@@ -245,11 +245,9 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
 
         if (primaryUrl) {
             try {
-                await callApi('frappe.client.set_value', {
-                    doctype: 'Item',
-                    name: itemId,
-                    fieldname: 'image',
-                    value: primaryUrl
+                await callApi('mandigrow.api.update_commodity_image', {
+                    item_code: itemId,
+                    image_url: primaryUrl
                 });
             } catch (err) {
                 console.error("[Upload] Failed to update commodity image:", err);
