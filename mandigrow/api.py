@@ -7350,6 +7350,7 @@ def get_sales_invoice_detail(sale_id: str = None) -> dict:
             "loading_charges": float(doc.loadingcharges or 0),
             "unloading_charges": float(doc.unloadingcharges or 0),
             "other_expenses": float(doc.otherexpenses or 0),
+            "user_remark": getattr(doc, 'user_remark', '') or "",
             "discount_amount": float(doc.discountamount or 0),
             "gst_total": float(doc.gsttotal or 0),
             "cgst_amount": float(getattr(doc, 'cgst_amount', 0) or 0),
