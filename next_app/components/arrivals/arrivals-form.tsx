@@ -233,7 +233,7 @@ export default function ArrivalsEntryForm() {
                 less_units: 0,
                 packing_cost: 0,
                 loading_cost: 0,
-                loading_label: "Hamali",
+                loading_label: "Loading",
                 farmer_charges: 0,
                 sale_price: 0,
                 barcode: ""
@@ -838,7 +838,7 @@ export default function ArrivalsEntryForm() {
                     less_units: 0,
                     packing_cost: 0,
                     loading_cost: 0,
-                    loading_label: "Hamali",
+                    loading_label: "Loading",
                     farmer_charges: 0
                 }]
             });
@@ -1275,7 +1275,7 @@ export default function ArrivalsEntryForm() {
                                         less_units: 0, 
                                         packing_cost: 0, 
                                         loading_cost: 0, 
-                                        loading_label: "Hamali",
+                                        loading_label: "Loading",
                                         farmer_charges: 0,
                                         sale_price: 0,
                                         barcode: "",
