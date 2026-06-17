@@ -7207,6 +7207,15 @@ def get_stock_summary(org_id: str = None) -> dict:
                     shelf_life = int(float(item_doc.get("shelf_life_in_days") or 7))
                     critical_age = int(float(item_doc.get("critical_age_days") or 14))
                     image_url = item_doc.get("image") or ""
+                    
+                    # Fetch tenant-specific override if it exists
+                    override_image = frappe.db.get_value(
+                        "Mandi Item Override",
+                        {"organization_id": org_id, "item_code": iid},
+                        "image_url"
+                    )
+                    if override_image:
+                        image_url = override_image
                 else:
                     item_name = iid
                     image_url = ""
@@ -18345,3 +18354,34 @@ def delete_item_image(file_id: str):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "delete_item_image error")
         return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist(allow_guest=False)
+def update_commodity_image(item_code: str, image_url: str):
+    """Creates or updates the Mandi Item Override for a tenant-specific image."""
+    if not item_code:
+        frappe.throw("item_code is required")
+        
+    org_id = _get_user_org()
+    if not org_id:
+        frappe.throw("User is not associated with any organization")
+        
+    # Check if override exists
+    override_name = frappe.db.get_value(
+        "Mandi Item Override",
+        {"organization_id": org_id, "item_code": item_code},
+        "name"
+    )
+    
+    if override_name:
+        frappe.db.set_value("Mandi Item Override", override_name, "image_url", image_url)
+    else:
+        doc = frappe.get_doc({
+            "doctype": "Mandi Item Override",
+            "organization_id": org_id,
+            "item_code": item_code,
+            "image_url": image_url
+        })
+        doc.insert(ignore_permissions=True)
+        
+    return {"status": "success", "image_url": image_url}
