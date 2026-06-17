@@ -244,18 +244,6 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             }
         }
 
-        if (primaryUrl) {
-            try {
-                await callApi('frappe.client.set_value', {
-                    doctype: 'Item',
-                    name: itemId,
-                    fieldname: 'image',
-                    value: primaryUrl
-                });
-            } catch (err) {
-                console.error("[Upload] Failed to set image on Item:", err);
-            }
-        }
     }
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('inventory')
