@@ -18300,14 +18300,14 @@ def get_item_images(item_id: str):
     
     # Verify access to the item (tenant isolation)
     try:
-        item = frappe.get_doc("Mandi Item", item_id)
+        item = frappe.get_doc("Item", item_id)
     except frappe.DoesNotExistError:
         return {"success": False, "error": "Item not found or you do not have permission"}
     except frappe.PermissionError:
         return {"success": False, "error": "Permission denied"}
         
     files = frappe.get_all("File", filters={
-        "attached_to_doctype": "Mandi Item",
+        "attached_to_doctype": "Item",
         "attached_to_name": item_id
     }, fields=["name as id", "file_url as url", "is_private", "creation"], order_by="creation asc")
     
@@ -18325,15 +18325,15 @@ def delete_item_image(file_id: str):
     
     try:
         file_doc = frappe.get_doc("File", file_id)
-        if file_doc.attached_to_doctype != "Mandi Item":
+        if file_doc.attached_to_doctype != "Item":
             return {"success": False, "error": "Invalid file association"}
             
         # Verify access to the item
-        item = frappe.get_doc("Mandi Item", file_doc.attached_to_name)
+        item = frappe.get_doc("Item", file_doc.attached_to_name)
         
         # If this was the primary image, clear it
         if item.image == file_doc.file_url:
-            frappe.db.set_value("Mandi Item", item.name, "image", None)
+            frappe.db.set_value("Item", item.name, "image", None)
             frappe.db.commit()
             
         file_doc.delete(ignore_permissions=True)
