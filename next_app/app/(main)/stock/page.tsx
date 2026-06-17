@@ -206,7 +206,7 @@ function AssetCard({ item, onOpen }: { item: any; onOpen: () => void }) {
             <div className="absolute inset-x-0 top-0 p-6 z-20 space-y-4" style={{ transform: "translateZ(20px)" }}>
                 <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0 pr-4">
-                        <h3 className="text-3xl font-[1000] text-black uppercase tracking-tight leading-[0.9] truncate">{getMainItemName(item.item_name)}</h3>
+                        <h3 className="text-2xl font-[1000] text-black uppercase tracking-tight leading-[1] truncate">{getMainItemName(item.item_name)}</h3>
                         <div className="flex flex-wrap gap-2 mt-3">
                             <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600">
                                 {item.arrival_type === 'commission' ? t('stock.farmer_comm') : item.arrival_type === 'commission_supplier' ? t('stock.supplier_comm') : (item.arrival_type === 'direct' ? 'DIRECT PURCHASE' : item.arrival_type)}
