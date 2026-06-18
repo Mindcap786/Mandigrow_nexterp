@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore } from "lucide-react"
+import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
+import { useGlobalFeature } from "@/hooks/use-global-feature"
+import { BulkImportDialog } from "@/components/contacts/bulk-import-dialog"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
@@ -40,6 +42,10 @@ export default function ContactsPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const [mounted, setMounted] = useState(false)
     const itemsPerPage = 20
+
+    const isGlobalImportEnabled = useGlobalFeature('bulk_import_contacts')
+    const isTenantImportEnabled = profile?.organization?.enable_bulk_import
+    const canImport = isGlobalImportEnabled || isTenantImportEnabled
 
     // Native ActionSheet state
     const [filterSheetOpen, setFilterSheetOpen] = useState(false)
@@ -461,6 +467,11 @@ export default function ContactsPage() {
                     <Button variant="outline" onClick={handleDownloadCSV} className="h-12 px-4 rounded-xl font-bold text-slate-600 border-slate-200 hover:bg-slate-100"><Download className="w-4 h-4 mr-2" /> Export</Button>
                     {(searchTerm || typeFilter !== 'all' || locationFilter !== 'all') && (
                         <Button variant="outline" onClick={bulkResetSequences} className="h-12 px-4 rounded-xl font-bold text-orange-600 border-orange-100 hover:bg-orange-50 bg-orange-50/30"><RotateCcw className="w-4 h-4 mr-2" /> Reset All Filtered</Button>
+                    )}
+                    {canImport && (
+                        <BulkImportDialog onSuccess={fetchContacts}>
+                            <Button variant="outline" className="h-12 px-4 rounded-xl font-bold text-slate-600 border-slate-200 hover:bg-slate-100 hidden sm:flex"><Upload className="w-4 h-4 mr-2" /> Import</Button>
+                        </BulkImportDialog>
                     )}
                     <ContactDialog onSuccess={fetchContacts}>
                         <Button className="bg-black text-white hover:bg-slate-800 font-black shadow-lg rounded-xl h-12 px-6"><Plus className="w-5 h-5 mr-2 hidden sm:block" /> ADD</Button>

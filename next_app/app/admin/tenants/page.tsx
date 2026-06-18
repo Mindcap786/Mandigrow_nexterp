@@ -12,7 +12,7 @@ import {
     Loader2, MoreHorizontal, Power, PowerOff, Trash2, Building2, Plus,
     Eye, Search, Filter, ShieldCheck, RefreshCw, ArrowUpRight,
     AlertTriangle, CheckCircle2, TrendingDown, ChevronRight, Users, Zap,
-    Key, Phone, Link as LinkIcon, FileDown, FileText
+    Key, Phone, Link as LinkIcon, FileDown, FileText, Upload
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -202,6 +202,25 @@ export default function TenantsPage() {
                 try {
                     await callApi('mandigrow.api.admin_billing_action', { action, organization_id: orgId });
                     toast({ title: 'Success', description: `Tenant ${action}ed.` });
+                    fetchTenants();
+                } catch (e: any) {
+                    toast({ title: 'Action Failed', description: e.message, variant: 'destructive' });
+                }
+            }
+        });
+        setConfirmActionOpen(true);
+    };
+
+    const toggleBulkImport = async (orgId: string, currentStatus: boolean) => {
+        setActionInfo({
+            title: `${currentStatus ? 'Disable' : 'Enable'} Bulk Import`,
+            description: `Are you sure you want to ${currentStatus ? 'disable' : 'enable'} bulk import for this tenant?`,
+            confirmText: currentStatus ? 'Disable' : 'Enable',
+            variant: currentStatus ? 'destructive' : 'default',
+            onConfirm: async () => {
+                try {
+                    await callApi('mandigrow.api.admin_billing_action', { action: 'toggle_bulk_import', organization_id: orgId });
+                    toast({ title: 'Success', description: `Bulk import ${currentStatus ? 'disabled' : 'enabled'}.` });
                     fetchTenants();
                 } catch (e: any) {
                     toast({ title: 'Action Failed', description: e.message, variant: 'destructive' });
@@ -969,6 +988,15 @@ export default function TenantsPage() {
                                                         ? <><PowerOff className="w-3.5 h-3.5" /> Suspend</>
                                                         : <><Power className="w-3.5 h-3.5" /> Activate</>
                                                     }
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className={cn("cursor-pointer flex gap-2 text-indigo-600 focus:text-indigo-700")}
+                                                    onSelect={(e) => {
+                                                        e.preventDefault();
+                                                        toggleBulkImport(tenant.id, tenant.enable_bulk_import);
+                                                    }}
+                                                >
+                                                    <Upload className="w-3.5 h-3.5" /> {tenant.enable_bulk_import ? 'Disable Bulk Import' : 'Enable Bulk Import'}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator className="bg-slate-200" />
                                                 <DropdownMenuItem
