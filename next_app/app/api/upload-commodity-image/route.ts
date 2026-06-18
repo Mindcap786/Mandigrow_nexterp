@@ -65,14 +65,14 @@ export async function POST(req: NextRequest) {
             const frappeBase = process.env.NEXT_PUBLIC_FRAPPE_URL || 'https://mandigrow.frappe.cloud';
             try {
                 const cookie = req.headers.get('cookie') || '';
-                await fetch(`${frappeBase}/api/method/mandigrow.api.set_item_image_url`, {
+                await fetch(`${frappeBase}/api/method/mandigrow.api.update_commodity_image`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Cookie': cookie,
                         'X-Frappe-Site-Name': 'mandigrow.com',
                     },
-                    body: JSON.stringify({ item_id: itemId, image_url: fileUrl }),
+                    body: JSON.stringify({ item_code: itemId, image_url: fileUrl }),
                 });
             } catch (frappeErr) {
                 console.error('[upload-commodity-image] Frappe update failed:', frappeErr);

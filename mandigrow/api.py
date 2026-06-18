@@ -7257,6 +7257,17 @@ def get_stock_summary(org_id: str = None) -> dict:
                     critical_age = int(float(item_doc.get("critical_age_days") or 14))
                     image_url = item_doc.get("image") or ""
                     
+                    try:
+                        override_image = frappe.db.get_value(
+                            "Mandi Item Override",
+                            {"organization_id": _get_user_org(), "item_code": iid},
+                            "image_url"
+                        )
+                        if override_image:
+                            image_url = override_image
+                    except Exception:
+                        pass
+                    
 
                 else:
                     item_name = iid
