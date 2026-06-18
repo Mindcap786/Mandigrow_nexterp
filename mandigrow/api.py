@@ -7175,6 +7175,12 @@ def get_stock_summary(org_id: str = None) -> dict:
         ):
             storage_loc_map[loc["name"]] = loc.get("location_name") or loc["name"]
 
+    item_overrides = {}
+    if org_id:
+        for over in frappe.get_all("Mandi Item Override", filters={"organization_id": org_id}, fields=["item_code", "image_url"], ignore_permissions=True):
+            if over.get("image_url"):
+                item_overrides[over["item_code"]] = over["image_url"]
+
     today_date = date.today()
 
     # Group by item
@@ -7255,7 +7261,7 @@ def get_stock_summary(org_id: str = None) -> dict:
                     sec_factor = flt(item_doc.get("custom_uom_conversion_factor") or 0)
                     shelf_life = int(float(item_doc.get("shelf_life_in_days") or 7))
                     critical_age = int(float(item_doc.get("critical_age_days") or 14))
-                    image_url = item_doc.get("image") or ""
+                    image_url = item_overrides.get(iid) or item_doc.get("image") or ""
                     
                     try:
                         if frappe.db.exists("DocType", "Mandi Item Override"):
