@@ -793,7 +793,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                     </div>
                                 </div>
 
-                                <div className="pt-6 space-y-4 border-t border-gray-100">
+                                <div className="hidden pt-6 space-y-4 border-t border-gray-100">
                                     <div className="flex justify-between items-center">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Product Gallery</Label>
                                         <span className="text-[9px] font-black text-slate-600">{existingImages.length + selectedImages.length} Images</span>
