@@ -480,7 +480,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 // Clear the cache manually before calling onSuccess so that fetchItems hits the network
                 if (typeof window !== 'undefined') {
                     if (profile?.organization_id) {
-                        cacheDelete('stock_summary', profile.organization_id);
+                        cacheDelete('stock_main', profile.organization_id);
                         cacheDelete('items_all', profile.organization_id);
                     }
                     // Keep fallback for v1 cache keys just in case other tabs are using them
