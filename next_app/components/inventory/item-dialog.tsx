@@ -575,19 +575,6 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                     <CommandList>
                                                         <CommandEmpty className="py-6 text-center text-sm text-gray-700">
                                                             <p>No item found.</p>
-                                                            {searchTerm && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    className="mt-2 text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50"
-                                                                    onMouseDown={(e) => { e.preventDefault(); }}
-                                                                    onClick={() => {
-                                                                        form.setValue("name", searchTerm)
-                                                                        setOpenCombobox(false)
-                                                                    }}
-                                                                >
-                                                                    + Create "{searchTerm}"
-                                                                </Button>
-                                                            )}
                                                         </CommandEmpty>
                                                         {displayedItems.length > 0 && (
                                                             <CommandGroup heading="Suggestions">
@@ -644,6 +631,25 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                         {item.local_name && <span className="ml-2 text-gray-500 text-xs font-medium">({item.local_name})</span>}
                                                                     </CommandItem>
                                                                 ))}
+                                                            </CommandGroup>
+                                                        )}
+                                                        {searchTerm && !displayedItems.some(i => i.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                                                            <CommandGroup heading="Create New">
+                                                                <CommandItem
+                                                                    value={searchTerm}
+                                                                    onSelect={() => {
+                                                                        form.setValue("name", searchTerm)
+                                                                        setOpenCombobox(false)
+                                                                    }}
+                                                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                    onClick={(e) => {
+                                                                        form.setValue("name", searchTerm)
+                                                                        setOpenCombobox(false)
+                                                                    }}
+                                                                    className="!pointer-events-auto text-blue-600 font-bold aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
+                                                                >
+                                                                    + Create "{searchTerm}"
+                                                                </CommandItem>
                                                             </CommandGroup>
                                                         )}
                                                     </CommandList>
