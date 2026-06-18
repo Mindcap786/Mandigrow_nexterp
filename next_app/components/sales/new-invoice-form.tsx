@@ -50,6 +50,7 @@ const distributionSchema = z.object({
     loading_charges: z.coerce.number({ message: "Invalid number" }).min(0).default(0),
     unloading_charges: z.coerce.number({ message: "Invalid number" }).min(0).default(0),
     other_expenses: z.coerce.number({ message: "Invalid number" }).min(0).default(0),
+    other_expenses_label: z.string().optional(),
     discount_percent: z.coerce.number().min(0).max(100).optional(),
     discount_amount: z.coerce.number().min(0).optional(),
     vehicle_number: z.string().optional(),
