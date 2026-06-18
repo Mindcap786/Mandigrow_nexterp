@@ -43,7 +43,7 @@ export default function ContactsPage() {
     const [mounted, setMounted] = useState(false)
     const itemsPerPage = 20
 
-    const isGlobalImportEnabled = useGlobalFeature('bulk_import_contacts')
+    const { enabled: isGlobalImportEnabled } = useGlobalFeature('bulk_import_contacts')
     const isTenantImportEnabled = profile?.organization?.enable_bulk_import
     const canImport = isGlobalImportEnabled || isTenantImportEnabled
 
