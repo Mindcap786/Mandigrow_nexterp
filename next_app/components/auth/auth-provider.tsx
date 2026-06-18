@@ -33,6 +33,7 @@ interface Profile {
         status: 'trial' | 'active' | 'grace_period' | 'suspended' | 'expired'
         trial_ends_at: string | null
         is_active?: boolean
+        enable_bulk_import?: boolean
         enabled_modules?: string[]
         brand_color?: string
         brand_color_secondary?: string
