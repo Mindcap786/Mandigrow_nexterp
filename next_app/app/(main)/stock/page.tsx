@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
-import { callApi } from "@/lib/frappeClient";
+import { callApi, getFileUrl } from "@/lib/frappeClient";
 import { useLanguage } from "@/components/i18n/language-provider"
 import {
     Loader2, Search, ArrowUpRight, Package,
@@ -27,6 +27,8 @@ import { getMainItemName } from "@/lib/utils/commodity-utils"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
+import { NativePageLayout } from "@/components/mobile/NativePageLayout"
+import { NativeSelect } from "@/components/mobile/NativeSelect"
 import { SegmentedControl } from "@/components/mobile/SegmentedControl"
 import { BottomSheet } from "@/components/mobile/BottomSheet"
 import { SkeletonStockGrid } from "@/components/mobile/ShimmerSkeleton"
@@ -54,7 +56,7 @@ function NativeStockCard({ item, onOpen }: { item: any; onOpen: () => void }) {
     const percentage = capacity > 0 ? Math.min((currentQty / capacity) * 100, 100) : 0
     const colors = getStockColor(percentage)
     const visual = getVisual(item.item_name)
-    const finalVisual = item.image_url ? { type: 'img' as const, src: item.image_url } : visual
+    const finalVisual = item.image_url ? { type: 'img' as const, src: getFileUrl(item.image_url) } : visual
     const activeVisual = (finalVisual.type === 'img' && !imgError) ? finalVisual : { type: 'icon' as const, icon: (finalVisual as any).icon || Package }
 
     return (
@@ -135,7 +137,7 @@ function NativeStockListRow({ item, onOpen }: { item: any; onOpen: () => void })
     const percentage = capacity > 0 ? Math.min((currentQty / capacity) * 100, 100) : 0
     const colors = getStockColor(percentage)
     const visual = getVisual(item.item_name)
-    const finalVisual = item.image_url ? { type: 'img' as const, src: item.image_url } : visual
+    const finalVisual = item.image_url ? { type: 'img' as const, src: getFileUrl(item.image_url) } : visual
     const activeVisual = (finalVisual.type === 'img' && !imgError) ? finalVisual : { type: 'icon' as const, icon: (finalVisual as any).icon || Package }
 
     return (
@@ -192,7 +194,7 @@ function AssetCard({ item, onOpen }: { item: any; onOpen: () => void }) {
     const percentage = capacity > 0 ? Math.min((currentQty / capacity) * 100, 100) : 0
     const colors = getStockColor(percentage)
     const visual = getVisual(item.item_name)
-    const finalVisual = item.image_url ? { type: 'img' as const, src: item.image_url } : visual
+    const finalVisual = item.image_url ? { type: 'img' as const, src: getFileUrl(item.image_url) } : visual
     const activeVisual = (finalVisual.type === 'img' && !imgError) ? finalVisual : { type: 'icon' as const, icon: (finalVisual as any).icon || Package }
 
     return (
