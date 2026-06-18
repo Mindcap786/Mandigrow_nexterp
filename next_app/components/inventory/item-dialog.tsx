@@ -841,22 +841,31 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                 <div className="absolute inset-0 flex items-center justify-center">
                                                     <div className="bg-blue-600/80 text-white text-[8px] px-1.5 font-black uppercase rounded-full">New</div>
                                                 </div>
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 flex items-center justify-center transition-opacity">
-                                                    {/* Temporarily disabled removal of preview images to keep the UI simple while disabled */}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedImages(prev => prev.filter((_, i) => i !== idx));
+                                                            setPreviewUrls(prev => prev.filter((_, i) => i !== idx));
+                                                        }}
+                                                        className="p-1.5 bg-white rounded-full text-red-600 hover:scale-110 transition-transform"
+                                                    >
+                                                        <LucideIcons.X className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
 
                                         <button
                                             type="button"
-                                            disabled
-                                            className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed group"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-blue-400 hover:bg-blue-50 transition-all group"
                                         >
-                                            <LucideIcons.Upload className="w-5 h-5 text-slate-300" />
-                                            <span className="text-[8px] font-black text-slate-600 uppercase">Add</span>
+                                            <LucideIcons.Upload className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
+                                            <span className="text-[8px] font-black text-slate-600 group-hover:text-blue-600 uppercase">Add</span>
                                         </button>
                                     </div>
-                                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" multiple className="hidden" disabled />
+                                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" multiple className="hidden" />
                                 </div>
                             </TabsContent>
 

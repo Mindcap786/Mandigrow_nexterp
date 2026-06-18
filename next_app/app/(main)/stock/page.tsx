@@ -335,6 +335,7 @@ export default function StockPage() {
                 (item.lots || []).map((lot: any) => ({
                     item_id: item.item_id,
                     item_name: item.item_name,
+                    image_url: item.image_url || '',
                     custom_secondary_uom: item.custom_secondary_uom,
                     custom_uom_conversion_factor: item.custom_uom_conversion_factor,
                     shelf_life_days: item.shelf_life_days,
@@ -354,6 +355,7 @@ export default function StockPage() {
                     aging_stock: 0,
                 }))
             ).filter((s: any) => Number(s.current_stock) > 0);
+
 
             setStocks(processedData);
             cacheSet('stock_main', orgId, processedData);
