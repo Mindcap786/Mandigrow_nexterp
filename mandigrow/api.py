@@ -18464,6 +18464,42 @@ def update_commodity_image(item_code: str, image_url: str):
         
     return {"status": "success", "image_url": image_url}
 
+
+@frappe.whitelist(allow_guest=False)
+def set_item_image_url(item_id: str, image_url: str):
+    """
+    Called by the Next.js /api/upload-commodity-image route after successfully
+    uploading an image to Cloudflare R2.
+    
+    Saves the public CDN URL directly into Item.image and clears Frappe's
+    Redis document cache so get_stock_summary() picks up the new image
+    on the very next request — no boto3, no site_config.json needed.
+    """
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+    
+    if not item_id:
+        frappe.throw("item_id is required")
+    if not image_url:
+        frappe.throw("image_url is required")
+
+    # Tenant isolation: verify the item belongs to the calling user's org
+    org_id = _get_user_org()
+    item_org = frappe.db.get_value("Item", item_id, "organization_id")
+    if item_org and item_org != org_id:
+        frappe.throw("Not authorized to modify this item", frappe.PermissionError)
+
+    # Save URL to Item.image — update_modified=True ensures Redis cache is cleared
+    frappe.db.set_value("Item", item_id, "image", image_url, update_modified=True)
+    
+    # Explicitly bust Frappe's in-process document cache so the next call
+    # to frappe.get_cached_doc("Item", item_id) fetches from the database
+    frappe.clear_cache(doctype="Item")
+    frappe.db.commit()
+
+    return {"success": True, "item_id": item_id, "image_url": image_url}
+
+
 @frappe.whitelist()
 def upload_commodity_image():
     from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription

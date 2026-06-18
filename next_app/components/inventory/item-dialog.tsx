@@ -218,34 +218,46 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
         }
     }
 
+
     async function uploadImages(itemId: string): Promise<void> {
         if (selectedImages.length === 0) return;
-
-        let primaryUrl: string | null = null;
 
         for (let i = 0; i < selectedImages.length; i++) {
             const file = selectedImages[i];
             try {
-                const uploadRes = await uploadFile(file, {
-                    method: 'mandigrow.api.upload_commodity_image',
-                    is_private: 0, // Make public so Next.js <Image> server can fetch it without Frappe cookies (403 fix)
-                    doctype: "Item",
-                    docname: itemId
+                // Upload directly to Cloudflare R2 via the Next.js API route.
+                // This completely bypasses Frappe Cloud's site_config.json /
+                // boto3 requirements — credentials live in Vercel env vars.
+                const formData = new FormData();
+                formData.append('file', file, file.name);
+                formData.append('item_id', itemId);
+
+                const res = await fetch('/api/upload-commodity-image', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include',
                 });
-                
-                const fileUrl = uploadRes.file_url;
-                if (!primaryUrl) primaryUrl = fileUrl;
+
+                const json = await res.json();
+                if (!res.ok || !json.success) {
+                    throw new Error(json.error || 'Upload failed');
+                }
+
+                // json.file_url is already the public R2 URL.
+                // The route also calls mandigrow.api.set_item_image_url
+                // server-side to persist it to Item.image on Frappe.
+                console.log('[uploadImages] Uploaded to R2:', json.file_url);
             } catch (err) {
-                console.error("Item Image Upload Error:", err);
+                console.error('Item Image Upload Error:', err);
                 toast({
-                    title: "Image Upload Failed",
+                    title: 'Image Upload Failed',
                     description: `Could not upload ${file.name}. Please try again.`,
-                    variant: "destructive"
+                    variant: 'destructive',
                 });
             }
         }
-
     }
+
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('inventory')
 
