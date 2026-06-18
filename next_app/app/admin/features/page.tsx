@@ -99,12 +99,10 @@ export default function FeatureFlagsPage() {
                     <Button onClick={fetchFlags} variant="outline" size="sm" className="rounded-xl">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    {flags.length === 0 && !loading && (
-                        <Button onClick={seedFlags} disabled={seeding} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl">
-                            {seeding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Database className="w-4 h-4 mr-2" />}
-                            Seed Default Flags
-                        </Button>
-                    )}
+                    <Button onClick={seedFlags} disabled={seeding} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl">
+                        {seeding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Database className="w-4 h-4 mr-2" />}
+                        Seed Default Flags
+                    </Button>
                 </div>
             </div>
 
