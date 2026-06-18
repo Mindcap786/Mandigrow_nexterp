@@ -18746,20 +18746,3 @@ def get_sales_audit_data(date_from: str = None, date_to: str = None) -> dict:
         "date_to":       date_to,
         "total_revenue": round(total_revenue, 2),
     }
-
-@frappe.whitelist()
-def get_r2_credentials():
-    """
-    Returns the Cloudflare R2 credentials from site_config.json.
-    Only accessible to System Managers or within server-to-server calls.
-    """
-    if "System Manager" not in frappe.get_roles(frappe.session.user):
-        frappe.throw("Not permitted", frappe.PermissionError)
-        
-    return {
-        "endpoint": frappe.conf.get("r2_endpoint"),
-        "access_key_id": frappe.conf.get("r2_access_key"),
-        "secret_access_key": frappe.conf.get("r2_secret_key"),
-        "bucket": frappe.conf.get("r2_bucket"),
-        "public_url": frappe.conf.get("r2_public_url")
-    }
