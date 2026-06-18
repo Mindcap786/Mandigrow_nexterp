@@ -7104,7 +7104,7 @@ def get_stock_summary(org_id: str = None) -> dict:
     """
     from datetime import datetime, date
 
-    org_id = _get_user_org()
+    org_id = org_id or _get_user_org()
     
     # Filter lots by checking parent Mandi Arrival's organization_id
     valid_arrivals = frappe.get_all("Mandi Arrival", filters={**_org_filter("Mandi Arrival", org_id)}, pluck="name")
@@ -7261,7 +7261,7 @@ def get_stock_summary(org_id: str = None) -> dict:
                         if frappe.db.exists("DocType", "Mandi Item Override"):
                             override_image = frappe.db.get_value(
                                 "Mandi Item Override",
-                                {"organization_id": _get_user_org(), "item_code": iid},
+                                {"organization_id": org_id, "item_code": iid},
                                 "image_url"
                             )
                             if override_image:
