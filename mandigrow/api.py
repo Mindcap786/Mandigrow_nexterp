@@ -12957,6 +12957,15 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
         current_val = frappe.db.get_value("Mandi Organization", organization_id, "enable_bulk_import")
         new_val = 1 if not current_val else 0
         frappe.db.set_value("Mandi Organization", organization_id, "enable_bulk_import", new_val)
+        log_subscription_event(
+            org_id=organization_id,
+            action="custom_plan",
+            old_value=str(current_val),
+            new_value=str(new_val),
+            notes=f"Bulk Import {'enabled' if new_val else 'disabled'} by {frappe.session.user}"
+        )
+        frappe.db.commit()
+        return {"success": True}
     elif action == "custom-plan":
         # Custom plan assignment — payload contains plan overrides
         payload = payload or {}
