@@ -18486,7 +18486,47 @@ def upload_commodity_image():
     # We explicitly bypass permissions to allow standard users to upload images for Item
     from frappe.utils import cint
     
-    doc = frappe.get_doc({
+    r2_access_key = frappe.conf.get("r2_access_key")
+    r2_secret_key = frappe.conf.get("r2_secret_key")
+    r2_endpoint = frappe.conf.get("r2_endpoint")
+    r2_bucket = frappe.conf.get("r2_bucket")
+    r2_public_url = frappe.conf.get("r2_public_url")
+    
+    file_url = None
+    
+    if r2_access_key and r2_secret_key and r2_endpoint and r2_bucket:
+        try:
+            import boto3
+            from botocore.config import Config
+            
+            s3 = boto3.client(
+                "s3",
+                endpoint_url=r2_endpoint,
+                aws_access_key_id=r2_access_key,
+                aws_secret_access_key=r2_secret_key,
+                config=Config(signature_version="s3v4"),
+            )
+            
+            unique_filename = f"{frappe.generate_hash()}-{filename}"
+            mimetype = file.content_type
+            
+            s3.put_object(
+                Bucket=r2_bucket,
+                Key=unique_filename,
+                Body=content,
+                ContentType=mimetype
+            )
+            
+            if r2_public_url:
+                file_url = f"{r2_public_url.rstrip('/')}/{unique_filename}"
+            else:
+                file_url = f"{r2_endpoint}/{r2_bucket}/{unique_filename}"
+        except Exception as e:
+            frappe.log_error(title="R2 Upload Failed", message=str(e))
+            # Fallback to local storage if R2 upload fails
+            pass
+    
+    file_doc_args = {
         "doctype": "File",
         "attached_to_doctype": doctype,
         "attached_to_name": docname,
@@ -18494,8 +18534,14 @@ def upload_commodity_image():
         "folder": folder,
         "file_name": filename,
         "is_private": cint(is_private),
-        "content": content,
-    })
+    }
+    
+    if file_url:
+        file_doc_args["file_url"] = file_url
+    else:
+        file_doc_args["content"] = content
+        
+    doc = frappe.get_doc(file_doc_args)
     
     # Save the file while ignoring permissions
     doc.save(ignore_permissions=True)
