@@ -335,3 +335,14 @@ export async function uploadFile(
 }
 
 export const frappe = { callApi, callApiGet, login, logout, db, uploadFile };
+
+/**
+ * Ensures a file URL is absolute. Resolves relative Frappe paths (e.g. /files/image.jpg) 
+ * to absolute URLs, which is required for native Capacitor builds where relative URLs fail.
+ */
+export function getFileUrl(path: string | undefined | null): string {
+    if (!path) return '';
+    if (path.startsWith('http')) return path; // Already absolute (e.g. R2)
+    return `${FRAPPE_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
