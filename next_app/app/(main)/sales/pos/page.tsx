@@ -1068,7 +1068,7 @@ export default function POSPage() {
                     
                     <div className="flex flex-col gap-1.5 z-[210]">
                         <SearchableSelect
-                            options={buyers.map(b => ({ label: `${b.name} (${b.city || 'N/A'})`, value: b.id }))}
+                            options={buyers.map(b => ({ label: `${b.name}${b.internal_id ? ` [${b.internal_id}]` : ""}${b.city ? ` (${b.city})` : ""}`, value: b.id }))}
                             value={selectedBuyerId}
                             onChange={setSelectedBuyerId}
                             placeholder={(paymentMode === 'Credit' || paymentMode === 'Cheque') ? "Select Buyer (Required)" : "Select Buyer (Optional)"}

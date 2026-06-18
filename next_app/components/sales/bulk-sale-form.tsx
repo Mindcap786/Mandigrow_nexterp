@@ -198,7 +198,7 @@ export function BulkLotSaleForm() {
                 .eq("contact_type", "buyer")
                 .or("status.is.null,status.eq.active")
                 .order("name");
-            if (bData) setBuyers(bData.map(b => ({ ...b, label: `${b.name} (${b.city || "-"})`, value: b.id })));
+            if (bData) setBuyers(bData.map(b => ({ ...b, label: `${b.name}${b.internal_id ? ` [${b.internal_id}]` : ""}${b.city ? ` (${b.city})` : ""}`, value: b.id })));
 
             // Fetch Commodities - EXPLICIT MANDI SCHEMA
             const { data: cData } = await supabase

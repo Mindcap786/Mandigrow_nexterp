@@ -585,7 +585,7 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                         <FormItem className="space-y-0">
                                                             <div className="flex gap-2">
                                                                 <SearchableSelect 
-                                                                    options={buyers.map(b => ({ label: `${b.name} (${b.city})`, value: b.id }))} 
+                                                                    options={buyers.map(b => ({ label: `${b.name}${b.internal_id ? ` [${b.internal_id}]` : ""}${b.city ? ` (${b.city})` : ""}`, value: b.id }))} 
                                                                     value={f.value} 
                                                                     onChange={f.onChange} 
                                                                     placeholder="Select Buyer..." 

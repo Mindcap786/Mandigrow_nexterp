@@ -60,7 +60,7 @@ import { ItemDialog } from "@/components/inventory/item-dialog";
 import { cacheGet, cacheSet, cacheIsStale, cacheClearPrefix } from "@/lib/data-cache";
 import { useArrivalsMasterData } from "@/hooks/mandi/useArrivalsMasterData";
 import { useArrivals } from "@/hooks/mandi/useArrivals";
-import { usePrintLayoutGovernance } from "@/hooks/usePrintLayoutGovernance";
+
 import { UnitCombobox } from "@/components/ui/unit-combobox";
 import { useFieldGovernance } from "@/hooks/useFieldGovernance";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
@@ -74,6 +74,7 @@ const itemSchema = z.object({
     commission_percent: z.coerce.number().min(0).default(0),
     less_percent: z.coerce.number().min(0).default(0),
     less_units: z.coerce.number().min(0).default(0),
+    packing_cost: z.coerce.number().min(0).default(0),
     loading_cost: z.coerce.number().min(0).default(0),
     loading_label: z.string().optional(),
     farmer_charges: z.coerce.number().min(0).default(0),
@@ -894,7 +895,7 @@ export default function ArrivalsEntryForm() {
                                                         <div className="flex-1">
                                                             <SearchableSelect
                                                                 options={(contacts || []).map(c => ({
-                                                                    label: `${c?.name || 'Unnamed'} (${c?.city || 'No City'})`,
+                                                                    label: `${c?.name || 'Unnamed'}${c?.internal_id ? ` [${c.internal_id}]` : ""} (${c?.city || 'No City'})`,
                                                                     value: c?.id
                                                                 }))}
                                                                 value={field.value}

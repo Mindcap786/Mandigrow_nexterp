@@ -34,7 +34,6 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { Skeleton } from "@/components/ui/skeleton";
 import { UnitCombobox } from "@/components/ui/unit-combobox";
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -628,7 +627,7 @@ export function QuickPurchaseForm() {
                                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Supplier / Farmer</FormLabel>
                                     <SearchableSelect
                                         options={masterContacts.map(c => ({
-                                            label: `${c.name}${c.type === 'staff' ? ' (Staff)' : ''} - ${c.city || ''}`,
+                                            label: `${c.name}${c.internal_id ? ` [${c.internal_id}]` : ""}${c.type === 'staff' ? ' (Staff)' : ''} - ${c.city || 'No City'}`,
                                             value: c.id
                                         }))}
                                         value={field.value}

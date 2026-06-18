@@ -800,7 +800,7 @@ function NewSaleForm() {
                                                     <div className="flex-1">
                                                         <SearchableSelect
                                                             options={(buyers || []).map(b => ({ 
-                                                                label: `${b?.name || 'Unknown'}${b?.type === 'staff' ? ' (Staff)' : ''} (${b?.city || '-'})`, 
+                                                                label: `${b?.name || 'Unknown'}${b?.internal_id ? ` [${b.internal_id}]` : ""}${b?.type === 'staff' ? ' (Staff)' : ''} (${b?.city || '-'})`, 
                                                                 value: b?.id || '' 
                                                             }))}
                                                             value={field.value}

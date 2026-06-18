@@ -31,8 +31,7 @@ import { format, subDays } from "date-fns"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
-import { NativePageLayout } from "@/components/mobile/NativePageLayout"
-import { NativeSelect } from "@/components/mobile/NativeSelect"
+
 import { SegmentedControl } from "@/components/mobile/SegmentedControl"
 import { BottomSheet } from "@/components/mobile/BottomSheet"
 import { SkeletonStockGrid } from "@/components/mobile/ShimmerSkeleton"
