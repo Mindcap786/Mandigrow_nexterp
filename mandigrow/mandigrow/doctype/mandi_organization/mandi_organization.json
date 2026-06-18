@@ -27,6 +27,7 @@
   "subscription_end_date",
   "grace_period_ends_at",
   "limits_section",
+  "enable_bulk_import",
   "grace_period_days",
   "max_users_override",
   "branding_section",
@@ -162,6 +163,13 @@
    "fieldname": "limits_section",
    "fieldtype": "Section Break",
    "label": "Limits & Overrides"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_bulk_import",
+   "fieldtype": "Check",
+   "label": "Enable Bulk Import",
+   "description": "Per-tenant override. If checked, allows this organization to access the bulk contact import feature."
   },
   {
    "default": "7",

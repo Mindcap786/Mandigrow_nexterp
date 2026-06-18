@@ -4688,6 +4688,53 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
     return {"name": doc.name, "full_name": doc.full_name}
 
 @frappe.whitelist(allow_guest=False)
+def bulk_create_contacts(contacts) -> dict:
+    """Bulk imports contacts from a parsed Excel/CSV JSON array"""
+    import json
+    from frappe.utils import flt
+    if isinstance(contacts, str):
+        contacts = json.loads(contacts)
+        
+    success = 0
+    errors = []
+    
+    for idx, c in enumerate(contacts):
+        try:
+            # Reusing the exact create_contact logic
+            create_contact(
+                full_name=c.get("full_name"),
+                contact_type=c.get("contact_type"),
+                phone=c.get("phone"),
+                city=c.get("city"),
+                address=c.get("address"),
+                internal_id=c.get("internal_id"),
+                opening_balance=flt(c.get("opening_balance", 0)),
+                balance_type=c.get("balance_type", "receivable"),
+                gstin=c.get("gstin"),
+                pan_number=c.get("pan_number"),
+                state=c.get("state"),
+                pincode=c.get("pincode"),
+                billing_address_line1=c.get("billing_address_line1"),
+                billing_address_line2=c.get("billing_address_line2"),
+            )
+            success += 1
+            frappe.db.commit() # Commit each successful record to avoid batch failure on single bad row
+        except Exception as e:
+            frappe.db.rollback()
+            # Extract just the message, Frappe throws can be dicts or strings
+            err_msg = str(e)
+            if hasattr(e, 'message'): err_msg = str(e.message)
+            elif isinstance(frappe.message_log, list) and frappe.message_log:
+                try: err_msg = json.loads(frappe.message_log[-1]).get('message', str(e))
+                except: pass
+            errors.append({"row": idx + 1, "name": c.get("full_name", "Unknown"), "error": err_msg})
+            # Clear frappe message log so it doesn't bleed into UI
+            frappe.message_log = []
+            
+    return {"success_count": success, "errors": errors}
+
+
+@frappe.whitelist(allow_guest=False)
 def get_gate_entries(date_from: str = None, date_to: str = None) -> list:
     """
     Returns list of gate entries for the current org.
@@ -9690,6 +9737,7 @@ def _get_org_info(org_id: str) -> dict:
             "address_line1": address_val,
             "address_line2": city_val,
             "pincode": org.get("pincode") or "",
+            "enable_bulk_import": bool(org.get("enable_bulk_import", False)),
             "slug": org.get("slug") or "",
             "pan_number": org.get("pan_number") or "",
             "email": org.get("email") or "",
@@ -12300,6 +12348,7 @@ def get_admin_tenants() -> list:
             "name": org.organization_name,
             "subscription_tier": sub_state.get("plan") or org.subscription_tier or 'basic',
             "is_active": sub_state.get("is_active", False),
+            "enable_bulk_import": bool(org.get("enable_bulk_import")),
             "status": sub_state.get("status") or org.status or 'trial',
             "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
             "current_period_end": str(current_period_end)[:10] if current_period_end else None,
@@ -12903,6 +12952,11 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
             "is_active": 0,
             "last_status_change": now_datetime(),
         })
+    elif action == "toggle_bulk_import":
+        # Toggle bulk import feature specifically for the tenant
+        current_val = frappe.db.get_value("Mandi Organization", organization_id, "enable_bulk_import")
+        new_val = 1 if not current_val else 0
+        frappe.db.set_value("Mandi Organization", organization_id, "enable_bulk_import", new_val)
     elif action == "custom-plan":
         # Custom plan assignment — payload contains plan overrides
         payload = payload or {}
@@ -12933,7 +12987,7 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
     if action != "custom-plan":
         log_subscription_event(
             org_id=organization_id,
-            action="suspend" if action == "suspend" else ("reactivate" if action == "reactivate" else "archive"),
+            action=action,
             old_value=old_status,
             new_value=action,
             notes=f"Admin action by {frappe.session.user}"
