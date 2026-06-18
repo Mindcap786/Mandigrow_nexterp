@@ -7258,13 +7258,14 @@ def get_stock_summary(org_id: str = None) -> dict:
                     image_url = item_doc.get("image") or ""
                     
                     try:
-                        override_image = frappe.db.get_value(
-                            "Mandi Item Override",
-                            {"organization_id": _get_user_org(), "item_code": iid},
-                            "image_url"
-                        )
-                        if override_image:
-                            image_url = override_image
+                        if frappe.db.exists("DocType", "Mandi Item Override"):
+                            override_image = frappe.db.get_value(
+                                "Mandi Item Override",
+                                {"organization_id": _get_user_org(), "item_code": iid},
+                                "image_url"
+                            )
+                            if override_image:
+                                image_url = override_image
                     except Exception:
                         pass
                     
@@ -18455,6 +18456,9 @@ def update_commodity_image(item_code: str, image_url: str):
     if not org_id:
         frappe.throw("User is not associated with any organization")
         
+    if not frappe.db.exists("DocType", "Mandi Item Override"):
+        frappe.throw("Tenant image overrides require a database update. Please trigger an Update in Frappe Cloud.")
+
     # Check if override exists
     override_name = frappe.db.get_value(
         "Mandi Item Override",
