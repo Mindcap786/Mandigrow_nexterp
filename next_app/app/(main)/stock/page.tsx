@@ -10,6 +10,7 @@ import {
     LayoutGrid, LayoutList, StretchHorizontal,
     AlertTriangle, Clock, Grape, Banana, Cherry,
     Citrus, Apple as AppleIcon, Leaf, Carrot, Sprout, Plus, Apple,
+    TrendingDown, Calendar as CalendarIcon, ChevronDown,
 } from "lucide-react"
 import Link from "next/link"
 import { getIntelligentVisual } from "@/lib/utils/commodity-mapping"
@@ -17,6 +18,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { LotStockDialog } from "@/components/inventory/lot-stock-dialog"
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion"
 import { cacheGet, cacheSet, cacheIsStale } from "@/lib/data-cache"
@@ -24,6 +27,7 @@ import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
 import { cn } from "@/lib/utils"
 import { getMainItemName } from "@/lib/utils/commodity-utils"
+import { format, subDays } from "date-fns"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
@@ -289,6 +293,12 @@ export default function StockPage() {
     const [selectedFruit, setSelectedFruit] = useState("all")
     const [viewMode, setViewMode] = useState<'gallery' | 'compact' | 'list'>('gallery')
     const [auditPrinting, setAuditPrinting] = useState(false)
+    const [salesAuditPrinting, setSalesAuditPrinting] = useState(false)
+    const [salesAuditDateRange, setSalesAuditDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+        from: new Date(),
+        to: new Date(),
+    })
+    const [salesAuditPopoverOpen, setSalesAuditPopoverOpen] = useState(false)
     const isFetching = useRef(false)
 
     useEffect(() => {
@@ -390,6 +400,38 @@ export default function StockPage() {
         }
     };
 
+    const handleSalesAuditPrint = async () => {
+        if (salesAuditPrinting) return;
+        try {
+            setSalesAuditPrinting(true);
+            const dateFrom = salesAuditDateRange.from ? format(salesAuditDateRange.from, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+            const dateTo   = salesAuditDateRange.to   ? format(salesAuditDateRange.to,   'yyyy-MM-dd') : dateFrom;
+
+            const data: any = await callApi('mandigrow.api.get_sales_audit_data', {
+                date_from: dateFrom,
+                date_to:   dateTo,
+            });
+
+            if (!data?.items?.length) {
+                alert(`No sales found between ${dateFrom} and ${dateTo}. Try selecting a wider date range.`);
+                return;
+            }
+
+            const { generateSalesAuditPDF } = await import('@/lib/generate-sales-pdf');
+            const { downloadBlob } = await import('@/lib/capacitor-share');
+            const orgName = profile?.organization?.name || 'Mandi Organisation';
+            const branding = profile?.organization;
+            const blob = await generateSalesAuditPDF(data.items, orgName, dateFrom, dateTo, branding);
+            const filename = `SalesAudit_${orgName}_${dateFrom}_to_${dateTo}.pdf`;
+            await downloadBlob(blob, filename);
+        } catch (err: any) {
+            console.error('[SalesAuditPrint] failed:', err);
+            alert(`Failed to generate sales report: ${err?.message || err}`);
+        } finally {
+            setSalesAuditPrinting(false);
+        }
+    };
+
     // Realtime neutralized for Frappe
     useEffect(() => {
         return () => {};
@@ -484,10 +526,44 @@ export default function StockPage() {
                         <button
                             onClick={handleAuditPrint}
                             disabled={auditPrinting}
+                            title="Stock Audit Print"
                             className="w-11 h-11 rounded-xl bg-[#1A1A2E] flex items-center justify-center active:scale-95 transition-transform"
                         >
                             {auditPrinting ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Printer className="w-4 h-4 text-white" />}
                         </button>
+                        {/* Sales Audit Print — mobile */}
+                        <Popover open={salesAuditPopoverOpen} onOpenChange={setSalesAuditPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    title="Sales Audit Print"
+                                    className="w-11 h-11 rounded-xl bg-[#0C831F] flex items-center justify-center active:scale-95 transition-transform"
+                                >
+                                    <TrendingDown className="w-4 h-4 text-white" />
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 p-4 bg-white border-slate-200 shadow-2xl rounded-2xl" align="end">
+                                <div className="space-y-3">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-700">Sales Audit Report</p>
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={salesAuditDateRange?.from}
+                                        selected={salesAuditDateRange as any}
+                                        onSelect={(range: any) => setSalesAuditDateRange(range || { from: new Date(), to: new Date() })}
+                                        numberOfMonths={1}
+                                        className="p-2 text-xs"
+                                    />
+                                    <button
+                                        onClick={() => { setSalesAuditPopoverOpen(false); handleSalesAuditPrint(); }}
+                                        disabled={salesAuditPrinting}
+                                        className="w-full h-10 bg-[#0C831F] text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-60"
+                                    >
+                                        {salesAuditPrinting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                                        {salesAuditPrinting ? 'Generating…' : 'Download Report'}
+                                    </button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                         <button
                             onClick={() => fetchData(true)}
                             className="w-11 h-11 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center active:scale-95 transition-transform"
@@ -616,10 +692,70 @@ export default function StockPage() {
                         </div>
                         <div className="flex gap-2">
                             <Button onClick={() => fetchData(true)} className="h-11 w-11 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-black hover:border-slate-300 transition-all shadow-sm"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></Button>
+                            {/* Stock Audit Print */}
                             <Button onClick={handleAuditPrint} disabled={auditPrinting} className="h-11 px-5 rounded-xl bg-black text-white hover:bg-slate-800 font-black uppercase tracking-widest text-[10px] shadow-lg">
                                 {auditPrinting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
                                 {auditPrinting ? 'Generating...' : t('stock.audit_print')}
                             </Button>
+                            {/* Sales Audit Print — with date range picker */}
+                            <Popover open={salesAuditPopoverOpen} onOpenChange={setSalesAuditPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button className="h-11 px-5 rounded-xl bg-[#0C831F] text-white hover:bg-[#0A6C1A] font-black uppercase tracking-widest text-[10px] shadow-lg flex items-center gap-2">
+                                        {salesAuditPrinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingDown className="w-4 h-4" />}
+                                        {salesAuditPrinting ? 'Generating…' : 'Sales Audit'}
+                                        {!salesAuditPrinting && <ChevronDown className="w-3 h-3 opacity-70" />}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80 p-4 bg-white border-slate-200 shadow-2xl rounded-2xl" align="end">
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase tracking-widest text-slate-700 mb-0.5">Sales Audit Report</p>
+                                            <p className="text-[10px] text-slate-400">Select date range to see commodity-wise sales</p>
+                                        </div>
+                                        {/* Quick presets */}
+                                        <div className="flex gap-1.5 flex-wrap">
+                                            {[
+                                                { label: 'Today', days: 0 },
+                                                { label: '7 Days', days: 7 },
+                                                { label: '30 Days', days: 30 },
+                                            ].map(({ label, days }) => (
+                                                <button
+                                                    key={label}
+                                                    onClick={() => setSalesAuditDateRange({ from: subDays(new Date(), days), to: new Date() })}
+                                                    className="px-2.5 h-7 rounded-lg bg-slate-100 hover:bg-[#0C831F] hover:text-white text-slate-600 text-[10px] font-bold transition-colors"
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="border border-slate-100 rounded-xl overflow-hidden">
+                                            <Calendar
+                                                initialFocus
+                                                mode="range"
+                                                defaultMonth={salesAuditDateRange?.from}
+                                                selected={salesAuditDateRange as any}
+                                                onSelect={(range: any) => setSalesAuditDateRange(range || { from: new Date(), to: new Date() })}
+                                                numberOfMonths={1}
+                                                className="p-3"
+                                            />
+                                        </div>
+                                        {salesAuditDateRange?.from && (
+                                            <p className="text-[10px] text-slate-500 text-center">
+                                                {format(salesAuditDateRange.from, 'dd MMM yyyy')}
+                                                {salesAuditDateRange.to ? ` → ${format(salesAuditDateRange.to, 'dd MMM yyyy')}` : ''}
+                                            </p>
+                                        )}
+                                        <Button
+                                            onClick={() => { setSalesAuditPopoverOpen(false); handleSalesAuditPrint(); }}
+                                            disabled={salesAuditPrinting}
+                                            className="w-full h-11 bg-[#0C831F] text-white hover:bg-[#0A6C1A] rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg flex items-center justify-center gap-2"
+                                        >
+                                            {salesAuditPrinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                                            {salesAuditPrinting ? 'Generating PDF…' : 'Download Sales Report'}
+                                        </Button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
                 </div>

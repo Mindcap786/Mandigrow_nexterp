@@ -18595,3 +18595,154 @@ def upload_commodity_image():
         frappe.db.commit()
 
     return doc.as_dict()
+
+
+@frappe.whitelist()
+def get_sales_audit_data(date_from: str = None, date_to: str = None) -> dict:
+    """
+    Returns a commodity-grouped sales summary for the given date range.
+    Called by the Next.js Stock Status page "Sales Audit Print" button.
+
+    Args:
+        date_from (str): Start date in YYYY-MM-DD format (inclusive).
+        date_to   (str): End date  in YYYY-MM-DD format (inclusive).
+
+    Returns:
+        {
+            "items": [
+                {
+                    "commodity_name": "Apple",
+                    "item_id": "ITEM-0001",
+                    "total_qty": 500.0,
+                    "total_invoices": 12,
+                    "avg_rate": 85.5,
+                    "total_amount": 42750.0,
+                    "uom": "Kg"
+                }, ...
+            ],
+            "date_from": "2026-06-01",
+            "date_to":   "2026-06-18",
+            "total_revenue": 42750.0
+        }
+    """
+    from mandigrow.mandigrow.logic.subscription_guard import enforce_active_subscription
+    enforce_active_subscription()
+
+    org_id = _get_user_org()
+
+    # ── 1. Resolve date range defaults ────────────────────────────────────────
+    today_str = frappe.utils.today()
+    if not date_from:
+        date_from = today_str
+    if not date_to:
+        date_to = today_str
+
+    # Clamp to YYYY-MM-DD
+    date_from = str(date_from)[:10]
+    date_to   = str(date_to)[:10]
+
+    # ── 2. Fetch all Mandi Sale IDs within the date range for this org ────────
+    sale_names = frappe.db.get_all(
+        "Mandi Sale",
+        filters={
+            "organization_id": org_id,
+            "saledate": ["between", [date_from, date_to]],
+            "docstatus": ["!=", 2],   # exclude cancelled
+        },
+        pluck="name",
+    )
+
+    if not sale_names:
+        return {
+            "items": [],
+            "date_from": date_from,
+            "date_to": date_to,
+            "total_revenue": 0,
+        }
+
+    # ── 3. Fetch all sale items for those sales ───────────────────────────────
+    sale_items = frappe.db.get_all(
+        "Mandi Sale Item",
+        filters={"parent": ["in", sale_names]},
+        fields=["item_id", "qty", "returned_qty", "rate", "amount", "uom"],
+    )
+
+    # ── 4. Aggregate by commodity (item_id) ───────────────────────────────────
+    commodity_map: dict = {}   # item_id -> aggregated row
+    sale_invoice_counts: dict = {}  # item_id -> set of parent sale names
+
+    # We need to track unique invoices per item; fetch parent alongside
+    sale_items_with_parent = frappe.db.get_all(
+        "Mandi Sale Item",
+        filters={"parent": ["in", sale_names]},
+        fields=["parent", "item_id", "qty", "returned_qty", "rate", "amount", "uom"],
+    )
+
+    for si in sale_items_with_parent:
+        iid = si.get("item_id")
+        if not iid:
+            continue
+
+        net_qty = float(si.get("qty") or 0) - float(si.get("returned_qty") or 0)
+        amount  = float(si.get("amount") or 0)
+        rate    = float(si.get("rate") or 0)
+        uom     = si.get("uom") or "Kg"
+        parent  = si.get("parent")
+
+        if iid not in commodity_map:
+            commodity_map[iid] = {
+                "item_id":       iid,
+                "commodity_name": None,   # resolved below
+                "total_qty":     0.0,
+                "total_amount":  0.0,
+                "rate_sum":      0.0,     # for computing weighted avg
+                "qty_count":     0,
+                "uom":           uom,
+            }
+            sale_invoice_counts[iid] = set()
+
+        row = commodity_map[iid]
+        row["total_qty"]    += net_qty
+        row["total_amount"] += amount
+        row["rate_sum"]     += rate * net_qty
+        if net_qty > 0:
+            row["qty_count"] += 1
+        sale_invoice_counts[iid].add(parent)
+
+    # ── 5. Resolve item names from Frappe Item doctype ────────────────────────
+    item_ids = list(commodity_map.keys())
+    if item_ids:
+        item_names = frappe.db.get_all(
+            "Item",
+            filters={"name": ["in", item_ids]},
+            fields=["name", "item_name"],
+        )
+        name_map = {r["name"]: r["item_name"] for r in item_names}
+        for iid, row in commodity_map.items():
+            row["commodity_name"] = name_map.get(iid) or iid
+
+    # ── 6. Build final result list, sorted by total_amount descending ─────────
+    result_items = []
+    for iid, row in commodity_map.items():
+        qty = row["total_qty"]
+        avg_rate = (row["rate_sum"] / qty) if qty > 0 else 0.0
+        result_items.append({
+            "item_id":        iid,
+            "commodity_name": row["commodity_name"] or iid,
+            "total_qty":      round(qty, 3),
+            "total_invoices": len(sale_invoice_counts.get(iid, set())),
+            "avg_rate":       round(avg_rate, 2),
+            "total_amount":   round(row["total_amount"], 2),
+            "uom":            row["uom"],
+        })
+
+    result_items.sort(key=lambda x: x["total_amount"], reverse=True)
+
+    total_revenue = sum(r["total_amount"] for r in result_items)
+
+    return {
+        "items":         result_items,
+        "date_from":     date_from,
+        "date_to":       date_to,
+        "total_revenue": round(total_revenue, 2),
+    }
