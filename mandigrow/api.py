@@ -18549,7 +18549,13 @@ def upload_commodity_image():
     # Also update the image field on Item directly — this bypasses frappe.client.set_value
     # which would fail with PermissionError for standard users
     if doctype and docname and doc.file_url:
-        frappe.db.set_value(doctype, docname, "image", doc.file_url, update_modified=False)
+        # update_modified=True ensures Frappe invalidates its Redis document cache.
+        # Without this, frappe.get_cached_doc() in get_stock_summary() keeps returning
+        # the OLD image field value, so the Stock Status page never sees the new image.
+        frappe.db.set_value(doctype, docname, "image", doc.file_url, update_modified=True)
+        # Explicitly clear the Frappe document cache for this item so the next
+        # call to frappe.get_cached_doc() fetches fresh data from the database.
+        frappe.clear_cache(doctype=doctype)
         frappe.db.commit()
 
     return doc.as_dict()
