@@ -98,7 +98,7 @@ export function BulkImportDialog({ children, onSuccess }: BulkImportDialogProps)
                     let pTypeRaw = String(row[idxType] || '').toLowerCase()
                     let mappedType = 'farmer' // default
                     if (pTypeRaw.includes('buy') || pTypeRaw.includes('trad')) mappedType = 'buyer'
-                    else if (pTypeRaw.includes('sup') || pTypeRaw.includes('ext')) mappedType = 'supplier'
+                    else if (pTypeRaw.includes('sup') || pTypeRaw.includes('ext') || pTypeRaw.includes('commission') || pTypeRaw.includes('agent')) mappedType = 'supplier'
                     else if (pTypeRaw.includes('farm') || pTypeRaw.includes('prod')) mappedType = 'farmer'
                     else if (pTypeRaw.trim() !== '') {
                         newErrors.push({ row: i + 1, msg: `Unrecognized Partner Type: "${row[idxType]}"` })
