@@ -25,6 +25,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { cacheGet, cacheSet, cacheIsStale, cacheDelete } from "@/lib/data-cache"
 import { callApi, uploadFile } from "@/lib/frappeClient";
  // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
@@ -478,6 +479,11 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 setLoadingState("Finalizing...")
                 // Clear the cache manually before calling onSuccess so that fetchItems hits the network
                 if (typeof window !== 'undefined') {
+                    if (profile?.organization_id) {
+                        cacheDelete('stock_summary', profile.organization_id);
+                        cacheDelete('items_all', profile.organization_id);
+                    }
+                    // Keep fallback for v1 cache keys just in case other tabs are using them
                     const orgId = localStorage.getItem('mandi_profile_cache_org_id')
                     if (orgId) {
                         localStorage.removeItem(`mandi_cache_commodity_master_${orgId}`)
