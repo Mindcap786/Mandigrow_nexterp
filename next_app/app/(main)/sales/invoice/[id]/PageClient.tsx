@@ -14,7 +14,6 @@ import SmartShareButton from "@/components/billing/smart-share-button"
 import { generateSaleReceiptESCPOS } from "@/lib/generate-thermal-escpos"
 import { BluetoothPrinter } from "@/lib/bluetooth-printer"
 import { useGlobalFeature } from "@/hooks/use-global-feature";
-import { useGlobalFeature } from "@/hooks/use-global-feature";
 import { useLocalInvoice } from "@/hooks/use-local-invoice"
 import LocalSaleInvoice from "@/components/local-invoices/LocalSaleInvoice"
 import { LANG_LABELS, LANG_NAMES_ENGLISH, isValidLang } from "@/components/local-invoices/utils/fonts"
