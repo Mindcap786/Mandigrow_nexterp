@@ -12,7 +12,7 @@ interface ThermalReceiptProps {
     partyTranslation?: string | null
 }
 
-export default function ThermalReceipt({ sale, organization }: ThermalReceiptProps) {
+export default function ThermalReceipt({ sale, organization, lang, itemTranslations, partyTranslation }: ThermalReceiptProps) {
     const { branding } = usePlatformBranding();
 
     if (!sale) return null;
