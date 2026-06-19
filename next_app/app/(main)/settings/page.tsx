@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Save, Loader2, Building2, Percent, Receipt, MapPin, ShieldCheck, UserPlus, AlertTriangle, CheckCircle2, ChevronRight, MonitorSmartphone } from "lucide-react";
+import { Save, Loader2, Building2, Percent, Receipt, MapPin, ShieldCheck, UserPlus, AlertTriangle, CheckCircle2, ChevronRight, MonitorSmartphone, Globe } from "lucide-react";
 
 import { callApi } from "@/lib/frappeClient";
- // proxy fallback
 import { usePermission } from "@/hooks/use-permission";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,10 @@ import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils";
 import { cn } from "@/lib/utils";
+import { LANG_LABELS, LANG_NAMES_ENGLISH, isValidLang } from "@/components/local-invoices/utils/fonts";
+import type { LangCode } from "@/components/local-invoices/utils/fonts";
+
+
 
 // ── TYPED SETTINGS INTERFACE ────────────────────────────────────────────────
 // Replaces fragile `any` state. UI is pixel-identical — only the data layer
@@ -84,13 +87,19 @@ export default function Settings() {
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [dialogConfig, setDialogConfig] = useState({ title: "", message: "", type: "success" as "success" | "error" });
 
+    // Local language invoice default
+    const featureFlags = (profile as any)?.feature_flags || {};
+    const isLocalInvoiceEnabled = !!featureFlags?.local_language_invoices;
+    const [defaultInvoiceLang, setDefaultInvoiceLang] = useState<LangCode | null>(null);
+    const [langSaving, setLangSaving] = useState(false);
+
     const fetchOrgData = useCallback(async () => {
         if (!profile?.organization_id) { setLoading(false); return; }
         try {
             const data = await callApi('mandigrow.api.get_org_settings', {
                 org_id: profile.organization_id
             });
-            
+
             if (data) {
                 // Map Frappe fields back to the frontend's expected OrgSettings shape
                 setOrgData({
@@ -113,6 +122,12 @@ export default function Settings() {
                     sgst_percent: Number(data.sgst_percent) || 0,
                     igst_percent: Number(data.igst_percent) || 0,
                 });
+                // Fetch org invoice language if feature is enabled
+                if (featureFlags?.local_language_invoices) {
+                    callApi('mandigrow.local_invoices.api.get_org_invoice_language')
+                        .then((lang: any) => { if (lang && isValidLang(lang)) setDefaultInvoiceLang(lang as LangCode); })
+                        .catch(() => { });
+                }
             }
         } catch (error) {
             console.error("[Settings] Error fetching org data:", error);
@@ -171,10 +186,23 @@ export default function Settings() {
             if (isMobileAppView()) snackbar.error(msg);
             else setDialogConfig({ title: "Update Failed", message: msg, type: "error" });
         }
-        
+
         // Only show dialog — success dialog ONLY on actual success
         if (!isMobileAppView()) setShowSuccessDialog(true);
         setSaving(false);
+    };
+
+    const handleSaveLang = async (lang: LangCode | null) => {
+        setDefaultInvoiceLang(lang);
+        setLangSaving(true);
+        try {
+            await callApi('mandigrow.local_invoices.api.set_org_invoice_language', { language: lang || '' });
+            if (isMobileAppView()) snackbar.success(lang ? `Default language set to ${LANG_NAMES_ENGLISH[lang]}` : 'Language reset to English');
+        } catch {
+            // silent fail — UI already updated optimistically
+        } finally {
+            setLangSaving(false);
+        }
     };
 
     if (loading || rbacLoading) return <SettingsSkeleton />;
@@ -342,6 +370,53 @@ export default function Settings() {
                             </Link>
                         </div>
 
+                        {/* Local Language Invoices — only visible when feature flag is on */}
+                        {isLocalInvoiceEnabled && (
+                            <>
+                                <NativeSectionLabel className="px-4 pt-2">Local Language Invoices</NativeSectionLabel>
+                                <div className="px-4">
+                                    <NativeCard>
+                                        <div className="px-4 py-4 space-y-3">
+                                            <p className="text-xs text-[#6B7280] leading-relaxed">
+                                                Default language for all invoices printed in this organisation.
+                                                You can still change it per-invoice at print time.
+                                            </p>
+                                            {/* English (default) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSaveLang(null)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all",
+                                                    !defaultInvoiceLang ? "border-[#1A6B3C] bg-[#1A6B3C]/5 text-[#1A6B3C]" : "border-[#E5E7EB] text-[#6B7280]"
+                                                )}
+                                            >
+                                                <span>🇬🇧 English (Default)</span>
+                                                {!defaultInvoiceLang && <span className="text-[10px] font-black bg-[#1A6B3C] text-white px-2 py-0.5 rounded-full">ACTIVE</span>}
+                                            </button>
+                                            {/* 8 Indian languages */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {(Object.entries(LANG_LABELS) as [LangCode, string][]).map(([code, label]) => (
+                                                    <button
+                                                        key={code}
+                                                        type="button"
+                                                        onClick={() => handleSaveLang(code)}
+                                                        className={cn(
+                                                            "flex flex-col items-start px-3 py-2.5 rounded-xl border-2 text-left transition-all",
+                                                            defaultInvoiceLang === code ? "border-[#1A6B3C] bg-[#1A6B3C]/5" : "border-[#E5E7EB]"
+                                                        )}
+                                                    >
+                                                        <span className="text-base font-bold text-[#1A1A2E]">{label}</span>
+                                                        <span className="text-[10px] text-[#6B7280] font-medium">{LANG_NAMES_ENGLISH[code]}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {langSaving && <p className="text-[10px] text-[#6B7280] text-center">Saving preference...</p>}
+                                        </div>
+                                    </NativeCard>
+                                </div>
+                            </>
+                        )}
+
                         {/* Save Button */}
                         <div className="px-4 pt-6">
                             <button
@@ -384,7 +459,7 @@ export default function Settings() {
                                 <div className="flex items-center gap-3 text-black font-black italic tracking-tighter uppercase text-xs"><div className="w-8 h-px bg-black/20" />BUSINESS IDENTITY</div>
                                 <div className="space-y-6">
                                     <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Legal Mandi Name</Label><Input value={orgData?.name || ""} onChange={(e) => setOrgData({ ...orgData, name: e.target.value })} className="bg-slate-50 border-slate-200 h-14 text-lg font-black text-black rounded-2xl focus:border-blue-500" /></div>
-                                        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mandi License #</Label><Input placeholder="LIC-12345" value={orgData?.settings?.mandi_license || ""} onChange={(e) => setOrgData({ ...orgData, settings: { ...orgData?.settings, mandi_license: e.target.value } })} className="bg-slate-50 border-slate-200 h-12 font-bold text-black rounded-xl" /></div>
+                                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mandi License #</Label><Input placeholder="LIC-12345" value={orgData?.settings?.mandi_license || ""} onChange={(e) => setOrgData({ ...orgData, settings: { ...orgData?.settings, mandi_license: e.target.value } })} className="bg-slate-50 border-slate-200 h-12 font-bold text-black rounded-xl" /></div>
                                 </div>
                                 <div className="flex items-center gap-3 text-purple-600 font-black italic tracking-tighter uppercase text-xs pt-4"><div className="w-8 h-px bg-purple-200" />GLOBAL RATES (%)</div>
                                 <div className="grid grid-cols-2 gap-6">
@@ -397,6 +472,62 @@ export default function Settings() {
                                 </div>
                                 <div className="flex items-center gap-3 text-emerald-600 font-black italic tracking-tighter uppercase text-xs pt-4"><div className="w-8 h-px bg-emerald-200" />GST CONFIGURATION<div className="ml-auto flex items-center gap-2"><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{orgData?.gst_enabled ? "Active" : "Disabled"}</span><button type="button" onClick={() => setOrgData({ ...orgData, gst_enabled: !orgData?.gst_enabled })} className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none ${orgData?.gst_enabled ? "bg-emerald-600" : "bg-slate-200"}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${orgData?.gst_enabled ? "translate-x-7" : "translate-x-1"}`} /></button></div></div>
                                 {orgData?.gst_enabled && (<div className="space-y-4 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl"><div className="flex gap-2"><button type="button" onClick={() => setOrgData({ ...orgData, gst_type: "intra" })} className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${orgData?.gst_type !== "inter" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-500 border-slate-200"}`}>Intra-State (CGST + SGST)</button><button type="button" onClick={() => setOrgData({ ...orgData, gst_type: "inter" })} className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${orgData?.gst_type === "inter" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-500 border-slate-200"}`}>Inter-State (IGST)</button></div><p className="text-[9px] text-emerald-700 font-medium leading-relaxed">⚡ When enabled, GST will be automatically calculated based on each item's specific GST rate.</p></div>)}
+
+                                {/* Local Language Invoices section — only when feature is enabled */}
+                                {isLocalInvoiceEnabled && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3 text-indigo-600 font-black italic tracking-tighter uppercase text-xs pt-2">
+                                            <div className="w-8 h-px bg-indigo-200" />
+                                            <Globe className="w-3.5 h-3.5" />
+                                            LOCAL LANGUAGE INVOICES
+                                        </div>
+                                        <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
+                                            <p className="text-[11px] text-indigo-800 font-medium leading-relaxed">
+                                                Set the default language for all printed invoices in this organisation.
+                                                Users can still override per-invoice at print time.
+                                            </p>
+                                            {/* English reset */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSaveLang(null)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all",
+                                                    !defaultInvoiceLang ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300"
+                                                )}
+                                            >
+                                                <span>🇬🇧 English (Default)</span>
+                                                {!defaultInvoiceLang && <span className="text-[9px] font-black bg-white/20 px-2 py-0.5 rounded-full">ACTIVE</span>}
+                                            </button>
+                                            {/* Language grid */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {(Object.entries(LANG_LABELS) as [LangCode, string][]).map(([code, label]) => (
+                                                    <button
+                                                        key={code}
+                                                        type="button"
+                                                        onClick={() => handleSaveLang(code)}
+                                                        className={cn(
+                                                            "flex flex-col items-start px-3 py-2.5 rounded-xl border-2 text-left transition-all hover:border-indigo-300",
+                                                            defaultInvoiceLang === code
+                                                                ? "border-indigo-600 bg-indigo-600 text-white"
+                                                                : "border-slate-200 bg-white text-slate-700"
+                                                        )}
+                                                    >
+                                                        <span className="text-base font-black leading-tight">{label}</span>
+                                                        <span className={cn("text-[9px] font-medium mt-0.5", defaultInvoiceLang === code ? "text-white/70" : "text-slate-400")}>
+                                                            {LANG_NAMES_ENGLISH[code]}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {langSaving && (
+                                                <div className="flex items-center gap-2 text-[10px] text-indigo-600 font-bold">
+                                                    <Loader2 className="w-3 h-3 animate-spin" /> Saving language preference...
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mandi Address</Label><div className="space-y-3"><div className="relative"><MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Line 1" value={orgData?.address_line1 || ""} onChange={(e) => setOrgData({ ...orgData, address_line1: e.target.value })} className="pl-12 bg-slate-50 border-slate-200 h-12 rounded-xl text-black font-bold" /></div><Input placeholder="City, State" value={orgData?.address_line2 || ""} onChange={(e) => setOrgData({ ...orgData, address_line2: e.target.value })} className="bg-slate-50 border-slate-200 h-12 rounded-xl text-black font-bold" /></div></div>
                                 <Button type="submit" disabled={saving} className="w-full bg-black text-white hover:bg-slate-800 font-black uppercase tracking-widest h-14 rounded-2xl shadow-lg transition-all">{saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> Commit Changes</>}</Button>
                             </div>

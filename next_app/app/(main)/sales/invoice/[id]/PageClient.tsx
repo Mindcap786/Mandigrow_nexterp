@@ -1,21 +1,22 @@
 "use client"
 // Static export: client component — generateStaticParams is in layout.tsx
 
-
-
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Printer, ChevronLeft, Download, Loader2, FileText, Settings } from "lucide-react"
+import { Printer, ChevronLeft, Download, Loader2, FileText, Settings, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { callApi } from "@/lib/frappeClient";
- // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import BuyerInvoice from "@/components/sales/invoice-template"
 import ThermalReceipt from "@/components/sales/thermal-receipt"
 import SmartShareButton from "@/components/billing/smart-share-button"
 import { generateSaleReceiptESCPOS } from "@/lib/generate-thermal-escpos"
 import { BluetoothPrinter } from "@/lib/bluetooth-printer"
+import { useLocalInvoice } from "@/hooks/use-local-invoice"
+import LocalSaleInvoice from "@/components/local-invoices/LocalSaleInvoice"
+import { LANG_LABELS, LANG_NAMES_ENGLISH, isValidLang } from "@/components/local-invoices/utils/fonts"
+import type { LangCode } from "@/components/local-invoices/utils/fonts"
 
 export default function SaleInvoicePage() {
     const { id } = useParams()
@@ -28,6 +29,10 @@ export default function SaleInvoicePage() {
     const [printMode, setPrintMode] = useState<'a4' | 'thermal'>('a4')
     const [triggerPrint, setTriggerPrint] = useState(0)
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
+
+    // Local language invoices
+    const featureFlags = (profile as any)?.feature_flags || {}
+    const localInvoice = useLocalInvoice(featureFlags)
 
     useEffect(() => {
         const savedWidth = localStorage.getItem('thermalWidth');
@@ -104,6 +109,13 @@ export default function SaleInvoicePage() {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const handlePrint = async (mode: 'a4' | 'thermal', forcePrompt: boolean = false) => {
+        // Fetch translations before printing if local language is active
+        if (localInvoice.isEnabled && localInvoice.activeLang && sale) {
+            const itemNames = (sale.sale_items || []).map((i: any) => i.lot?.item?.name || i.item_name || '').filter(Boolean)
+            const partyName = sale.contact?.name || sale.buyer_name || ''
+            await localInvoice.fetchTranslations(itemNames, partyName)
+        }
+
         if (mode === 'thermal') {
             try {
                 const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
@@ -114,14 +126,15 @@ export default function SaleInvoicePage() {
                 return;
             } catch (e: any) {
                 console.error('Bluetooth print skipped or failed:', e);
-                // Import toast dynamically if not imported, or just use alert if we don't have toast imported here.
-                // Wait, toast is already imported in this file.
                 import('sonner').then(({ toast }) => {
                     toast.error("Thermal Print Failed", {
                         description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
                         position: 'top-center'
                     });
                 });
+                // Fall through to browser print for thermal fallback
+                setPrintMode('thermal');
+                setTriggerPrint(prev => prev + 1);
             }
         } else {
             setPrintMode('a4');
@@ -217,6 +230,48 @@ export default function SaleInvoicePage() {
                         <FileText className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
                         A4 INVOICE
                     </Button>
+
+                    {/* Language selector — only shown when local_language_invoices feature is enabled */}
+                    {localInvoice.isEnabled && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 md:flex-none border-white/20 text-white hover:bg-white/10 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm gap-1.5"
+                                >
+                                    <Globe className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">
+                                        {localInvoice.activeLang
+                                            ? LANG_LABELS[localInvoice.activeLang]
+                                            : 'English'}
+                                    </span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Invoice Language</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {/* English (default) */}
+                                <DropdownMenuItem
+                                    onClick={() => localInvoice.setActiveLang(null)}
+                                    className="cursor-pointer"
+                                >
+                                    {!localInvoice.activeLang ? '✓ ' : ''}English (Default)
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {/* All 8 local languages */}
+                                {(Object.entries(LANG_LABELS) as [LangCode, string][]).map(([code, label]) => (
+                                    <DropdownMenuItem
+                                        key={code}
+                                        onClick={() => localInvoice.setActiveLang(code)}
+                                        className="cursor-pointer"
+                                    >
+                                        {localInvoice.activeLang === code ? '✓ ' : ''}
+                                        {label} <span className="text-gray-400 ml-1 text-[10px]">({LANG_NAMES_ENGLISH[code]})</span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                     <Button disabled={isDownloading} className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm" onClick={handleDownload}>
                         {isDownloading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 animate-spin shrink-0" /> : <Download className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />}
                         <span className="truncate">{isDownloading ? "SAVING..." : "DOWNLOAD"}</span>
@@ -232,10 +287,20 @@ export default function SaleInvoicePage() {
             </div>
 
 
-            {/* Template */}
+            {/* Template — local language invoice takes over when activeLang is set */}
             <div className="relative">
                 <div className={printMode === 'thermal' ? "hidden print:hidden" : "block print:block"}>
-                    <BuyerInvoice sale={sale} organization={organization} onRefresh={() => fetchSale(true)} />
+                    {localInvoice.isEnabled && localInvoice.activeLang ? (
+                        <LocalSaleInvoice
+                            sale={sale}
+                            organization={organization}
+                            lang={localInvoice.activeLang}
+                            itemTranslations={localInvoice.itemTranslations}
+                            partyTranslation={localInvoice.partyTranslation}
+                        />
+                    ) : (
+                        <BuyerInvoice sale={sale} organization={organization} onRefresh={() => fetchSale(true)} />
+                    )}
                 </div>
                 <div className={printMode === 'a4' ? "hidden print:hidden" : "hidden print:block"}>
                     <ThermalReceipt sale={sale} organization={organization} />

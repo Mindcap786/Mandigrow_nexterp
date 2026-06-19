@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Printer, ChevronLeft, Download, ShieldCheck, Loader2, Settings, FileText } from "lucide-react"
+import { Printer, ChevronLeft, Download, ShieldCheck, Loader2, Settings, FileText, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { callApi } from "@/lib/frappeClient";
- // proxy fallback
 import { useAuth } from "@/components/auth/auth-provider"
 import PurchaseBillInvoice from "@/components/purchase/purchase-invoice-template"
 import { BluetoothPrinter } from "@/lib/bluetooth-printer"
 import { generatePurchaseReceiptESCPOS } from "@/lib/generate-thermal-escpos"
+import { useLocalInvoice } from "@/hooks/use-local-invoice"
+import LocalPurchaseBill from "@/components/local-invoices/LocalPurchaseBill"
+import { LANG_LABELS, LANG_NAMES_ENGLISH } from "@/components/local-invoices/utils/fonts"
+import type { LangCode } from "@/components/local-invoices/utils/fonts"
 
 export default function PurchaseBillInvoicePage() {
     const { id } = useParams()    // This is the lot_id
@@ -24,6 +27,10 @@ export default function PurchaseBillInvoicePage() {
     const [isDownloading, setIsDownloading] = useState(false)
     const [isSharing, setIsSharing] = useState(false)
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
+
+    // Local language invoices
+    const featureFlags = (profile as any)?.feature_flags || {}
+    const localInvoice = useLocalInvoice(featureFlags)
 
     useEffect(() => {
         const savedWidth = localStorage.getItem('thermalWidth');
@@ -216,6 +223,37 @@ export default function PurchaseBillInvoicePage() {
                         <FileText className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 shrink-0" />
                         A4 INVOICE
                     </Button>
+
+                    {/* Language selector — only when local_language_invoices is enabled */}
+                    {localInvoice.isEnabled && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 md:flex-none border-white/20 text-white hover:bg-white/10 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm gap-1.5"
+                                >
+                                    <Globe className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">
+                                        {localInvoice.activeLang ? LANG_LABELS[localInvoice.activeLang] : 'English'}
+                                    </span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Invoice Language</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => localInvoice.setActiveLang(null)} className="cursor-pointer">
+                                    {!localInvoice.activeLang ? '✓ ' : ''}English (Default)
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {(Object.entries(LANG_LABELS) as [LangCode, string][]).map(([code, label]) => (
+                                    <DropdownMenuItem key={code} onClick={() => localInvoice.setActiveLang(code)} className="cursor-pointer">
+                                        {localInvoice.activeLang === code ? '✓ ' : ''}
+                                        {label} <span className="text-gray-400 ml-1 text-[10px]">({LANG_NAMES_ENGLISH[code]})</span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                     <Button
                         disabled={isDownloading || isSharing}
                         className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-6 text-[10px] md:text-sm"
@@ -250,14 +288,26 @@ export default function PurchaseBillInvoicePage() {
                 </div>
             </div>
 
-            {/* Template — elevated card presentation */}
+            {/* Template — local language takes over when activeLang is set */}
             <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5 print:shadow-none print:ring-0">
-                <PurchaseBillInvoice
-                    lot={lot}
-                    arrival={arrival}
-                    organization={organization}
-                    arrivalLots={arrivalLots}
-                />
+                {localInvoice.isEnabled && localInvoice.activeLang ? (
+                    <LocalPurchaseBill
+                        lot={lot}
+                        arrival={arrival}
+                        organization={organization}
+                        arrivalLots={arrivalLots}
+                        lang={localInvoice.activeLang}
+                        itemTranslations={localInvoice.itemTranslations}
+                        partyTranslation={localInvoice.partyTranslation}
+                    />
+                ) : (
+                    <PurchaseBillInvoice
+                        lot={lot}
+                        arrival={arrival}
+                        organization={organization}
+                        arrivalLots={arrivalLots}
+                    />
+                )}
             </div>
 
             <style jsx global>{`
