@@ -28,6 +28,15 @@ export const metadata: Metadata = {
 
 const FEATURES = [
     {
+        id: 'vernacular-invoices',
+        icon: '🌐',
+        title: 'Native Vernacular Invoicing (8 Languages)',
+        description:
+            'Speak your farmer\'s language. Stop manually typing in Hindi or Telugu. Type "Apple" in English, and MandiGrow instantly auto-translates and prints "ఆపిల్" or "सेब" on the Patti.',
+        detail:
+            'The only APMC software engineered with zero-latency native ESC/POS integration. Print local languages instantly to any 3-inch Bluetooth thermal printer without downloading clunky A4 PDFs.',
+    },
+    {
         id: 'auto-commission',
         icon: '💰',
         title: 'Auto Commission Calculation',
