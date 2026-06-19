@@ -9,6 +9,7 @@
  "field_order": [
   "organization_id",
   "item_code",
+  "local_name",
   "image_url"
  ],
  "fields": [
@@ -27,6 +28,13 @@
    "label": "Item Code",
    "options": "Item",
    "reqd": 1
+  },
+  {
+   "fieldname": "local_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Local Name (Vernacular)",
+   "description": "Optional: Override how this item appears on local language thermal invoices"
   },
   {
    "fieldname": "image_url",

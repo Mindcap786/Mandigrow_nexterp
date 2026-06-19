@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "full_name",
+  "local_name",
   "contact_type",
   "internal_id",
   "phone",
@@ -36,6 +37,12 @@
    "in_list_view": 1,
    "label": "Full Name",
    "reqd": 1
+  },
+  {
+   "fieldname": "local_name",
+   "fieldtype": "Data",
+   "label": "Local Name (Vernacular)",
+   "description": "Optional: Override how this name appears on local language thermal invoices"
   },
   {
    "default": "farmer",
