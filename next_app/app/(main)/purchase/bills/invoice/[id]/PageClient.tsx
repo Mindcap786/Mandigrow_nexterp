@@ -30,7 +30,9 @@ export default function PurchaseBillInvoicePage() {
 
     // Local language invoices
     const featureFlags = (profile as any)?.feature_flags || {}
-    const localInvoice = useLocalInvoice(featureFlags)
+    const isGlobalEnabled = !!featureFlags?.local_language_invoices
+    const isTenantEnabled = !!(profile as any)?.organization?.enable_local_invoices
+    const localInvoice = useLocalInvoice(isGlobalEnabled, isTenantEnabled)
 
     useEffect(() => {
         const savedWidth = localStorage.getItem('thermalWidth');

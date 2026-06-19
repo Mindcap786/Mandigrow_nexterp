@@ -34,7 +34,7 @@ export interface LocalInvoiceState {
   fetchTranslations: (itemNames: string[], partyName: string) => Promise<void>;
 }
 
-export function useLocalInvoice(featureFlags: Record<string, boolean>): LocalInvoiceState {
+export function useLocalInvoice(isGlobalEnabled: boolean, isTenantEnabled: boolean): LocalInvoiceState {
   const [orgLang, setOrgLang] = useState<LangCode | null>(null);
   const [activeLang, setActiveLangState] = useState<LangCode | null>(null);
   const [itemTranslations, setItemTranslations] = useState<Record<string, string>>({});
@@ -44,7 +44,7 @@ export function useLocalInvoice(featureFlags: Record<string, boolean>): LocalInv
     lang: string; items: string[]; party: string;
   } | null>(null);
 
-  const isEnabled = !!featureFlags?.local_language_invoices;
+  const isEnabled = isGlobalEnabled || isTenantEnabled;
 
   // Fetch org-level default language on mount (if feature is enabled)
   useEffect(() => {

@@ -12,7 +12,7 @@ import {
     Loader2, MoreHorizontal, Power, PowerOff, Trash2, Building2, Plus,
     Eye, Search, Filter, ShieldCheck, RefreshCw, ArrowUpRight,
     AlertTriangle, CheckCircle2, TrendingDown, ChevronRight, Users, Zap,
-    Key, Phone, Link as LinkIcon, FileDown, FileText, Upload
+    Key, Phone, Link as LinkIcon, FileDown, FileText, Upload, Globe
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -221,6 +221,25 @@ export default function TenantsPage() {
                 try {
                     await callApi('mandigrow.api.admin_billing_action', { action: 'toggle_bulk_import', organization_id: orgId });
                     toast({ title: 'Success', description: `Bulk import ${currentStatus ? 'disabled' : 'enabled'}.` });
+                    fetchTenants();
+                } catch (e: any) {
+                    toast({ title: 'Action Failed', description: e.message, variant: 'destructive' });
+                }
+            }
+        });
+        setConfirmActionOpen(true);
+    };
+
+    const toggleLocalInvoices = async (orgId: string, currentStatus: boolean) => {
+        setActionInfo({
+            title: `${currentStatus ? 'Disable' : 'Enable'} Local Invoices`,
+            description: `Are you sure you want to ${currentStatus ? 'disable' : 'enable'} local language invoices for this tenant?`,
+            confirmText: currentStatus ? 'Disable' : 'Enable',
+            variant: currentStatus ? 'destructive' : 'default',
+            onConfirm: async () => {
+                try {
+                    await callApi('mandigrow.api.admin_billing_action', { action: 'toggle_local_invoices', organization_id: orgId });
+                    toast({ title: 'Success', description: `Local invoices ${currentStatus ? 'disabled' : 'enabled'}.` });
                     fetchTenants();
                 } catch (e: any) {
                     toast({ title: 'Action Failed', description: e.message, variant: 'destructive' });
@@ -997,6 +1016,15 @@ export default function TenantsPage() {
                                                     }}
                                                 >
                                                     <Upload className="w-3.5 h-3.5" /> {tenant.enable_bulk_import ? 'Disable Bulk Import' : 'Enable Bulk Import'}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className={cn("cursor-pointer flex gap-2 text-purple-600 focus:text-purple-700")}
+                                                    onSelect={(e) => {
+                                                        e.preventDefault();
+                                                        toggleLocalInvoices(tenant.id, tenant.enable_local_invoices);
+                                                    }}
+                                                >
+                                                    <Globe className="w-3.5 h-3.5" /> {tenant.enable_local_invoices ? 'Disable Local Invoices' : 'Enable Local Invoices'}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator className="bg-slate-200" />
                                                 <DropdownMenuItem
