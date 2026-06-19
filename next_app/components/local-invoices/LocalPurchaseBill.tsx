@@ -57,18 +57,66 @@ export default function LocalPurchaseBill({
   // All lots for this arrival (same as PurchaseBillInvoice)
   const lotsToShow = arrivalLots.length > 0 ? arrivalLots : [lot]
 
-  // Financial calculations from arrival
-  const grossValue = Number(arrival?.gross_value || 0)
-  const cutting = Number(arrival?.cutting || arrival?.deductions || 0)
-  const netGoodsValue = grossValue - cutting
-  const commission = Number(arrival?.commission || 0)
-  const marketFee = Number(arrival?.market_fee || 0)
-  const loadingCharges = Number(arrival?.loading_charges || 0)
-  const miscFee = Number(arrival?.misc_fee || 0)
-  const otherExpenses = Number(arrival?.other_expenses || 0)
-  const transportCharges = Number(arrival?.transport_charges || arrival?.transport || 0)
-  const totalDeductions = commission + marketFee + loadingCharges + miscFee + otherExpenses + transportCharges
-  const totalPayable = netGoodsValue - totalDeductions
+  // ── Financial calculations (Aggregated across all lots) ──────
+  const toNumber = (v: any) => Number(v) || 0;
+  let totalGrossQty = 0;
+  let totalGrossGoodsValue = 0;
+  let totalLessAmount = 0;
+  let totalCommission = 0;
+  let totalLotExpenses = 0;
+  let totalAdvance = 0;
+  let totalPaidAmount = 0;
+  let totalOtherCharges = 0;
+  let totalArrivalExpenseShare = 0;
+
+  lotsToShow.forEach(l => {
+      const isSettled = !!l.settlement_at;
+      const gQty = toNumber(l.gross_quantity) || toNumber(l.initial_qty);
+      let lLessQty = 0;
+      const lLessUnits = toNumber(l.less_units);
+      const lLessPercent = toNumber(l.less_percent);
+      if (lLessUnits > 0) {
+          lLessQty = lLessUnits;
+      } else if (lLessPercent > 0) {
+          lLessQty = gQty * (lLessPercent / 100);
+      }
+      
+      const rate = toNumber(l.supplier_rate);
+      const gGoodsVal = gQty * rate;
+      const lLessAmount = lLessQty * rate;
+      const nGoodsVal = Math.max(0, gGoodsVal - lLessAmount - toNumber(l.farmer_charges || 0));
+      
+      totalGrossQty += gQty;
+      totalGrossGoodsValue += gGoodsVal;
+      totalLessAmount += lLessAmount;
+      
+      totalCommission += isSettled ? toNumber(l.settlement_commission) : (nGoodsVal * toNumber(l.commission_percent)) / 100;
+      totalLotExpenses += isSettled ? toNumber(l.settlement_expenses) : (toNumber(l.packing_cost) + toNumber(l.loading_cost));
+      totalAdvance += toNumber(l.advance);
+      totalPaidAmount += toNumber(l.paid_amount);
+      totalOtherCharges += toNumber(l.other_charges || 0);
+      totalArrivalExpenseShare += toNumber(l.farmer_charges || 0);
+  });
+
+  if (totalAdvance === 0 && arrival?.advance) totalAdvance = toNumber(arrival.advance);
+  if (totalPaidAmount === 0 && arrival?.paid_amount) totalPaidAmount = toNumber(arrival.paid_amount);
+
+  const tripExpenses = toNumber(arrival?.hire_charges) + toNumber(arrival?.hamali_expenses) + toNumber(arrival?.other_expenses);
+  const combinedExpenses = totalLotExpenses + tripExpenses;
+  const totalNetGoodsValue = Math.max(0, totalGrossGoodsValue - totalLessAmount - totalArrivalExpenseShare);
+
+  const isChequeMode = (arrival?.advance_payment_mode || '').toLowerCase() === 'cheque';
+  const isChequeCleared = !isChequeMode ? true : (arrival?.is_cheque_cleared === true);
+  const effectiveAdvance = isChequeCleared ? totalAdvance : 0;
+  const effectivePaidAmount = isChequeCleared ? totalPaidAmount : 0;
+  const combinedPaid = effectiveAdvance === effectivePaidAmount ? effectiveAdvance : effectiveAdvance + effectivePaidAmount;
+
+  const getArrivalType = (l: any) => l?.arrival_type || 'commission';
+  const arrivalType = arrival?.arrival_type || getArrivalType(lot);
+  
+  const finalPayable = arrivalType === 'direct' 
+      ? Math.max(0, totalNetGoodsValue + totalLotExpenses + tripExpenses - combinedPaid - totalOtherCharges)
+      : Math.max(0, totalNetGoodsValue - totalCommission - combinedExpenses - combinedPaid - totalOtherCharges);
 
   const fullAddress = [
     organization?.address_line1, organization?.address_line2,
@@ -179,11 +227,13 @@ export default function LocalPurchaseBill({
                   {l.lot_code && <p className="text-[10px] font-bold text-slate-500 mt-0.5">Lot: {l.lot_code}</p>}
                 </td>
                 <td className="py-1 text-center font-bold text-sm">
-                  {Number(l.qty || l.quantity || 0).toLocaleString()}
+                  {Math.round((toNumber(l.gross_quantity) || toNumber(l.initial_qty)) * 100) / 100}
                   <span className="text-[10px] text-gray-400 font-black uppercase ml-0.5">{l.uom || l.unit || ''}</span>
                 </td>
-                <td className="py-1 text-right font-bold text-sm">₹{Number(l.rate || 0).toLocaleString()}</td>
-                <td className="py-1 text-right font-black text-sm">₹{Math.round(Number(l.amount || l.gross_value || 0)).toLocaleString()}</td>
+                <td className="py-1 text-right font-bold text-sm">₹{toNumber(l.supplier_rate).toLocaleString()}</td>
+                <td className="py-1 text-right font-black text-sm">
+                    ₹{Math.round((toNumber(l.gross_quantity) || toNumber(l.initial_qty)) * toNumber(l.supplier_rate)).toLocaleString()}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -195,43 +245,43 @@ export default function LocalPurchaseBill({
         <div className="w-full md:w-1/2 print:w-1/2 space-y-1.5 border-t-2 border-black pt-4" style={{ fontFamily }}>
           <div className="flex justify-between items-center text-xs">
             <span className="font-bold text-gray-500 uppercase">{T.GROSS_VALUE}</span>
-            <span className="font-bold">₹{grossValue.toLocaleString()}</span>
+            <span className="font-bold">₹{Math.round(totalGrossGoodsValue).toLocaleString()}</span>
           </div>
-          {cutting > 0 && (
-            <div className="flex justify-between items-center text-xs">
+          {totalLessAmount > 0 && (
+            <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
               <span className="font-bold text-slate-500 uppercase">{T.LESS_CUTTING}</span>
-              <span className="font-bold text-red-600">- ₹{cutting.toLocaleString()}</span>
+              <span className="font-bold text-red-600">- ₹{Math.round(totalLessAmount).toLocaleString()}</span>
             </div>
           )}
           <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
             <span className="font-bold text-gray-500 uppercase">{T.NET_GOODS_VALUE}</span>
-            <span className="font-bold">₹{netGoodsValue.toLocaleString()}</span>
+            <span className="font-bold">₹{Math.round(totalNetGoodsValue).toLocaleString()}</span>
           </div>
-          {commission > 0 && (
-            <div className="flex justify-between items-center text-xs">
+          {totalCommission > 0 && (
+            <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
               <span className="font-bold text-slate-500 uppercase">{T.COMMISSION}</span>
-              <span className="font-bold text-slate-700">- ₹{commission.toLocaleString()}</span>
+              <span className="font-bold text-slate-700">- ₹{Math.round(totalCommission).toLocaleString()}</span>
             </div>
           )}
-          {marketFee > 0 && (
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-slate-500 uppercase">{T.MARKET_FEE}</span>
-              <span className="font-bold text-slate-700">- ₹{marketFee.toLocaleString()}</span>
-            </div>
-          )}
-          {(loadingCharges + miscFee + otherExpenses + transportCharges) > 0 && (
-            <div className="flex justify-between items-center text-xs">
+          {combinedExpenses > 0 && (
+            <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
               <span className="font-bold text-slate-500 uppercase">{T.EXPENSES_TRANSPORT}</span>
-              <span className="font-bold text-slate-700">- ₹{(loadingCharges + miscFee + otherExpenses + transportCharges).toLocaleString()}</span>
+              <span className="font-bold text-slate-700">{arrivalType === 'direct' ? '+' : '-'} ₹{Math.round(combinedExpenses).toLocaleString()}</span>
             </div>
           )}
-          <div className="flex justify-between items-center pt-2 border-t border-black mt-2">
+          {combinedPaid > 0 && (
+            <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1">
+              <span className="font-bold text-emerald-600 uppercase">Amount Paid</span>
+              <span className="font-bold text-emerald-600">- ₹{Math.round(combinedPaid).toLocaleString()}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center pt-2 border-t-[3px] border-black mt-2 bg-slate-50 px-2 py-2 rounded">
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{T.TOTAL_PAYABLE}</span>
-            <span className="text-2xl font-black tracking-tighter tabular-nums text-black">₹{totalPayable.toLocaleString()}</span>
+            <span className="text-2xl font-black tracking-tighter tabular-nums text-black">₹{Math.round(finalPayable).toLocaleString()}</span>
           </div>
           <div className="text-right mt-3">
             <p className="text-[9px] font-bold text-gray-400 italic uppercase leading-none" style={{ fontFamily }}>
-              {amountInWords(totalPayable, lang)}
+              {amountInWords(Math.round(finalPayable), lang)}
             </p>
           </div>
         </div>
