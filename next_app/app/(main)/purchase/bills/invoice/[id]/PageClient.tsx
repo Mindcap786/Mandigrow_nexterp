@@ -10,6 +10,8 @@ import { useAuth } from "@/components/auth/auth-provider"
 import PurchaseBillInvoice from "@/components/purchase/purchase-invoice-template"
 import { BluetoothPrinter } from "@/lib/bluetooth-printer"
 import { generatePurchaseReceiptESCPOS } from "@/lib/generate-thermal-escpos"
+import { useGlobalFeature } from "@/hooks/use-global-feature";
+import { useGlobalFeature } from "@/hooks/use-global-feature";
 import { useLocalInvoice } from "@/hooks/use-local-invoice"
 import LocalPurchaseBill from "@/components/local-invoices/LocalPurchaseBill"
 import { LANG_LABELS, LANG_NAMES_ENGLISH } from "@/components/local-invoices/utils/fonts"
@@ -29,8 +31,7 @@ export default function PurchaseBillInvoicePage() {
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
 
     // Local language invoices
-    const featureFlags = (profile as any)?.feature_flags || {}
-    const isGlobalEnabled = !!featureFlags?.local_language_invoices
+    const { enabled: isGlobalEnabled } = useGlobalFeature('local_language_invoices')
     const isTenantEnabled = !!(profile as any)?.organization?.enable_local_invoices
     const localInvoice = useLocalInvoice(isGlobalEnabled, isTenantEnabled)
 

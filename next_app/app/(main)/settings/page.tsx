@@ -5,6 +5,7 @@ import { Save, Loader2, Building2, Percent, Receipt, MapPin, ShieldCheck, UserPl
 
 import { callApi } from "@/lib/frappeClient";
 import { usePermission } from "@/hooks/use-permission";
+import { useGlobalFeature } from "@/hooks/use-global-feature";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,8 +89,8 @@ export default function Settings() {
     const [dialogConfig, setDialogConfig] = useState({ title: "", message: "", type: "success" as "success" | "error" });
 
     // Local language invoice default
-    const featureFlags = (profile as any)?.feature_flags || {};
-    const isLocalInvoiceEnabled = !!featureFlags?.local_language_invoices || !!profile?.organization?.enable_local_invoices;
+    const { enabled: isGlobalLocalInvoiceEnabled } = useGlobalFeature('local_language_invoices');
+    const isLocalInvoiceEnabled = isGlobalLocalInvoiceEnabled || !!profile?.organization?.enable_local_invoices;
     const [defaultInvoiceLang, setDefaultInvoiceLang] = useState<LangCode | null>(null);
     const [langSaving, setLangSaving] = useState(false);
 
