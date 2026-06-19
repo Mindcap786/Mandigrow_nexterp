@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "ORG-.#####",
- "creation": "2026-04-24 15:04:48.871217",
+ "creation": "2026-05-25 23:33:02.622761",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -27,7 +27,6 @@
   "subscription_end_date",
   "grace_period_ends_at",
   "limits_section",
-  "enable_bulk_import",
   "grace_period_days",
   "max_users_override",
   "branding_section",
@@ -39,7 +38,9 @@
   "phone",
   "erp_company",
   "payment_settings",
-  "onboarding_partner"
+  "onboarding_partner",
+  "invoice_language",
+  "google_translate_api_key"
  ],
  "fields": [
   {
@@ -55,19 +56,19 @@
    "label": "Subscription"
   },
   {
+   "description": "Direct link to the active subscription plan",
    "fieldname": "plan_id",
    "fieldtype": "Link",
    "label": "Plan",
-   "options": "App Plan",
-   "description": "Direct link to the active subscription plan"
+   "options": "App Plan"
   },
   {
    "default": "starter",
+   "description": "Kept for backward compatibility. Synced from plan_id on save.",
    "fieldname": "subscription_tier",
    "fieldtype": "Select",
    "label": "Subscription Tier",
-   "options": "starter\nstandard\nprofessional\nenterprise",
-   "description": "Kept for backward compatibility. Synced from plan_id on save."
+   "options": "starter\nstandard\nprofessional\nenterprise"
   },
   {
    "default": "monthly",
@@ -83,10 +84,10 @@
   },
   {
    "default": "0",
+   "description": "When enabled, crate movements are auto-recorded on Sale and Gate Entry.",
    "fieldname": "enable_crate_tracking",
    "fieldtype": "Check",
-   "label": "Enable Crate Tracking",
-   "description": "When enabled, crate movements are auto-recorded on Sale and Gate Entry."
+   "label": "Enable Crate Tracking"
   },
   {
    "default": "7",
@@ -102,24 +103,24 @@
    "default": "trial",
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Status",
-   "options": "trial\nactive\ngrace_period\nsuspended\nexpired\nlocked",
-   "in_list_view": 1
+   "options": "trial\nactive\ngrace_period\nsuspended\nexpired\nlocked"
   },
   {
    "default": "Compliant",
    "fieldname": "compliance_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Compliance Status",
-   "options": "Compliant\nOver_Limit_Grace\nOver_Limit_Restricted",
-   "in_list_view": 1
+   "options": "Compliant\nOver_Limit_Grace\nOver_Limit_Restricted"
   },
   {
    "default": "1",
+   "description": "Derived from status. Active for trial/active/grace_period. Inactive for suspended/expired/locked.",
    "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "Is Active",
-   "description": "Derived from status. Active for trial/active/grace_period. Inactive for suspended/expired/locked."
+   "label": "Is Active"
   },
   {
    "fieldname": "last_status_change",
@@ -147,16 +148,16 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "When the current paid billing period ends",
    "fieldname": "subscription_end_date",
    "fieldtype": "Datetime",
-   "label": "Subscription End Date",
-   "description": "When the current paid billing period ends"
+   "label": "Subscription End Date"
   },
   {
+   "description": "Auto-computed: subscription_end_date + grace_period_days. Hard lockout after this.",
    "fieldname": "grace_period_ends_at",
    "fieldtype": "Datetime",
    "label": "Grace Period Ends At",
-   "description": "Auto-computed: subscription_end_date + grace_period_days. Hard lockout after this.",
    "read_only": 1
   },
   {
@@ -165,25 +166,18 @@
    "label": "Limits & Overrides"
   },
   {
-   "default": "0",
-   "fieldname": "enable_bulk_import",
-   "fieldtype": "Check",
-   "label": "Enable Bulk Import",
-   "description": "Per-tenant override. If checked, allows this organization to access the bulk contact import feature."
-  },
-  {
    "default": "7",
+   "description": "Per-tenant override. Days after expiry before hard lockout.",
    "fieldname": "grace_period_days",
    "fieldtype": "Int",
-   "label": "Grace Period (Days)",
-   "description": "Per-tenant override. Days after expiry before hard lockout."
+   "label": "Grace Period (Days)"
   },
   {
    "default": "0",
+   "description": "Per-tenant override. 0 = use plan default. -1 = unlimited.",
    "fieldname": "max_users_override",
    "fieldtype": "Int",
-   "label": "Max Users Override",
-   "description": "Per-tenant override. 0 = use plan default. -1 = unlimited."
+   "label": "Max Users Override"
   },
   {
    "fieldname": "branding_section",
@@ -232,17 +226,30 @@
    "label": "Payment Settings"
   },
   {
+   "description": "The partner who referred this organization",
    "fieldname": "onboarding_partner",
    "fieldtype": "Link",
    "label": "Onboarding Partner",
-   "options": "Mandi Partner Profile",
-   "description": "The partner who referred this organization"
+   "options": "Mandi Partner Profile"
+  },
+  {
+   "description": "Default language for printing invoices. Leave blank for English.",
+   "fieldname": "invoice_language",
+   "fieldtype": "Select",
+   "label": "Default Invoice Language",
+   "options": "\nte\nhi\nta\nkn\nml\nbn\ngu\nur"
+  },
+  {
+   "description": "Used only for translating new item names and party names not in the built-in dictionary. Leave blank to use English names as fallback.",
+   "fieldname": "google_translate_api_key",
+   "fieldtype": "Password",
+   "label": "Google Translate API Key"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-06 04:30:00.000000",
+ "modified": "2026-06-19 15:20:58.220056",
  "modified_by": "Administrator",
  "module": "Mandigrow",
  "name": "Mandi Organization",

@@ -12457,6 +12457,7 @@ _DEFAULT_FLAGS = [
     {"flag_key": "crm_module",            "label": "CRM Module",             "description": "Buyer/seller contact management",                       "is_enabled": 1, "category": "modules"},
     {"flag_key": "purchase_sale_form",    "label": "Purchase+Sale Form",     "description": "Combined purchase & sale commission entry",              "is_enabled": 1, "category": "modules"},
     {"flag_key": "bulk_import_contacts",  "label": "Bulk Import Contacts",   "description": "Global toggle for CSV/Excel contact import across all tenants", "is_enabled": 0, "category": "modules"},
+    {"flag_key": "local_language_invoices","label": "Local Language Invoices","description": "Invoice printing in Telugu, Urdu, Tamil, Kannada, Hindi, Malayalam, Bengali, Gujarati", "is_enabled": 0, "category": "modules"},
     {"flag_key": "coupon_engine",         "label": "Coupon Engine",          "description": "Promo code validation at checkout",                      "is_enabled": 1, "category": "billing"},
     {"flag_key": "yearly_billing",        "label": "Yearly Billing",         "description": "Yearly pricing toggle on /subscribe",                    "is_enabled": 1, "category": "billing"},
     {"flag_key": "multi_tenant_isolation","label": "Multi-Tenant Guard",     "description": "Strict org-level data isolation (NEVER disable)",       "is_enabled": 1, "category": "security"},
