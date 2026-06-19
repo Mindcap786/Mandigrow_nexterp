@@ -90,7 +90,7 @@ export default function Settings() {
 
     // Local language invoice default
     const { enabled: isGlobalLocalInvoiceEnabled } = useGlobalFeature('local_language_invoices');
-    const isLocalInvoiceEnabled = isGlobalLocalInvoiceEnabled || !!profile?.organization?.enable_local_invoices;
+    const isLocalInvoiceEnabled = isGlobalLocalInvoiceEnabled || !!(profile?.organization as any)?.enable_local_invoices;
     const [defaultInvoiceLang, setDefaultInvoiceLang] = useState<LangCode | null>(null);
     const [langSaving, setLangSaving] = useState(false);
 
