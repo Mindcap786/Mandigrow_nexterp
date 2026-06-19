@@ -124,7 +124,7 @@ export default function Settings() {
                     igst_percent: Number(data.igst_percent) || 0,
                 });
                 // Fetch org invoice language if feature is enabled
-                if (featureFlags?.local_language_invoices) {
+                if (isGlobalLocalInvoiceEnabled) {
                     callApi('mandigrow.local_invoices.api.get_org_invoice_language')
                         .then((lang: any) => { if (lang && isValidLang(lang)) setDefaultInvoiceLang(lang as LangCode); })
                         .catch(() => { });
