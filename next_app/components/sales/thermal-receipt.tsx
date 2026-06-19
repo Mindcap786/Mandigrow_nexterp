@@ -7,6 +7,9 @@ import { usePlatformBranding } from "@/hooks/use-platform-branding"
 interface ThermalReceiptProps {
     sale: any
     organization: any
+    lang?: string | null
+    itemTranslations?: Record<string, string>
+    partyTranslation?: string | null
 }
 
 export default function ThermalReceipt({ sale, organization }: ThermalReceiptProps) {
@@ -58,7 +61,14 @@ export default function ThermalReceipt({ sale, organization }: ThermalReceiptPro
             <div className="mb-4 border-b border-dashed border-black pb-2 text-[11px]">
                 <div className="flex justify-between"><span>Bill No:</span> <span className="font-bold">{billNo}</span></div>
                 <div className="flex justify-between mt-1"><span>Date:</span> <span>{sale.transaction_date ? format(new Date(sale.transaction_date), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy')}</span></div>
-                {sale.buyer?.name && <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black"><span>Buyer:</span> <span className="font-bold uppercase text-right leading-tight max-w-[150px]">{sale.buyer.name}</span></div>}
+                {sale.buyer?.name && (
+                    <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black">
+                        <span>Buyer:</span> 
+                        <span className="font-bold uppercase text-right leading-tight max-w-[150px]">
+                            {partyTranslation || sale.buyer.name}
+                        </span>
+                    </div>
+                )}
                 <div className="flex justify-between mt-1"><span>Mode:</span> <span className="uppercase font-bold">{paymentMode}</span></div>
             </div>
             
@@ -80,7 +90,10 @@ export default function ThermalReceipt({ sale, organization }: ThermalReceiptPro
                         return (
                             <tr key={i}>
                                 <td className="py-2 pr-1 font-semibold">
-                                    <div className="uppercase font-bold">{itemName} {c.lot?.item?.grade && c.lot?.item?.grade !== 'A' && <span className="ml-1">[{c.lot.item.grade}]</span>}</div>
+                                    <div className="uppercase font-bold">
+                                        {itemTranslations?.[itemName] || itemName} 
+                                        {c.lot?.item?.grade && c.lot?.item?.grade !== 'A' && <span className="ml-1">[{c.lot.item.grade}]</span>}
+                                    </div>
                                 </td>
                                 <td className="py-2 text-right align-top">{qty}</td>
                                 <td className="py-2 text-right align-top">{rate}</td>

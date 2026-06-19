@@ -59,9 +59,9 @@ export function useLocalInvoice(isGlobalEnabled: boolean, isTenantEnabled: boole
       .catch(() => {}); // fail silently
   }, [isEnabled]);
 
-  // Set per-invoice override (or null to revert to org default)
+  // Set per-invoice override (or null to revert to English)
   const setActiveLang = useCallback((lang: LangCode | null) => {
-    setActiveLangState(lang ?? orgLang);
+    setActiveLangState(lang);
     // Reset translations when language changes
     setItemTranslations({});
     setPartyTranslation(null);

@@ -31,6 +31,13 @@ export default function SaleInvoicePage() {
     const [triggerPrint, setTriggerPrint] = useState(0)
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
 
+    // Reset print mode after OS print dialog closes (prevents screen from staying blank after thermal print fallback)
+    useEffect(() => {
+        const handleAfterPrint = () => setPrintMode('a4');
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+    }, []);
+
     // Local language invoices
     const { enabled: isGlobalEnabled } = useGlobalFeature('local_language_invoices')
     const isTenantEnabled = !!(profile as any)?.organization?.enable_local_invoices
@@ -69,7 +76,7 @@ export default function SaleInvoicePage() {
     useEffect(() => {
         if (localInvoice.isEnabled && localInvoice.activeLang && sale) {
             const itemNames = (sale.sale_items || []).map((i: any) => i.lot?.item?.name || i.item_name || '').filter(Boolean)
-            const partyName = sale.contact?.name || sale.buyer_name || ''
+            const partyName = sale.contact?.full_name || sale.buyer_name || ''
             localInvoice.fetchTranslations(itemNames, partyName)
         }
     }, [localInvoice.activeLang, sale, localInvoice.isEnabled])
@@ -313,7 +320,13 @@ export default function SaleInvoicePage() {
                     )}
                 </div>
                 <div className={printMode === 'a4' ? "hidden print:hidden" : "hidden print:block"}>
-                    <ThermalReceipt sale={sale} organization={organization} />
+                    <ThermalReceipt 
+                        sale={sale} 
+                        organization={organization} 
+                        lang={localInvoice.activeLang}
+                        itemTranslations={localInvoice.itemTranslations}
+                        partyTranslation={localInvoice.partyTranslation}
+                    />
                 </div>
             </div>
 

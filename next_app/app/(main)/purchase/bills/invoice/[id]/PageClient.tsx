@@ -95,7 +95,7 @@ export default function PurchaseBillInvoicePage() {
                 if (l.item_name) itemNamesSet.add(l.item_name);
             });
             const itemNames = Array.from(itemNamesSet).filter(Boolean);
-            const partyName = arrival.supplier_name || arrival.contact?.name || '';
+            const partyName = arrival.supplier_name || arrival.contact?.full_name || '';
             localInvoice.fetchTranslations(itemNames, partyName);
         }
     }, [localInvoice.activeLang, lot, arrival, arrivalLots, localInvoice.isEnabled]);
