@@ -240,6 +240,12 @@
    "options": "\nte\nhi\nta\nkn\nml\nbn\ngu\nur"
   },
   {
+   "default": "0",
+   "fieldname": "enable_local_invoices",
+   "fieldtype": "Check",
+   "label": "Enable Local Invoices"
+  },
+  {
    "description": "Used only for translating new item names and party names not in the built-in dictionary. Leave blank to use English names as fallback.",
    "fieldname": "google_translate_api_key",
    "fieldtype": "Password",

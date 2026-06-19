@@ -9743,6 +9743,7 @@ def _get_org_info(org_id: str) -> dict:
             "address_line2": city_val,
             "pincode": org.get("pincode") or "",
             "enable_bulk_import": bool(org.get("enable_bulk_import", False)),
+            "enable_local_invoices": bool(org.get("enable_local_invoices", False)),
             "slug": org.get("slug") or "",
             "pan_number": org.get("pan_number") or "",
             "email": org.get("email") or "",
@@ -12354,6 +12355,7 @@ def get_admin_tenants() -> list:
             "subscription_tier": sub_state.get("plan") or org.subscription_tier or 'basic',
             "is_active": sub_state.get("is_active", False),
             "enable_bulk_import": bool(org.get("enable_bulk_import")),
+            "enable_local_invoices": bool(org.get("enable_local_invoices")),
             "status": sub_state.get("status") or org.status or 'trial',
             "trial_ends_at": str(trial_ends_at)[:10] if trial_ends_at else None,
             "current_period_end": str(current_period_end)[:10] if current_period_end else None,
@@ -12970,6 +12972,19 @@ def admin_billing_action(action: str, organization_id: str, payload: dict = None
             old_value=str(current_val),
             new_value=str(new_val),
             notes=f"Bulk Import {'enabled' if new_val else 'disabled'} by {frappe.session.user}"
+        )
+        frappe.db.commit()
+        return {"success": True}
+    elif action == "toggle_local_invoices":
+        current_val = frappe.db.get_value("Mandi Organization", organization_id, "enable_local_invoices")
+        new_val = 1 if not current_val else 0
+        frappe.db.set_value("Mandi Organization", organization_id, "enable_local_invoices", new_val)
+        log_subscription_event(
+            org_id=organization_id,
+            action="custom_plan",
+            old_value=str(current_val),
+            new_value=str(new_val),
+            notes=f"Local Invoices {'enabled' if new_val else 'disabled'} by {frappe.session.user}"
         )
         frappe.db.commit()
         return {"success": True}
