@@ -65,6 +65,15 @@ export default function SaleInvoicePage() {
         }
     }, [triggerPrint]);
 
+    // Auto-fetch translations for live preview
+    useEffect(() => {
+        if (localInvoice.isEnabled && localInvoice.activeLang && sale) {
+            const itemNames = (sale.sale_items || []).map((i: any) => i.lot?.item?.name || i.item_name || '').filter(Boolean)
+            const partyName = sale.contact?.name || sale.buyer_name || ''
+            localInvoice.fetchTranslations(itemNames, partyName)
+        }
+    }, [localInvoice.activeLang, sale, localInvoice.isEnabled])
+
     const fetchSale = async (isRefresh = false, retryCount = 0) => {
         if (!isRefresh && retryCount === 0) setLoading(true)
         let isRetrying = false;
@@ -238,8 +247,7 @@ export default function SaleInvoicePage() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    variant="outline"
-                                    className="flex-1 md:flex-none border-white/20 text-white hover:bg-white/10 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm gap-1.5"
+                                    className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm gap-1.5"
                                 >
                                     <Globe className="w-4 h-4 shrink-0" />
                                     <span className="truncate">

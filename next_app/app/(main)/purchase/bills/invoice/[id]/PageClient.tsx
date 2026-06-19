@@ -84,6 +84,22 @@ export default function PurchaseBillInvoicePage() {
         window.print()
     }
 
+    // Auto-fetch translations for live preview and printing
+    useEffect(() => {
+        if (localInvoice.isEnabled && localInvoice.activeLang && lot && arrival) {
+            const itemNamesSet = new Set<string>();
+            if (lot.item?.name) itemNamesSet.add(lot.item.name);
+            if (lot.item_name) itemNamesSet.add(lot.item_name);
+            arrivalLots.forEach((l: any) => {
+                if (l.item?.name) itemNamesSet.add(l.item.name);
+                if (l.item_name) itemNamesSet.add(l.item_name);
+            });
+            const itemNames = Array.from(itemNamesSet).filter(Boolean);
+            const partyName = arrival.supplier_name || arrival.contact?.name || '';
+            localInvoice.fetchTranslations(itemNames, partyName);
+        }
+    }, [localInvoice.activeLang, lot, arrival, arrivalLots, localInvoice.isEnabled]);
+
     const handleThermalPrint = async (forcePrompt: boolean = false) => {
         try {
             const escposData = generatePurchaseReceiptESCPOS(lot, arrival, organization, arrivalLots, thermalWidth);
@@ -231,8 +247,7 @@ export default function PurchaseBillInvoicePage() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    variant="outline"
-                                    className="flex-1 md:flex-none border-white/20 text-white hover:bg-white/10 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm gap-1.5"
+                                    className="flex-1 md:flex-none bg-white text-black hover:bg-white/90 font-bold h-10 md:h-12 px-2 md:px-4 text-[10px] md:text-sm gap-1.5"
                                 >
                                     <Globe className="w-4 h-4 shrink-0" />
                                     <span className="truncate">
