@@ -82,7 +82,7 @@ export function useLocalInvoice(isGlobalEnabled: boolean, isTenantEnabled: boole
       if (name) {
         uniqueItemNames.add(name);
         if (name.includes(' - ')) {
-          uniqueItemNames.add(name.split(' - ')[0].trim());
+          name.split(' - ').forEach(part => uniqueItemNames.add(part.trim()));
         }
       }
     });

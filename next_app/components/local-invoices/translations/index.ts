@@ -74,11 +74,12 @@ export function getItemName(
   if (translatedName && translatedName.trim()) return translatedName.trim();
   
   if (englishName && allTranslations && englishName.includes(' - ')) {
-    const [base, ...rest] = englishName.split(' - ');
-    const translatedBase = allTranslations[base.trim()];
-    if (translatedBase) {
-      return `${translatedBase} - ${rest.join(' - ')}`;
-    }
+    const parts = englishName.split(' - ');
+    const translatedParts = parts.map(part => {
+      const p = part.trim();
+      return allTranslations[p] || p;
+    });
+    return translatedParts.join(' - ');
   }
 
   if (englishName && !isLatinOnly(englishName)) return englishName;
