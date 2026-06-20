@@ -15,6 +15,9 @@ import { LandingHeader } from '@/components/layout/LandingHeader'
 import { HeroSlider } from '@/components/landing/HeroSlider'
 import { InteractivePattiGenerator } from '@/components/landing/InteractivePattiGenerator'
 import { ROICalculator } from '@/components/landing/ROICalculator'
+import { WhatsAppMockup } from '@/components/landing/WhatsAppMockup'
+import { Testimonials } from '@/components/landing/Testimonials'
+import { SeoExpandedContent } from '@/components/landing/SeoExpandedContent'
 
 export default function LandingPage() {
     const { t } = useLanguage();
@@ -240,6 +243,10 @@ export default function LandingPage() {
                     </div>
                 </div>
             </section>
+
+            <WhatsAppMockup />
+            <Testimonials />
+            <SeoExpandedContent />
 
             {/* ── ZERO RISK ONBOARDING BANNER ─────────────────────────────────── */}
             <section className="relative overflow-hidden bg-emerald-900 py-20 px-6">

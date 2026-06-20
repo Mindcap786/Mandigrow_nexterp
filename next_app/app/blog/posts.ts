@@ -403,7 +403,7 @@ export const POSTS: BlogPost[] = [
         body: `
 <h1>Best Fruit Mandi Software in India (2026): Automating Commission, Patti, and Accounting</h1>
 <p>The fruit mandi business moves at lightning speed. Unlike dry goods, fruits are highly perishable. As a commission agent (arhtiya), your mornings are chaotic—managing auctions, negotiating rates, calculating weight variations (crates/boxes), and instantly settling farmer payments (patti). Using a paper khata or generic accounting tools like Tally simply isn't fast enough anymore.</p>
-<p>In 2026, the most profitable commission agents are switching to specialized <strong>fruit mandi software</strong>. But what makes an ERP system truly built for the fruit trade?</p>
+<p>In 2026, the most profitable commission agents are switching to specialized <strong><a href="/fruit-mandi-software" className="text-emerald-700 font-bold hover:underline">fruit mandi software</a></strong>. But what makes an ERP system truly built for the fruit trade?</p>
 <p>In this deep-dive guide, we explore why digital transformation is mandatory for fruit traders and how modern software like MandiGrow eliminates daily accounting headaches.</p>
 <h2>Why Generic ERPs Fail in the Fruit Mandi</h2>
 <p>Most generic billing software is built for retail shops, not wholesale mandis. Here is why standard software fails fruit commission agents:</p>
@@ -477,7 +477,7 @@ export const POSTS: BlogPost[] = [
         body: `
 <h1>Sabzi Mandi Billing Software: Automating Patti, GST, and Commission in 2026</h1>
 <p>If there is one word that describes the daily life of a vegetable commission agent (arhtiya), it is <strong>chaos</strong>. Between 4:00 AM and 10:00 AM, thousands of transactions happen. Farmers drop off mixed lots of vegetables (<em>dheris</em>), auctions happen in seconds, buyers load their tempos, and you are expected to keep perfect mental math of who bought what, at what rate, and what commission is owed.</p>
-<p>Relying on manual paper <em>bahi-khatas</em> in 2026 is not just outdated; it is costing you money. Missed entries, calculation errors, and lost chits mean leaked profits. This is why the shift toward dedicated <strong>sabzi mandi billing software</strong> is accelerating across India.</p>
+<p>Relying on manual paper <em>bahi-khatas</em> in 2026 is not just outdated; it is costing you money. Missed entries, calculation errors, and lost chits mean leaked profits. This is why the shift toward dedicated <strong><a href="/sabji-mandi-software" className="text-emerald-700 font-bold hover:underline">sabzi mandi billing software</a></strong> is accelerating across India.</p>
 <p>Here is exactly how adopting a digital mandi ERP will transform your vegetable trading business.</p>
 <h2>The Unique Challenges of Sabji Mandi Billing</h2>
 <p>Vegetable mandis operate entirely differently from retail or standard wholesale. A sabzi mandi software must solve these specific, hyper-local problems:</p>
@@ -541,7 +541,7 @@ export const POSTS: BlogPost[] = [
 <h1>Anaj Mandi ERP Software: APMC Compliance and Digital Khata for Grain Traders</h1>
 <p>Unlike the daily frantic pace of fruit and vegetable markets, the <strong>Anaj Mandi (Grain Market)</strong> operates on a scale of massive volume, seasonal spikes, and strict government regulations. Grain commission agents (<em>Kachha and Pucca Arhtiyas</em>) deal in hundreds of quintals of wheat, paddy, mustard, and pulses.</p>
 <p>The complexity here isn't just speed; it is <strong>accuracy, compliance, and inventory management</strong>. Managing moisture deductions, gunny bag (<em>bardana</em>) inventory, APMC taxes, and Minimum Support Price (MSP) regulations on a paper khata is nearly impossible.</p>
-<p>Enter the modern <strong>Anaj Mandi ERP Software</strong>. Here is how digital transformation is reshaping the Indian grain trade in 2026.</p>
+<p>Enter the modern <strong><a href="/anaj-mandi-erp-software" className="text-emerald-700 font-bold hover:underline">Anaj Mandi ERP Software</a></strong>. Here is how digital transformation is reshaping the Indian grain trade in 2026.</p>
 <h2>The Core Challenges of the Grain Commission Agent</h2>
 <p>Grain traders face a unique set of accounting challenges that standard business software cannot handle:</p>
 <ul>
@@ -597,7 +597,7 @@ export const POSTS: BlogPost[] = [
 <h1>From Paper Khata to Digital Khata: Why Mandi Commission Agents Need ERP Software</h1>
 <p>For generations, the heartbeat of the Indian wholesale agricultural market has been the iconic red cloth-bound <em>bahi-khata</em> (ledger). It held the secrets of the business: farmer loans, buyer credits, daily commissions, and inventory.</p>
 <p>But as we move deeper into 2026, the paper khata is becoming a massive liability. In an era of instant WhatsApp messages, GST compliance, and razor-thin margins, relying on pen and paper limits how big your commission agency (Arhat) can grow.</p>
-<p>The transition to a <strong>Digital Khata and Mandi ERP Software</strong> is no longer just for the tech-savvy; it is a fundamental requirement for survival and profitability in the mandi.</p>
+<p>The transition to a <strong><a href="/mandi-khata-software" className="text-emerald-700 font-bold hover:underline">Digital Khata and Mandi ERP Software</a></strong> is no longer just for the tech-savvy; it is a fundamental requirement for survival and profitability in the mandi.</p>
 <h2>The Hidden Costs of the Paper Khata</h2>
 <p>You might think your paper khata is free, but it is actively costing you money every single day:</p>
 <ul>
