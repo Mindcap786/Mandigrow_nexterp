@@ -9777,6 +9777,7 @@ def _get_org_info(org_id: str) -> dict:
             "erp_company": org.get("erp_company") or "",
             "enable_crate_tracking": bool(org.get("enable_crate_tracking")) or global_crate_tracking,
             "crate_ageing_days": int(org.get("crate_ageing_days") or global_crate_ageing or 7),
+            "rbac_matrix": org.get("rbac_matrix") or "{}",
             "settings": {
                 "payment": payment_settings
             }
@@ -13116,7 +13117,7 @@ def get_tenant_details(p_org_id: str) -> dict:
     """
     Returns detailed information about a single tenant for the Admin Portal.
     """
-    from mandigrow.mandigrow.logic.tenancy import is_super_admin
+    from mandigrow.mandigrow.logic.tenancy import is_super_admin, PLATFORM_ADMIN_EMAILS
     user = frappe.get_doc("User", frappe.session.user)
     if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
         frappe.throw(_("Access Denied: Super Admin role required"), frappe.PermissionError)
@@ -13125,12 +13126,13 @@ def get_tenant_details(p_org_id: str) -> dict:
         frappe.throw(_("Organization {0} not found").format(p_org_id))
 
     org = frappe.get_doc("Mandi Organization", p_org_id)
+    excluded = list(PLATFORM_ADMIN_EMAILS) + ["Administrator"]
     users = frappe.get_all("User", 
         filters={
             "mandi_organization": p_org_id,
-            "name": ["!=", "Administrator"]
+            "name": ["not in", excluded]
         }, 
-        fields=["name as id", "full_name", "email", "username", "role_type", "mobile_no as phone", "last_active"]
+        fields=["name as id", "full_name", "email", "username", "role_type", "mobile_no as phone", "last_active", "enabled"]
     )
     
     owner = next((u for u in users if u.role_type == 'admin'), None)
@@ -13198,6 +13200,10 @@ def admin_user_action(action: str, user_id: str, payload: dict = None) -> dict:
         update_password(user_id, new_password)
     elif action == "delete":
         frappe.delete_doc("User", user_id)
+    elif action == "disable":
+        frappe.db.set_value("User", user_id, "enabled", 0)
+    elif action == "enable":
+        frappe.db.set_value("User", user_id, "enabled", 1)
     elif action == "update_permissions":
         rbac_matrix = payload.get("rbac_matrix")
         frappe.db.set_value("User", user_id, "rbac_matrix", frappe.as_json(rbac_matrix))
@@ -13268,6 +13274,10 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
             org.max_users_override = int(config["max_users_override"])
         except Exception:
             pass
+            
+    if "rbac_matrix" in config:
+        import json
+        org.rbac_matrix = json.dumps(config["rbac_matrix"]) if isinstance(config["rbac_matrix"], dict) else config["rbac_matrix"]
 
     # ── AUTO-CORRECT STATUS BASED ON EXPIRY DATE ─────────────────────────────
     # RULE: If the effective expiry date is in the FUTURE, the tenant is ACTIVE.
