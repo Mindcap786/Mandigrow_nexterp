@@ -255,14 +255,11 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="text-center mb-14">
                         <div className="inline-flex items-center gap-2 bg-emerald-800/60 text-emerald-300 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest mb-6 border border-emerald-700">
-                            <Zap className="w-3.5 h-3.5" /> Zero Risk to Get Started
+                            <Zap className="w-3.5 h-3.5" /> {t('landing.setup_badge')}
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4">
-                            We Set You Up. <span className="text-emerald-400">You Just Run Your Mandi.</span>
-                        </h2>
+                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-4" dangerouslySetInnerHTML={{__html: t('landing.setup_title_p1') + '<span className="text-emerald-400">' + t('landing.setup_title_p2') + '</span>'}} />
                         <p className="text-emerald-200 text-lg font-medium max-w-2xl mx-auto">
-                            No IT team needed. No setup fees. No long training sessions. 
-                            Our team comes to you — onboarding is on us.
+                            {t('landing.setup_desc')}
                         </p>
                     </div>
 
@@ -274,9 +271,9 @@ export default function LandingPage() {
                             </div>
                             <div>
                                 <div className="inline-block bg-emerald-500 text-emerald-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3">100% Free</div>
-                                <h3 className="text-2xl font-black text-white mb-2">Free Training Included</h3>
+                                <h3 className="text-2xl font-black text-white mb-2">{t('landing.setup_c1_title')}</h3>
                                 <p className="text-emerald-300 font-medium leading-relaxed">
-                                    Our trainers will visit your mandi (or call you) and teach your staff how to use every module — billing, khata, arrivals, and reports. Training is always free, for life.
+                                    {t('landing.setup_c1_desc')}
                                 </p>
                             </div>
                             <ul className="space-y-2 mt-2">
@@ -295,9 +292,9 @@ export default function LandingPage() {
                             </div>
                             <div>
                                 <div className="inline-block bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3">₹0 Setup</div>
-                                <h3 className="text-2xl font-black text-white mb-2">No Setup Cost. Ever.</h3>
+                                <h3 className="text-2xl font-black text-white mb-2">{t('landing.setup_c2_title')}</h3>
                                 <p className="text-emerald-300 font-medium leading-relaxed">
-                                    Account creation, data migration, master data setup — all done by our team at zero cost. Pay only your monthly/annual subscription. Nothing extra.
+                                    {t('landing.setup_c2_desc')}
                                 </p>
                             </div>
                             <ul className="space-y-2 mt-2">
@@ -316,9 +313,9 @@ export default function LandingPage() {
                             </div>
                             <div>
                                 <div className="inline-block bg-blue-400 text-blue-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3">Always On</div>
-                                <h3 className="text-2xl font-black text-white mb-2">Dedicated Support Team</h3>
+                                <h3 className="text-2xl font-black text-white mb-2">{t('landing.setup_c3_title')}</h3>
                                 <p className="text-emerald-300 font-medium leading-relaxed">
-                                    A dedicated support manager is assigned to your mandi from day one. Reach us via WhatsApp, phone, or in-app chat — we respond during mandi hours.
+                                    {t('landing.setup_c3_desc')}
                                 </p>
                             </div>
                             <ul className="space-y-2 mt-2">

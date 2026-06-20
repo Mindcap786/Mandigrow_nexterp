@@ -2,6 +2,7 @@
 
 import { Star, Quote } from 'lucide-react'
 import Image from 'next/image'
+import { useLanguage } from '@/components/i18n/language-provider'
 
 const TESTIMONIALS = [
     {
@@ -31,15 +32,14 @@ const TESTIMONIALS = [
 ]
 
 export function Testimonials() {
+    const { t } = useLanguage();
     return (
         <section className="py-24 px-6 bg-white relative z-10 border-t border-emerald-100">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">
-                        Trusted by <span className="text-emerald-700">200+ Traders</span> India-wide
-                    </h2>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900" dangerouslySetInnerHTML={{__html: t('landing.trust_title_p1') + '<span className="text-emerald-700">' + t('landing.trust_title_p2') + '</span>' + t('landing.trust_title_p3')}} />
                     <p className="text-xl text-gray-600 font-medium max-w-2xl mx-auto">
-                        From Delhi's Azadpur to Hyderabad's Bowenpally, see why India's top commission agents are switching from paper bahis to MandiGrow.
+                        {t('landing.trust_desc')}
                     </p>
                 </div>
 

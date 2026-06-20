@@ -1,8 +1,10 @@
 'use client'
 
 import { MessageCircle, Check, Image as ImageIcon } from 'lucide-react'
+import { useLanguage } from '@/components/i18n/language-provider'
 
 export function WhatsAppMockup() {
+    const { t } = useLanguage();
     return (
         <section className="py-24 px-6 bg-[#f7fbf3] relative z-10 border-t border-[#c8d6b0] overflow-hidden">
             <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-16">
@@ -10,18 +12,16 @@ export function WhatsAppMockup() {
                 {/* Text Side */}
                 <div className="flex-1 space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-xs font-bold text-emerald-800">
-                        <MessageCircle className="w-4 h-4" /> WhatsApp Integration
+                        <MessageCircle className="w-4 h-4" /> {t('landing.whatsapp_badge')}
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 leading-[1.1]">
-                        Send Pattis on WhatsApp <span className="text-emerald-600">in 1 Click</span>
-                    </h2>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-gray-900 leading-[1.1]" dangerouslySetInnerHTML={{__html: t('landing.whatsapp_title_p1') + '<span className="text-emerald-600">' + t('landing.whatsapp_title_p2') + '</span>'}} />
                     <p className="text-xl text-gray-600 font-medium">
-                        Stop printing paper. Generate a professional, GST-compliant Patti in Hindi or English, and send it directly to the farmer or buyer's WhatsApp with a single tap.
+                        {t('landing.whatsapp_desc')}
                     </p>
                     <ul className="space-y-3 font-bold text-gray-700">
-                        <li className="flex items-center gap-2"><Check className="w-5 h-5 text-emerald-600" /> Instant PDF generation</li>
-                        <li className="flex items-center gap-2"><Check className="w-5 h-5 text-emerald-600" /> Bilingual Support (Hindi, Telugu, English)</li>
-                        <li className="flex items-center gap-2"><Check className="w-5 h-5 text-emerald-600" /> Builds trust with farmers through transparency</li>
+                        <li className="flex items-center gap-2"><Check className="w-5 h-5 text-emerald-600" /> {t('landing.whatsapp_f1')}</li>
+                        <li className="flex items-center gap-2"><Check className="w-5 h-5 text-emerald-600" /> {t('landing.whatsapp_f2')}</li>
+                        <li className="flex items-center gap-2"><Check className="w-5 h-5 text-emerald-600" /> {t('landing.whatsapp_f3')}</li>
                     </ul>
                 </div>
 
