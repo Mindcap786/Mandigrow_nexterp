@@ -1,7 +1,16 @@
 {
   "nav": {
     "language": "மொழியைத் தேர்ந்தெடு",
-    "logout": "வெளியேறு"
+    "logout": "வெளியேறு",
+    "dashboard": "முகப்புப் பக்கம்",
+    "purchase": "கொள்முதல்",
+    "sales": "விற்பனை & பில்லிங்",
+    "inventory": "சரக்கு நிலை",
+    "payments_receipts": "கொடுப்பனவுகள் & ரசீதுகள்",
+    "trading_pl": "வர்த்தக லாபம்/நஷ்டம்",
+    "finance": "நிதி",
+    "master_data": "முதன்மை தரவு",
+    "settings": "அமைப்புகள்"
   },
   "dashboard": {
     "command_center": "கட்டளை மையம்",

@@ -1,7 +1,16 @@
 {
   "nav": {
     "language": "زبان منتخب کریں",
-    "logout": "لاگ آؤٹ"
+    "logout": "لاگ آؤٹ",
+    "dashboard": "ڈیش بورڈ",
+    "purchase": "خریداری",
+    "sales": "فروخت اور بلنگ",
+    "inventory": "اسٹاک کی صورتحال",
+    "payments_receipts": "ادائیگیاں اور رسیدیں",
+    "trading_pl": "تجارتی نفع/نقصان",
+    "finance": "مالیات",
+    "master_data": "ماسٹر ڈیٹا",
+    "settings": "ترتیبات"
   },
   "dashboard": {
     "command_center": "کمانڈ سینٹر",

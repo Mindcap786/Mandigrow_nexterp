@@ -1,7 +1,16 @@
 {
   "nav": {
     "language": "ભાષા પસંદ કરો",
-    "logout": "લૉગઆઉટ"
+    "logout": "લૉગઆઉટ",
+    "dashboard": "ડેશબોર્ડ",
+    "purchase": "ખરીદી",
+    "sales": "વેચાણ અને બિલિંગ",
+    "inventory": "સ્ટોકની સ્થિતિ",
+    "payments_receipts": "ચુકવણી અને રસીદો",
+    "trading_pl": "ટ્રેડિંગ નફો/નુકસાન",
+    "finance": "નાણાં",
+    "master_data": "માસ્ટર ડેટા",
+    "settings": "સેટિંગ્સ"
   },
   "dashboard": {
     "command_center": "કમાન્ડ સેન્ટર",

@@ -1,7 +1,16 @@
 {
   "nav": {
     "language": "ഭാഷ തിരഞ്ഞെടുക്കുക",
-    "logout": "ലോഗ്ഔട്ട്"
+    "logout": "ലോഗ്ഔട്ട്",
+    "dashboard": "ഡാഷ്‌ബോർഡ്",
+    "purchase": "പർച്ചേസ്",
+    "sales": "വിൽപ്പന & ബില്ലിംഗ്",
+    "inventory": "സ്റ്റോക്ക് നില",
+    "payments_receipts": "പേയ്‌മെന്റുകൾ & രസീതുകൾ",
+    "trading_pl": "ട്രേഡിംഗ് ലാഭം/നഷ്ടം",
+    "finance": "സാമ്പത്തികം",
+    "master_data": "മാസ്റ്റർ ഡാറ്റ",
+    "settings": "ക്രമീകരണങ്ങൾ"
   },
   "dashboard": {
     "command_center": "കമാൻഡ് സെന്റർ",

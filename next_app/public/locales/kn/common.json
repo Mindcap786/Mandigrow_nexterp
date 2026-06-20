@@ -1,7 +1,16 @@
 {
   "nav": {
     "language": "ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ",
-    "logout": "ಲಾಗ್ ಔಟ್"
+    "logout": "ಲಾಗ್ ಔಟ್",
+    "dashboard": "ಮುಖಪುಟ",
+    "purchase": "ಖರೀದಿ",
+    "sales": "ಮಾರಾಟ ಮತ್ತು ಬಿಲ್ಲಿಂಗ್",
+    "inventory": "ಸ್ಟಾಕ್ ಸ್ಥಿತಿ",
+    "payments_receipts": "ಪಾವತಿಗಳು ಮತ್ತು ರಸೀದಿಗಳು",
+    "trading_pl": "ವ್ಯಾಪಾರ ಲಾಭ/ನಷ್ಟ",
+    "finance": "ಹಣಕಾಸು",
+    "master_data": "ಮಾಸ್ಟರ್ ಡೇಟಾ",
+    "settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು"
   },
   "dashboard": {
     "command_center": "ಕಮಾಂಡ್ ಸೆಂಟರ್",

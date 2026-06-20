@@ -326,7 +326,9 @@
     "compliance": "Compliance",
     "bank_details": "Bank Details",
     "bulk_lot_sale": "Bulk Lot Sale",
-    "field_governance": "Field Governance"
+    "field_governance": "Field Governance",
+    "payments_receipts": "Payments & Receipts",
+    "trading_pl": "Trading P&L"
   },
   "settings": {
     "subtitle": "Configure global rates, team permissions, and financial security."

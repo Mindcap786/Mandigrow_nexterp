@@ -1,7 +1,16 @@
 {
   "nav": {
     "language": "भाषा चुनें",
-    "logout": "लॉग आउट"
+    "logout": "लॉग आउट",
+    "dashboard": "डैशबोर्ड",
+    "purchase": "खरीद",
+    "sales": "बिक्री और बिलिंग",
+    "inventory": "स्टॉक की स्थिति",
+    "payments_receipts": "भुगतान और रसीदें",
+    "trading_pl": "व्यापार लाभ/हानि",
+    "finance": "वित्त",
+    "master_data": "मास्टर डेटा",
+    "settings": "सेटिंग्स"
   },
   "dashboard": {
     "command_center": "कमांड सेंटर",
