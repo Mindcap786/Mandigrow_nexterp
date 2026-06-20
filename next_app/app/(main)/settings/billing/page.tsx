@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from '@/components/i18n/language-provider';
 import { useState, useEffect } from "react";
 import { callApi } from "@/lib/frappeClient";
 import { useAuth } from "@/components/auth/auth-provider";

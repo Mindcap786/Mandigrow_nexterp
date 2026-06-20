@@ -281,5 +281,37 @@
     "complexity_point3": "Hamali and weighing charges",
     "complexity_point4": "Advance payments and outstanding Udhar",
     "designed_footer": "MandiGrow is designed from the ground up as a dedicated commission agent software. When an"
+  },
+  "auth": {
+    "hero_title": "ہندوستان میں <g>آڑھتیوں اور پھل-سبزی تاجروں</g> کے لیے منڈی ERP سافٹ ویئر",
+    "hero_description": "جدید منڈیوں کے لیے گلوبل OS۔ ہندوستان کا #1 کلاؤڈ منڈی ERP سافٹ ویئر۔",
+    "security_certified": "Bank-Grade Security • SOC-2 Type II Certified",
+    "enterprise_live": "MandiGrow OS Live",
+    "login_welcome": "خوش آمدید",
+    "login_subtitle": "اپنے پورٹل تک رسائی کے لیے تفصیلات درج کریں۔",
+    "sign_in_tab": "سائن ان",
+    "create_account_tab": "اکاؤنٹ بنائیں",
+    "email_username": "ای میل / یوزر نیم",
+    "password": "پاس ورڈ",
+    "forgot_password": "پاس ورڈ بھول گئے؟",
+    "sign_in_btn": "سائن ان",
+    "sign_up_btn": "اکاؤنٹ بنائیں",
+    "authenticating": "Authenticating...",
+    "need_account": "اکاؤنٹ چاہیے؟ آج ہی سائن اپ کریں۔",
+    "have_account": "پہلے سے اکاؤنٹ ہے؟ سائن ان کریں۔"
+  },
+  "settings_module": {
+    "team_access": "رسائی ٹیم",
+    "team_subtitle": "اپنے ملازمین کے لیے لاگ ان اور اجازتوں کا نظم کریں",
+    "authorize_employee": "ملازم کو مجاز کریں",
+    "inactive_system": "سسٹم میں غیر فعال",
+    "authorized_team": "مجاز ٹیم",
+    "no_staff_found": "کوئی عملہ نہیں ملا",
+    "add_employees_before": "رسائی دینے سے پہلے ملازمین شامل کریں",
+    "to_authorize_text": "To authorize employees, first add them under Master Data → Staff / Contacts with contact type set to Staff.",
+    "subscription_billing": "سبسکرپشن اور بلنگ",
+    "manage_plan": "اپنے پلان کا نظم کریں",
+    "active_seats": "ACTIVE SEATS",
+    "grace_ends": "GRACE PERIOD ENDS"
   }
 }

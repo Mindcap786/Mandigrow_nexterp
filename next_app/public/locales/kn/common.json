@@ -281,5 +281,37 @@
     "complexity_point3": "Hamali and weighing charges",
     "complexity_point4": "Advance payments and outstanding Udhar",
     "designed_footer": "MandiGrow is designed from the ground up as a dedicated commission agent software. When an"
+  },
+  "auth": {
+    "hero_title": "Mandi ERP Software for <g>Commission Agents & Fruit-Vegetable Traders</g> in India",
+    "hero_description": "The Global OS for Modern Mandis. MandiGrow is India's #1 cloud Mandi ERP software. GST billing, auction management, farmer payments & multi-warehouse inventory. Start free.",
+    "security_certified": "Bank-Grade Security • SOC-2 Type II Certified",
+    "enterprise_live": "MandiGrow OS Live",
+    "login_welcome": "ಮತ್ತೆ ಸ್ವಾಗತ",
+    "login_subtitle": "Enter your credentials to access your portal.",
+    "sign_in_tab": "SIGN IN",
+    "create_account_tab": "CREATE ACCOUNT",
+    "email_username": "EMAIL / USERNAME",
+    "password": "PASSWORD",
+    "forgot_password": "Forgot password?",
+    "sign_in_btn": "SIGN IN",
+    "sign_up_btn": "CREATE ACCOUNT",
+    "authenticating": "Authenticating...",
+    "need_account": "Need an account? Sign up today.",
+    "have_account": "Already have an account? Sign in."
+  },
+  "settings_module": {
+    "team_access": "ACCESS TEAM",
+    "team_subtitle": "Manage logins and permissions for your employees",
+    "authorize_employee": "AUTHORIZE EMPLOYEE",
+    "inactive_system": "INACTIVE IN SYSTEM",
+    "authorized_team": "AUTHORIZED TEAM",
+    "no_staff_found": "No Staff Found",
+    "add_employees_before": "ADD EMPLOYEES BEFORE GRANTING ACCESS",
+    "to_authorize_text": "To authorize employees, first add them under Master Data → Staff / Contacts with contact type set to Staff.",
+    "subscription_billing": "SUBSCRIPTION & BILLING",
+    "manage_plan": "MANAGE YOUR MANDIGROW PLAN",
+    "active_seats": "ACTIVE SEATS",
+    "grace_ends": "GRACE PERIOD ENDS"
   }
 }

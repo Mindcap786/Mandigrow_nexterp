@@ -1,5 +1,6 @@
 'use client';
 
+import { useLanguage } from '@/components/i18n/language-provider';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { callApi } from '@/lib/frappeClient'
@@ -415,7 +416,7 @@ export default function TeamPage() {
                         </div>
                     </div>
 
-                    {/* FAB: Authorize Employee */}
+                    {/* FAB: {t('settings_module.authorize_employee')} */}
                     <div className="fixed bottom-24 right-5 z-50">
                         {planLimit && planLimit.max !== 'unlimited' && planLimit.current >= Number(planLimit.max) ? (
                             <div className="flex flex-col items-end gap-1">
@@ -553,7 +554,7 @@ export default function TeamPage() {
                             <Shield className="w-10 h-10 text-blue-600" />
                             Team <span className="text-blue-600">Access</span>
                         </h1>
-                        <p className="text-slate-500 font-bold mt-1">Manage logins and permissions for your employees.</p>
+                        <p className="text-slate-500 font-bold mt-1">{t('settings_module.team_subtitle')}.</p>
                         {planLimit && (
                             <div className={`flex items-center gap-2 mt-4 px-3 py-1.5 rounded-xl text-[10px] font-black border w-fit uppercase tracking-widest ${
                                 planLimit.max !== 'unlimited' && planLimit.current >= Number(planLimit.max)
@@ -915,7 +916,7 @@ export default function TeamPage() {
                                     <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
                                         <Users className="w-8 h-8 text-blue-300" />
                                     </div>
-                                    <p className="text-slate-700 font-black text-sm">No Staff Found</p>
+                                    <p className="text-slate-700 font-black text-sm">{t('settings_module.no_staff_found')}</p>
                                     <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mt-1 mb-4">Add employees before granting access</p>
                                     <p className="text-slate-500 text-xs font-medium max-w-xs mx-auto">
                                         To authorize employees, first add them under{' '}

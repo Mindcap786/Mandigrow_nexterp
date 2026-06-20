@@ -281,5 +281,37 @@
     "complexity_point3": "हमाली और तौल शुल्क",
     "complexity_point4": "एडवांस भुगतान और बकाया उधार",
     "designed_footer": "MandiGrow is designed from the ground up as a dedicated commission agent software. When an"
+  },
+  "auth": {
+    "hero_title": "भारत में <g>आढ़तियों और फल-सब्जी व्यापारियों</g> के लिए मंडी ERP सॉफ्टवेयर",
+    "hero_description": "आधुनिक मंडियों के लिए ग्लोबल OS। MandiGrow भारत का #1 क्लाउड मंडी ERP है। मुफ्त शुरू करें।",
+    "security_certified": "Bank-Grade Security • SOC-2 Type II Certified",
+    "enterprise_live": "MandiGrow OS Live",
+    "login_welcome": "वापसी पर स्वागत है",
+    "login_subtitle": "पोर्टल एक्सेस करने के लिए क्रेडेंशियल दर्ज करें।",
+    "sign_in_tab": "साइन इन करें",
+    "create_account_tab": "खाता बनाएं",
+    "email_username": "ईमेल / यूज़रनेम",
+    "password": "पासवर्ड",
+    "forgot_password": "पासवर्ड भूल गए?",
+    "sign_in_btn": "साइन इन",
+    "sign_up_btn": "खाता बनाएं",
+    "authenticating": "Authenticating...",
+    "need_account": "खाता चाहिए? आज ही साइन अप करें।",
+    "have_account": "पहले से खाता है? साइन इन करें।"
+  },
+  "settings_module": {
+    "team_access": "एक्सेस टीम",
+    "team_subtitle": "अपने कर्मचारियों के लिए लॉगिन और अनुमति प्रबंधित करें",
+    "authorize_employee": "कर्मचारी को अधिकृत करें",
+    "inactive_system": "सिस्टम में निष्क्रिय",
+    "authorized_team": "अधिकृत टीम",
+    "no_staff_found": "कोई कर्मचारी नहीं मिला",
+    "add_employees_before": "एक्सेस देने से पहले कर्मचारियों को जोड़ें",
+    "to_authorize_text": "To authorize employees, first add them under Master Data → Staff / Contacts with contact type set to Staff.",
+    "subscription_billing": "सदस्यता और बिलिंग",
+    "manage_plan": "अपना MandiGrow प्लान प्रबंधित करें",
+    "active_seats": "ACTIVE SEATS",
+    "grace_ends": "GRACE PERIOD ENDS"
   }
 }
