@@ -69,11 +69,11 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
             <div className="mb-4 border-b border-dashed border-black pb-2 text-[11px]">
                 <div className="flex justify-between"><span>{t('BILL_NO' as any, activeLang)}:</span> <span className="font-bold">{billNo}</span></div>
                 <div className="flex justify-between mt-1"><span>{t('DATE' as any, activeLang)}:</span> <span>{sale.transaction_date ? format(new Date(sale.transaction_date), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy')}</span></div>
-                {sale.buyer?.name && (
+                {(sale.contact?.full_name || sale.contact?.name || sale.buyer_name) && (
                     <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black">
                         <span>{t('BUYER' as any, activeLang)}:</span> 
                         <span className="font-bold uppercase text-right leading-tight max-w-[150px]">
-                            {partyTranslation || sale.buyer.name}
+                            {partyTranslation || sale.contact?.full_name || sale.contact?.name || sale.buyer_name}
                         </span>
                     </div>
                 )}

@@ -5,6 +5,7 @@ import { callApi } from '@/lib/frappeClient'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Search, ShoppingCart, Trash2, Zap, Wallet, Banknote, CreditCard, ChevronRight, Barcode, Plus, Minus, CheckCircle, Printer, X, Package, User, FileText, Landmark, CalendarIcon, ArrowLeft, Loader2, AlertTriangle, Tag, Usb } from 'lucide-react'
 import { useLanguage } from '@/components/i18n/language-provider'
+import { t } from '@/components/local-invoices/translations'
 import { QRCodeSVG } from 'qrcode.react'
 import { useBarcodeScanner } from '@/hooks/use-barcode-scanner'
 import { useWebSerial } from '@/hooks/use-web-serial'
@@ -1790,31 +1791,30 @@ export default function POSPage() {
                     </style>
                     <div className="text-center mb-4">
                         <h1 className="font-bold text-lg leading-tight uppercase">{profile?.organization?.name || orgName}</h1>
-                        <p className="text-[10px] uppercase mt-1 tracking-widest">Tax Invoice / Bill</p>
+                        <p className="text-[10px] uppercase mt-1 tracking-widest">{t('TAX_INVOICE_BILL' as any, language)}</p>
                     </div>
                     
                     <div className="mb-4 border-b border-dashed border-black pb-2 text-[11px]">
-                        <div className="flex justify-between"><span>Bill No:</span> <span className="font-bold">{lastRefNo}</span></div>
-                        <div className="flex justify-between mt-1"><span>Date:</span> <span>{new Date().toLocaleString('en-IN', {day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit'})}</span></div>
-                        {selectedBuyerId && <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black"><span>Buyer:</span> <span className="font-bold uppercase text-right leading-tight max-w-[150px]">{buyers.find(b => b.id === selectedBuyerId)?.name || 'Walk-in'}</span></div>}
-                        <div className="flex justify-between mt-1"><span>Mode:</span> <span className="uppercase font-bold">{paymentMode}</span></div>
+                        <div className="flex justify-between"><span>{t('BILL_NO' as any, language)}:</span> <span className="font-bold">{lastRefNo}</span></div>
+                        <div className="flex justify-between mt-1"><span>{t('DATE' as any, language)}:</span> <span>{new Date().toLocaleString('en-IN', {day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit'})}</span></div>
+                        {selectedBuyerId && <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black"><span>{t('BUYER' as any, language)}:</span> <span className="font-bold uppercase text-right leading-tight max-w-[150px]">{buyers.find(b => b.id === selectedBuyerId)?.local_name || buyers.find(b => b.id === selectedBuyerId)?.name || 'Walk-in'}</span></div>}
+                        <div className="flex justify-between mt-1"><span>{t('MODE' as any, language)}:</span> <span className="uppercase font-bold">{paymentMode}</span></div>
                     </div>
                     
                     <table className="w-full text-left mb-4 text-[11px]">
                         <thead>
                             <tr className="border-b border-dashed border-black">
-                                <th className="pb-1 font-semibold w-1/2">Item</th>
-                                <th className="pb-1 font-semibold text-right w-[15%]">Qty</th>
-                                <th className="pb-1 font-semibold text-right w-[15%]">Rate</th>
-                                <th className="pb-1 font-semibold text-right w-[20%]">Amt</th>
+                                <th className="pb-1 font-semibold w-1/2">{t('ITEM' as any, language)}</th>
+                                <th className="pb-1 font-semibold text-right w-[15%]">{t('QTY' as any, language)}</th>
+                                <th className="pb-1 font-semibold text-right w-[15%]">{t('RATE' as any, language)}</th>
+                                <th className="pb-1 font-semibold text-right w-[20%]">{t('AMT' as any, language)}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {cart.map((c, i) => (
                                 <tr key={i}>
                                     <td className="py-2 pr-1 font-semibold">
-                                        <div className="uppercase font-bold">{c.item.name} {c.item.grade && c.item.grade !== 'A' && <span className="ml-1">[{c.item.grade}]</span>}</div>
-                                        {language !== 'en' && c.item.local_name && <div className="text-[9px] text-gray-700">({c.item.local_name})</div>}
+                                        <div className="uppercase font-bold">{language !== 'en' && c.item.local_name ? c.item.local_name : c.item.name} {c.item.grade && c.item.grade !== 'A' && <span className="ml-1">[{c.item.grade}]</span>}</div>
                                     </td>
                                     <td className="py-2 text-right align-top">{c.qty}</td>
                                     <td className="py-2 text-right align-top">{c.price}</td>
@@ -1825,8 +1825,8 @@ export default function POSPage() {
                     </table>
                     
                     <div className="border-t border-dashed border-black pt-2 mb-4 space-y-1 text-[12px]">
-                        <div className="flex justify-between"><span>Subtotal</span> <span>{subTotal.toFixed(2)}</span></div>
-                        {gstTotal > 0 && <div className="flex justify-between"><span>Tax</span> <span>{gstTotal.toFixed(2)}</span></div>}
+                        <div className="flex justify-between"><span>{t('SUBTOTAL' as any, language)}</span> <span>{subTotal.toFixed(2)}</span></div>
+                        {gstTotal > 0 && <div className="flex justify-between"><span>{t('TAX' as any, language)}</span> <span>{gstTotal.toFixed(2)}</span></div>}
                         {cart.length > 0 && additionalCharges.map((charge, i) => (
                             <div key={i} className="flex justify-between items-center text-sm font-medium text-amber-700/80">
                                 <span className="flex items-center gap-2">

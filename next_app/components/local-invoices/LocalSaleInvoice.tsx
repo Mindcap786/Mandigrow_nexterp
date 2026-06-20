@@ -110,7 +110,7 @@ export default function LocalSaleInvoice({
   ].filter(Boolean).join(", ")
 
   // ── Party name resolution ─────────────────────────────────────────────────
-  const englishPartyName = sale.contact?.name || sale.buyer_name || 'Walk-in Buyer'
+  const englishPartyName = sale.contact?.full_name || sale.contact?.name || sale.buyer_name || 'Walk-in Buyer'
   const resolvedPartyName = getPartyName(englishPartyName, contactLocalName, partyTranslation)
 
   // ── Item name resolver ────────────────────────────────────────────────────
