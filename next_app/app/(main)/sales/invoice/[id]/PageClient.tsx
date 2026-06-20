@@ -192,7 +192,12 @@ export default function SaleInvoicePage() {
         try {
             const { generateInvoicePDF } = await import('@/lib/generate-invoice-pdf');
             const { downloadBlob } = await import('@/lib/capacitor-share');
-            const blob = await generateInvoicePDF(sale, organization);
+            const options = (localInvoice.isEnabled && localInvoice.activeLang) ? {
+                lang: localInvoice.activeLang,
+                itemTranslations: localInvoice.itemTranslations,
+                partyTranslation: localInvoice.partyTranslation
+            } : undefined;
+            const blob = await generateInvoicePDF(sale, organization, options);
             const billNo = sale.contact_bill_no ?? sale.bill_no;
             await downloadBlob(blob, `Invoice_${billNo}.pdf`);
         } catch (e) {
@@ -301,7 +306,15 @@ export default function SaleInvoicePage() {
                     <div className="flex-1 md:flex-none min-w-[30%]">
                         {sale && (
                             <div className="[&>button]:w-full [&>button]:h-10 md:[&>button]:h-12 [&>button]:text-[10px] md:[&>button]:text-sm">
-                                <SmartShareButton sale={sale} organization={organization} />
+                                <SmartShareButton 
+                                    sale={sale} 
+                                    organization={organization} 
+                                    options={(localInvoice.isEnabled && localInvoice.activeLang) ? {
+                                        lang: localInvoice.activeLang,
+                                        itemTranslations: localInvoice.itemTranslations,
+                                        partyTranslation: localInvoice.partyTranslation
+                                    } : undefined}
+                                />
                             </div>
                         )}
                     </div>

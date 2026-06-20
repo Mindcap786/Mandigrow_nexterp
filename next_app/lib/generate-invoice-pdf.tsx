@@ -130,13 +130,15 @@ async function renderCanvasFromElement(target: HTMLElement, renderWidth: number)
     });
 }
 
-export async function generateInvoicePDF(sale: any, organization: any): Promise<Blob> {
-    let sourceElement = document.getElementById("invoice-print") as HTMLElement | null;
+export async function generateInvoicePDF(sale: any, organization: any, options?: { lang?: any, itemTranslations?: Record<string, string>, partyTranslation?: string | null }): Promise<Blob> {
+    const targetId = options?.lang ? "invoice-print-local" : "invoice-print";
+    let sourceElement: HTMLElement | null = null; // ALWAYS render offscreen to prevent html2canvas blank bugs on mobile second-share
     let offScreenRoot: { render: (node: unknown) => void; unmount: () => void } | null = null;
     let offScreenContainer: HTMLElement | null = null;
 
     if (!sourceElement) {
         const { default: BuyerInvoice } = await import("@/components/sales/invoice-template");
+        const { default: LocalSaleInvoice } = await import("@/components/local-invoices/LocalSaleInvoice");
         const { createRoot } = await import("react-dom/client");
         const { LanguageProvider } = await import("@/components/i18n/language-provider");
         const React = await import("react");
@@ -150,14 +152,23 @@ export async function generateInvoicePDF(sale: any, organization: any): Promise<
         await new Promise<void>((resolve) => {
             offScreenRoot!.render(
                 React.createElement(LanguageProvider, null, 
-                    React.createElement(BuyerInvoice, { sale, organization })
+                    options?.lang ? 
+                        React.createElement(LocalSaleInvoice, { 
+                            sale, 
+                            organization, 
+                            lang: options.lang, 
+                            itemTranslations: options.itemTranslations, 
+                            partyTranslation: options.partyTranslation 
+                        }) 
+                        : 
+                        React.createElement(BuyerInvoice, { sale, organization })
                 )
             );
             // Wait longer for fonts, images, and hooks (usePlatformBranding) to load
             setTimeout(resolve, 1200);
         });
 
-        sourceElement = offScreenContainer.querySelector("#invoice-print") as HTMLElement | null;
+        sourceElement = offScreenContainer.querySelector("#" + targetId) as HTMLElement | null;
     }
 
     if (!sourceElement) throw new Error("Invoice content not found for export");

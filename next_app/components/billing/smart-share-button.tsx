@@ -6,7 +6,7 @@ import { Loader2, Share2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useLanguage } from '@/components/i18n/language-provider';
 
-export default function SmartShareButton({ sale, organization }: { sale: any, organization?: any }) {
+export default function SmartShareButton({ sale, organization, options }: { sale: any, organization?: any, options?: { lang?: string, itemTranslations?: Record<string, string>, partyTranslation?: string | null } }) {
     const auth = useAuth?.();
     const profile = auth?.profile;
     const { t } = useLanguage();
@@ -25,7 +25,7 @@ export default function SmartShareButton({ sale, organization }: { sale: any, or
 
     const generatePDF = async () => {
         const { generateInvoicePDF } = await import('@/lib/generate-invoice-pdf');
-        return generateInvoicePDF(sale, org);
+        return generateInvoicePDF(sale, org, options);
     };
 
     const handleShare = async () => {
