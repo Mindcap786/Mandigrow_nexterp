@@ -117,9 +117,9 @@ const FEATURES = [
     {
         id: 'languages',
         icon: '🌐',
-        title: '7 Regional Languages',
+        title: '8 Regional Languages',
         description:
-            'The entire app — billing, reports, pattis and statements — is available in Hindi, English, Telugu, Tamil, Kannada, Malayalam and Urdu.',
+            'The entire app — billing, reports, pattis and statements — is available in Hindi, English, Telugu, Tamil, Kannada, Malayalam, Urdu, Gujarati and Marathi.',
         detail:
             'Switch languages with one tap. Bills and pattis print in the language your farmers and buyers prefer. Staff training is faster when the software speaks their language.',
     },
