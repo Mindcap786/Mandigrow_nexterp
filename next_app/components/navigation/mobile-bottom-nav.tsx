@@ -109,7 +109,7 @@ export function MobileBottomNav() {
                         if (target.closest("a")) setMoreOpen(false);
                     }}
                 >
-                    <Sidebar />
+                    <Sidebar isMobileDrawer={true} />
                 </SheetContent>
             </Sheet>
         </nav>
