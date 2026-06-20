@@ -38,6 +38,7 @@ const buildDenyAllMatrix = (): Record<string, boolean> => {
 };
 
 export default function TeamPage() {
+    const { t } = useLanguage();
     const { profile } = useAuth();
     const router = useRouter();
     const [members, setMembers] = useState<any[]>([]);
