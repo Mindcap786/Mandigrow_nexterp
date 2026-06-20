@@ -168,12 +168,12 @@ export default function Dashboard() {
                             trend: stats.collections > 0 ? "up" : "flat"
                         },
                         {
-                            label: t('dashboard.udhaar', 'Udhaar'),
+                            label: t('dashboard.udhaar'),
                             value: `₹${stats.payables.toLocaleString()}`,
                             trend: stats.payables > 0 ? "down" : "flat"
                         },
                         {
-                            label: t('dashboard.expenses', 'Expenses'),
+                            label: t('dashboard.expenses'),
                             value: `₹${stats.daily_expenses.toLocaleString()}`,
                             trend: stats.daily_expenses > 0 ? "up" : "flat"
                         },
@@ -183,14 +183,14 @@ export default function Dashboard() {
                 {/* Additional Stats Grid for Mobile (Parity with Web View) */}
                 <div className="grid grid-cols-2 gap-3 mt-4">
                     <StatChip 
-                        label={t('dashboard.purchases', 'Purchases')} 
+                        label={t('dashboard.purchases')} 
                         value={`₹${(stats.cash_purchase + stats.udhaar_purchase).toLocaleString()}`} 
                         icon={<Package className="w-4 h-4" />} 
                         color="#d97706" 
                         onPress={() => router.push(ROUTES.PURCHASE_BILLS)}
                     />
                     <StatChip 
-                        label={t('dashboard.liquid_assets_title', 'Liquid Assets')} 
+                        label={t('dashboard.liquid_assets_title')} 
                         value={`₹${(stats.inflow - stats.outflow).toLocaleString()}`} 
                         icon={<ArrowUpRight className="w-4 h-4" />} 
                         color="#059669" 
@@ -207,14 +207,14 @@ export default function Dashboard() {
                 {/* Recent Activity */}
                 <div className="pt-2">
                     <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280] px-4 mb-2">
-                        {t('common.live_feed', 'Recent Activity')}
+                        {t('common.live_feed')}
                     </p>
 
                     <div className="bg-white border-y border-gray-100 divide-y divide-gray-50">
                         {recentActivity.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 text-[#9CA3AF]">
                                 <Activity className="w-8 h-8 mb-2 opacity-40" />
-                                <p className="text-sm font-medium">{t('dashboard.no_activity', 'No activity yet')}</p>
+                                <p className="text-sm font-medium">{t('dashboard.no_activity')}</p>
                             </div>
                         ) : (
                             recentActivity.slice(0, 10).map((txn) => (
@@ -272,7 +272,7 @@ export default function Dashboard() {
                 {salesTrend.length > 0 && (
                     <div className="space-y-2">
                         <p className="text-xs font-semibold uppercase tracking-widest text-[#6B7280] px-0.5">
-                            {t('dashboard.revenue_velocity', 'Revenue Trend')}
+                            {t('dashboard.revenue_velocity')}
                         </p>
                         <NativeCard className="p-4">
                             <SalesChart data={salesTrend} />
@@ -335,8 +335,8 @@ export default function Dashboard() {
                             <ArrowUpRight className="w-6 h-6" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.customer_payment', 'Customer Payment')}</p>
-                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.receive_money', 'RECEIVE MONEY')}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.customer_payment')}</p>
+                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.receive_money')}</h3>
                         </div>
                     </div>
                     <Activity className="w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity" />
@@ -351,8 +351,8 @@ export default function Dashboard() {
                             <TrendingUp className="w-6 h-6 rotate-180" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.supplier_payment', 'Supplier Payment')}</p>
-                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.make_payment', 'MAKE PAYMENT')}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.supplier_payment')}</p>
+                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.make_payment')}</h3>
                         </div>
                     </div>
                     <Activity className="w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity" />
@@ -367,8 +367,8 @@ export default function Dashboard() {
                             <Package className="w-6 h-6" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.operational_costs', 'Operational Costs')}</p>
-                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.mandi_expenses', 'MANDI EXPENSES')}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.operational_costs')}</p>
+                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.mandi_expenses')}</h3>
                         </div>
                     </div>
                     <Activity className="w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity" />
@@ -378,49 +378,49 @@ export default function Dashboard() {
             {/* Key Metrics Grid - mobile: 1-col, tablet: 2-col, desktop: 4-col */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <StatsCard
-                    title={`📈 ${t('dashboard.sales_summary_title', 'SALES SUMMARY')}`}
+                    title={`📈 ${t('dashboard.sales_summary_title')}`}
                     value={`₹${stats.revenue.toLocaleString()}`}
                     icon={<TrendingUp className="h-6 w-6 text-indigo-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.SALES}
                     subValues={[
-                        { label: t('dashboard.cash_sales_collected', 'Cash Sales (Collected)'), value: stats.collections, color: 'bg-emerald-500' },
-                        { label: t('dashboard.udhaar_sales_receivable', 'Udhaar Sales (Receivable)'), value: stats.payables, color: 'bg-rose-500' }
+                        { label: t('dashboard.cash_sales_collected'), value: stats.collections, color: 'bg-emerald-500' },
+                        { label: t('dashboard.udhaar_sales_receivable'), value: stats.payables, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
-                    title={`📦 ${t('dashboard.purchase_insights_title', 'PURCHASE INSIGHTS')}`}
+                    title={`📦 ${t('dashboard.purchase_insights_title')}`}
                     value={`₹${(stats.cash_purchase + stats.udhaar_purchase).toLocaleString()}`}
                     icon={<Package className="h-6 w-6 text-amber-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.PURCHASE_BILLS}
                     subValues={[
-                        { label: t('dashboard.cash_purchase_paid', 'Cash Purchase (Paid)'), value: stats.cash_purchase, color: 'bg-emerald-500' },
-                        { label: t('dashboard.udhaar_purchase_outstanding', 'Udhaar Purchase (Outstanding)'), value: stats.udhaar_purchase, color: 'bg-rose-500' }
+                        { label: t('dashboard.cash_purchase_paid'), value: stats.cash_purchase, color: 'bg-emerald-500' },
+                        { label: t('dashboard.udhaar_purchase_outstanding'), value: stats.udhaar_purchase, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
-                    title={`💰 ${t('dashboard.liquid_assets_title', 'LIQUID ASSETS')}`}
+                    title={`💰 ${t('dashboard.liquid_assets_title')}`}
                     value={`₹${(stats.inflow - stats.outflow).toLocaleString()}`}
                     icon={<ArrowUpRight className="h-6 w-6 text-emerald-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.REPORT_DAYBOOK}
                     subValues={[
-                        { label: t('dashboard.inflow', 'Inflow'), value: stats.inflow, color: 'bg-emerald-500' },
-                        { label: t('dashboard.outflow', 'Outflow'), value: stats.outflow, color: 'bg-rose-500' }
+                        { label: t('dashboard.inflow'), value: stats.inflow, color: 'bg-emerald-500' },
+                        { label: t('dashboard.outflow'), value: stats.outflow, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
-                    title={`🛠️ ${t('dashboard.daily_expenses_title', 'DAILY EXPENSES')}`}
+                    title={`🛠️ ${t('dashboard.daily_expenses_title')}`}
                     value={`₹${stats.daily_expenses.toLocaleString()}`}
                     icon={<Activity className="h-6 w-6 text-rose-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.FINANCE_PAYMENTS_EXPENSE}
-                    subtext={t('dashboard.expenses_subtext', "Total volume of operational expenses paid out today (Labor, Transport, Petty Cash)")}
+                    subtext={t('dashboard.expenses_subtext')}
                     subtextBg="bg-rose-50"
                 />
             </div>
@@ -473,7 +473,7 @@ export default function Dashboard() {
                                                         txn.type === 'sale' ? 'dashboard.activity.msg_sold' :
                                                         txn.type === 'arrival' ? 'dashboard.activity.msg_received' :
                                                         'dashboard.activity.msg_adjusted',
-                                                        { item: txn.lot?.item_type || t('dashboard.activity.item', 'Item') }
+                                                        { item: txn.lot?.item_type || t('dashboard.activity.item') }
                                                     )}
                                                 </p>
                                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-wider">

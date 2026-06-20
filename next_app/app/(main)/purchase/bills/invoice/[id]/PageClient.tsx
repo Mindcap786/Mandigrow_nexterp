@@ -145,7 +145,12 @@ export default function PurchaseBillInvoicePage() {
             const { generatePurchaseBillPDF } = await import('@/lib/generate-invoice-pdf').catch(() => ({ generatePurchaseBillPDF: null })) as any;
             if (generatePurchaseBillPDF) {
                 const { downloadBlob } = await import('@/lib/capacitor-share');
-                const blob = await generatePurchaseBillPDF(lot, arrival, organization, arrivalLots);
+                const blob = await generatePurchaseBillPDF(lot, arrival, organization, arrivalLots, {
+                    lang: localInvoice.activeLang,
+                    itemTranslations: localInvoice.itemTranslations,
+                    partyTranslation: localInvoice.partyTranslation,
+                    contactLocalName: arrival?.contact?.local_name
+                });
                 const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'bill';
                 await downloadBlob(blob, `PurchaseBill_${billNo}.pdf`);
             } else {
@@ -165,7 +170,12 @@ export default function PurchaseBillInvoicePage() {
             const { generatePurchaseBillPDF } = await import('@/lib/generate-invoice-pdf').catch(() => ({ generatePurchaseBillPDF: null })) as any;
             if (generatePurchaseBillPDF) {
                 const { shareBlob } = await import('@/lib/capacitor-share');
-                const blob = await generatePurchaseBillPDF(lot, arrival, organization, arrivalLots);
+                const blob = await generatePurchaseBillPDF(lot, arrival, organization, arrivalLots, {
+                    lang: localInvoice.activeLang,
+                    itemTranslations: localInvoice.itemTranslations,
+                    partyTranslation: localInvoice.partyTranslation,
+                    contactLocalName: arrival?.contact?.local_name
+                });
                 const billNo = arrival?.contact_bill_no || arrival?.bill_no || lot.lot_code || 'bill';
                 const shareTitle = `Purchase Bill #${billNo}`;
                 const shareText = `Purchase Bill #${billNo} from ${organization?.name || 'Mandi'}`;

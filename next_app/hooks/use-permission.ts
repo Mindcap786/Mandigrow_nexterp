@@ -36,7 +36,7 @@ export function usePermission() {
         // If the Super Admin explicitly unchecked this feature in the Tenant's Menu Access Matrix,
         // it overrides everything else and blocks access, EVEN for the Tenant Admin.
         if (tKey && !isSuperAdmin) {
-            const orgMatrixRaw = profile?.organization?.rbac_matrix;
+            const orgMatrixRaw = (profile?.organization as any)?.rbac_matrix;
             const orgMatrix = typeof orgMatrixRaw === 'string'
                 ? (() => { try { return JSON.parse(orgMatrixRaw); } catch { return null; } })()
                 : (orgMatrixRaw || null);
