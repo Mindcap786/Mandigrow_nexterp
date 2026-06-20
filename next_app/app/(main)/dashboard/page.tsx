@@ -163,7 +163,7 @@ export default function Dashboard() {
                     totalAmount={`₹${stats.revenue.toLocaleString()}`}
                     metrics={[
                         {
-                            label: t('dashboard.cash_sales', 'Cash Sales'),
+                            label: t('dashboard.cash_sales'),
                             value: `₹${stats.collections.toLocaleString()}`,
                             trend: stats.collections > 0 ? "up" : "flat"
                         },
