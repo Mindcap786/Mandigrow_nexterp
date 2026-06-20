@@ -32,13 +32,29 @@ export function usePermission() {
         const isSuperAdmin = role === 'super_admin';
         const isMandiAdmin = ADMIN_ROLES.has(role as string);
 
-        // 1. Admins / owners / super_admin always have full access
+        // 1. Tenant-Level Hard Restriction (From Super Admin)
+        // If the Super Admin explicitly unchecked this feature in the Tenant's Menu Access Matrix,
+        // it overrides everything else and blocks access, EVEN for the Tenant Admin.
+        if (tKey && !isSuperAdmin) {
+            const orgMatrixRaw = profile?.organization?.rbac_matrix;
+            const orgMatrix = typeof orgMatrixRaw === 'string'
+                ? (() => { try { return JSON.parse(orgMatrixRaw); } catch { return null; } })()
+                : (orgMatrixRaw || null);
+            
+            if (orgMatrix && typeof orgMatrix === 'object' && Object.keys(orgMatrix).length > 0) {
+                if (orgMatrix[tKey] === false) {
+                    return false; // Feature explicitly disabled by Super Admin for this tenant
+                }
+            }
+        }
+
+        // 2. Admins / owners / super_admin always have full access (to whatever is allowed by the tenant)
         if (isMandiAdmin || isSuperAdmin) return true;
 
-        // 2. Dashboard is always visible
+        // 3. Dashboard is always visible
         if (tKey && ALWAYS_ALLOWED.has(tKey)) return true;
 
-        // 3. Module Level filtering
+        // 4. Module Level filtering
         if (menuItem?.module && profile?.organization?.enabled_modules) {
             const enabled = profile.organization.enabled_modules;
             if (!enabled.includes(menuItem.module)) {

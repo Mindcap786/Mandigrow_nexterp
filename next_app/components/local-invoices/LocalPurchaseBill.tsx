@@ -127,13 +127,13 @@ export default function LocalPurchaseBill({
   const resolveItemName = (l: any) => {
     const rawName = l?.item?.name || l?.item_name || 'Item'
     const translated = itemTranslations[rawName]
-    return getItemName(rawName, translated)
+    return getItemName(rawName, translated, itemTranslations)
   }
 
   return (
     <div
       id="purchase-invoice-print"
-      dir={dir}
+      dir="ltr"
       style={{ fontFamily }}
       className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-[10mm] relative overflow-hidden print:overflow-visible"
     >

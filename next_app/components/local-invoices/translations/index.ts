@@ -17,13 +17,13 @@ import { isLatinOnly } from '../utils/detect-script';
 
 export type TranslationKeys = typeof te;
 
-const TRANSLATIONS: Record<LangCode, TranslationKeys> = { te, hi, ta, kn, ml, bn, gu, ur };
+const TRANSLATIONS: Record<string, Partial<TranslationKeys>> = { te, hi, ta, kn, ml, bn, gu, ur };
 
 /**
  * Get the full translation dictionary for a language.
  * Falls back to Telugu if lang is unknown (should not happen in practice).
  */
-export function getTranslation(lang: LangCode): TranslationKeys {
+export function getTranslation(lang: string): Partial<TranslationKeys> {
   return TRANSLATIONS[lang] ?? te;
 }
 
@@ -32,7 +32,7 @@ export function getTranslation(lang: LangCode): TranslationKeys {
  * @param key - one of the TranslationKeys keys
  * @param lang - target language code
  */
-export function t(key: keyof TranslationKeys, lang: LangCode): string {
+export function t(key: keyof TranslationKeys, lang: string): string {
   return TRANSLATIONS[lang]?.[key] ?? key;
 }
 
@@ -69,8 +69,18 @@ export function getPartyName(
 export function getItemName(
   englishName: string,
   translatedName: string | undefined | null,
+  allTranslations?: Record<string, string>
 ): string {
   if (translatedName && translatedName.trim()) return translatedName.trim();
+  
+  if (englishName && allTranslations && englishName.includes(' - ')) {
+    const [base, ...rest] = englishName.split(' - ');
+    const translatedBase = allTranslations[base.trim()];
+    if (translatedBase) {
+      return `${translatedBase} - ${rest.join(' - ')}`;
+    }
+  }
+
   if (englishName && !isLatinOnly(englishName)) return englishName;
   return englishName || '';
 }

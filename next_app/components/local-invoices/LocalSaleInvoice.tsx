@@ -118,13 +118,13 @@ export default function LocalSaleInvoice({
     const rawName = formatCommodityName(item.lot?.item?.name || item.item_name || 'Item', item.lot?.item?.custom_attributes)
     const translated = itemTranslations[item.lot?.item?.name || item.item_name || ''] ||
                        itemTranslations[rawName]
-    return getItemName(rawName, translated)
+    return getItemName(rawName, translated, itemTranslations)
   }
 
   return (
     <div
       id="invoice-print-local"
-      dir={dir}
+      dir="ltr"
       style={{ fontFamily }}
       className="bg-white text-black p-6 max-w-[800px] mx-auto shadow-2xl border border-gray-100 print:shadow-none print:border-none print:p-[10mm] relative overflow-hidden print:overflow-visible"
     >

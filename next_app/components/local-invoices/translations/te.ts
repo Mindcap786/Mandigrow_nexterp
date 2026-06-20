@@ -28,4 +28,18 @@ export const te = {
   ONLY:               'మాత్రమే',
   // Billed to label
   BILLED_TO:          'బిల్లు వివరాలు',
+  
+  // Thermal Receipt
+  TAX:                'పన్ను (GST)',
+  NIRASHRIT:          'నిరాశ్రిత (Charity)',
+  ITEM:               'సరుకు',
+  QTY:                'పరిమాణం',
+  RATE:               'ధర',
+  AMT:                'మొత్తం',
+  BILL_NO:            'బిల్లు నెం',
+  DATE:               'తేదీ',
+  BUYER:              'కొనుగోలుదారు',
+  MODE:               'చెల్లింపు పద్ధతి',
+  THANK_YOU:          'ధన్యవాదాలు',
+  CHANGE_RETURN:      'తిరిగి ఇవ్వాల్సినది',
 };

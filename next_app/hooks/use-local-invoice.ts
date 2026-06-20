@@ -76,10 +76,22 @@ export function useLocalInvoice(isGlobalEnabled: boolean, isTenantEnabled: boole
     const cacheKey = JSON.stringify({ lang: activeLang, items: itemNames.sort(), party: partyName });
     if (translationCache && JSON.stringify(translationCache) === cacheKey) return;
 
+    // Extract base item names for variety translation (e.g. 'Apple - US' -> 'Apple')
+    const uniqueItemNames = new Set<string>();
+    itemNames.forEach(name => {
+      if (name) {
+        uniqueItemNames.add(name);
+        if (name.includes(' - ')) {
+          uniqueItemNames.add(name.split(' - ')[0].trim());
+        }
+      }
+    });
+    const itemsArray = Array.from(uniqueItemNames);
+
     setIsTranslating(true);
     try {
       const result: any = await callApi('mandigrow.local_invoices.api.translate_invoice_names', {
-        item_names: JSON.stringify(itemNames),
+        item_names: JSON.stringify(itemsArray),
         party_name: partyName,
         lang: activeLang,
       });

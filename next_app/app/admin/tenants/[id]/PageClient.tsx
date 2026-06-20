@@ -288,6 +288,7 @@ export default function TenantDetailPage() {
                         trial_ends_at: finalExpiry,
                         subscription_end_date: finalExpiry 
                     } : {}),
+                    rbac_matrix: override.rbac_matrix,
                 }
             });
 
@@ -1106,10 +1107,11 @@ export default function TenantDetailPage() {
                                 ) : (
                                     data?.users?.map((user: any) => {
                                         const isOwner = user.role_type === 'admin';
+                                        const isDisabled = user.enabled === 0;
                                         return (
-                                        <div key={user.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                                        <div key={user.id} className={`p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group ${isDisabled ? 'opacity-50 grayscale hover:opacity-100 hover:grayscale-0' : ''}`}>
                                             <div className="flex items-center gap-4">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow ${isOwner ? 'bg-amber-500' : 'bg-slate-900'}`}>
+                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow ${isOwner ? 'bg-amber-500' : isDisabled ? 'bg-slate-400' : 'bg-slate-900'}`}>
                                                     {user.full_name?.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
@@ -1121,6 +1123,11 @@ export default function TenantDetailPage() {
                                                             </Badge>
                                                         ) : (
                                                             <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 text-slate-500">{user.role_type || user.role}</Badge>
+                                                        )}
+                                                        {isDisabled && (
+                                                            <Badge className="text-[9px] font-black uppercase bg-red-100 text-red-600 border-none">
+                                                                DISABLED
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                     <p className="text-xs text-slate-500 font-bold">{user.email}</p>
@@ -1140,10 +1147,38 @@ export default function TenantDetailPage() {
                                                     {isOwner ? (
                                                         <div
                                                             className="flex items-center gap-1 border border-amber-200 text-amber-500 font-black uppercase text-[9px] tracking-widest rounded-xl px-3 py-2 bg-amber-50 cursor-not-allowed"
-                                                            title="Tenant Owner accounts cannot be deleted. Use Suspend instead."
+                                                            title="Tenant Owner accounts cannot be disabled. Use Suspend instead."
                                                         >
                                                             <Lock className="w-3.5 h-3.5 mr-1" /> Owner Protected
                                                         </div>
+                                                    ) : isDisabled ? (
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            className="border-emerald-200 text-emerald-600 font-black uppercase text-[9px] tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                                            onClick={() => {
+                                                                setConfirmConfig({
+                                                                    open: true,
+                                                                    title: 'Enable User Access?',
+                                                                    description: `This will reactivate ${user.full_name}'s login and system access.`,
+                                                                    variant: 'default',
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            await callApi('mandigrow.api.admin_user_action', { 
+                                                                                action: 'enable', 
+                                                                                user_id: user.id 
+                                                                            });
+                                                                            toast({ title: 'User Enabled', description: 'User access has been restored.'});
+                                                                            fetchDetails();
+                                                                        } catch (e: any) {
+                                                                            toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }}
+                                                        >
+                                                            <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Enable
+                                                        </Button>
                                                     ) : (
                                                         <Button 
                                                             variant="outline" 
