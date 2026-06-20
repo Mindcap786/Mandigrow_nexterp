@@ -1674,9 +1674,9 @@ def provision_team_member(
     })
     if not is_super_admin():
         enforce_active_subscription(admin_org)
-    if not _is_existing_org_user and admin_org:
-        # Only count seat against limit for genuinely new users
-        enforce_seat_limit(admin_org)
+        if not _is_existing_org_user and admin_org:
+            # Only count seat against limit for genuinely new users
+            enforce_seat_limit(admin_org)
 
     user_name = None
 
@@ -13277,7 +13277,8 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
             
     if "rbac_matrix" in config:
         import json
-        org.rbac_matrix = json.dumps(config["rbac_matrix"]) if isinstance(config["rbac_matrix"], dict) else config["rbac_matrix"]
+        matrix_str = json.dumps(config["rbac_matrix"]) if isinstance(config["rbac_matrix"], dict) else config["rbac_matrix"]
+        frappe.db.sql("UPDATE `tabMandi Organization` SET rbac_matrix = %s WHERE name = %s", (matrix_str, organization_id))
 
     # ── AUTO-CORRECT STATUS BASED ON EXPIRY DATE ─────────────────────────────
     # RULE: If the effective expiry date is in the FUTURE, the tenant is ACTIVE.
