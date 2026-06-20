@@ -18,9 +18,10 @@ import { NAV_ITEMS, ADMIN_NAV_ITEMS, MenuItem } from '@/lib/rbac/menus'
 
 interface SidebarProps {
     onCollapseChange?: (collapsed: boolean) => void;
+    isMobileDrawer?: boolean;
 }
 
-export const Sidebar = memo(function Sidebar({ onCollapseChange }: SidebarProps = {}) {
+export const Sidebar = memo(function Sidebar({ onCollapseChange, isMobileDrawer }: SidebarProps = {}) {
     const pathname = usePathname()
     const router = useRouter()
     const { profile, user, signOut, loading, isComplianceVisible: globalComplianceVisible } = useAuth()
@@ -31,6 +32,8 @@ export const Sidebar = memo(function Sidebar({ onCollapseChange }: SidebarProps 
 
     // Auto-collapse on narrow desktop-mode screens (e.g. mobile browser with "Request Desktop Site")
     useEffect(() => {
+        if (isMobileDrawer) return;
+        
         const checkWidth = () => {
             const shouldCollapse = window.innerWidth < 1024;
             setCollapsed(shouldCollapse);
@@ -39,7 +42,7 @@ export const Sidebar = memo(function Sidebar({ onCollapseChange }: SidebarProps 
         checkWidth();
         window.addEventListener('resize', checkWidth);
         return () => window.removeEventListener('resize', checkWidth);
-    }, []);
+    }, [isMobileDrawer]);
 
     const handleCollapseToggle = () => {
         const next = !collapsed;
@@ -127,12 +130,14 @@ export const Sidebar = memo(function Sidebar({ onCollapseChange }: SidebarProps 
                         </Link>
                     </div>
                 )}
-                <button
-                    onClick={handleCollapseToggle}
-                    className="p-2 hover:bg-black/5 rounded-lg text-slate-400 transition-colors"
-                >
-                    <Menu className="w-5 h-5 text-black" />
-                </button>
+                {!isMobileDrawer && (
+                    <button
+                        onClick={handleCollapseToggle}
+                        className="p-2 hover:bg-black/5 rounded-lg text-slate-400 transition-colors"
+                    >
+                        <Menu className="w-5 h-5 text-black" />
+                    </button>
+                )}
             </div>
 
             {/* Nav */}

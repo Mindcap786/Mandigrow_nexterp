@@ -55,7 +55,7 @@ export function MobileHeader() {
                             if ((e.target as HTMLElement).closest('a')) setMenuOpen(false);
                         }}
                     >
-                        <Sidebar />
+                        <Sidebar isMobileDrawer={true} />
                     </SheetContent>
                 </Sheet>
                 <div className="flex flex-col min-w-0">
