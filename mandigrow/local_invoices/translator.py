@@ -78,7 +78,28 @@ def translate_batch(texts: list, target_lang: str, org_id: str = None) -> dict:
                 source="en", target=dt_lang
             ).translate_batch(to_translate)
 
+        import requests
+
         for original, translated in zip(to_translate, translated_list):
+            if translated and translated.lower() == original.lower():
+                # Google Translate failed to translate (likely a proper noun/brand name). Try transliteration.
+                try:
+                    url = "https://inputtools.google.com/request"
+                    params = {
+                        "text": original,
+                        "itc": f"{dt_lang}-t-i0-und",
+                        "num": 1, "cp": 0, "cs": 1, "ie": "utf-8", "oe": "utf-8"
+                    }
+                    response = requests.get(url, params=params, timeout=3)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data[0] == "SUCCESS" and len(data[1]) > 0:
+                            words = data[1]
+                            result = [w[1][0] for w in words]
+                            translated = " ".join(result)
+                except Exception:
+                    pass
+
             if translated:
                 # Cache the result for 30 days
                 try:
