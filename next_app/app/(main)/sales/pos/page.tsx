@@ -789,19 +789,23 @@ export default function POSPage() {
                 crate_total: crateTotal
             };
 
-            const escposData = generateSaleReceiptESCPOS(posSaleData, profile?.organization, thermalWidth);
-            
-            const { BluetoothPrinter } = await import('@/lib/bluetooth-printer');
-            const printer = new BluetoothPrinter();
-            await printer.connect();
-            await printer.print(escposData);
-            return;
+            if (!language || language === 'en') {
+                const escposData = generateSaleReceiptESCPOS(posSaleData, profile?.organization, thermalWidth);
+                const { BluetoothPrinter } = await import('@/lib/bluetooth-printer');
+                const printer = new BluetoothPrinter();
+                await printer.connect();
+                await printer.print(escposData);
+                return;
+            } else {
+                // If local language is active, bypass raw text Bluetooth ESC/POS since thermal printers 
+                // don't natively support rendering complex Indian scripts (Telugu/Gujarati, etc).
+                // Fall through to OS print dialog which renders the HTML canvas via graphics driver.
+                setTimeout(() => window.print(), 300);
+            }
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
-            toast.error("Thermal Print Failed", {
-                description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
-                position: 'top-center'
-            });
+            // Fallback to browser print dialog
+            setTimeout(() => window.print(), 300);
         }
     };
 

@@ -136,12 +136,17 @@ export default function SaleInvoicePage() {
 
         if (mode === 'thermal') {
             try {
-                const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
-                const printer = new BluetoothPrinter();
-                await printer.connect(forcePrompt);
-                await printer.print(escposData);
-                // Successfully printed via Bluetooth, do not open OS print dialog
-                return;
+                // If local language is active, bypass raw text Bluetooth ESC/POS since thermal printers 
+                // don't natively support rendering complex Indian scripts (Telugu/Gujarati, etc).
+                // Fall through to OS print dialog which renders the HTML canvas via graphics driver.
+                if (!localInvoice.isEnabled || !localInvoice.activeLang || localInvoice.activeLang === 'en') {
+                    const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
+                    const printer = new BluetoothPrinter();
+                    await printer.connect(forcePrompt);
+                    await printer.print(escposData);
+                    // Successfully printed via Bluetooth, do not open OS print dialog
+                    return;
+                }
             } catch (e: any) {
                 console.error('Bluetooth print skipped or failed:', e);
                 import('sonner').then(({ toast }) => {

@@ -32,8 +32,34 @@ export function getTranslation(lang: string): Partial<TranslationKeys> {
  * @param key - one of the TranslationKeys keys
  * @param lang - target language code
  */
-export function t(key: keyof TranslationKeys, lang: string): string {
-  return TRANSLATIONS[lang]?.[key] ?? key;
+export function t(key: keyof TranslationKeys | string, lang: string): string {
+  const fallbacks: Record<string, string> = {
+    'TAX_INVOICE_BILL': 'Tax Invoice / Bill',
+    'SUBTOTAL': 'Subtotal',
+    'SUB_TOTAL': 'Subtotal',
+    'MARKET_FEE': 'Market Fee',
+    'NIRASHRIT': 'Nirashrit',
+    'LOADING_CHARGES': 'Loading Charges',
+    'UNLOADING_CHARGES': 'Unloading Charges',
+    'MISC_FEE': 'Misc Fee',
+    'OTHER_EXPENSES': 'Other Expenses',
+    'DISCOUNT': 'Discount',
+    'INVOICE_TOTAL': 'Total',
+    'AMOUNT_RECEIVED': 'Amount Received',
+    'PENDING_PAYMENT': 'Pending',
+    'CHANGE_RETURN': 'Change Return',
+    'THANK_YOU': 'Thank you!',
+    'BILL_NO': 'Bill No',
+    'DATE': 'Date',
+    'BUYER': 'Buyer',
+    'MODE': 'Mode',
+    'ITEM': 'Item',
+    'QTY': 'Qty',
+    'RATE': 'Rate',
+    'AMT': 'Amount',
+    'TAX': 'Tax'
+  };
+  return (TRANSLATIONS[lang] as any)?.[key] ?? fallbacks[key] ?? key;
 }
 
 /**
