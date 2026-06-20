@@ -14,6 +14,7 @@ import { LandingFooter } from '@/components/layout/LandingFooter'
 import { LandingHeader } from '@/components/layout/LandingHeader'
 import { HeroSlider } from '@/components/landing/HeroSlider'
 import { InteractivePattiGenerator } from '@/components/landing/InteractivePattiGenerator'
+import { ROICalculator } from '@/components/landing/ROICalculator'
 
 export default function LandingPage() {
     const { t } = useLanguage();
@@ -172,12 +173,25 @@ export default function LandingPage() {
                     </div>
                 </div>
 
+                {/* Trusted By Banner */}
+                <div className="mt-20 border-t border-emerald-900/5 pt-10 pb-4">
+                    <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-8">Trusted by Traders across India's Largest Mandis</p>
+                    <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        <div className="flex items-center gap-2 font-black text-xl text-gray-800"><Package className="w-6 h-6 text-emerald-600"/> Azadpur Delhi</div>
+                        <div className="flex items-center gap-2 font-black text-xl text-gray-800"><ShieldCheck className="w-6 h-6 text-emerald-600"/> Vashi APMC</div>
+                        <div className="flex items-center gap-2 font-black text-xl text-gray-800"><Users className="w-6 h-6 text-emerald-600"/> Bowenpally</div>
+                        <div className="flex items-center gap-2 font-black text-xl text-gray-800"><Workflow className="w-6 h-6 text-emerald-600"/> Yeshwanthpur</div>
+                    </div>
+                </div>
+
                 {/* Bottom fade-into-next-section */}
                 <div className="h-16 bg-gradient-to-b from-transparent to-[#e8f1d4] mt-12" />
             </main>
 
             {/* Interactive Lead Magnet */}
             <InteractivePattiGenerator />
+
+            <ROICalculator />
 
             {/* Features Grid */}
             <section id="features" className="py-24 px-6 bg-[#e8f1d4] relative z-10 border-t border-[#c8d6b0]">
