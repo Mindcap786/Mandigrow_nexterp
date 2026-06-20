@@ -139,7 +139,16 @@ const nextConfig = {
             { source: '/private/files/:path*', destination: `${frappeBase}/private/files/:path*` },
         ]
     },
-    // ── CAPACITOR STATIC EXPORT ──────────────────────────────────────────
+    
+    async redirects() {
+        return [
+            { source: '/blog/apmc-market-fees-levy-guide-2026', destination: '/blog/apmc-billing-compliance-guide-india', permanent: true },
+            { source: '/blog/top-5-challenges-fruit-vegetable-wholesale-billing', destination: '/blog/best-fruit-mandi-software-india-2026', permanent: true },
+            { source: '/blog/managing-empty-crates-sabzi-mandi', destination: '/blog/crate-management-mandi-software', permanent: true },
+            { source: '/blog/manage-mandi-commission-arhtiya-ledger-digitally', destination: '/blog/how-to-use-digital-mandi-khata', permanent: true },
+        ];
+    },
+// ── CAPACITOR STATIC EXPORT ──────────────────────────────────────────
     // When building for iOS/Android, we export a fully static bundle.
     // The web deployment is UNAFFECTED — only set when NEXT_PUBLIC_CAPACITOR=true.
     ...(isCapacitorBuild && {
