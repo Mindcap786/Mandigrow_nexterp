@@ -350,26 +350,26 @@ export function MandiCommissionForm() {
                     <Scale className="w-5 h-5" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{t('sales.purchase_sale') || 'Purchase + Sale'}</h1>
-                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('sales.single_screen') || 'Single-Screen Native Application'}</p>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{t('sales.purchase_sale', 'Purchase + Sale')}</h1>
+                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('sales.single_screen', 'Single-Screen Native Application')}</p>
                 </div>
             </div>
 
             {/* Global Header — 4 columns: Date, Lot No, Unit, Vehicle No */}
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.date') || 'Date'}</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.date', 'Date')}</Label>
                     <Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} className="h-10 font-bold bg-slate-50 mt-1 rounded-lg" />
                 </div>
                 <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.lot_no') || 'Lot No.'}</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.lot_no', 'Lot No.')}</Label>
                     <div className="relative mt-1">
                         <Input placeholder="LOT NBS" value={lotNo} onChange={(e) => setLotNo(e.target.value)} className="h-10 font-bold font-mono tracking-widest uppercase pl-10 rounded-lg" />
                         <Package className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
                 </div>
                 <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.global_unit') || 'Global Unit'}</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.global_unit', 'Global Unit')}</Label>
                     <div className="mt-1">
                         <UnitCombobox 
                             value={globalUnit} 
@@ -379,7 +379,7 @@ export function MandiCommissionForm() {
                     </div>
                 </div>
                 <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.vehicle_no') || 'Vehicle No'}</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{t('sales.vehicle_no', 'Vehicle No')}</Label>
                     <Input placeholder="XX-00-YY-0000" value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} onKeyDown={(e) => { if(e.key === "Enter") { e.preventDefault(); document.getElementById("farmer-search-select")?.focus(); } }} className="h-10 font-bold uppercase mt-1 rounded-lg" />
                 </div>
             </div>
@@ -390,14 +390,14 @@ export function MandiCommissionForm() {
                 {/* 1. Added Farmers List */}
                 <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-4 min-h-[480px]">
                     <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
-                        <User className="w-4 h-4 text-emerald-600" /> {t('sales.latest_arrivals') || 'Latest Arrivals'} ({rows.length})
+                        <User className="w-4 h-4 text-emerald-600" /> {t('sales.latest_arrivals', 'Latest Arrivals')} ({rows.length})
                     </h3>
                     
                     {rows.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 mt-20">
                             <Plus className="w-10 h-10 mb-2 opacity-20" />
-                            <p className="text-sm font-bold">{t('sales.no_farmers') || 'No farmers added'}</p>
-                            <p className="text-xs">{t('sales.fill_details') || 'Fill the details and click Add'}</p>
+                            <p className="text-sm font-bold">{t('sales.no_farmers', 'No farmers added')}</p>
+                            <p className="text-xs">{t('sales.fill_details', 'Fill the details and click Add')}</p>
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -433,7 +433,7 @@ export function MandiCommissionForm() {
                                 onSelected={() => {
                                     setTimeout(() => document.getElementById("item-search-select")?.focus(), 50);
                                 }}
-                                placeholder={t('sales.search_farmer') || "Search Farmer Name..."}
+                                placeholder={t('sales.search_farmer', "Search Farmer Name...")}
                                 className="h-12 text-base font-bold border-2 border-slate-200 mt-1 rounded-xl"
                             />
                         </div>
@@ -452,37 +452,37 @@ export function MandiCommissionForm() {
                                 onSelected={() => {
                                     setTimeout(() => qtyRef.current?.focus(), 50);
                                 }}
-                                placeholder={t('sales.search_item') || "Search Item / Variety..."}
+                                placeholder={t('sales.search_item', "Search Item / Variety...")}
                                 className="h-12 text-base font-bold border-2 border-slate-200 mt-1 rounded-xl"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Input ref={qtyRef} type="number" min={0} step="any" value={currentRow.qty || ""} onChange={(e) => handleCurrentRowChange("qty", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, rateRef)} className={inputCls} placeholder={t('sales.qty') || "Qty"} />
+                                <Input ref={qtyRef} type="number" min={0} step="any" value={currentRow.qty || ""} onChange={(e) => handleCurrentRowChange("qty", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, rateRef)} className={inputCls} placeholder={t('sales.qty', "Qty")} />
                             </div>
                              <div>
-                                <Input ref={rateRef} type="number" min={0} step="any" value={currentRow.rate || ""} onChange={(e) => handleCurrentRowChange("rate", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, lessPercentRef)} className={inputCls} placeholder={t('sales.price') || "Price (₹)"} />
+                                <Input ref={rateRef} type="number" min={0} step="any" value={currentRow.rate || ""} onChange={(e) => handleCurrentRowChange("rate", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, lessPercentRef)} className={inputCls} placeholder={t('sales.price', "Price (₹)")} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                              <div>
-                                <Input ref={lessPercentRef} type="number" min={0} step="any" value={currentRow.lessPercent || ""} onChange={(e) => handleCurrentRowChange("lessPercent", parseFloat(e.target.value) || 0, "lessPercent")} onKeyDown={(e) => handleKeyDown(e, lessUnitsRef)} className={inputCls + " text-red-600"} placeholder={t('sales.less_percent') || "Less %"} />
+                                <Input ref={lessPercentRef} type="number" min={0} step="any" value={currentRow.lessPercent || ""} onChange={(e) => handleCurrentRowChange("lessPercent", parseFloat(e.target.value) || 0, "lessPercent")} onKeyDown={(e) => handleKeyDown(e, lessUnitsRef)} className={inputCls + " text-red-600"} placeholder={t('sales.less_percent', "Less %")} />
                             </div>
                             <div>
-                                <Input ref={lessUnitsRef} type="number" min={0} step="any" value={currentRow.lessUnits || ""} onChange={(e) => handleCurrentRowChange("lessUnits", parseFloat(e.target.value) || 0, "lessUnits")} onKeyDown={(e) => handleKeyDown(e, loadingRef)} className={inputCls + " text-red-600"} placeholder={t('sales.less_weight') || "Less Weight"} />
+                                <Input ref={lessUnitsRef} type="number" min={0} step="any" value={currentRow.lessUnits || ""} onChange={(e) => handleCurrentRowChange("lessUnits", parseFloat(e.target.value) || 0, "lessUnits")} onKeyDown={(e) => handleKeyDown(e, loadingRef)} className={inputCls + " text-red-600"} placeholder={t('sales.less_weight', "Less Weight")} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
                             <div>
-                                <Input ref={loadingRef} type="number" min={0} step="any" value={currentRow.loadingCharges || ""} onChange={(e) => handleCurrentRowChange("loadingCharges", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, commPctRef)} className={inputCls} placeholder={t('sales.loading_charges') || "Loading Charges"} />
+                                <Input ref={loadingRef} type="number" min={0} step="any" value={currentRow.loadingCharges || ""} onChange={(e) => handleCurrentRowChange("loadingCharges", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, commPctRef)} className={inputCls} placeholder={t('sales.loading_charges', "Loading Charges")} />
                             </div>
                         </div>
                         
                         <div>
-                            <Input ref={commPctRef} type="number" min={0} step="any" value={currentRow.commissionPercent || ""} onChange={(e) => handleCurrentRowChange("commissionPercent", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, addBtnRef)} className={inputCls} placeholder={t('sales.commission_percent') || "Commission %"} />
+                            <Input ref={commPctRef} type="number" min={0} step="any" value={currentRow.commissionPercent || ""} onChange={(e) => handleCurrentRowChange("commissionPercent", parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, addBtnRef)} className={inputCls} placeholder={t('sales.commission_percent', "Commission %")} />
                         </div>
 
                         <div className="pt-2">
@@ -498,7 +498,7 @@ export function MandiCommissionForm() {
                                 }}
                                 className="add-btn w-full h-14 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xl tracking-widest shadow-lg shadow-emerald-500/20 shadow-[inset_0px_1px_1px_rgba(255,255,255,0.4)] transition-all"
                             >
-                                [{t('sales.add') || 'Add'}] <Plus className="ml-2 w-6 h-6" />
+                                [{t('sales.add', 'Add')}] <Plus className="ml-2 w-6 h-6" />
                             </Button>
                         </div>
                     </div>
@@ -524,8 +524,8 @@ export function MandiCommissionForm() {
                 <div className="mt-4 bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">{t('sales.add_crates') || 'Add Crates to Sale'}</span>
-                            <span className="text-[9px] font-bold text-amber-600/70">{t('sales.bill_crates_separately') || 'Bill crates separately to this buyer'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">{t('sales.add_crates', 'Add Crates to Sale')}</span>
+                            <span className="text-[9px] font-bold text-amber-600/70">{t('sales.bill_crates_separately', 'Bill crates separately to this buyer')}</span>
                         </div>
                         <Switch
                             checked={cratesEnabled}
@@ -713,7 +713,7 @@ export function MandiCommissionForm() {
                 <div className="bg-blue-50/50 border-2 border-blue-200 rounded-xl p-4">
                     <div className="flex justify-between items-center mb-2">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1 flex items-center gap-2">
-                            🤝 {t('sales.buyer_name') || 'Buyer Name (Sale)'}
+                            🤝 {t('sales.buyer_name', 'Buyer Name (Sale)')}
                         </Label>
                         {buyerId && (
                             <Button 
@@ -726,7 +726,7 @@ export function MandiCommissionForm() {
                                 }}
                                 className="h-6 px-2 text-[9px] font-black text-red-600 hover:text-red-700 hover:bg-red-50 uppercase tracking-tighter"
                             >
-                                {t('sales.remove_buyer') || 'Remove Buyer'}
+                                {t('sales.remove_buyer', 'Remove Buyer')}
                             </Button>
                         )}
                     </div>
@@ -743,14 +743,14 @@ export function MandiCommissionForm() {
 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-1 flex items-center gap-2 mb-2">
-                        📦 {t('sales.loading_crate_charges') || 'Loading/crate charges (₹)'}
+                        📦 {t('sales.loading_crate_charges', 'Loading/crate charges (₹)')}
                     </Label>
                     <Input ref={buyerLoadingRef} type="number" min={0} step="any" placeholder="0" value={buyerLoading || ""} onChange={(e) => setBuyerLoading(parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, buyerPackingRef)} className="h-12 text-xl font-bold bg-white border-slate-200 rounded-xl" />
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-1 flex items-center gap-2 mb-2">
-                        📦 {t('sales.packing_charge') || 'Packing charge (₹)'}
+                        📦 {t('sales.packing_charge', 'Packing charge (₹)')}
                     </Label>
                     <Input ref={buyerPackingRef} type="number" min={0} step="any" placeholder="0" value={buyerPacking || ""} onChange={(e) => setBuyerPacking(parseFloat(e.target.value) || 0)} onKeyDown={(e) => handleKeyDown(e, submitBtnRef)} className="h-12 text-xl font-bold bg-white border-slate-200 rounded-xl" />
                 </div>
@@ -770,7 +770,7 @@ export function MandiCommissionForm() {
                     }}
                     disabled={isCommitting}
                 >
-                    {isCommitting ? (t('sales.generating_bills') || "GENERATING BILLS...") : (t('sales.submit_print') || "SUBMIT & PRINT")}
+                    {isCommitting ? (t('sales.generating_bills', "GENERATING BILLS...")) : (t('sales.submit_print', "SUBMIT & PRINT"))}
                     <ChevronRight className="w-8 h-8" />
                 </Button>
             </div>
