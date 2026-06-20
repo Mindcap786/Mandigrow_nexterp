@@ -113,16 +113,16 @@ export default function LandingPage() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
                             </span>
-                            Enterprise-Grade Mandi Software
+                            {t('landing.hero_badge')}
                         </div>
 
                         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black mb-6 leading-tight tracking-tight">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 block drop-shadow-sm pb-1">India's Best Mandi ERP Software</span>
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 block mt-1 pb-2">for Fruit, Sabji, Anaj & Commission Agents.</span>
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 block drop-shadow-sm pb-1">{t('landing.hero_title')}</span>
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 block mt-1 pb-2">{t('landing.hero_subtitle')}</span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-gray-700 mb-10 font-medium leading-relaxed max-w-3xl mx-auto">
-                            Sabji lot billing, fruit invoicing, anaj mandi, commission, GST, and live khata — works on Android at the mandi gate and desktop in your office. Hindi, Telugu, Tamil, Kannada, Malayalam & Urdu.
+                            {t('landing.hero_desc')}
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-10">
@@ -136,13 +136,13 @@ export default function LandingPage() {
 
                         {/* Trust Bar */}
                         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-bold text-gray-600 mb-16">
-                            <div className="flex items-center gap-1.5"><span className="text-yellow-500">★</span> 200+ mandis</div>
+                            <div className="flex items-center gap-1.5"><span className="text-yellow-500">★</span> {t('landing.trust_mandis')}</div>
                             <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full hidden sm:block"></div>
-                            <div className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> No credit card</div>
+                            <div className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> {t('landing.trust_card')}</div>
                             <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full hidden sm:block"></div>
-                            <div className="flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-emerald-700" /> Free Training</div>
+                            <div className="flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-emerald-700" /> {t('landing.trust_training')}</div>
                             <div className="w-1.5 h-1.5 bg-emerald-300 rounded-full hidden sm:block"></div>
-                            <div className="flex items-center gap-1.5"><span className="text-emerald-700 font-black">₹0</span> Setup Cost</div>
+                            <div className="flex items-center gap-1.5"><span className="text-emerald-700 font-black">₹0</span> {t('landing.trust_cost')}</div>
                         </div>
                     </div>
 
@@ -361,20 +361,20 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center">
                         <h2 className="text-center text-[1.75rem] font-bold text-[#0b2e14] mb-2">
-                            Complete Mandi Software for Every Market & Trader
+                            {t('landing.seo_section_title')}
                         </h2>
                         <p className="text-center text-[#5a6355] mb-8">
-                            From sabzi mandi to anaj mandi — MandiGrow handles billing, khata, GST and settlements.
+                            {t('landing.seo_section_subtitle')}
                         </p>
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                         {[
-                            { title: 'Sabji Lot Billing in Seconds', desc: 'Bill by crate, carton, or kilogram. Auto-calculate totals for any sabji variety at the mandi gate.', href: '/sabji-billing-software' },
-                            { title: 'Fruit Billing Software', desc: 'Complete fruit billing software — manage purchase bills, sales invoices, and GST for any fruit variety or lot size. Auto-valuation for perishable inventory.', href: '/fruit-vegetable-billing' },
-                            { title: 'Vegetable Billing Made Fast', desc: 'Vegetable billing made fast — scan crates, auto-calculate weights, and print GST-compliant pattis in seconds.', href: '/fruit-vegetable-billing' },
-                            { title: 'Digital Mandi Khata Software', desc: 'Replace paper bahis with digital mandi khata software. Every party balance is live, every settlement clean. Track advances, payments, and credits instantly.', href: '/mandi-khata-software' },
-                            { title: 'Anaj Mandi Software', desc: 'Also for Anaj Mandi — grain and pulse traders. MandiGrow handles commodity lot tracking, sacks, quintal billing, and trader settlements for wheat, rice, dal, and pulses.', href: '/anaj-mandi-software' },
-                            { title: 'Why MandiGrow is the Best Sabzi Mandi Software', desc: 'Built for the morning auction and evening settlement — not adapted from a shop billing app. The only cloud mandi software with mobile, Hindi, GST, and khata all in one.', href: '/sabzi-mandi-software' },
+                            { title: t('landing.seo_card1_title'), desc: t('landing.seo_card1_desc'), href: '/sabji-billing-software' },
+                            { title: t('landing.seo_card2_title'), desc: t('landing.seo_card2_desc'), href: '/fruit-vegetable-billing' },
+                            { title: t('landing.seo_card3_title'), desc: t('landing.seo_card3_desc'), href: '/fruit-vegetable-billing' },
+                            { title: t('landing.seo_card4_title'), desc: t('landing.seo_card4_desc'), href: '/mandi-khata-software' },
+                            { title: t('landing.seo_card5_title'), desc: t('landing.seo_card5_desc'), href: '/anaj-mandi-software' },
+                            { title: t('landing.seo_card6_title'), desc: t('landing.seo_card6_desc'), href: '/sabzi-mandi-software' },
                         ].map(({ title, desc, href }) => (
                             <Link 
                                 key={title} 
@@ -385,7 +385,7 @@ export default function LandingPage() {
                                 <h3 className="text-xl font-bold mb-3 text-gray-900">{title}</h3>
                                 <p className="text-gray-600 leading-relaxed mb-6 flex-grow">{desc}</p>
                                 <span className="text-emerald-700 font-bold text-sm mt-auto group-hover:text-emerald-800 transition-colors">
-                                    Learn more →
+                                    {t('landing.learn_more')}
                                 </span>
                             </Link>
                         ))}
