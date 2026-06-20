@@ -5,9 +5,10 @@
  * essential for rendering Indian scripts in printed invoices.
  */
 
-export type LangCode = 'te' | 'hi' | 'ta' | 'kn' | 'ml' | 'bn' | 'gu' | 'ur';
+export type LangCode = 'en' | 'te' | 'hi' | 'ta' | 'kn' | 'ml' | 'bn' | 'gu' | 'ur';
 
 export const LANG_LABELS: Record<LangCode, string> = {
+  en: 'English',
   te: 'తెలుగు',
   hi: 'हिंदी',
   ta: 'தமிழ்',
@@ -19,6 +20,7 @@ export const LANG_LABELS: Record<LangCode, string> = {
 };
 
 export const LANG_NAMES_ENGLISH: Record<LangCode, string> = {
+  en: 'English',
   te: 'Telugu',
   hi: 'Hindi',
   ta: 'Tamil',
@@ -31,6 +33,7 @@ export const LANG_NAMES_ENGLISH: Record<LangCode, string> = {
 
 /** Google Fonts URL for each language's Noto font */
 export const FONT_URLS: Record<LangCode, string> = {
+  en: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap',
   te: 'https://fonts.googleapis.com/css2?family=Noto+Serif+Telugu:wght@400;700;900&display=swap',
   hi: 'https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;700;900&display=swap',
   ta: 'https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700;900&display=swap',
@@ -43,6 +46,7 @@ export const FONT_URLS: Record<LangCode, string> = {
 
 /** CSS font-family string for each language */
 export const FONT_FAMILIES: Record<LangCode, string> = {
+  en: "'Inter', sans-serif",
   te: "'Noto Serif Telugu', serif",
   hi: "'Noto Serif Devanagari', serif",
   ta: "'Noto Serif Tamil', serif",
@@ -55,12 +59,12 @@ export const FONT_FAMILIES: Record<LangCode, string> = {
 
 /** Text direction — only Urdu uses RTL */
 export const TEXT_DIRECTION: Record<LangCode, 'ltr' | 'rtl'> = {
-  te: 'ltr', hi: 'ltr', ta: 'ltr', kn: 'ltr',
+  en: 'ltr', te: 'ltr', hi: 'ltr', ta: 'ltr', kn: 'ltr',
   ml: 'ltr', bn: 'ltr', gu: 'ltr',
   ur: 'rtl',
 };
 
 /** Returns whether a lang code is valid */
 export function isValidLang(lang: string): lang is LangCode {
-  return ['te', 'hi', 'ta', 'kn', 'ml', 'bn', 'gu', 'ur'].includes(lang);
+  return ['en', 'te', 'hi', 'ta', 'kn', 'ml', 'bn', 'gu', 'ur'].includes(lang);
 }

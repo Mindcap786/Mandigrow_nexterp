@@ -10,6 +10,8 @@ import type { LangCode } from './fonts';
 // ── Number word arrays per language ─────────────────────────────────────────
 
 const ONES: Record<LangCode, string[]> = {
+  en: ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+       'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'],
   te: ['', 'ఒకటి', 'రెండు', 'మూడు', 'నాలుగు', 'ఐదు', 'ఆరు', 'ఏడు', 'ఎనిమిది', 'తొమ్మిది',
        'పది', 'పదకొండు', 'పన్నెండు', 'పదమూడు', 'పదనాలుగు', 'పదిహేను', 'పదహారు', 'పదిహేడు', 'పదిహేనమిది', 'పంతొమ్మిది'],
   hi: ['', 'एक', 'दो', 'तीन', 'चार', 'पाँच', 'छह', 'सात', 'आठ', 'नौ',
@@ -29,6 +31,7 @@ const ONES: Record<LangCode, string[]> = {
 };
 
 const TENS: Record<LangCode, string[]> = {
+  en: ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'],
   te: ['', '', 'ఇరవై', 'ముప్పై', 'నలభై', 'యాభై', 'అరవై', 'డెబ్భై', 'ఎనభై', 'తొంభై'],
   hi: ['', '', 'बीस', 'तीस', 'चालीस', 'पचास', 'साठ', 'सत्तर', 'अस्सी', 'नब्बे'],
   ta: ['', '', 'இருபது', 'முப்பது', 'நாற்பது', 'ஐம்பது', 'அறுபது', 'எழுபது', 'எண்பது', 'தொண்ணூறு'],
@@ -40,28 +43,28 @@ const TENS: Record<LangCode, string[]> = {
 };
 
 const HUNDREDS: Record<LangCode, string> = {
-  te: 'వందలు', hi: 'सौ', ta: 'நூறு', kn: 'ನೂರು', ml: 'നൂറ്', bn: 'শত', gu: 'સો', ur: 'سو',
+  en: 'Hundred', te: 'వందలు', hi: 'सौ', ta: 'நூறு', kn: 'ನೂರು', ml: 'നൂറ്', bn: 'শত', gu: 'સો', ur: 'سو',
 };
 const THOUSANDS: Record<LangCode, string> = {
-  te: 'వేల', hi: 'हज़ार', ta: 'ஆயிரம்', kn: 'ಸಾವಿರ', ml: 'ആയിരം', bn: 'হাজার', gu: 'હજાર', ur: 'ہزار',
+  en: 'Thousand', te: 'వేల', hi: 'हज़ार', ta: 'ஆயிரம்', kn: 'ಸಾವಿರ', ml: 'ആയിരം', bn: 'হাজার', gu: 'હજાર', ur: 'ہزار',
 };
 const LAKHS: Record<LangCode, string> = {
-  te: 'లక్షల', hi: 'लाख', ta: 'லட்சம்', kn: 'ಲಕ್ಷ', ml: 'ലക്ഷം', bn: 'লক্ষ', gu: 'લાખ', ur: 'لاکھ',
+  en: 'Lakh', te: 'లక్షల', hi: 'लाख', ta: 'லட்சம்', kn: 'ಲಕ್ಷ', ml: 'ലക്ഷം', bn: 'লক্ষ', gu: 'લાખ', ur: 'لاکھ',
 };
 const CRORES: Record<LangCode, string> = {
-  te: 'కోట్ల', hi: 'करोड़', ta: 'கோடி', kn: 'ಕೋಟಿ', ml: 'കോടി', bn: 'কোটি', gu: 'કરોડ', ur: 'کروڑ',
+  en: 'Crore', te: 'కోట్ల', hi: 'करोड़', ta: 'கோடி', kn: 'ಕೋಟಿ', ml: 'കോടി', bn: 'কোটি', gu: 'કરોડ', ur: 'کروڑ',
 };
 const RUPEES_PREFIX: Record<LangCode, string> = {
-  te: 'రూపాయలు', hi: 'रुपये', ta: 'ரூபாய்', kn: 'ರೂಪಾಯಿ', ml: 'രൂപ', bn: 'টাকা', gu: 'રૂપિયા', ur: 'روپے',
+  en: 'Rupees', te: 'రూపాయలు', hi: 'रुपये', ta: 'ரூபாய்', kn: 'ರೂಪಾಯಿ', ml: 'രൂപ', bn: 'টাকা', gu: 'રૂપિયા', ur: 'روپے',
 };
 const AND_WORD: Record<LangCode, string> = {
-  te: 'మరియు', hi: 'और', ta: 'மற்றும்', kn: 'ಮತ್ತು', ml: 'ഒപ്പം', bn: 'এবং', gu: 'અને', ur: 'اور',
+  en: 'and', te: 'మరియు', hi: 'और', ta: 'மற்றும்', kn: 'ಮತ್ತು', ml: 'ഒപ്പം', bn: 'এবং', gu: 'અને', ur: 'اور',
 };
 const PAISE_WORD: Record<LangCode, string> = {
-  te: 'పైసలు', hi: 'पैसे', ta: 'பைசா', kn: 'ಪೈಸೆ', ml: 'പൈസ', bn: 'পয়সা', gu: 'પૈસા', ur: 'پیسے',
+  en: 'Paise', te: 'పైసలు', hi: 'पैसे', ta: 'பைசா', kn: 'ಪೈಸೆ', ml: 'പൈസ', bn: 'পয়সা', gu: 'પૈસા', ur: 'پیسے',
 };
 const ONLY_WORD: Record<LangCode, string> = {
-  te: 'మాత్రమే', hi: 'मात्र', ta: 'மட்டும்', kn: 'ಮಾತ್ರ', ml: 'മാത്രം', bn: 'মাত্র', gu: 'માત્ર', ur: 'صرف',
+  en: 'Only', te: 'మాత్రమే', hi: 'मात्र', ta: 'மட்டும்', kn: 'ಮಾತ್ರ', ml: 'മാത്രം', bn: 'মাত্র', gu: 'માત્ર', ur: 'صرف',
 };
 
 // ── Core conversion function ─────────────────────────────────────────────────

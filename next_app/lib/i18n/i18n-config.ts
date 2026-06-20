@@ -4,7 +4,7 @@
  * Zero coupling to existing translations.ts — purely additive.
  */
 
-export type SupportedLanguage = 'en' | 'hi' | 'te' | 'ta' | 'kn' | 'ml' | 'ur';
+export type SupportedLanguage = 'en' | 'hi' | 'te' | 'ta' | 'kn' | 'ml' | 'ur' | 'gu' | 'mr';
 
 /** Languages that use right-to-left text direction. */
 export const RTL_LANGUAGES: SupportedLanguage[] = ['ur'];
@@ -75,6 +75,24 @@ export const LANGUAGE_CONFIG: Record<
     fontFamily: '"Noto Sans Malayalam", "Inter", sans-serif',
     googleFontName: 'Noto+Sans+Malayalam',
   },
+  gu: {
+    code: 'gu',
+    label: 'Gujarati',
+    native: 'ગુજરાતી',
+    flag: '🇮🇳',
+    dir: 'ltr',
+    fontFamily: '"Noto Sans Gujarati", "Inter", sans-serif',
+    googleFontName: 'Noto+Sans+Gujarati',
+  },
+  mr: {
+    code: 'mr',
+    label: 'Marathi',
+    native: 'मराठी',
+    flag: '🇮🇳',
+    dir: 'ltr',
+    fontFamily: '"Noto Sans Devanagari", "Inter", sans-serif',
+    googleFontName: 'Noto+Sans+Devanagari',
+  },
   ur: {
     code: 'ur',
     label: 'Urdu',
@@ -87,7 +105,7 @@ export const LANGUAGE_CONFIG: Record<
 };
 
 /** Ordered list for the language switcher UI. */
-export const LANGUAGE_ORDER: SupportedLanguage[] = ['en', 'hi', 'te', 'ta', 'kn', 'ml', 'ur'];
+export const LANGUAGE_ORDER: SupportedLanguage[] = ['en', 'hi', 'te', 'ta', 'kn', 'ml', 'gu', 'mr', 'ur'];
 
 /** Returns 'rtl' for RTL languages, 'ltr' for all others. */
 export function getTextDirection(lang: SupportedLanguage): 'ltr' | 'rtl' {

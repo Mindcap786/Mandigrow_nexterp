@@ -11,6 +11,8 @@ import taCommon from '../../public/locales/ta/common.json';
 import knCommon from '../../public/locales/kn/common.json';
 import mlCommon from '../../public/locales/ml/common.json';
 import urCommon from '../../public/locales/ur/common.json';
+import guCommon from '../../public/locales/gu/common.json';
+import mrCommon from '../../public/locales/mr/common.json';
 
 import enGlossary from '../../public/locales/en/glossary.json';
 import hiGlossary from '../../public/locales/hi/glossary.json';
@@ -19,6 +21,8 @@ import taGlossary from '../../public/locales/ta/glossary.json';
 import knGlossary from '../../public/locales/kn/glossary.json';
 import mlGlossary from '../../public/locales/ml/glossary.json';
 import urGlossary from '../../public/locales/ur/glossary.json';
+import guGlossary from '../../public/locales/gu/glossary.json';
+import mrGlossary from '../../public/locales/mr/glossary.json';
 
 // Utility to deeply merge objects (used to merge the 3 tiers of translations)
 function deepMerge(target: any, ...sources: any[]): any {
@@ -54,6 +58,8 @@ const resources = {
   kn: { common: deepMerge({}, translations.en, translations.kn, knCommon), glossary: knGlossary },
   ml: { common: deepMerge({}, translations.en, (translations as any).ml || {}, mlCommon), glossary: mlGlossary },
   ur: { common: deepMerge({}, translations.en, (translations as any).ur || {}, urCommon), glossary: urGlossary },
+  gu: { common: deepMerge({}, translations.en, (translations as any).gu || {}, guCommon), glossary: guGlossary },
+  mr: { common: deepMerge({}, translations.en, (translations as any).mr || {}, mrCommon), glossary: mrGlossary },
 };
 
 i18n
@@ -62,7 +68,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    supportedLngs: ['en', 'hi', 'te', 'ta', 'kn', 'ml', 'ur'],
+    supportedLngs: ['en', 'hi', 'te', 'ta', 'kn', 'ml', 'ur', 'gu', 'mr'],
     ns: ['common', 'glossary'],
     defaultNS: 'common',
     
