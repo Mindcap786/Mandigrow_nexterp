@@ -15,12 +15,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateRange } from "react-day-picker";
 import { cacheGet, cacheSet, cacheClearPrefix } from "@/lib/data-cache";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 const AMOUNT_EPSILON = 0.01;
 const DATE_FORMAT = 'yyyy-MM-dd';
 
 export default function PurchaseBillsPage() {
     const { profile } = useAuth();
+    const { t } = useLanguage();
 
     // Pre-populate from cache for instant render on re-navigation
     const _orgId = profile?.organization_id;
@@ -70,14 +72,14 @@ export default function PurchaseBillsPage() {
     }, [profile?.organization_id]);
 
     const datePresets = [
-        { label: 'Today', from: startOfDay(new Date()), to: endOfDay(new Date()) },
-        { label: 'Last 7 Days', from: startOfDay(subDays(new Date(), 7)), to: endOfDay(new Date()) },
-        { label: 'Last 30 Days', from: startOfDay(subDays(new Date(), 30)), to: endOfDay(new Date()) },
+        { label: t('purchase_bills.today') || 'Today', from: startOfDay(new Date()), to: endOfDay(new Date()) },
+        { label: t('purchase_bills.last_7_days') || 'Last 7 Days', from: startOfDay(subDays(new Date(), 7)), to: endOfDay(new Date()) },
+        { label: t('purchase_bills.last_30_days') || 'Last 30 Days', from: startOfDay(subDays(new Date(), 30)), to: endOfDay(new Date()) },
     ];
 
     const activePreset = dateRange?.from && dateRange?.to
         ? datePresets.find(p => isSameDay(p.from, dateRange.from!) && isSameDay(p.to, dateRange.to!))?.label
-        : !dateRange ? 'All Time' : null;
+        : !dateRange ? (t('purchase_bills.all_time') || 'All Time') : null;
 
     useEffect(() => {
         if (profile?.organization_id) {
@@ -182,21 +184,21 @@ export default function PurchaseBillsPage() {
                                     onClick={() => fetchBills(true)}
                                     className="ml-auto h-8 px-3 text-xs font-black uppercase tracking-widest hover:bg-red-100"
                                 >
-                                    Retry
+                                    {t('purchase_bills.retry') || 'Retry'}
                                 </Button>
                             </div>
                         )}
                         <h1 className="text-3xl md:text-5xl font-[1000] italic tracking-tighter mb-2 uppercase text-slate-900 leading-none">
-                            Purchase <span className="text-blue-600 drop-shadow-[0_2px_10px_rgba(37,99,235,0.1)]">Settlements</span>
+                            {t('purchase_bills.title') || 'Purchase Settlements'}
                         </h1>
                         <div className="flex items-center gap-2">
                             <div className="h-1 w-8 md:w-12 bg-blue-600 rounded-full"></div>
-                            <p className="text-slate-500 font-bold tracking-tight text-sm md:text-lg italic">Financial ledger and payouts for farmers, suppliers, and direct purchase inventory.</p>
+                            <p className="text-slate-500 font-bold tracking-tight text-sm md:text-lg italic">{t('purchase_bills.financial_ledger_desc') || 'Financial ledger and payouts for farmers, suppliers, and direct purchase inventory.'}</p>
                         </div>
                     </div>
 
                     <div className="text-left md:text-right relative z-10 mt-6 md:mt-0 bg-white/40 backdrop-blur-sm p-4 rounded-3xl border border-white/50 shadow-sm w-full md:w-auto">
-                        <div className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black mb-1">Total Outstanding Liability</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black mb-1">{t('purchase_bills.total_outstanding_liability') || 'Total Outstanding Liability'}</div>
                         <div className="text-3xl md:text-5xl font-mono font-black text-slate-900 tracking-tighter flex items-baseline justify-start md:justify-end gap-1">
                             <span className="text-2xl text-blue-500/50 font-sans">₹</span>
                             {totalPayable.toLocaleString()}
@@ -210,7 +212,7 @@ export default function PurchaseBillsPage() {
                     <div className="relative w-full xl:flex-1 group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-300" />
                         <Input
-                            placeholder="Search Supplier, Ref #, or Location..."
+                            placeholder={t('purchase_bills.search_supplier_ref') || "Search Supplier, Ref #, or Location..."}
                             className="pl-12 bg-slate-50/50 hover:bg-white border-slate-200 text-black h-12 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm md:text-base font-bold transition-all shadow-inner focus:shadow-md placeholder:text-slate-400 w-full"
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -245,7 +247,7 @@ export default function PurchaseBillsPage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <span className="text-sm font-bold tracking-tight text-slate-400">All Time</span>
+                                        <span className="text-sm font-bold tracking-tight text-slate-400">{t('purchase_bills.all_time') || 'All Time'}</span>
                                     )}
                                 </Button>
                             </PopoverTrigger>
@@ -260,7 +262,7 @@ export default function PurchaseBillsPage() {
                                                 : "text-slate-400 border-transparent hover:text-black hover:bg-slate-100"
                                         )}
                                     >
-                                        All Time
+                                        {t('purchase_bills.all_time') || 'All Time'}
                                     </button>
                                     {datePresets.map((preset) => (
                                         <button
@@ -321,7 +323,7 @@ export default function PurchaseBillsPage() {
                                             : 'bg-white border-slate-200 text-slate-500 hover:text-black hover:border-slate-300 hover:bg-slate-50'
                                     )}
                                 >
-                                    {f}
+                                    {t(`purchase_bills.${f}`) || f}
                                 </button>
                             ))}
                         </div>
@@ -334,7 +336,7 @@ export default function PurchaseBillsPage() {
                 ) : (
                     <div className="grid grid-cols-1 gap-4">
                         {filteredSuppliers.length === 0 && (
-                            <div className="text-center py-20 text-slate-400 font-bold bg-white rounded-2xl border border-dashed border-slate-200 uppercase tracking-widest text-xs">No records found.</div>
+                            <div className="text-center py-20 text-slate-400 font-bold bg-white rounded-2xl border border-dashed border-slate-200 uppercase tracking-widest text-xs">{t('purchase_bills.no_records_found') || 'No records found.'}</div>
                         )}
                         {paginatedSuppliers
                             .map((supplier) => {
@@ -371,12 +373,12 @@ export default function PurchaseBillsPage() {
                                                 {/* City */}
                                                 <div className="text-xs text-slate-400 font-bold flex items-center gap-1 mt-0.5">
                                                     <Receipt className="w-3 h-3 flex-shrink-0" />
-                                                    <span className="truncate">Origin: {supplier.city || 'No City set'}</span>
+                                                    <span className="truncate">{t('purchase_bills.origin') || 'Origin'}: {supplier.city || (t('purchase_bills.no_city_set') || 'No City set')}</span>
                                                 </div>
                                                 {/* Badges - wrap on mobile */}
                                                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                                                     <span className="text-[9px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-widest whitespace-nowrap">
-                                                        {inwardCount} {inwardCount === 1 ? 'Inward' : 'Inwards'}
+                                                        {inwardCount} {inwardCount === 1 ? (t('purchase_bills.inward') || 'Inward') : (t('purchase_bills.inwards') || 'Inwards')}
                                                     </span>
                                                     {arrivalTypes.map((type: any) => (
                                                         <span key={type} className={cn(
@@ -395,7 +397,7 @@ export default function PurchaseBillsPage() {
                                                 </div>
                                                 {/* Balance + Progress Bar */}
                                                 <div className={`text-sm font-mono font-black mt-2 ${ledgerBal > AMOUNT_EPSILON ? 'text-rose-600' : ledgerBal < -AMOUNT_EPSILON ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                                    Balance: ₹ {Math.abs(ledgerBal).toLocaleString()} {ledgerBal > AMOUNT_EPSILON ? 'To Pay' : ledgerBal < -AMOUNT_EPSILON ? 'Advance' : 'Settled'}
+                                                    {t('purchase_bills.balance') || 'Balance'}: ₹ {Math.abs(ledgerBal).toLocaleString()} {ledgerBal > AMOUNT_EPSILON ? (t('purchase_bills.to_pay') || 'To Pay') : ledgerBal < -AMOUNT_EPSILON ? (t('purchase_bills.advance') || 'Advance') : (t('purchase_bills.settled') || 'Settled')}
                                                 </div>
                                                 {supplier.totalNetPayable > AMOUNT_EPSILON && (
                                                     <div className="mt-2">
@@ -422,7 +424,7 @@ export default function PurchaseBillsPage() {
                                                 onClick={() => setSelectedSupplier(supplier)}
                                                 className="flex-1 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-black font-bold h-10 px-4 shadow-sm rounded-xl text-sm"
                                             >
-                                                Manage Inwards
+                                                {t('purchase_bills.manage_inwards') || 'Manage Inwards'}
                                             </Button>
 
                                             {ledgerBal > 0 && (
@@ -439,7 +441,7 @@ export default function PurchaseBillsPage() {
                                                     }}
                                                     className="flex-1 bg-black text-white font-black hover:bg-slate-800 h-10 px-4 shadow-lg rounded-xl transition-all active:scale-95 text-sm"
                                                 >
-                                                    Pay Balance
+                                                    {t('purchase_bills.pay_balance') || 'Pay Balance'}
                                                 </Button>
                                             )}
                                         </div>
@@ -456,10 +458,10 @@ export default function PurchaseBillsPage() {
                                     className="h-10 px-4 text-xs font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl"
                                 >
                                     <ChevronLeft className="w-4 h-4 mr-1" />
-                                    Prev
+                                    {t('purchase_bills.prev') || 'Prev'}
                                 </Button>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                                    Page {currentPage} of {totalPages}
+                                    {t('purchase_bills.page') || 'Page'} {currentPage} {t('purchase_bills.of') || 'of'} {totalPages}
                                 </span>
                                 <Button 
                                     variant="outline" 
@@ -467,7 +469,7 @@ export default function PurchaseBillsPage() {
                                     disabled={currentPage === totalPages}
                                     className="h-10 px-4 text-xs font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl"
                                 >
-                                    Next
+                                    {t('purchase_bills.next') || 'Next'}
                                     <ChevronRight className="w-4 h-4 ml-1" />
                                 </Button>
                             </div>

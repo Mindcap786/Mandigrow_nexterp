@@ -163,17 +163,17 @@ export default function Dashboard() {
                     totalAmount={`₹${stats.revenue.toLocaleString()}`}
                     metrics={[
                         {
-                            label: 'Cash Sales',
+                            label: t('dashboard.cash_sales') || 'Cash Sales',
                             value: `₹${stats.collections.toLocaleString()}`,
                             trend: stats.collections > 0 ? "up" : "flat"
                         },
                         {
-                            label: 'Udhaar',
+                            label: t('dashboard.udhaar') || 'Udhaar',
                             value: `₹${stats.payables.toLocaleString()}`,
                             trend: stats.payables > 0 ? "down" : "flat"
                         },
                         {
-                            label: 'Expenses',
+                            label: t('dashboard.expenses') || 'Expenses',
                             value: `₹${stats.daily_expenses.toLocaleString()}`,
                             trend: stats.daily_expenses > 0 ? "up" : "flat"
                         },
@@ -183,14 +183,14 @@ export default function Dashboard() {
                 {/* Additional Stats Grid for Mobile (Parity with Web View) */}
                 <div className="grid grid-cols-2 gap-3 mt-4">
                     <StatChip 
-                        label="Purchases" 
+                        label={t('dashboard.purchases') || 'Purchases'} 
                         value={`₹${(stats.cash_purchase + stats.udhaar_purchase).toLocaleString()}`} 
                         icon={<Package className="w-4 h-4" />} 
                         color="#d97706" 
                         onPress={() => router.push(ROUTES.PURCHASE_BILLS)}
                     />
                     <StatChip 
-                        label="Liquid Assets" 
+                        label={t('dashboard.liquid_assets_title') || 'Liquid Assets'} 
                         value={`₹${(stats.inflow - stats.outflow).toLocaleString()}`} 
                         icon={<ArrowUpRight className="w-4 h-4" />} 
                         color="#059669" 
@@ -335,8 +335,8 @@ export default function Dashboard() {
                             <ArrowUpRight className="w-6 h-6" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Customer Payment</p>
-                            <h3 className="text-xl font-[1000] tracking-tighter">RECEIVE MONEY</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.customer_payment') || 'Customer Payment'}</p>
+                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.receive_money') || 'RECEIVE MONEY'}</h3>
                         </div>
                     </div>
                     <Activity className="w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity" />
@@ -351,8 +351,8 @@ export default function Dashboard() {
                             <TrendingUp className="w-6 h-6 rotate-180" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Supplier Payment</p>
-                            <h3 className="text-xl font-[1000] tracking-tighter">MAKE PAYMENT</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.supplier_payment') || 'Supplier Payment'}</p>
+                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.make_payment') || 'MAKE PAYMENT'}</h3>
                         </div>
                     </div>
                     <Activity className="w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity" />
@@ -367,8 +367,8 @@ export default function Dashboard() {
                             <Package className="w-6 h-6" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Operational Costs</p>
-                            <h3 className="text-xl font-[1000] tracking-tighter">MANDI EXPENSES</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{t('dashboard.operational_costs') || 'Operational Costs'}</p>
+                            <h3 className="text-xl font-[1000] tracking-tighter">{t('dashboard.mandi_expenses') || 'MANDI EXPENSES'}</h3>
                         </div>
                     </div>
                     <Activity className="w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity" />
@@ -378,49 +378,49 @@ export default function Dashboard() {
             {/* Key Metrics Grid - mobile: 1-col, tablet: 2-col, desktop: 4-col */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <StatsCard
-                    title="📈 SALES SUMMARY"
+                    title={`📈 ${t('dashboard.sales_summary_title') || 'SALES SUMMARY'}`}
                     value={`₹${stats.revenue.toLocaleString()}`}
                     icon={<TrendingUp className="h-6 w-6 text-indigo-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.SALES}
                     subValues={[
-                        { label: 'Cash Sales (Collected)', value: stats.collections, color: 'bg-emerald-500' },
-                        { label: 'Udhaar Sales (Receivable)', value: stats.payables, color: 'bg-rose-500' }
+                        { label: t('dashboard.cash_sales_collected') || 'Cash Sales (Collected)', value: stats.collections, color: 'bg-emerald-500' },
+                        { label: t('dashboard.udhaar_sales_receivable') || 'Udhaar Sales (Receivable)', value: stats.payables, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
-                    title="📦 PURCHASE INSIGHTS"
+                    title={`📦 ${t('dashboard.purchase_insights_title') || 'PURCHASE INSIGHTS'}`}
                     value={`₹${(stats.cash_purchase + stats.udhaar_purchase).toLocaleString()}`}
                     icon={<Package className="h-6 w-6 text-amber-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.PURCHASE_BILLS}
                     subValues={[
-                        { label: 'Cash Purchase (Paid)', value: stats.cash_purchase, color: 'bg-emerald-500' },
-                        { label: 'Udhaar Purchase (Outstanding)', value: stats.udhaar_purchase, color: 'bg-rose-500' }
+                        { label: t('dashboard.cash_purchase_paid') || 'Cash Purchase (Paid)', value: stats.cash_purchase, color: 'bg-emerald-500' },
+                        { label: t('dashboard.udhaar_purchase_outstanding') || 'Udhaar Purchase (Outstanding)', value: stats.udhaar_purchase, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
-                    title="💰 LIQUID ASSETS"
+                    title={`💰 ${t('dashboard.liquid_assets_title') || 'LIQUID ASSETS'}`}
                     value={`₹${(stats.inflow - stats.outflow).toLocaleString()}`}
                     icon={<ArrowUpRight className="h-6 w-6 text-emerald-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.REPORT_DAYBOOK}
                     subValues={[
-                        { label: 'Inflow', value: stats.inflow, color: 'bg-emerald-500' },
-                        { label: 'Outflow', value: stats.outflow, color: 'bg-rose-500' }
+                        { label: t('dashboard.inflow') || 'Inflow', value: stats.inflow, color: 'bg-emerald-500' },
+                        { label: t('dashboard.outflow') || 'Outflow', value: stats.outflow, color: 'bg-rose-500' }
                     ]}
                 />
                 <StatsCard
-                    title="🛠️ DAILY EXPENSES"
+                    title={`🛠️ ${t('dashboard.daily_expenses_title') || 'DAILY EXPENSES'}`}
                     value={`₹${stats.daily_expenses.toLocaleString()}`}
                     icon={<Activity className="h-6 w-6 text-rose-700" />}
                     bgColor="bg-white"
                     borderColor="border-slate-100"
                     href={ROUTES.FINANCE_PAYMENTS_EXPENSE}
-                    subtext="Total volume of operational expenses paid out today (Labor, Transport, Petty Cash)"
+                    subtext={t('dashboard.expenses_subtext') || "Total volume of operational expenses paid out today (Labor, Transport, Petty Cash)"}
                     subtextBg="bg-rose-50"
                 />
             </div>

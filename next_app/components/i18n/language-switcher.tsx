@@ -1,7 +1,7 @@
 "use client"
 
 import { useLanguage } from "./language-provider"
-import { Language } from "./translations"
+import { LANGUAGE_CONFIG, LANGUAGE_ORDER } from "@/lib/i18n/i18n-config"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Languages, Check } from "lucide-react"
@@ -10,17 +10,10 @@ import { motion } from "framer-motion"
 export function LanguageSwitcher() {
     const { language, setLanguage, t } = useLanguage()
 
-    const languages: { code: Language; label: string; native: string; flag: string; rtl?: boolean }[] = [
-        { code: 'en', label: 'English',   native: 'English',    flag: '🇺🇸' },
-        { code: 'hi', label: 'Hindi',     native: 'हिन्दी',     flag: '🇮🇳' },
-        { code: 'te', label: 'Telugu',    native: 'తెలుగు',     flag: '🇮🇳' },
-        { code: 'ta', label: 'Tamil',     native: 'தமிழ்',      flag: '🇮🇳' },
-        { code: 'kn', label: 'Kannada',   native: 'ಕನ್ನಡ',      flag: '🇮🇳' },
-        { code: 'ml', label: 'Malayalam', native: 'മലയാളം',     flag: '🇮🇳' },
-        { code: 'ur', label: 'Urdu',      native: 'اردو',       flag: '🇮🇳', rtl: true },
-    ]
+    // Dynamically generate the list from our central config
+    const languages = LANGUAGE_ORDER.map(code => LANGUAGE_CONFIG[code]);
 
-    const activeLang = languages.find(l => l.code === language) || languages[0];
+    const activeLang = LANGUAGE_CONFIG[language] || LANGUAGE_CONFIG['en'];
 
     return (
         <DropdownMenu>
