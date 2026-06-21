@@ -13117,6 +13117,7 @@ def get_tenant_details(p_org_id: str) -> dict:
     """
     Returns detailed information about a single tenant for the Admin Portal.
     """
+    import json
     from mandigrow.mandigrow.logic.tenancy import is_super_admin, PLATFORM_ADMIN_EMAILS
     user = frappe.get_doc("User", frappe.session.user)
     if not (is_super_admin() or "System Manager" in [r.role for r in user.roles]):
@@ -13163,7 +13164,7 @@ def get_tenant_details(p_org_id: str) -> dict:
             "billing_cycle": getattr(org, "billing_cycle", None) or "monthly",
             "onboarding_partner": getattr(org, "onboarding_partner", None),
             "partner_name": frappe.db.get_value("Mandi Partner Profile", getattr(org, "onboarding_partner", None), "partner_name") if getattr(org, "onboarding_partner", None) else None,
-            "rbac_matrix": {}
+            "rbac_matrix": json.loads(getattr(org, "rbac_matrix", "{}") or "{}") if isinstance(getattr(org, "rbac_matrix", None), str) else getattr(org, "rbac_matrix", {})
         },
         "owner": owner,
         "users": users,

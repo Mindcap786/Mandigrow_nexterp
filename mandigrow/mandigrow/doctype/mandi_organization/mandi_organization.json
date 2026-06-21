@@ -40,7 +40,8 @@
   "payment_settings",
   "onboarding_partner",
   "invoice_language",
-  "google_translate_api_key"
+  "google_translate_api_key",
+  "rbac_matrix"
  ],
  "fields": [
   {
@@ -250,6 +251,11 @@
    "fieldname": "google_translate_api_key",
    "fieldtype": "Password",
    "label": "Google Translate API Key"
+  },
+  {
+   "fieldname": "rbac_matrix",
+   "fieldtype": "JSON",
+   "label": "RBAC Matrix"
   }
  ],
  "grid_page_length": 50,
