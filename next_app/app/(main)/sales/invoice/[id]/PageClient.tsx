@@ -156,10 +156,10 @@ export default function SaleInvoicePage() {
                         position: 'top-center'
                     });
                 });
-                // Fall through to browser print for thermal fallback
-                setPrintMode('thermal');
-                setTriggerPrint(prev => prev + 1);
             }
+            // Fall through to browser print for thermal fallback
+            setPrintMode('thermal');
+            setTriggerPrint(prev => prev + 1);
         } else {
             setPrintMode('a4');
             setTriggerPrint(prev => prev + 1);
