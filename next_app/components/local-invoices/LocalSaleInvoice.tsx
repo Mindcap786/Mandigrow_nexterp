@@ -16,7 +16,7 @@ import type { LangCode } from "./utils/fonts"
 import { FONT_FAMILIES, FONT_URLS, TEXT_DIRECTION } from "./utils/fonts"
 import { getTranslation } from "./translations"
 import { amountInWords } from "./utils/amount-in-words"
-import { getPartyName, getItemName } from "./translations"
+import { getPartyName, getItemName, t } from "./translations"
 
 interface LocalSaleInvoiceProps {
   sale: any
