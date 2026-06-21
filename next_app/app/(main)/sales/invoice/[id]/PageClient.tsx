@@ -371,8 +371,9 @@ export default function SaleInvoicePage() {
                 </div>
                 
                 {/* Fixed off-screen container for perfect html-to-image capture without scroll/padding offsets */}
-                <div style={{ position: 'fixed', top: 0, left: 0, zIndex: -9999, pointerEvents: 'none', opacity: 0 }}>
-                    <div ref={thermalRef} style={{ width: thermalWidth === 48 ? '384px' : '576px', background: 'white' }}>
+                {/* When printMode === 'thermal' (fallback for iOS), this container becomes fully visible and static for the OS print dialog */}
+                <div className={printMode === 'thermal' ? "print:static print:opacity-100 print:z-auto print:pointer-events-auto" : "print:hidden"} style={{ position: 'fixed', top: 0, left: 0, zIndex: -9999, pointerEvents: 'none', opacity: 0 }}>
+                    <div ref={thermalRef} style={{ width: thermalWidth === 48 ? '384px' : '576px', background: 'white', margin: 0, padding: 0 }}>
                         <ThermalReceipt 
                             sale={sale} 
                             organization={organization} 
