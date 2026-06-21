@@ -152,10 +152,15 @@ export default function SaleInvoicePage() {
                     return;
                 } else {
                     if (thermalRef.current) {
+                        const originalCssText = thermalRef.current.style.cssText;
                         const originalDisplay = thermalRef.current.style.display;
-                        thermalRef.current.style.display = 'block';
+                        
                         // Capture 384px (58mm) or 576px (80mm) based on thermalWidth
                         const pxWidth = thermalWidth === 48 ? 384 : 576;
+                        
+                        // Force strict top-left positioning to eliminate parent padding/margins offset
+                        thermalRef.current.style.cssText = `position: fixed; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white;`;
+                        
                         const { toCanvas } = await import('html-to-image');
                         const canvas = await toCanvas(thermalRef.current, {
                             width: pxWidth,
@@ -164,6 +169,7 @@ export default function SaleInvoicePage() {
                             backgroundColor: '#ffffff'
                         });
                         
+                        thermalRef.current.style.cssText = originalCssText;
                         thermalRef.current.style.display = originalDisplay;
 
                         const escpos = new ESCPOS();
