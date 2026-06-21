@@ -103,12 +103,15 @@ def translate_invoice_names(item_names, party_name, lang):
         for src, translated in batch_result.items():
             if translated and translated != src:
                 # Save to Translation Cache
-                if not frappe.db.exists("Mandi Translation Cache", {"source_text": src, "language": lang}):
-                    doc = frappe.new_doc("Mandi Translation Cache")
-                    doc.source_text = src
-                    doc.language = lang
-                    doc.translated_text = translated
-                    doc.insert(ignore_permissions=True)
+                try:
+                    if not frappe.db.exists("Mandi Translation Cache", {"source_text": src, "language": lang}):
+                        doc = frappe.new_doc("Mandi Translation Cache")
+                        doc.source_text = src
+                        doc.language = lang
+                        doc.translated_text = translated
+                        doc.insert(ignore_permissions=True)
+                except Exception as e:
+                    frappe.log_error(f"Translation cache save failed for {src}: {str(e)}")
             translated_items[src] = translated
 
     # Process Party Name
@@ -128,13 +131,16 @@ def translate_invoice_names(item_names, party_name, lang):
                 batch_party = translate_batch([party_name], lang, org_id)
                 translated_party = batch_party.get(party_name, party_name)
                 # Save to cache
-                if translated_party and translated_party != party_name:
-                    if not frappe.db.exists("Mandi Translation Cache", {"source_text": party_name, "language": lang}):
-                        doc = frappe.new_doc("Mandi Translation Cache")
-                        doc.source_text = party_name
-                        doc.language = lang
-                        doc.translated_text = translated_party
-                        doc.insert(ignore_permissions=True)
+                try:
+                    if translated_party and translated_party != party_name:
+                        if not frappe.db.exists("Mandi Translation Cache", {"source_text": party_name, "language": lang}):
+                            doc = frappe.new_doc("Mandi Translation Cache")
+                            doc.source_text = party_name
+                            doc.language = lang
+                            doc.translated_text = translated_party
+                            doc.insert(ignore_permissions=True)
+                except Exception as e:
+                    frappe.log_error(f"Translation cache save failed for {party_name}: {str(e)}")
             else:
                 translated_party = party_name # Already in local script
 
