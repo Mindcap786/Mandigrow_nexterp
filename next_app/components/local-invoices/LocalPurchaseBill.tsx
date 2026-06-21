@@ -15,6 +15,7 @@ import { FONT_FAMILIES, FONT_URLS, TEXT_DIRECTION } from "./utils/fonts"
 import { getTranslation } from "./translations"
 import { amountInWords } from "./utils/amount-in-words"
 import { getPartyName, getItemName } from "./translations"
+import { formatCommodityName } from "@/lib/utils/commodity-utils"
 
 interface LocalPurchaseBillProps {
   lot: any
@@ -125,8 +126,8 @@ export default function LocalPurchaseBill({
 
   // Item name resolver
   const resolveItemName = (l: any) => {
-    const rawName = l?.item?.name || l?.item_name || 'Item'
-    const translated = itemTranslations[rawName]
+    const rawName = formatCommodityName(l?.item?.name || l?.item_name || 'Item', l?.item?.custom_attributes)
+    const translated = itemTranslations[l?.item?.name || l?.item_name || ''] || itemTranslations[rawName]
     return getItemName(rawName, translated, itemTranslations)
   }
 

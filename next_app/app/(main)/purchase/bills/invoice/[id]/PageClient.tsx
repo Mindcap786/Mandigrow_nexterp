@@ -15,6 +15,7 @@ import { useLocalInvoice } from "@/hooks/use-local-invoice"
 import LocalPurchaseBill from "@/components/local-invoices/LocalPurchaseBill"
 import { LANG_LABELS, LANG_NAMES_ENGLISH } from "@/components/local-invoices/utils/fonts"
 import type { LangCode } from "@/components/local-invoices/utils/fonts"
+import { formatCommodityName } from "@/lib/utils/commodity-utils"
 
 export default function PurchaseBillInvoicePage() {
     const { id } = useParams()    // This is the lot_id
@@ -88,11 +89,9 @@ export default function PurchaseBillInvoicePage() {
     useEffect(() => {
         if (localInvoice.isEnabled && localInvoice.activeLang && lot && arrival) {
             const itemNamesSet = new Set<string>();
-            if (lot.item?.name) itemNamesSet.add(lot.item.name);
-            if (lot.item_name) itemNamesSet.add(lot.item_name);
+            if (lot.item?.name || lot.item_name) itemNamesSet.add(formatCommodityName(lot.item?.name || lot.item_name, lot.item?.custom_attributes));
             arrivalLots.forEach((l: any) => {
-                if (l.item?.name) itemNamesSet.add(l.item.name);
-                if (l.item_name) itemNamesSet.add(l.item_name);
+                if (l.item?.name || l.item_name) itemNamesSet.add(formatCommodityName(l.item?.name || l.item_name, l.item?.custom_attributes));
             });
             const itemNames = Array.from(itemNamesSet).filter(Boolean);
             const partyName = arrival.supplier_name || arrival.contact?.full_name || '';

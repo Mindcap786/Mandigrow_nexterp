@@ -18,6 +18,7 @@ import { useLocalInvoice } from "@/hooks/use-local-invoice"
 import LocalSaleInvoice from "@/components/local-invoices/LocalSaleInvoice"
 import { LANG_LABELS, LANG_NAMES_ENGLISH, isValidLang } from "@/components/local-invoices/utils/fonts"
 import type { LangCode } from "@/components/local-invoices/utils/fonts"
+import { formatCommodityName } from "@/lib/utils/commodity-utils"
 
 export default function SaleInvoicePage() {
     const { id } = useParams()
@@ -75,7 +76,7 @@ export default function SaleInvoicePage() {
     // Auto-fetch translations for live preview
     useEffect(() => {
         if (localInvoice.isEnabled && localInvoice.activeLang && sale) {
-            const itemNames = (sale.sale_items || []).map((i: any) => i.lot?.item?.name || i.item_name || '').filter(Boolean)
+            const itemNames = (sale.sale_items || []).map((i: any) => formatCommodityName(i.lot?.item?.name || i.item_name || '', i.lot?.item?.custom_attributes)).filter(Boolean)
             const partyName = sale.contact?.full_name || sale.buyer_name || ''
             localInvoice.fetchTranslations(itemNames, partyName)
         }
@@ -129,7 +130,7 @@ export default function SaleInvoicePage() {
     const handlePrint = async (mode: 'a4' | 'thermal', forcePrompt: boolean = false) => {
         // Fetch translations before printing if local language is active
         if (localInvoice.isEnabled && localInvoice.activeLang && sale) {
-            const itemNames = (sale.sale_items || []).map((i: any) => i.lot?.item?.name || i.item_name || '').filter(Boolean)
+            const itemNames = (sale.sale_items || []).map((i: any) => formatCommodityName(i.lot?.item?.name || i.item_name || '', i.lot?.item?.custom_attributes)).filter(Boolean)
             const partyName = sale.contact?.name || sale.buyer_name || ''
             await localInvoice.fetchTranslations(itemNames, partyName)
         }
