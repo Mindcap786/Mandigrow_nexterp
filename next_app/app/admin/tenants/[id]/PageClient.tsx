@@ -751,6 +751,7 @@ export default function TenantDetailPage() {
                                                     <PermissionMatrix 
                                                         value={override.rbac_matrix}
                                                         onChange={(val) => setOverride({ ...override, rbac_matrix: val })}
+                                                        allowByDefault={true}
                                                     />
                                                 </div>
                                             </TabsContent>

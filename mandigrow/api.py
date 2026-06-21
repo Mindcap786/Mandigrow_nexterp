@@ -13279,7 +13279,7 @@ def update_tenant_config(organization_id: str, config: dict) -> dict:
     if "rbac_matrix" in config:
         import json
         matrix_str = json.dumps(config["rbac_matrix"]) if isinstance(config["rbac_matrix"], dict) else config["rbac_matrix"]
-        frappe.db.sql("UPDATE `tabMandi Organization` SET rbac_matrix = %s WHERE name = %s", (matrix_str, organization_id))
+        org.rbac_matrix = matrix_str
 
     # ── AUTO-CORRECT STATUS BASED ON EXPIRY DATE ─────────────────────────────
     # RULE: If the effective expiry date is in the FUTURE, the tenant is ACTIVE.

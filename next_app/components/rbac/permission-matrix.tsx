@@ -14,9 +14,10 @@ interface PermissionMatrixProps {
     onChange: (newValue: Record<string, boolean>) => void;
     readOnly?: boolean;
     className?: string;
+    allowByDefault?: boolean;
 }
 
-export function PermissionMatrix({ value, onChange, readOnly, className }: PermissionMatrixProps) {
+export function PermissionMatrix({ value, onChange, readOnly, className, allowByDefault }: PermissionMatrixProps) {
     const { t } = useLanguage();
     const { can } = usePermission();
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -61,7 +62,7 @@ export function PermissionMatrix({ value, onChange, readOnly, className }: Permi
         setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const isChecked = (key: string) => value[key] === true; // Deny-by-default: only show as checked if explicitly true
+    const isChecked = (key: string) => allowByDefault ? value[key] !== false : value[key] === true;
 
     return (
         <div className={cn("space-y-4", className)}>
