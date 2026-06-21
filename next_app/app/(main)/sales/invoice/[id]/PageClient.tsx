@@ -354,6 +354,7 @@ export default function SaleInvoicePage() {
 
 
             {/* Template — local language invoice takes over when activeLang is set */}
+            {/* Template — local language invoice takes over when activeLang is set */}
             <div className="relative">
                 <div className={printMode === 'thermal' ? "hidden print:hidden" : "block print:block"}>
                     {localInvoice.isEnabled && localInvoice.activeLang ? (
@@ -368,14 +369,18 @@ export default function SaleInvoicePage() {
                         <BuyerInvoice sale={sale} organization={organization} onRefresh={() => fetchSale(true)} />
                     )}
                 </div>
-                <div ref={thermalRef} className={printMode === 'a4' ? "hidden print:hidden" : "hidden print:block"} style={{ width: thermalWidth === 48 ? '384px' : '576px' }}>
-                    <ThermalReceipt 
-                        sale={sale} 
-                        organization={organization} 
-                        lang={localInvoice.activeLang}
-                        itemTranslations={localInvoice.itemTranslations}
-                        partyTranslation={localInvoice.partyTranslation}
-                    />
+                
+                {/* Fixed off-screen container for perfect html-to-image capture without scroll/padding offsets */}
+                <div style={{ position: 'fixed', top: 0, left: 0, zIndex: -9999, pointerEvents: 'none', opacity: 0 }}>
+                    <div ref={thermalRef} style={{ width: thermalWidth === 48 ? '384px' : '576px', background: 'white' }}>
+                        <ThermalReceipt 
+                            sale={sale} 
+                            organization={organization} 
+                            lang={localInvoice.activeLang}
+                            itemTranslations={localInvoice.itemTranslations}
+                            partyTranslation={localInvoice.partyTranslation}
+                        />
+                    </div>
                 </div>
             </div>
 
