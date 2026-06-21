@@ -73,11 +73,11 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
                     <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black">
                         <span>{t('BUYER' as any, activeLang)}:</span> 
                         <span className="font-bold uppercase text-right leading-tight max-w-[150px]">
-                            {partyTranslation || sale.contact?.full_name || sale.contact?.name || sale.buyer_name}
+                            {t((partyTranslation || sale.contact?.full_name || sale.contact?.name || sale.buyer_name).toUpperCase() as any, activeLang)}
                         </span>
                     </div>
                 )}
-                <div className="flex justify-between mt-1"><span>{t('MODE' as any, activeLang)}:</span> <span className="uppercase font-bold">{paymentMode}</span></div>
+                <div className="flex justify-between mt-1"><span>{t('MODE' as any, activeLang)}:</span> <span className="uppercase font-bold">{t(paymentMode.toUpperCase() as any, activeLang)}</span></div>
             </div>
             
             <table className="w-full text-left mb-4 text-[11px]">
