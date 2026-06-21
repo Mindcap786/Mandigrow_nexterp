@@ -152,8 +152,13 @@ export default function SaleInvoicePage() {
                     return;
                 } else {
                     if (thermalRef.current) {
-                        // Capture 384px (58mm) or 576px (80mm) based on thermalWidth
-                        const pxWidth = thermalWidth === 48 ? 384 : 576;
+                        // Calculate accurate pixel width for thermal printing based on character width
+                        // 58mm = 32 chars = 384px
+                        // 80mm = 48 chars = 576px
+                        // 110mm = 64 chars = 768px
+                        let pxWidth = 576; // Default to 80mm
+                        if (thermalWidth === 32) pxWidth = 384;
+                        if (thermalWidth === 64) pxWidth = 768;
                         
                         // Clone node to body to completely isolate from any page scroll offsets
                         const clone = thermalRef.current.cloneNode(true) as HTMLElement;
@@ -373,7 +378,7 @@ export default function SaleInvoicePage() {
                 {/* Fixed off-screen container for perfect html-to-image capture without scroll/padding offsets */}
                 {/* When printMode === 'thermal' (fallback for iOS), this container becomes fully visible and static for the OS print dialog */}
                 <div className={printMode === 'thermal' ? "print:static print:opacity-100 print:z-auto print:pointer-events-auto" : "print:hidden"} style={{ position: 'fixed', top: 0, left: 0, zIndex: -9999, pointerEvents: 'none', opacity: 0 }}>
-                    <div ref={thermalRef} style={{ width: thermalWidth === 48 ? '384px' : '576px', background: 'white', margin: 0, padding: 0 }}>
+                    <div ref={thermalRef} style={{ width: thermalWidth === 32 ? '384px' : (thermalWidth === 64 ? '768px' : '576px'), background: 'white', margin: 0, padding: 0 }}>
                         <ThermalReceipt 
                             sale={sale} 
                             organization={organization} 
