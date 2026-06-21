@@ -233,8 +233,8 @@ export default function LocalSaleInvoice({
                     </span>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <span className="text-gray-400 font-bold uppercase">{t('MODE' as any, activeLang)}:</span>
-                    <span className="font-black uppercase">{t((sale.payment_mode || 'Credit').toUpperCase() as any, activeLang)}</span>
+                    <span className="text-gray-400 font-bold uppercase">{t('MODE' as any, lang as any || 'en')}:</span>
+                    <span className="font-black uppercase">{t((sale.payment_mode || 'Credit').toUpperCase() as any, lang as any || 'en')}</span>
                   </div>
                 </div>
               </div>
