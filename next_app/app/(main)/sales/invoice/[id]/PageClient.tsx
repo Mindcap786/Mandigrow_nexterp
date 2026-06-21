@@ -152,25 +152,24 @@ export default function SaleInvoicePage() {
                     return;
                 } else {
                     if (thermalRef.current) {
-                        const originalCssText = thermalRef.current.style.cssText;
-                        const originalDisplay = thermalRef.current.style.display;
-                        
                         // Capture 384px (58mm) or 576px (80mm) based on thermalWidth
                         const pxWidth = thermalWidth === 48 ? 384 : 576;
                         
-                        // Force strict top-left positioning to eliminate parent padding/margins offset
-                        thermalRef.current.style.cssText = `position: fixed; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white;`;
+                        // Clone the node and append to body to guarantee zero layout offset/padding from parent containers
+                        const clone = thermalRef.current.cloneNode(true) as HTMLElement;
+                        clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white;`;
+                        document.body.appendChild(clone);
                         
                         const { toCanvas } = await import('html-to-image');
-                        const canvas = await toCanvas(thermalRef.current, {
+                        const canvas = await toCanvas(clone, {
                             width: pxWidth,
                             canvasWidth: pxWidth,
                             pixelRatio: 1, // critical: prevent high-DPI scaling
-                            backgroundColor: '#ffffff'
+                            backgroundColor: '#ffffff',
+                            style: { margin: '0', padding: '0', transform: 'none' }
                         });
                         
-                        thermalRef.current.style.cssText = originalCssText;
-                        thermalRef.current.style.display = originalDisplay;
+                        document.body.removeChild(clone);
 
                         const escpos = new ESCPOS();
                         escpos.init();
