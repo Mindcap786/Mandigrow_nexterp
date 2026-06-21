@@ -76,13 +76,14 @@ export function useLocalInvoice(isGlobalEnabled: boolean, isTenantEnabled: boole
     const cacheKey = JSON.stringify({ lang: activeLang, items: itemNames.sort(), party: partyName });
     if (translationCache && JSON.stringify(translationCache) === cacheKey) return;
 
-    // Extract base item names for variety translation (e.g. 'Apple - US' -> 'Apple')
+    // Extract base item names for variety translation (e.g. 'Apple - US' -> 'Apple', 'US')
     const uniqueItemNames = new Set<string>();
     itemNames.forEach(name => {
       if (name) {
-        uniqueItemNames.add(name);
         if (name.includes(' - ')) {
           name.split(' - ').forEach(part => uniqueItemNames.add(part.trim()));
+        } else {
+          uniqueItemNames.add(name.trim());
         }
       }
     });
