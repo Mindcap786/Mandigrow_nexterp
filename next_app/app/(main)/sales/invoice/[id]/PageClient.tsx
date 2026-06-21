@@ -156,12 +156,11 @@ export default function SaleInvoicePage() {
                         thermalRef.current.style.display = 'block';
                         // Capture 384px (58mm) or 576px (80mm) based on thermalWidth
                         const pxWidth = thermalWidth === 48 ? 384 : 576;
-                        
-                        const canvas = await html2canvas(thermalRef.current, {
+                        const { toCanvas } = await import('html-to-image');
+                        const canvas = await toCanvas(thermalRef.current, {
                             width: pxWidth,
-                            windowWidth: pxWidth, // Force the window width for rendering
-                            scale: 1, // 1:1 pixel mapping
-                            useCORS: true,
+                            canvasWidth: pxWidth,
+                            pixelRatio: 1, // critical: prevent high-DPI scaling
                             backgroundColor: '#ffffff'
                         });
                         

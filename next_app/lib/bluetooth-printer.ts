@@ -84,7 +84,8 @@ export class ESCPOS {
         const a = pixels[i + 3];
 
         // Basic thresholding (if pixel is not transparent and dark enough)
-        if (a > 128 && (r + g + b) / 3 < 128) {
+        // Using 220 as threshold to catch faint anti-aliased gray pixels from canvas rendering
+        if (a > 128 && (r + g + b) / 3 < 220) {
           imageBytes[y * bytesPerRow + Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
         }
       }
