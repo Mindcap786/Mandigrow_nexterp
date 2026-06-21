@@ -19,6 +19,9 @@ import LocalSaleInvoice from "@/components/local-invoices/LocalSaleInvoice"
 import { LANG_LABELS, LANG_NAMES_ENGLISH, isValidLang } from "@/components/local-invoices/utils/fonts"
 import type { LangCode } from "@/components/local-invoices/utils/fonts"
 import { formatCommodityName } from "@/lib/utils/commodity-utils"
+import html2canvas from "html2canvas"
+import { useRef } from "react"
+import { ESCPOS } from "@/lib/bluetooth-printer"
 
 export default function SaleInvoicePage() {
     const { id } = useParams()
@@ -31,6 +34,7 @@ export default function SaleInvoicePage() {
     const [printMode, setPrintMode] = useState<'a4' | 'thermal'>('a4')
     const [triggerPrint, setTriggerPrint] = useState(0)
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
+    const thermalRef = useRef<HTMLDivElement>(null);
 
     // Reset print mode after OS print dialog closes (prevents screen from staying blank after thermal print fallback)
     useEffect(() => {
@@ -139,7 +143,6 @@ export default function SaleInvoicePage() {
             try {
                 // If local language is active, bypass raw text Bluetooth ESC/POS since thermal printers 
                 // don't natively support rendering complex Indian scripts (Telugu/Gujarati, etc).
-                // Fall through to OS print dialog which renders the HTML canvas via graphics driver.
                 if (!localInvoice.isEnabled || !localInvoice.activeLang || localInvoice.activeLang === 'en') {
                     const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
                     const printer = new BluetoothPrinter();
@@ -147,15 +150,38 @@ export default function SaleInvoicePage() {
                     await printer.print(escposData);
                     // Successfully printed via Bluetooth, do not open OS print dialog
                     return;
+                } else {
+                    if (thermalRef.current) {
+                        const originalDisplay = thermalRef.current.style.display;
+                        thermalRef.current.style.display = 'block';
+                        // Capture 384px (58mm) or 576px (80mm) based on thermalWidth
+                        const pxWidth = thermalWidth === 48 ? 384 : 576;
+                        
+                        const canvas = await html2canvas(thermalRef.current, {
+                            width: pxWidth,
+                            windowWidth: pxWidth, // Force the window width for rendering
+                            scale: 1, // 1:1 pixel mapping
+                            useCORS: true,
+                            backgroundColor: '#ffffff'
+                        });
+                        
+                        thermalRef.current.style.display = originalDisplay;
+
+                        const escpos = new ESCPOS();
+                        escpos.init();
+                        escpos.image(canvas);
+                        escpos.feed(3);
+                        
+                        const escposData = escpos.getBuffer();
+                        const printer = new BluetoothPrinter();
+                        await printer.connect(forcePrompt);
+                        await printer.print(escposData);
+                        return; // Successfully printed via Bluetooth
+                    }
                 }
             } catch (e: any) {
                 console.error('Bluetooth print skipped or failed:', e);
-                import('sonner').then(({ toast }) => {
-                    toast.error("Thermal Print Failed", {
-                        description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
-                        position: 'top-center'
-                    });
-                });
+                // Fall through to OS print dialog for iOS or if Bluetooth is not supported/connected
             }
             // Fall through to browser print for thermal fallback
             setPrintMode('thermal');
@@ -338,7 +364,7 @@ export default function SaleInvoicePage() {
                         <BuyerInvoice sale={sale} organization={organization} onRefresh={() => fetchSale(true)} />
                     )}
                 </div>
-                <div className={printMode === 'a4' ? "hidden print:hidden" : "hidden print:block"}>
+                <div ref={thermalRef} className={printMode === 'a4' ? "hidden print:hidden" : "hidden print:block"} style={{ width: thermalWidth === 48 ? '384px' : '576px' }}>
                     <ThermalReceipt 
                         sale={sale} 
                         organization={organization} 

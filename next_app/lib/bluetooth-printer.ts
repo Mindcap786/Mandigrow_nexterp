@@ -61,6 +61,47 @@ export class ESCPOS {
   getBuffer() {
     return new Uint8Array(this.buffer);
   }
+
+  // Draw 1-bit monochrome image from canvas
+  image(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return this;
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const pixels = imgData.data;
+
+    const bytesPerRow = Math.ceil(width / 8);
+    const imageBytes = new Uint8Array(bytesPerRow * height);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+        const a = pixels[i + 3];
+
+        // Basic thresholding (if pixel is not transparent and dark enough)
+        if (a > 128 && (r + g + b) / 3 < 128) {
+          imageBytes[y * bytesPerRow + Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
+        }
+      }
+    }
+
+    // GS v 0 raster image command
+    this.buffer.push(0x1D, 0x76, 0x30, 0x00);
+    this.buffer.push(bytesPerRow % 256, Math.floor(bytesPerRow / 256));
+    this.buffer.push(height % 256, Math.floor(height / 256));
+
+    // Append image data
+    for (let i = 0; i < imageBytes.length; i++) {
+      this.buffer.push(imageBytes[i]);
+    }
+
+    return this;
+  }
 }
 
 export class BluetoothPrinter {
