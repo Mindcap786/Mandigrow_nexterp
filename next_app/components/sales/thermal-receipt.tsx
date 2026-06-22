@@ -60,33 +60,38 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
     const billNo = sale.contact_bill_no || sale.bill_no || sale.id || 'N/A';
 
     return (
-        <div className="bg-white text-black font-mono text-[18px] leading-tight w-full font-bold pb-8" style={{ filter: 'grayscale(100%) contrast(1000%)', maxWidth: '100%' }}>
-            <div className="text-center mb-4">
+        <div className="bg-white text-black font-mono text-[16px] leading-snug w-full font-bold pb-8" style={{ filter: 'grayscale(100%) contrast(1000%)', maxWidth: '100%', padding: '0 8px' }}>
+            <div className="text-center mb-2 mt-2">
                 <h1 className="font-black text-2xl leading-tight uppercase">{orgName}</h1>
-                <p className="text-[15px] uppercase mt-1 tracking-widest">{t('TAX_INVOICE_BILL' as any, activeLang)}</p>
+                <p className="text-[14px] uppercase mt-1 tracking-widest">{t('TAX_INVOICE_BILL' as any, activeLang)}</p>
             </div>
             
-            <div className="mb-4 border-b-2 border-dashed border-black pb-2 text-[16px]">
-                <div className="flex justify-between"><span>{t('BILL_NO' as any, activeLang)}:</span> <span className="font-black">{billNo}</span></div>
-                <div className="flex justify-between mt-1"><span>{t('DATE' as any, activeLang)}:</span> <span>{sale.transaction_date ? format(new Date(sale.transaction_date), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy')}</span></div>
+            <div className="mb-2 border-y-2 border-dashed border-black py-2 text-[15px]">
+                <div className="flex justify-between items-start">
+                    <div>{t('BILL_NO' as any, activeLang)}: <span className="font-black">{billNo}</span></div>
+                    <div>{t('DATE' as any, activeLang)}: <span className="font-black">{sale.transaction_date ? format(new Date(sale.transaction_date), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy')}</span></div>
+                </div>
                 {(sale.contact?.full_name || sale.contact?.name || sale.buyer_name) && (
-                    <div className="flex justify-between mt-1 pt-1 border-t-2 border-dotted border-black">
-                        <span>{t('BUYER' as any, activeLang)}:</span> 
-                        <span className="font-black uppercase text-right leading-tight max-w-[200px]">
+                    <div className="flex mt-1">
+                        <span className="mr-2 whitespace-nowrap">{t('BUYER' as any, activeLang)}:</span> 
+                        <span className="font-black uppercase leading-tight">
                             {t((partyTranslation || sale.contact?.full_name || sale.contact?.name || sale.buyer_name).toUpperCase() as any, activeLang)}
                         </span>
                     </div>
                 )}
-                <div className="flex justify-between mt-1"><span>{t('MODE' as any, activeLang)}:</span> <span className="uppercase font-black">{t(paymentMode.toUpperCase() as any, activeLang)}</span></div>
+                <div className="flex mt-1">
+                    <span className="mr-2">{t('MODE' as any, activeLang)}:</span> 
+                    <span className="uppercase font-black">{t(paymentMode.toUpperCase() as any, activeLang)}</span>
+                </div>
             </div>
             
-            <table className="w-full text-left mb-4 text-[16px]">
+            <table className="w-full text-left mb-2 text-[15px]" style={{ tableLayout: 'fixed' }}>
                 <thead>
                     <tr className="border-b-2 border-dashed border-black">
-                        <th className="pb-1 font-black w-[45%]">{t('ITEM' as any, activeLang)}</th>
-                        <th className="pb-1 font-black text-right w-[15%]">{t('QTY' as any, activeLang)}</th>
-                        <th className="pb-1 font-black text-right w-[18%]">{t('RATE' as any, activeLang)}</th>
-                        <th className="pb-1 font-black text-right w-[22%]">{t('AMT' as any, activeLang)}</th>
+                        <th className="pb-1 font-black w-[45%] overflow-hidden">{t('ITEM' as any, activeLang)}</th>
+                        <th className="pb-1 font-black text-right w-[15%] overflow-hidden">{t('QTY' as any, activeLang)}</th>
+                        <th className="pb-1 font-black text-right w-[18%] overflow-hidden">{t('RATE' as any, activeLang)}</th>
+                        <th className="pb-1 font-black text-right w-[22%] overflow-hidden">{t('AMT' as any, activeLang)}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,7 +103,7 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
                         const amt = Number(c.amount || (qty * rate));
                         return (
                             <tr key={i}>
-                                <td className="py-2 pr-1 font-black break-words">
+                                <td className="py-2 pr-1 font-black break-words align-top">
                                     <div className="uppercase">
                                         {itemName} 
                                         {c.lot?.item?.grade && c.lot?.item?.grade !== 'A' && <span className="ml-1">[{c.lot.item.grade}]</span>}
@@ -113,7 +118,7 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
                 </tbody>
             </table>
             
-            <div className="border-t-2 border-dashed border-black pt-2 mb-4 space-y-1 text-[18px]">
+            <div className="border-t-2 border-dashed border-black pt-2 mb-4 space-y-1 text-[16px]">
                 <div className="flex justify-between"><span>{t('SUB_TOTAL' as any, activeLang)}</span> <span className="font-black">{subtotal.toFixed(2)}</span></div>
                 {totalGst > 0 && <div className="flex justify-between"><span>{t('TAX' as any, activeLang)}</span> <span className="font-black">{totalGst.toFixed(2)}</span></div>}
                 
@@ -126,10 +131,10 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
                 
                 {Number(sale.discount_amount || 0) > 0 && <div className="flex justify-between text-gray-800"><span>{t('DISCOUNT' as any, activeLang)}</span> <span className="font-black">-{(Number(sale.discount_amount)).toFixed(2)}</span></div>}
                 
-                <div className="flex justify-between font-black text-[22px] border-y-2 border-dashed border-black py-2 mt-2">
+                <div className="flex justify-between font-black text-[18px] border-y-2 border-dashed border-black py-2 mt-2">
                     <span>{t('INVOICE_TOTAL' as any, activeLang)}:</span> <span>Rs. {grandTotal.toFixed(2)}</span>
                 </div>
-                {amountReceived > 0 && amountReceived !== grandTotal && (
+                {amountReceived > 0 && (
                     <div className="flex justify-between font-bold mt-1">
                         <span>{t('AMOUNT_RECEIVED' as any, activeLang)}:</span> <span>Rs. {amountReceived.toFixed(2)}</span>
                     </div>
@@ -147,14 +152,15 @@ export default function ThermalReceipt({ sale, organization, lang, itemTranslati
             </div>
 
             {/* Signature Area */}
-            <div className="mt-8 pt-4 border-t-2 border-black text-center text-[15px] uppercase font-black tracking-widest">
+            <div className="mt-6 text-center text-[15px] uppercase font-black tracking-widest pt-2">
                 {t('THANK_YOU' as any, activeLang)}
             </div>
             {organization?.phone && (
-                <div className="text-center text-[13px] font-bold mt-2 italic">
+                <div className="text-center text-[13px] font-bold mt-1 italic">
                     {organization.phone}
                 </div>
             )}
         </div>
     )
 }
+
