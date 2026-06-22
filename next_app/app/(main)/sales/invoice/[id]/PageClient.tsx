@@ -151,15 +151,39 @@ export default function SaleInvoicePage() {
                     await printer.print(escposData);
                     return;
                 } else {
-                    // Local language → fast raw UTF-8 text (works on all modern printers)
-                    const escposData = generateLocalLangSaleReceiptESCPOS(
-                        sale, organization, localInvoice.activeLang!,
-                        localInvoice.itemTranslations || {}, localInvoice.partyTranslation || null, thermalWidth
-                    );
-                    const printer = new BluetoothPrinter();
-                    await printer.connect(forcePrompt);
-                    await printer.print(escposData);
-                    return;
+                    // Local language → image-based bitmap (standard printers have no Indian font ROMs)
+                    // pixelRatio 0.8 reduces data by ~36% for faster Bluetooth transfer
+                    if (thermalRef.current) {
+                        let pxWidth = 576;
+                        if (thermalWidth === 32) pxWidth = 384;
+                        if (thermalWidth === 64) pxWidth = 768;
+
+                        const clone = thermalRef.current.cloneNode(true) as HTMLElement;
+                        clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white; opacity: 1;`;
+                        document.body.appendChild(clone);
+
+                        const { toCanvas } = await import('html-to-image');
+                        const canvas = await toCanvas(clone, {
+                            width: pxWidth,
+                            canvasWidth: pxWidth,
+                            pixelRatio: 0.8, // Reduced from 1.0 — 36% less data, still sharp on 203dpi thermal
+                            backgroundColor: '#ffffff',
+                            style: { margin: '0', padding: '0', transform: 'none' }
+                        });
+
+                        document.body.removeChild(clone);
+
+                        const escpos = new ESCPOS();
+                        escpos.init();
+                        escpos.image(canvas);
+                        escpos.feed(3);
+
+                        const escposData = escpos.getBuffer();
+                        const printer = new BluetoothPrinter();
+                        await printer.connect(forcePrompt);
+                        await printer.print(escposData);
+                        return;
+                    }
                 }
             } catch (e: any) {
                 console.error('Bluetooth print skipped or failed:', e);

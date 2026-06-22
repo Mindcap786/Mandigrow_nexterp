@@ -766,7 +766,7 @@ export default function POSPage() {
                                profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 48;
             }
 
-            // Build common POS sale data object
+            // Build sale data object
             const posSaleData = {
                 contact_bill_no: lastRefNo,
                 transaction_date: new Date().toISOString(),
@@ -801,24 +801,44 @@ export default function POSPage() {
                 await printer.connect();
                 await printer.print(escposData);
             } else {
-                // Local language → fast raw UTF-8 text (works on all modern printers)
-                const { generateLocalLangSaleReceiptESCPOS } = await import('@/lib/generate-thermal-escpos');
-                // Build item translations from local_name on each cart item
-                const itemTranslations: Record<string, string> = {};
-                cart.forEach(c => { if (c.item.local_name) itemTranslations[c.item.name] = c.item.local_name; });
-                const escposData = generateLocalLangSaleReceiptESCPOS(
-                    posSaleData, profile?.organization, language,
-                    itemTranslations, null, thermalWidth
-                );
-                await printer.connect();
-                await printer.print(escposData);
+                // Local language → image-based bitmap (standard printers have no Indian font ROMs)
+                if (thermalRef.current) {
+                    let pxWidth = 576;
+                    if (thermalWidth === 32) pxWidth = 384;
+                    if (thermalWidth === 64) pxWidth = 768;
+
+                    const clone = thermalRef.current.cloneNode(true) as HTMLElement;
+                    clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white; opacity: 1;`;
+                    document.body.appendChild(clone);
+
+                    const { toCanvas } = await import('html-to-image');
+                    const canvas = await toCanvas(clone, {
+                        width: pxWidth,
+                        canvasWidth: pxWidth,
+                        pixelRatio: 0.8, // 36% less data = faster Bluetooth transfer
+                        backgroundColor: '#ffffff',
+                        style: { margin: '0', padding: '0', transform: 'none' }
+                    });
+
+                    document.body.removeChild(clone);
+
+                    const { ESCPOS } = await import('@/lib/bluetooth-printer');
+                    const escpos = new ESCPOS();
+                    escpos.init();
+                    escpos.image(canvas);
+                    escpos.feed(3);
+
+                    const escposData = escpos.getBuffer();
+                    await printer.connect();
+                    await printer.print(escposData);
+                }
             }
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
-            // Fallback to browser print dialog
             setTimeout(() => window.print(), 300);
         }
     };
+
 
 
     const resetPOS = () => {
