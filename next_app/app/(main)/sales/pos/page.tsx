@@ -815,7 +815,7 @@ export default function POSPage() {
                     const canvas = await toCanvas(clone, {
                         width: pxWidth,
                         canvasWidth: pxWidth,
-                        pixelRatio: 0.8, // 36% less data = faster Bluetooth transfer
+                        pixelRatio: 1, // Must be 1 to match printer width
                         backgroundColor: '#ffffff',
                         style: { margin: '0', padding: '0', transform: 'none' }
                     });

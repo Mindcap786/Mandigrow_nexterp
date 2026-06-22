@@ -166,7 +166,7 @@ export default function SaleInvoicePage() {
                         const canvas = await toCanvas(clone, {
                             width: pxWidth,
                             canvasWidth: pxWidth,
-                            pixelRatio: 0.8, // Reduced from 1.0 — 36% less data, still sharp on 203dpi thermal
+                            pixelRatio: 1, // Must be 1 to match printer width (576px)
                             backgroundColor: '#ffffff',
                             style: { margin: '0', padding: '0', transform: 'none' }
                         });
