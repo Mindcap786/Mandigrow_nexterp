@@ -8,8 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { callApi } from "@/lib/frappeClient";
 import { useAuth } from "@/components/auth/auth-provider"
 import PurchaseBillInvoice from "@/components/purchase/purchase-invoice-template"
-import { BluetoothPrinter, ESCPOS } from "@/lib/bluetooth-printer"
-import { generatePurchaseReceiptESCPOS } from "@/lib/generate-thermal-escpos"
+import { BluetoothPrinter } from "@/lib/bluetooth-printer"
+import { generatePurchaseReceiptESCPOS, generateLocalLangPurchaseReceiptESCPOS } from "@/lib/generate-thermal-escpos"
 import { useGlobalFeature } from "@/hooks/use-global-feature";
 import { useLocalInvoice } from "@/hooks/use-local-invoice"
 import LocalPurchaseBill from "@/components/local-invoices/LocalPurchaseBill"
@@ -130,42 +130,23 @@ export default function PurchaseBillInvoicePage() {
         }
 
         try {
-            // If local language is active, use image-based printing
-            if (localInvoice.isEnabled && localInvoice.activeLang && localInvoice.activeLang !== 'en') {
-                if (thermalRef.current) {
-                    let pxWidth = 576; // Default to 80mm
-                    if (thermalWidth === 32) pxWidth = 384;
-                    if (thermalWidth === 64) pxWidth = 768;
+            const isLocalLang = localInvoice.isEnabled && localInvoice.activeLang && localInvoice.activeLang !== 'en';
 
-                    const clone = thermalRef.current.cloneNode(true) as HTMLElement;
-                    clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white; opacity: 1;`;
-                    document.body.appendChild(clone);
-
-                    const { toCanvas } = await import('html-to-image');
-                    const canvas = await toCanvas(clone, {
-                        width: pxWidth,
-                        canvasWidth: pxWidth,
-                        pixelRatio: 1,
-                        backgroundColor: '#ffffff',
-                        style: { margin: '0', padding: '0', transform: 'none' }
-                    });
-
-                    document.body.removeChild(clone);
-
-                    const escpos = new ESCPOS();
-                    escpos.init();
-                    escpos.image(canvas);
-                    escpos.feed(3);
-
-                    const escposData = escpos.getBuffer();
-                    const printer = new BluetoothPrinter();
-                    await printer.connect(forcePrompt);
-                    await printer.print(escposData);
-                    return; // Successfully printed via Bluetooth
-                }
-            } else {
-                // English → fast raw ESC/POS text
+            if (!isLocalLang) {
+                // English → fast raw ASCII ESC/POS text
                 const escposData = generatePurchaseReceiptESCPOS(lot, arrival, organization, arrivalLots, thermalWidth);
+                const printer = new BluetoothPrinter();
+                await printer.connect(forcePrompt);
+                await printer.print(escposData);
+                return;
+            } else {
+                // Local language → fast raw UTF-8 text (works on all modern printers)
+                const itemTranslations = localInvoice.itemTranslations || {};
+                const partyTranslation = localInvoice.partyTranslation || null;
+                const escposData = generateLocalLangPurchaseReceiptESCPOS(
+                    lot, arrival, organization, arrivalLots,
+                    localInvoice.activeLang!, itemTranslations, partyTranslation, thermalWidth
+                );
                 const printer = new BluetoothPrinter();
                 await printer.connect(forcePrompt);
                 await printer.print(escposData);
@@ -173,7 +154,6 @@ export default function PurchaseBillInvoicePage() {
             }
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
-            // Fall through to OS print dialog fallback
         }
 
         // Fallback: OS print dialog (for iOS or Bluetooth failure)

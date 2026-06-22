@@ -766,70 +766,52 @@ export default function POSPage() {
                                profile?.organization?.settings?.thermal_printer_width === '110mm' ? 64 : 48;
             }
 
+            // Build common POS sale data object
+            const posSaleData = {
+                contact_bill_no: lastRefNo,
+                transaction_date: new Date().toISOString(),
+                buyer: { name: buyers.find(b => b.id === selectedBuyerId)?.name || 'Walk-in' },
+                buyer_name: buyers.find(b => b.id === selectedBuyerId)?.name || 'Walk-in',
+                payment_mode: paymentMode,
+                amount_received: amountReceived,
+                grand_total: grandTotal,
+                gst_total: gstTotal,
+                sale_items: cart.map(c => ({
+                    item_name: c.item.name,
+                    lot: { item: { name: c.item.name, local_name: c.item.local_name } },
+                    qty: c.qty,
+                    rate: c.price,
+                    amount: c.qty * c.price
+                })),
+                discount_amount: discountAmount || 0,
+                market_fee: marketFeeAmount,
+                nirashrit: nirashritAmount,
+                misc_fee: miscFeeAmount,
+                extra_charges: extraChargesTotal,
+                crate_total: crateTotal
+            };
+
+            const { BluetoothPrinter } = await import('@/lib/bluetooth-printer');
+            const printer = new BluetoothPrinter();
+
             if (!language || language === 'en') {
-                // English → fast raw ESC/POS text
+                // English → fast raw ASCII ESC/POS text
                 const { generateSaleReceiptESCPOS } = await import('@/lib/generate-thermal-escpos');
-                const posSaleData = {
-                    contact_bill_no: lastRefNo,
-                    transaction_date: new Date().toISOString(),
-                    buyer: { name: buyers.find(b => b.id === selectedBuyerId)?.name || 'Walk-in' },
-                    payment_mode: paymentMode,
-                    amount_received: amountReceived,
-                    grand_total: grandTotal,
-                    gst_total: gstTotal,
-                    sale_items: cart.map(c => ({
-                        item_name: c.item.name,
-                        qty: c.qty,
-                        rate: c.price,
-                        amount: c.qty * c.price
-                    })),
-                    discount_amount: discountAmount || 0,
-                    market_fee: marketFeeAmount,
-                    nirashrit: nirashritAmount,
-                    misc_fee: miscFeeAmount,
-                    extra_charges: extraChargesTotal,
-                    crate_total: crateTotal
-                };
                 const escposData = generateSaleReceiptESCPOS(posSaleData, profile?.organization, thermalWidth);
-                const { BluetoothPrinter } = await import('@/lib/bluetooth-printer');
-                const printer = new BluetoothPrinter();
                 await printer.connect();
                 await printer.print(escposData);
-                return;
             } else {
-                // Local language → image-based printing via ThermalReceipt component
-                if (thermalRef.current) {
-                    let pxWidth = 576;
-                    if (thermalWidth === 32) pxWidth = 384;
-                    if (thermalWidth === 64) pxWidth = 768;
-
-                    const clone = thermalRef.current.cloneNode(true) as HTMLElement;
-                    clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white; opacity: 1;`;
-                    document.body.appendChild(clone);
-
-                    const { toCanvas } = await import('html-to-image');
-                    const canvas = await toCanvas(clone, {
-                        width: pxWidth,
-                        canvasWidth: pxWidth,
-                        pixelRatio: 1,
-                        backgroundColor: '#ffffff',
-                        style: { margin: '0', padding: '0', transform: 'none' }
-                    });
-
-                    document.body.removeChild(clone);
-
-                    const { BluetoothPrinter, ESCPOS } = await import('@/lib/bluetooth-printer');
-                    const escpos = new ESCPOS();
-                    escpos.init();
-                    escpos.image(canvas);
-                    escpos.feed(3);
-
-                    const escposData = escpos.getBuffer();
-                    const printer = new BluetoothPrinter();
-                    await printer.connect();
-                    await printer.print(escposData);
-                    return;
-                }
+                // Local language → fast raw UTF-8 text (works on all modern printers)
+                const { generateLocalLangSaleReceiptESCPOS } = await import('@/lib/generate-thermal-escpos');
+                // Build item translations from local_name on each cart item
+                const itemTranslations: Record<string, string> = {};
+                cart.forEach(c => { if (c.item.local_name) itemTranslations[c.item.name] = c.item.local_name; });
+                const escposData = generateLocalLangSaleReceiptESCPOS(
+                    posSaleData, profile?.organization, language,
+                    itemTranslations, null, thermalWidth
+                );
+                await printer.connect();
+                await printer.print(escposData);
             }
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
@@ -837,6 +819,7 @@ export default function POSPage() {
             setTimeout(() => window.print(), 300);
         }
     };
+
 
     const resetPOS = () => {
             setShowSuccess(false)

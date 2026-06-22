@@ -17,6 +17,13 @@ export class ESCPOS {
     return this;
   }
 
+  // Enable UTF-8 mode — required for bilingual printers with Indian language font support
+  // ESC t 255 is the standard command for UTF-8 code page on most bilingual thermal printers
+  enableUtf8() {
+    this.buffer.push(0x1B, 0x74, 0xFF);
+    return this;
+  }
+
   text(str: string) {
     for (let i = 0; i < str.length; i++) {
       this.buffer.push(str.charCodeAt(i));
@@ -26,6 +33,24 @@ export class ESCPOS {
 
   textLine(str: string) {
     this.text(str);
+    this.buffer.push(0x0A);
+    return this;
+  }
+
+  // UTF-8 aware text — encodes each character as proper UTF-8 bytes.
+  // Use this for Indian language scripts (Telugu, Hindi, Kannada, etc.)
+  // on bilingual printers that have built-in font support.
+  utf8Text(str: string) {
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(str);
+    for (let i = 0; i < bytes.length; i++) {
+      this.buffer.push(bytes[i]);
+    }
+    return this;
+  }
+
+  utf8TextLine(str: string) {
+    this.utf8Text(str);
     this.buffer.push(0x0A);
     return this;
   }

@@ -11,7 +11,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import BuyerInvoice from "@/components/sales/invoice-template"
 import ThermalReceipt from "@/components/sales/thermal-receipt"
 import SmartShareButton from "@/components/billing/smart-share-button"
-import { generateSaleReceiptESCPOS } from "@/lib/generate-thermal-escpos"
+import { generateSaleReceiptESCPOS, generateLocalLangSaleReceiptESCPOS } from "@/lib/generate-thermal-escpos"
 import { BluetoothPrinter } from "@/lib/bluetooth-printer"
 import { useGlobalFeature } from "@/hooks/use-global-feature";
 import { useLocalInvoice } from "@/hooks/use-local-invoice"
@@ -36,7 +36,7 @@ export default function SaleInvoicePage() {
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
     const thermalRef = useRef<HTMLDivElement>(null);
 
-    // Reset print mode after OS print dialog closes (prevents screen from staying blank after thermal print fallback)
+    // Reset print mode after OS print dialog closes
     useEffect(() => {
         const handleAfterPrint = () => setPrintMode('a4');
         window.addEventListener('afterprint', handleAfterPrint);
@@ -141,58 +141,30 @@ export default function SaleInvoicePage() {
 
         if (mode === 'thermal') {
             try {
-                // If local language is active, bypass raw text Bluetooth ESC/POS since thermal printers 
-                // don't natively support rendering complex Indian scripts (Telugu/Gujarati, etc).
-                if (!localInvoice.isEnabled || !localInvoice.activeLang || localInvoice.activeLang === 'en') {
+                const isLocalLang = localInvoice.isEnabled && localInvoice.activeLang && localInvoice.activeLang !== 'en';
+
+                if (!isLocalLang) {
+                    // English → fast raw ASCII ESC/POS text
                     const escposData = generateSaleReceiptESCPOS(sale, organization, thermalWidth);
                     const printer = new BluetoothPrinter();
                     await printer.connect(forcePrompt);
                     await printer.print(escposData);
-                    // Successfully printed via Bluetooth, do not open OS print dialog
                     return;
                 } else {
-                    if (thermalRef.current) {
-                        // Calculate accurate pixel width for thermal printing based on character width
-                        // 58mm = 32 chars = 384px
-                        // 80mm = 48 chars = 576px
-                        // 110mm = 64 chars = 768px
-                        let pxWidth = 576; // Default to 80mm
-                        if (thermalWidth === 32) pxWidth = 384;
-                        if (thermalWidth === 64) pxWidth = 768;
-                        
-                        // Clone node to body to completely isolate from any page scroll offsets
-                        const clone = thermalRef.current.cloneNode(true) as HTMLElement;
-                        clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white; opacity: 1;`;
-                        document.body.appendChild(clone);
-                        
-                        const { toCanvas } = await import('html-to-image');
-                        const canvas = await toCanvas(clone, {
-                            width: pxWidth,
-                            canvasWidth: pxWidth,
-                            pixelRatio: 1, // critical: prevent high-DPI scaling
-                            backgroundColor: '#ffffff',
-                            style: { margin: '0', padding: '0', transform: 'none' }
-                        });
-                        
-                        document.body.removeChild(clone);
-
-                        const escpos = new ESCPOS();
-                        escpos.init();
-                        escpos.image(canvas);
-                        escpos.feed(3);
-                        
-                        const escposData = escpos.getBuffer();
-                        const printer = new BluetoothPrinter();
-                        await printer.connect(forcePrompt);
-                        await printer.print(escposData);
-                        return; // Successfully printed via Bluetooth
-                    }
+                    // Local language → fast raw UTF-8 text (works on all modern printers)
+                    const escposData = generateLocalLangSaleReceiptESCPOS(
+                        sale, organization, localInvoice.activeLang!,
+                        localInvoice.itemTranslations || {}, localInvoice.partyTranslation || null, thermalWidth
+                    );
+                    const printer = new BluetoothPrinter();
+                    await printer.connect(forcePrompt);
+                    await printer.print(escposData);
+                    return;
                 }
             } catch (e: any) {
                 console.error('Bluetooth print skipped or failed:', e);
-                // Fall through to OS print dialog for iOS or if Bluetooth is not supported/connected
             }
-            // Fall through to browser print for thermal fallback
+            // Fallback: OS print dialog
             setPrintMode('thermal');
             setTriggerPrint(prev => prev + 1);
         } else {
