@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Printer, ChevronLeft, Download, ShieldCheck, Loader2, Settings, FileText, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { callApi } from "@/lib/frappeClient";
 import { useAuth } from "@/components/auth/auth-provider"
 import PurchaseBillInvoice from "@/components/purchase/purchase-invoice-template"
-import { BluetoothPrinter } from "@/lib/bluetooth-printer"
+import { BluetoothPrinter, ESCPOS } from "@/lib/bluetooth-printer"
 import { generatePurchaseReceiptESCPOS } from "@/lib/generate-thermal-escpos"
 import { useGlobalFeature } from "@/hooks/use-global-feature";
 import { useLocalInvoice } from "@/hooks/use-local-invoice"
@@ -29,11 +29,28 @@ export default function PurchaseBillInvoicePage() {
     const [isDownloading, setIsDownloading] = useState(false)
     const [isSharing, setIsSharing] = useState(false)
     const [thermalWidth, setThermalWidth] = useState(48) // default 80mm
+    const [triggerPrint, setTriggerPrint] = useState(0)
+    const [printMode, setPrintMode] = useState<'a4' | 'thermal'>('a4')
+    const thermalRef = useRef<HTMLDivElement>(null);
 
     // Local language invoices
     const { enabled: isGlobalEnabled } = useGlobalFeature('local_language_invoices')
     const isTenantEnabled = !!(profile as any)?.organization?.enable_local_invoices
     const localInvoice = useLocalInvoice(isGlobalEnabled, isTenantEnabled)
+
+    // Reset print mode after OS print dialog closes
+    useEffect(() => {
+        const handleAfterPrint = () => setPrintMode('a4');
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+    }, []);
+
+    useEffect(() => {
+        if (triggerPrint > 0) {
+            const timer = setTimeout(() => window.print(), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [triggerPrint]);
 
     useEffect(() => {
         const savedWidth = localStorage.getItem('thermalWidth');
@@ -100,20 +117,68 @@ export default function PurchaseBillInvoicePage() {
     }, [localInvoice.activeLang, lot, arrival, arrivalLots, localInvoice.isEnabled]);
 
     const handleThermalPrint = async (forcePrompt: boolean = false) => {
+        // Fetch translations before printing if local language is active
+        if (localInvoice.isEnabled && localInvoice.activeLang && lot && arrival) {
+            const itemNamesSet = new Set<string>();
+            if (lot.item?.name || lot.item_name) itemNamesSet.add(formatCommodityName(lot.item?.name || lot.item_name, lot.item?.custom_attributes));
+            arrivalLots.forEach((l: any) => {
+                if (l.item?.name || l.item_name) itemNamesSet.add(formatCommodityName(l.item?.name || l.item_name, l.item?.custom_attributes));
+            });
+            const itemNames = Array.from(itemNamesSet).filter(Boolean);
+            const partyName = arrival.supplier_name || arrival.contact?.full_name || '';
+            await localInvoice.fetchTranslations(itemNames, partyName);
+        }
+
         try {
-            const escposData = generatePurchaseReceiptESCPOS(lot, arrival, organization, arrivalLots, thermalWidth);
-            const printer = new BluetoothPrinter();
-            await printer.connect(forcePrompt);
-            await printer.print(escposData);
+            // If local language is active, use image-based printing
+            if (localInvoice.isEnabled && localInvoice.activeLang && localInvoice.activeLang !== 'en') {
+                if (thermalRef.current) {
+                    let pxWidth = 576; // Default to 80mm
+                    if (thermalWidth === 32) pxWidth = 384;
+                    if (thermalWidth === 64) pxWidth = 768;
+
+                    const clone = thermalRef.current.cloneNode(true) as HTMLElement;
+                    clone.style.cssText = `position: absolute; top: 0; left: 0; width: ${pxWidth}px; display: block; z-index: -9999; margin: 0; padding: 0; background: white; opacity: 1;`;
+                    document.body.appendChild(clone);
+
+                    const { toCanvas } = await import('html-to-image');
+                    const canvas = await toCanvas(clone, {
+                        width: pxWidth,
+                        canvasWidth: pxWidth,
+                        pixelRatio: 1,
+                        backgroundColor: '#ffffff',
+                        style: { margin: '0', padding: '0', transform: 'none' }
+                    });
+
+                    document.body.removeChild(clone);
+
+                    const escpos = new ESCPOS();
+                    escpos.init();
+                    escpos.image(canvas);
+                    escpos.feed(3);
+
+                    const escposData = escpos.getBuffer();
+                    const printer = new BluetoothPrinter();
+                    await printer.connect(forcePrompt);
+                    await printer.print(escposData);
+                    return; // Successfully printed via Bluetooth
+                }
+            } else {
+                // English → fast raw ESC/POS text
+                const escposData = generatePurchaseReceiptESCPOS(lot, arrival, organization, arrivalLots, thermalWidth);
+                const printer = new BluetoothPrinter();
+                await printer.connect(forcePrompt);
+                await printer.print(escposData);
+                return;
+            }
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
-            import('sonner').then(({ toast }) => {
-                toast.error("Thermal Print Failed", {
-                    description: e.message || "Ensure Bluetooth is enabled and the printer is paired/turned on.",
-                    position: 'top-center'
-                });
-            });
+            // Fall through to OS print dialog fallback
         }
+
+        // Fallback: OS print dialog (for iOS or Bluetooth failure)
+        setPrintMode('thermal');
+        setTriggerPrint(prev => prev + 1);
     };
 
     const handlePairPrinter = async () => {
@@ -315,25 +380,48 @@ export default function PurchaseBillInvoicePage() {
             </div>
 
             {/* Template — local language takes over when activeLang is set */}
-            <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5 print:shadow-none print:ring-0">
-                {localInvoice.isEnabled && localInvoice.activeLang ? (
-                    <LocalPurchaseBill
-                        lot={lot}
-                        arrival={arrival}
-                        organization={organization}
-                        arrivalLots={arrivalLots}
-                        lang={localInvoice.activeLang}
-                        itemTranslations={localInvoice.itemTranslations}
-                        partyTranslation={localInvoice.partyTranslation}
-                    />
-                ) : (
-                    <PurchaseBillInvoice
-                        lot={lot}
-                        arrival={arrival}
-                        organization={organization}
-                        arrivalLots={arrivalLots}
-                    />
-                )}
+            <div className="relative">
+                <div className={printMode === 'thermal' ? "hidden print:hidden" : "block print:block"}>
+                    {localInvoice.isEnabled && localInvoice.activeLang ? (
+                        <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5 print:shadow-none print:ring-0">
+                            <LocalPurchaseBill
+                                lot={lot}
+                                arrival={arrival}
+                                organization={organization}
+                                arrivalLots={arrivalLots}
+                                lang={localInvoice.activeLang}
+                                itemTranslations={localInvoice.itemTranslations}
+                                partyTranslation={localInvoice.partyTranslation}
+                            />
+                        </div>
+                    ) : (
+                        <div className="max-w-[800px] mx-auto shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/5 print:shadow-none print:ring-0">
+                            <PurchaseBillInvoice
+                                lot={lot}
+                                arrival={arrival}
+                                organization={organization}
+                                arrivalLots={arrivalLots}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Off-screen thermal receipt for image capture / iOS fallback */}
+                <div className={printMode === 'thermal' ? "print:static print:opacity-100 print:z-auto print:pointer-events-auto" : "print:hidden"} style={{ position: 'fixed', top: 0, left: 0, zIndex: -9999, pointerEvents: 'none', opacity: 0 }}>
+                    <div ref={thermalRef} style={{ width: thermalWidth === 32 ? '384px' : (thermalWidth === 64 ? '768px' : '576px'), background: 'white', margin: 0, padding: 0 }}>
+                        {localInvoice.isEnabled && localInvoice.activeLang ? (
+                            <LocalPurchaseBill
+                                lot={lot}
+                                arrival={arrival}
+                                organization={organization}
+                                arrivalLots={arrivalLots}
+                                lang={localInvoice.activeLang}
+                                itemTranslations={localInvoice.itemTranslations}
+                                partyTranslation={localInvoice.partyTranslation}
+                            />
+                        ) : null}
+                    </div>
+                </div>
             </div>
 
             <style jsx global>{`
