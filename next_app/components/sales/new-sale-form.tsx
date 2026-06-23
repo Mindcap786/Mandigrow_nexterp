@@ -824,6 +824,8 @@ function NewSaleForm() {
                                                             }}
                                                             placeholder="Select Buyer/Customer"
                                                             searchPlaceholder="Search buyer database..."
+                                                            enableQrScan={true}
+                                                            contacts={(buyers || []).map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                                                             className={cn(
                                                                 "bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-slate-300 rounded-none h-9 text-lg font-black text-slate-900 focus:border-indigo-600 transition-all shadow-none px-0",
                                                                 form.formState.errors.buyer_id && "border-b-red-500 focus:border-b-red-600"

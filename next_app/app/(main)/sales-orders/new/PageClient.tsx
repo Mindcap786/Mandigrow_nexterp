@@ -224,6 +224,8 @@ export default function SalesOrdersNewPageClient() {
                                                                 onChange={field.onChange}
                                                                 placeholder="Select Buyer/Customer"
                                                                 searchPlaceholder="Search buyer database..."
+                                                                enableQrScan={true}
+                                                                contacts={(buyers || []).map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                                                                 className="bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-slate-100 rounded-none h-10 text-xl font-black text-slate-900 focus:border-[#0C831F] transition-all shadow-none px-0"
                                                             />
                                                         </div>
