@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useAuth } from '@/components/auth/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseBarcodeScannerProps {
     onScan: (barcode: string) => void;
@@ -8,31 +10,50 @@ interface UseBarcodeScannerProps {
 export function useBarcodeScanner({ onScan, timeout = 50 }: UseBarcodeScannerProps) {
     const barcodeBuffer = useRef<string>('');
     const lastKeyTime = useRef<number>(Date.now());
+    const { profile } = useAuth();
+    const { toast } = useToast();
+    const orgId = profile?.organization_id;
+
+    // Use a ref for onScan so we don't have to put it in the dependency array
+    // which could cause the useEffect to re-bind constantly if onScan isn't memoized
+    const onScanRef = useRef(onScan);
+    useEffect(() => {
+        onScanRef.current = onScan;
+    }, [onScan]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Ignore if user is typing in an input field, EXCEPT if they are focused on the global barcode search
-            // We want the scanner to work globally, but not mess up manual typing in forms.
-            const activeElement = document.activeElement as HTMLElement;
-            const isInput = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA';
-            
-            // Allow scanning even if input is focused ONLY if it types fast enough.
-            // But to be safe, if they are typing in a normal input, we let the default behavior happen unless it's an Enter key finalizing a rapid scan.
-
             const currentTime = Date.now();
             const timeDiff = currentTime - lastKeyTime.current;
 
-            // If time between keystrokes is too long, reset the buffer (human typing)
             if (timeDiff > timeout) {
                 barcodeBuffer.current = '';
             }
 
-            // Only capture printable characters and Enter
             if (e.key === 'Enter') {
                 if (barcodeBuffer.current.length > 2) {
-                    // It's a valid barcode scan
-                    e.preventDefault(); // Prevent form submission
-                    onScan(barcodeBuffer.current);
+                    e.preventDefault(); 
+                    
+                    let finalBarcode = barcodeBuffer.current;
+                    
+                    if (finalBarcode.startsWith('MGC|')) {
+                        const parts = finalBarcode.split('|');
+                        if (parts.length >= 3) {
+                            const scannedOrgId = parts[1];
+                            if (orgId && scannedOrgId !== orgId) {
+                                toast({ 
+                                    title: "Security Error", 
+                                    description: "This ID Card belongs to a different Mandi!", 
+                                    variant: "destructive" 
+                                });
+                                barcodeBuffer.current = '';
+                                return;
+                            }
+                            finalBarcode = parts.slice(2).join('|');
+                        }
+                    }
+
+                    onScanRef.current(finalBarcode);
                 }
                 barcodeBuffer.current = '';
             } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -47,5 +68,5 @@ export function useBarcodeScanner({ onScan, timeout = 50 }: UseBarcodeScannerPro
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onScan, timeout]);
+    }, [timeout, orgId, toast]);
 }
