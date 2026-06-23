@@ -59,6 +59,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
     const internalRef = React.useRef<HTMLButtonElement>(null)
     const justSelectedRef = React.useRef(false)
     const [showQrScanner, setShowQrScanner] = React.useState(false)
+    const [isMobile, setIsMobile] = React.useState(false)  // SSR-safe: starts false, set after mount
     const qrRegionRef = React.useRef<HTMLDivElement>(null)
     const scannerRef = React.useRef<any>(null)
 
@@ -169,8 +170,16 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         };
     }, [showQrScanner])
 
-    // Detect if mobile (touch device)
-    const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+    // Detect if mobile (touch device) — must run after mount to avoid SSR hydration mismatch
+    React.useEffect(() => {
+        const check = () => setIsMobile(window.matchMedia('(pointer: coarse)').matches);
+        check();
+        // Also re-check if device changes (e.g. dev tools toggle)
+        const mq = window.matchMedia('(pointer: coarse)');
+        mq.addEventListener('change', check);
+        return () => mq.removeEventListener('change', check);
+    }, []);
+
     const showCameraBtn = enableQrScan && isMobile;
 
     return (
