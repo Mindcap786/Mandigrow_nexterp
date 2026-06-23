@@ -336,11 +336,15 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                                 stream.getTracks().forEach(track => track.stop());
                                 setShowQrScanner(true);
                             } catch (err: any) {
+                                const errName = err?.name || "Unknown";
                                 const errMsg = err?.message || err?.toString() || "Unknown error";
-                                if (errMsg.includes("NotAllowedError") || errMsg.includes("Permission denied") || errMsg.includes("Permission dismissed")) {
-                                    toast({ title: "Camera Permission Denied", description: "Please allow camera access in your browser or device settings.", variant: "destructive" });
+                                
+                                if (errName === "NotAllowedError" || errMsg.includes("Permission denied")) {
+                                    toast({ title: "Camera Permission Denied", description: "Please allow camera access in your browser (click the lock icon in the URL bar) or Mac System Settings. Close other apps using the camera.", variant: "destructive" });
+                                } else if (errName === "NotReadableError" || errName === "TrackStartError") {
+                                    toast({ title: "Camera In Use", description: "Your camera is currently being used by another application (like Google Meet or Zoom). Please turn it off there first.", variant: "destructive" });
                                 } else {
-                                    toast({ title: "Camera Error", description: errMsg, variant: "destructive" });
+                                    toast({ title: `Camera Error (${errName})`, description: errMsg, variant: "destructive" });
                                 }
                             }
                         }}
