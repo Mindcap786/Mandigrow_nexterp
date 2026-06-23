@@ -115,33 +115,66 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         return false;
     }, [contacts, options, handleSelect])
 
+    const [scannerId] = React.useState(() => `qr-region-${id || Math.random().toString(36).slice(2)}`)
+
     // Start QR Camera Scanner
     const startScanner = React.useCallback(async () => {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || !qrRegionRef.current) return;
         try {
             const { Html5Qrcode } = await import('html5-qrcode');
-            const regionId = `qr-region-${id || Math.random().toString(36).slice(2)}`;
 
-            if (qrRegionRef.current) {
-                qrRegionRef.current.id = regionId;
+            // If a scanner already exists, stop it first
+            if (scannerRef.current) {
+                try {
+                    await scannerRef.current.stop();
+                    scannerRef.current.clear();
+                } catch { /* ignore */ }
             }
 
-            const scanner = new Html5Qrcode(regionId);
+            const scanner = new Html5Qrcode(scannerId);
             scannerRef.current = scanner;
 
-            await scanner.start(
-                { facingMode: "environment" },
-                { fps: 15, qrbox: { width: 220, height: 220 } },
-                (decodedText: string) => {
-                    const found = matchAndSelectByCode(decodedText);
-                    stopScanner();
-                    if (!found) {
-                        // If not matched, show a toast/message but don't crash
-                        console.warn("QR scanned but no contact matched:", decodedText);
-                    }
-                },
-                () => { /* scan frame error - ignore */ }
-            );
+            // Define success callback
+            const onScanSuccess = (decodedText: string) => {
+                const found = matchAndSelectByCode(decodedText);
+                stopScanner();
+                if (!found) {
+                    console.warn("QR scanned but no contact matched:", decodedText);
+                }
+            };
+
+            // Try environment camera first
+            try {
+                await scanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    onScanSuccess,
+                    () => { /* ignore frame errors */ }
+                );
+            } catch (envError) {
+                // Fallback to any available camera if environment fails (common on some Androids)
+                console.warn("Environment camera failed, falling back to default:", envError);
+                await scanner.start(
+                    { facingMode: "user" }, // or try just cameraId
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    onScanSuccess,
+                    () => { /* ignore frame errors */ }
+                ).catch(async () => {
+                     // Ultimate fallback: request camera list and pick first
+                     const cameras = await Html5Qrcode.getCameras();
+                     if (cameras && cameras.length > 0) {
+                         await scanner.start(
+                             cameras[0].id,
+                             { fps: 10, qrbox: { width: 250, height: 250 } },
+                             onScanSuccess,
+                             () => {}
+                         );
+                     } else {
+                         throw new Error("No cameras found on device.");
+                     }
+                });
+            }
+
         } catch (err: any) {
             console.error("Camera error:", err);
             const errMsg = err?.message || err?.toString() || "Unknown error";
@@ -154,7 +187,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
             }
             setShowQrScanner(false);
         }
-    }, [id, matchAndSelectByCode])
+    }, [scannerId, matchAndSelectByCode, toast])
 
     const stopScanner = React.useCallback(async () => {
         if (scannerRef.current) {
@@ -169,15 +202,27 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
 
     // Start scanner when modal opens
     React.useEffect(() => {
+        let isMounted = true;
+        
         if (showQrScanner) {
-            startScanner();
+            // Slight delay to ensure DOM is fully painted and ID is registered
+            setTimeout(() => {
+                if (isMounted) startScanner();
+            }, 100);
         }
+        
         return () => {
-            if (!showQrScanner && scannerRef.current) {
-                stopScanner();
+            isMounted = false;
+            if (scannerRef.current) {
+                try {
+                    scannerRef.current.stop().then(() => {
+                        scannerRef.current?.clear();
+                        scannerRef.current = null;
+                    }).catch(() => {});
+                } catch { /* ignore */ }
             }
         };
-    }, [showQrScanner])
+    }, [showQrScanner, startScanner])
 
     // We no longer strictly require mobile to show camera; 
     // desktop users can use their webcams too!
@@ -304,7 +349,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                                 <X className="w-4 h-4 text-slate-600" />
                             </Button>
                         </div>
-                        <div ref={qrRegionRef} className="w-full aspect-square bg-black" />
+                        <div id={scannerId} ref={qrRegionRef} className="w-full aspect-square bg-black" />
                         <p className="text-center text-xs text-slate-500 font-semibold py-3 px-4">
                             Point the camera at the QR code on the ID card
                         </p>

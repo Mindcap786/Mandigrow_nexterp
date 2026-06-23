@@ -76,6 +76,7 @@ import { ItemDialog } from '@/components/inventory/item-dialog'
 import { Switch } from '@/components/ui/switch'
 import { formatCommodityName, COMMODITY_UNITS } from '@/lib/utils/commodity-utils'
 import { useArrivalsMasterData } from '@/hooks/mandi/useArrivalsMasterData'
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 
 const formSchema = z.object({
     arrival_date: z.date(),
@@ -229,6 +230,18 @@ export function QuickPurchaseForm() {
     })
 
     const { isSubmitting } = form.formState
+
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const trimmed = barcode.trim();
+            if (!trimmed) return;
+            const matchedSupplier = masterContacts.find(c => c.internal_id === trimmed || c.contact_code === trimmed || c.id === trimmed);
+            if (matchedSupplier) {
+                form.setValue('supplier_id', matchedSupplier.id, { shouldValidate: true });
+                toast.success(`Selected Supplier/Farmer: ${matchedSupplier.name}`);
+            }
+        }
+    });
 
 
     const advanceValue = useWatch({ control: form.control, name: 'advance' })

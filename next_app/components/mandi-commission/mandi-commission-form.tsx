@@ -21,6 +21,7 @@ import { AddedFarmerCard } from "./farmer-row";
 import { SummaryPanel } from "./summary-panel";
 import { SessionBillsView } from "./session-bills-view";
 import { UnitCombobox } from "@/components/ui/unit-combobox";
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 
 const generateUUID = () => crypto.randomUUID();
 
@@ -122,6 +123,29 @@ export function MandiCommissionForm() {
         loadMasterData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [profile]);
+
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const trimmed = barcode.trim();
+            if (!trimmed) return;
+
+            // First check if it's a farmer
+            const matchedFarmer = farmers.find(f => f.internal_id === trimmed || f.contact_code === trimmed || f.id === trimmed);
+            if (matchedFarmer) {
+                handleFarmerSelect(matchedFarmer.id);
+                toast({ title: "Scanner", description: `Added Farmer: ${matchedFarmer.name}`, position: "top-center" } as any);
+                return;
+            }
+
+            // Then check if it's a buyer
+            const matchedBuyer = buyers.find(b => b.internal_id === trimmed || b.contact_code === trimmed || b.id === trimmed);
+            if (matchedBuyer) {
+                setBuyerId(matchedBuyer.id);
+                toast({ title: "Scanner", description: `Selected Buyer: ${matchedBuyer.name}`, position: "top-center" } as any);
+                return;
+            }
+        }
+    });
 
     // ─────────────────────────────────────────────────────────────
     // Handlers
