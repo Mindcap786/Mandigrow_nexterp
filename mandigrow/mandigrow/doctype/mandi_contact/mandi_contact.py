@@ -26,7 +26,49 @@ class MandiContact(Document):
 	# end: auto-generated types
 
 	def validate(self):
+		self.set_internal_id()
 		self.check_unique_internal_id()
+
+	def set_internal_id(self):
+		import frappe
+		if self.internal_id:
+			return
+			
+		if not self.organization_id:
+			return
+		
+		prefix = "C"
+		if self.contact_type == "farmer":
+			prefix = "F"
+		elif self.contact_type == "buyer":
+			prefix = "B"
+		elif self.contact_type == "supplier":
+			prefix = "S"
+		elif self.contact_type == "staff":
+			prefix = "E"
+
+		# Acquire a lock on the Organization to prevent race conditions during concurrent contact creations
+		frappe.db.sql("SELECT name FROM `tabOrganization` WHERE name = %s FOR UPDATE", self.organization_id)
+		
+		# Find the highest existing numeric ID for this prefix
+		result = frappe.db.sql("""
+			SELECT internal_id 
+			FROM `tabMandi Contact` 
+			WHERE organization_id = %s AND internal_id LIKE %s
+		""", (self.organization_id, f"{prefix}-%"))
+		
+		max_num = 1000 # Start sequence from 1001
+		for (id_val,) in result:
+			try:
+				parts = id_val.split("-")
+				if len(parts) == 2:
+					num_part = int(parts[1])
+					if num_part > max_num:
+						max_num = num_part
+			except (IndexError, ValueError):
+				pass
+		
+		self.internal_id = f"{prefix}-{max_num + 1}"
 
 	def check_unique_internal_id(self):
 		import frappe

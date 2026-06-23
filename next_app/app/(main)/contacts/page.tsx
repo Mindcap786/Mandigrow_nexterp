@@ -14,6 +14,8 @@ import { toast } from "sonner"
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
 import { useGlobalFeature } from "@/hooks/use-global-feature"
 import { BulkImportDialog } from "@/components/contacts/bulk-import-dialog"
+import { IDCard } from "@/components/contacts/id-card"
+import { useRef } from "react"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
@@ -39,8 +41,10 @@ export default function ContactsPage() {
     const [contactToDelete, setContactToDelete] = useState<{ id: string, name: string, error?: string } | null>(null)
     const [resetConfirm, setResetConfirm] = useState<{ id: string, name: string, type: string } | null>(null)
     const [resetSuccess, setResetSuccess] = useState<{ name: string, count: number } | null>(null)
+    const [contactToPrint, setContactToPrint] = useState<any | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [mounted, setMounted] = useState(false)
+    const printRef = useRef<HTMLDivElement>(null)
     const itemsPerPage = 20
 
     const { enabled: isGlobalImportEnabled } = useGlobalFeature('bulk_import_contacts')
@@ -399,6 +403,12 @@ export default function ContactsPage() {
                                                 <RotateCcw className="w-3.5 h-3.5" /> Reset
                                             </button>
                                             <button
+                                                onClick={() => setContactToPrint({ ...contact, internal_id: contact.internal_id || contact.contact_code })}
+                                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-purple-600 active:bg-purple-50 transition-colors border-r border-[#F3F4F6]"
+                                            >
+                                                <Printer className="w-3.5 h-3.5" /> ID Card
+                                            </button>
+                                            <button
                                                 onClick={() => setContactToDelete({ id: contact.id, name: contact.name })}
                                                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-[#DC2626] active:bg-red-50 transition-colors"
                                             >
@@ -582,6 +592,7 @@ export default function ContactsPage() {
                                                         <ContactDialog onSuccess={fetchContacts} initialData={contact}>
                                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors" title="Edit Contact"><Pencil className="w-3.5 h-3.5" /></Button>
                                                         </ContactDialog>
+                                                        <Button variant="ghost" size="sm" type="button" className="h-8 w-8 p-0 rounded-lg hover:bg-purple-50 text-slate-400 hover:text-purple-600 transition-colors" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setContactToPrint({ ...contact, internal_id: contact.internal_id || contact.contact_code }) }} title="Print ID Card"><Printer className="w-4 h-4" /></Button>
                                                         <Button variant="ghost" size="sm" type="button" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setContactToDelete({ id: contact.id, name: contact.name }) }} title="Delete Contact" disabled={isUpdating === contact.id}><Trash2 className="w-4 h-4" /></Button>
                                                     </>
                                                 )}
@@ -664,6 +675,43 @@ export default function ContactsPage() {
                     <DialogFooter className="mt-6">
                         <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full" onClick={() => setResetSuccess(null)}>Got It</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Print ID Card Dialog */}
+            <Dialog open={!!contactToPrint} onOpenChange={(open) => !open && setContactToPrint(null)}>
+                <DialogContent className="sm:max-w-md bg-white border-slate-200 p-0 overflow-hidden">
+                    <div className="bg-slate-50 p-6 pb-4 border-b border-slate-100">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-[1000] italic tracking-tighter text-black uppercase">
+                                PRINT <span className="text-blue-600">ID CARD</span>
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-700 font-bold">
+                                Print ID card for {contactToPrint?.name}
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    
+                    <div className="p-6 pt-6 flex flex-col items-center">
+                        {contactToPrint && (
+                            <div className="print:absolute print:inset-0 print:m-0 print:flex print:items-start print:justify-start">
+                                <IDCard 
+                                    ref={printRef} 
+                                    contact={contactToPrint} 
+                                    organizationName={profile?.organization?.name} 
+                                />
+                            </div>
+                        )}
+                        <div className="flex gap-3 w-full pt-6 print:hidden">
+                            <Button variant="outline" className="flex-1 rounded-xl border-slate-300 font-bold text-black" onClick={() => setContactToPrint(null)}>
+                                Close
+                            </Button>
+                            <Button onClick={() => window.print()} className="flex-1 bg-blue-600 text-white hover:bg-blue-700 font-black tracking-tight rounded-xl">
+                                <Printer className="w-4 h-4 mr-2" />
+                                Print Now
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

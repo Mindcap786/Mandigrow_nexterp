@@ -96,7 +96,13 @@ export default function POSPage() {
     useBarcodeScanner({
         onScan: (barcode) => {
             if (hwScannerEnabled && barcode) {
-                setSearch(barcode)
+                const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode)
+                if (matchedBuyer) {
+                    setSelectedBuyerId(matchedBuyer.id)
+                    toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })
+                } else {
+                    setSearch(barcode)
+                }
             }
         }
     })
@@ -833,6 +839,8 @@ export default function POSPage() {
                     await printer.print(escposData);
                 }
             }
+
+
         } catch (e: any) {
             console.error('Bluetooth print skipped or failed:', e);
             setTimeout(() => window.print(), 300);

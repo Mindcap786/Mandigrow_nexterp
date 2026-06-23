@@ -64,6 +64,7 @@ import { useArrivals } from "@/hooks/mandi/useArrivals";
 import { UnitCombobox } from "@/components/ui/unit-combobox";
 import { useFieldGovernance } from "@/hooks/useFieldGovernance";
 import { formatCommodityName } from "@/lib/utils/commodity-utils";
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 
 const itemSchema = z.object({
     item_id: z.string().min(1, "Item is required"),
@@ -160,6 +161,20 @@ export default function ArrivalsEntryForm() {
     } = useArrivalsMasterData(profile?.organization_id, ['farmer', 'supplier']);
 
     const { createArrival, isCreating } = useArrivals();
+
+    // Barcode Scanner for Auto-selecting Contact
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const matchedContact = contacts?.find(c => c.internal_id === barcode || c.contact_code === barcode || c.id === barcode);
+            if (matchedContact) {
+                form.setValue('contact_id', matchedContact.id);
+                toast({
+                    title: `Contact Selected: ${matchedContact.name}`,
+                    description: "Auto-selected via barcode scanner.",
+                });
+            }
+        }
+    });
 
     // QR Code State
 

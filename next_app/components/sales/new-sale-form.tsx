@@ -52,6 +52,7 @@ import { formatCommodityName } from "@/lib/utils/commodity-utils";
 import { QRCodeSVG } from "qrcode.react";
 import { confirmSaleTransactionWithFallback } from "@/lib/mandi/confirm-sale-transaction";
 import { calculateSaleItemTaxBreakdown, calculateSaleTotals } from "@/lib/sales-tax";
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 
 const saleItemSchema = z.object({
     item_id: z.string().min(1, "Item required"),
@@ -158,6 +159,19 @@ function NewSaleForm() {
 
     const formRef = useRef<HTMLFormElement>(null);
     useEnterToTab(formRef);
+
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode || b.id === barcode);
+            if (matchedBuyer) {
+                form.setValue('buyer_id', matchedBuyer.id);
+                toast({
+                    title: `Buyer Selected: ${matchedBuyer.name}`,
+                    description: "Auto-selected via barcode scanner.",
+                });
+            }
+        }
+    });
 
     const form = useForm<any>({
         resolver: zodResolver(formSchema),

@@ -4685,7 +4685,7 @@ def create_contact(full_name: str, contact_type: str, phone: str = None, city: s
             je.submit()
             frappe.db.commit()
 
-    return {"name": doc.name, "full_name": doc.full_name}
+    return {"name": doc.name, "full_name": doc.full_name, "internal_id": doc.internal_id}
 
 @frappe.whitelist(allow_guest=False)
 def bulk_create_contacts(contacts) -> dict:

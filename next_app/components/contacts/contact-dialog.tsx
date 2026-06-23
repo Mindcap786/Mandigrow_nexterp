@@ -28,6 +28,9 @@ import { Loader2 } from "lucide-react"
 import { callApi } from "@/lib/frappeClient"
 import { useFieldGovernance } from "@/hooks/useFieldGovernance"
 import { cn } from "@/lib/utils"
+import { IDCard } from "./id-card"
+import { useRef } from "react"
+import { Printer } from "lucide-react"
 
 const contactSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -62,6 +65,8 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
     const { profile } = useAuth()
     const [loadingState, setLoadingState] = useState<string | null>(null)
     const isLoading = !!loadingState
+    const [generatedContact, setGeneratedContact] = useState<any>(null)
+    const printRef = useRef<HTMLDivElement>(null)
 
     const { isVisible, isMandatory, getLabel } = useFieldGovernance('contacts')
 
@@ -88,6 +93,10 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
         }
     })
 
+    const handlePrint = () => {
+        window.print()
+    }
+
     // Reset form when initialData changes or dialog opens
     useEffect(() => {
         if (open) {
@@ -107,6 +116,7 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                 openingBalance: 0,
                 balanceType: "receivable"
             })
+            setGeneratedContact(null)
         }
     }, [open, initialData, defaultType, form])
 
@@ -192,9 +202,19 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
 
             setLoadingState("Finalizing...")
             toast({ title: "Success", description: initialData?.id ? `${data.name} updated successfully` : `${data.type} added successfully` })
-            setOpen(false)
-            form.reset()
-            if (onSuccess) onSuccess()
+            
+            if (!initialData?.id && (res.message?.internal_id || payload.internal_id)) {
+                // Show ID card instead of closing
+                setGeneratedContact({
+                    ...payload,
+                    internal_id: res.message?.internal_id || payload.internal_id
+                })
+                if (onSuccess) onSuccess()
+            } else {
+                setOpen(false)
+                form.reset()
+                if (onSuccess) onSuccess()
+            }
         } catch (error: any) {
             console.error("Save error detail:", error)
             let errorMessage = error.message
@@ -222,14 +242,34 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                 <div className="bg-slate-50 p-8 pb-4 border-b border-slate-100">
                     <DialogHeader>
                         <DialogTitle className="text-3xl font-[1000] italic tracking-tighter text-black uppercase">
-                            {initialData?.id ? 'EDIT' : 'ADD'} <span className="text-blue-600">CONTACT</span>
+                            {generatedContact ? 'ID CARD GENERATED' : (initialData?.id ? 'EDIT' : 'ADD')} <span className="text-blue-600">{generatedContact ? '' : 'CONTACT'}</span>
                         </DialogTitle>
                         <DialogDescription className="text-slate-700 font-bold">
-                            {initialData?.id ? `Updating details for ${initialData.name}` : 'Register a new partner in your Mandi network.'}
+                            {generatedContact ? 'Print this ID card for instant scanning during checkout.' : (initialData?.id ? `Updating details for ${initialData.name}` : 'Register a new partner in your Mandi network.')}
                         </DialogDescription>
                     </DialogHeader>
                 </div>
 
+                {generatedContact ? (
+                    <div className="p-8 pt-6 space-y-6 flex flex-col items-center">
+                        <div className="print:absolute print:inset-0 print:m-0 print:flex print:items-start print:justify-start">
+                            <IDCard 
+                                ref={printRef} 
+                                contact={generatedContact} 
+                                organizationName={profile?.organization_name} 
+                            />
+                        </div>
+                        <div className="flex gap-4 w-full pt-4 print:hidden">
+                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-slate-300 font-bold text-black hover:bg-slate-50" onClick={() => { setOpen(false); form.reset(); setGeneratedContact(null); }}>
+                                CLOSE
+                            </Button>
+                            <Button onClick={handlePrint} className="flex-1 h-12 bg-blue-600 text-white hover:bg-blue-700 font-black text-lg tracking-tight rounded-xl shadow-md">
+                                <Printer className="w-5 h-5 mr-2" />
+                                PRINT ID CARD
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
                 <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 pt-6 space-y-6">
                     <div className="space-y-4">
                         {isVisible('type') && (
@@ -416,6 +456,7 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                         </Button>
                     </div>
                 </form>
+                )}
             </DialogContent>
         </Dialog >
     )
