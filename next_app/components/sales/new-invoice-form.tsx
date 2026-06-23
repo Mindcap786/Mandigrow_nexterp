@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Loader2, ArrowLeft, Plus, CheckCircle2, AlertTriangle, Truck, CalendarIcon, Landmark, Zap, ChevronDown, ChevronUp, Users, PackageOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,46 @@ const NewInvoiceForm = () => {
     const watchedDistributions = form.watch('distributions');
     const totalDistributedQty = watchedDistributions?.reduce((sum, d) => sum + (Number(d.qty) || 0), 0) || 0;
     const remainingInLot = selectedLot ? selectedLot.current_qty - totalDistributedQty : 0;
+
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const trimmed = barcode.trim();
+            if (!trimmed) return;
+            const matchedBuyer = buyers.find(b => b.internal_id === trimmed || b.contact_code === trimmed);
+            if (matchedBuyer) {
+                const currentDistributions = form.getValues('distributions');
+                const emptyIndex = currentDistributions.findIndex((d: any) => !d.buyer_id);
+                
+                if (emptyIndex !== -1) {
+                    form.setValue(`distributions.${emptyIndex}.buyer_id`, matchedBuyer.id, { shouldValidate: true });
+                } else {
+                    append({
+                        buyer_id: matchedBuyer.id,
+                        qty: 0,
+                        rate: 0,
+                        payment_mode: "credit",
+                        amount_received: 0,
+                        due_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+                        bank_account_id: "",
+                        cheque_no: "",
+                        cheque_date: new Date(),
+                        cheque_status: false,
+                        bank_name: "",
+                        loading_charges: 0,
+                        unloading_charges: 0,
+                        other_expenses: 0,
+                        vehicle_number: "",
+                        transport_name: "",
+                        book_no: "",
+                        lot_no: "",
+                        cratesEnabled: false,
+                        crateCart: []
+                    } as any);
+                }
+                toast({ title: "Scanner", description: `Added Buyer: ${matchedBuyer.name}`, position: "top-center" } as any);
+            }
+        }
+    });
 
     // Load Data
     const fetchMasters = async () => {

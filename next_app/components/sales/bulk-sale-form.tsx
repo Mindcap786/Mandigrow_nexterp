@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { LotSelector } from "./lot-selector";
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 import { confirmSaleTransactionWithFallback } from "@/lib/mandi/confirm-sale-transaction";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -139,6 +140,56 @@ export function BulkLotSaleForm() {
             // Silently fail
         }
     };
+
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const trimmed = barcode.trim();
+            if (!trimmed) return;
+            const matchedBuyer = buyers.find(b => b.internal_id === trimmed || b.contact_code === trimmed);
+            if (matchedBuyer) {
+                const currentDistributions = form.getValues('distributions');
+                const emptyIndex = currentDistributions.findIndex(d => !d.buyer_id);
+                
+                if (emptyIndex !== -1) {
+                    form.setValue(`distributions.${emptyIndex}.buyer_id`, matchedBuyer.id, { shouldValidate: true });
+                } else {
+                    append({
+                        buyer_id: matchedBuyer.id,
+                        qty: 0,
+                        rate: 0,
+                        loading_charges: 0,
+                        unloading_charges: 0,
+                        other_expenses: 0,
+                        market_fee: 0,
+                        nirashrit: 0,
+                        misc_fee: 0,
+                        grand_total: 0,
+                        payment_mode: "credit",
+                        bank_account_id: "",
+                        cheque_no: "",
+                        cheque_date: new Date().toISOString().split('T')[0],
+                        cheque_status: false,
+                        bank_name: "",
+                        amount_received: 0,
+                        gst_total: 0,
+                        cgst_amount: 0,
+                        sgst_amount: 0,
+                        igst_amount: 0,
+                        is_igst: false,
+                        discount_percent: 0,
+                        discount_amount: 0,
+                        vehicle_number: "",
+                        transport_name: "",
+                        book_no: "",
+                        lot_no: "",
+                        cratesEnabled: false,
+                        crateCart: []
+                    });
+                }
+                toast({ title: "Scanner", description: `Added Buyer: ${matchedBuyer.name}`, position: "top-center" } as any);
+            }
+        }
+    });
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
