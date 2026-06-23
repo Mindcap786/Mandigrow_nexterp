@@ -48,7 +48,7 @@ class MandiContact(Document):
 			prefix = "E"
 
 		# Acquire a lock on the Organization to prevent race conditions during concurrent contact creations
-		frappe.db.sql("SELECT name FROM `tabOrganization` WHERE name = %s FOR UPDATE", self.organization_id)
+		frappe.db.sql("SELECT name FROM `tabMandi Organization` WHERE name = %s FOR UPDATE", self.organization_id)
 		
 		# Find the highest existing numeric ID for this prefix
 		result = frappe.db.sql("""
