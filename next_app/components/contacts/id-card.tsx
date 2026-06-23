@@ -27,7 +27,7 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
     const orgName = organizationName || 'MANDI GROW';
 
     return (
-        <div id="id-card-print-area" ref={ref} className="w-[85.6mm] h-[54mm] bg-white border-2 border-gray-300 rounded-lg p-3 flex flex-col justify-between items-center shadow-sm overflow-hidden print:shadow-none print:border-none print:w-[85.6mm] print:h-[54mm] print:m-0 print:p-3" style={{ boxSizing: 'border-box', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        <div id="id-card-print-area" ref={ref} className="w-[85.6mm] h-[54mm] bg-white border-2 border-gray-300 rounded-lg p-3 flex flex-col justify-between items-center shadow-sm overflow-hidden print:w-[85.6mm] print:h-[54mm] print:m-0 print:p-3" style={{ boxSizing: 'border-box', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
             {/* Header / Org Name */}
             <div className="w-full text-center border-b-2 border-gray-200 pb-1.5 mb-1.5 shrink-0">
                 <h1 className="text-[18px] font-black uppercase tracking-widest text-gray-900 leading-tight">
