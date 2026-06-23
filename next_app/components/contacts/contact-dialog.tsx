@@ -256,7 +256,7 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                             <IDCard 
                                 ref={printRef} 
                                 contact={generatedContact} 
-                                organizationName={profile?.organization_name} 
+                                organizationName={profile?.organization?.name} 
                             />
                         </div>
                         <div className="flex gap-4 w-full pt-4 print:hidden">
