@@ -30,6 +30,7 @@ export interface ArrivalContact {
   city?: string | null
   gstin?: string | null
   internal_id?: string | null
+  contact_code?: string | null
 }
 
 export interface ArrivalCommodity {
