@@ -95,7 +95,7 @@ export default function POSPage() {
 
     useBarcodeScanner({
         onScan: (barcode) => {
-            if (hwScannerEnabled && barcode) {
+            if (barcode) {
                 const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode)
                 if (matchedBuyer) {
                     setSelectedBuyerId(matchedBuyer.id)
