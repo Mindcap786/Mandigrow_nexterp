@@ -94,9 +94,23 @@ export default function POSPage() {
     }, [])
 
     useBarcodeScanner({
-        onScan: (barcode) => {
-            if (barcode) {
-                const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode)
+        onScan: (rawBarcode) => {
+            if (rawBarcode) {
+                let barcode = rawBarcode;
+                // Check for strictly secure Mandi QR Code
+                if (rawBarcode.startsWith('MGC|')) {
+                    const parts = rawBarcode.split('|');
+                    if (parts.length >= 3) {
+                        const scannedOrgId = parts[1];
+                        if (orgId && scannedOrgId !== orgId) {
+                            toast.error("Security Error: This ID Card belongs to a different Mandi!");
+                            return;
+                        }
+                        barcode = parts.slice(2).join('|');
+                    }
+                }
+
+                const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode || b.id === barcode)
                 if (matchedBuyer) {
                     setSelectedBuyerId(matchedBuyer.id)
                     toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })

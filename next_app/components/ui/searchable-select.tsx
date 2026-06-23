@@ -19,6 +19,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 
 interface SearchableSelectProps {
     options: { label: string; value: string }[]
@@ -89,15 +90,32 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         }
     }
 
+    const { profile } = useAuth()
+    const { toast } = useToast()
+
     // Match by internal_id or contact_code and select
     const matchAndSelectByCode = React.useCallback((code: string) => {
-        const trimmed = code.trim();
+        let trimmed = code.trim();
         if (!trimmed) return false;
+
+        // Check for strictly secure Mandi QR Code
+        if (trimmed.startsWith('MGC|')) {
+            const parts = trimmed.split('|');
+            if (parts.length >= 3) {
+                const scannedOrgId = parts[1];
+                const orgId = profile?.organization_id;
+                if (orgId && scannedOrgId !== orgId) {
+                    toast({ title: "Security Error", description: "This ID Card belongs to a different Mandi!", variant: "destructive" });
+                    return false;
+                }
+                trimmed = parts.slice(2).join('|');
+            }
+        }
 
         // First try contacts list for internal_id match
         if (contacts.length > 0) {
             const matched = contacts.find(
-                c => c.internal_id === trimmed || c.contact_code === trimmed
+                c => c.internal_id === trimmed || c.contact_code === trimmed || c.id === trimmed
             );
             if (matched) {
                 handleSelect(matched.id);
@@ -113,7 +131,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         }
 
         return false;
-    }, [contacts, options, handleSelect])
+    }, [contacts, options, handleSelect, profile?.organization_id, toast])
 
     const [scannerId] = React.useState(() => `qr-region-${id || Math.random().toString(36).slice(2)}`)
 

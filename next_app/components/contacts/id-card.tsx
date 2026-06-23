@@ -14,9 +14,10 @@ interface IDCardProps {
         city?: string
     }
     organizationName?: string
+    orgId?: string
 }
 
-export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organizationName }, ref) => {
+export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organizationName, orgId }, ref) => {
     if (!contact) return null;
 
     const displayName = contact.full_name || contact.name || 'Unknown';
@@ -59,7 +60,7 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
                 {/* Right: QR Code */}
                 <div className="flex flex-col items-center justify-center shrink-0">
                     <QRCodeSVG
-                        value={contact.id || displayId}
+                        value={`MGC|${orgId || 'UNKNOWN'}|${contact.id || displayId}`}
                         size={72}
                         level="M"
                         bgColor="#ffffff"
