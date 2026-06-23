@@ -625,15 +625,17 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                     <FormField control={form.control} name={`distributions.${index}.buyer_id`} render={({ field: f }) => (
                                                         <FormItem className="space-y-0">
                                                             <div className="flex gap-2">
-                                                                <SearchableSelect 
-                                                                    options={buyers.map(b => ({ label: `${b.name}${b.internal_id ? ` [${b.internal_id}]` : ""}${b.city ? ` (${b.city})` : ""}`, value: b.id }))} 
-                                                                    value={f.value} 
-                                                                    onChange={f.onChange} 
-                                                                    placeholder="Select Buyer..." 
-                                                                    className="bg-white border-slate-300 h-10 font-bold"
-                                                                    enableQrScan={true}
-                                                                    contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
-                                                                />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <SearchableSelect 
+                                                                        options={buyers.map(b => ({ label: `${b.name}${b.internal_id ? ` [${b.internal_id}]` : ""}${b.city ? ` (${b.city})` : ""}`, value: b.id }))} 
+                                                                        value={f.value} 
+                                                                        onChange={f.onChange} 
+                                                                        placeholder="Select Buyer..." 
+                                                                        className="bg-white border-slate-300 h-10 font-bold w-full"
+                                                                        enableQrScan={true}
+                                                                        contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
+                                                                    />
+                                                                </div>
                                                                 <ContactDialog defaultType="buyer" onSuccess={fetchMasters}><Button type="button" size="icon" className="h-10 w-10 shrink-0 bg-slate-900 text-white rounded-xl"><Plus className="w-4 h-4"/></Button></ContactDialog>
                                                             </div>
                                                             <FormMessage className="text-[9px] font-black uppercase text-red-500" />

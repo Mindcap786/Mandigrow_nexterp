@@ -261,7 +261,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                                 }
                             }}
                             className={cn(
-                                "w-full justify-between bg-white border-slate-200 text-black font-black hover:bg-slate-50 transition-all shadow-sm overflow-hidden",
+                                "flex-1 min-w-0 justify-between bg-white border-slate-200 text-black font-black hover:bg-slate-50 transition-all shadow-sm overflow-hidden",
                                 !value && "text-slate-400",
                                 error && "border-red-500 ring-2 ring-red-500/20",
                                 className
