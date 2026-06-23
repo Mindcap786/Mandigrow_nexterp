@@ -18,6 +18,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { useToast } from "@/hooks/use-toast"
 
 interface SearchableSelectProps {
     options: { label: string; value: string }[]
@@ -56,6 +57,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
     contacts = [],
 }, ref) => {
     const [open, setOpen] = React.useState(false)
+    const { toast } = useToast()
     const internalRef = React.useRef<HTMLButtonElement>(null)
     const justSelectedRef = React.useRef(false)
     const [showQrScanner, setShowQrScanner] = React.useState(false)
@@ -144,11 +146,11 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
             console.error("Camera error:", err);
             const errMsg = err?.message || err?.toString() || "Unknown error";
             if (errMsg.includes("NotAllowedError") || errMsg.includes("Permission denied")) {
-                toast.error("Camera permission denied. Please allow camera access in your browser or device settings.");
+                toast({ title: "Camera Permission Denied", description: "Please allow camera access in your browser or device settings.", variant: "destructive" });
             } else if (errMsg.includes("NotSupportedError") || !navigator.mediaDevices) {
-                toast.error("Camera access requires a secure HTTPS connection or localhost.");
+                toast({ title: "Camera Error", description: "Camera access requires a secure HTTPS connection or localhost.", variant: "destructive" });
             } else {
-                toast.error(`Camera error: ${errMsg}`);
+                toast({ title: "Camera Error", description: errMsg, variant: "destructive" });
             }
             setShowQrScanner(false);
         }
