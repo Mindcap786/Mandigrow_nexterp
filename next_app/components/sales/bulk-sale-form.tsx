@@ -684,7 +684,7 @@ export function BulkLotSaleForm() {
                                                                                 contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                                                                             />
                                                                             {field.value && (
-                                                                                <div className="absolute -top-1.5 -right-1.5 flex gap-1 animate-in zoom-in-50">
+                                                                                <div className="absolute -top-2.5 right-[3.25rem] flex gap-1 animate-in zoom-in-50 z-10">
                                                                                     {priceHistory[field.value]?.[selectedLot?.item_id] && (
                                                                                         <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 text-[8px] font-black uppercase px-1.5 h-4 flex items-center gap-1 shadow-sm">
                                                                                             <History className="w-2 h-2" />
