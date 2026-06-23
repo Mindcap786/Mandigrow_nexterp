@@ -30,7 +30,8 @@ import { useFieldGovernance } from "@/hooks/useFieldGovernance"
 import { cn } from "@/lib/utils"
 import { IDCard } from "./id-card"
 import { useRef } from "react"
-import { Printer } from "lucide-react"
+import { Printer, Share2, Download } from "lucide-react"
+import html2canvas from "html2canvas"
 
 const contactSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -95,6 +96,42 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
 
     const handlePrint = () => {
         window.print()
+    }
+
+    const [isSharing, setIsSharing] = useState(false)
+
+    const handleShare = async () => {
+        if (!printRef.current) return;
+        setIsSharing(true);
+        try {
+            const canvas = await html2canvas(printRef.current, { scale: 3, useCORS: true });
+            canvas.toBlob(async (blob) => {
+                if (!blob) throw new Error("Could not generate image");
+                const file = new File([blob], `ID_Card_${generatedContact?.internal_id || 'new'}.png`, { type: 'image/png' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: 'MandiGrow ID Card',
+                        text: `ID Card for ${generatedContact?.full_name || generatedContact?.name}`,
+                        files: [file]
+                    });
+                } else {
+                    // Fallback to download
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.name;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast({ title: "Downloaded", description: "ID Card saved to your device." });
+                }
+            }, 'image/png');
+        } catch (err: any) {
+            console.error("Share failed", err);
+            toast({ title: "Failed to Share", description: err.message || "Could not generate ID Card image.", variant: "destructive" });
+        } finally {
+            setIsSharing(false);
+        }
     }
 
     // Reset form when initialData changes or dialog opens
@@ -259,13 +296,19 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                                 organizationName={profile?.organization?.name} 
                             />
                         </div>
-                        <div className="flex gap-4 w-full pt-4 print:hidden">
-                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-slate-300 font-bold text-black hover:bg-slate-50" onClick={() => { setOpen(false); form.reset(); setGeneratedContact(null); }}>
+                        <div className="flex flex-col gap-3 w-full pt-4 print:hidden">
+                            <div className="flex gap-3 w-full">
+                                <Button onClick={handlePrint} className="flex-1 h-12 bg-slate-900 text-white hover:bg-slate-800 font-black tracking-tight rounded-xl shadow-md">
+                                    <Printer className="w-5 h-5 mr-2" />
+                                    PRINT
+                                </Button>
+                                <Button onClick={handleShare} disabled={isSharing} className="flex-1 h-12 bg-blue-600 text-white hover:bg-blue-700 font-black tracking-tight rounded-xl shadow-md">
+                                    {isSharing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Share2 className="w-5 h-5 mr-2" />}
+                                    SHARE / SAVE
+                                </Button>
+                            </div>
+                            <Button variant="outline" className="w-full h-12 rounded-xl border-slate-300 font-bold text-black hover:bg-slate-50" onClick={() => { setOpen(false); form.reset(); setGeneratedContact(null); }}>
                                 CLOSE
-                            </Button>
-                            <Button onClick={handlePrint} className="flex-1 h-12 bg-blue-600 text-white hover:bg-blue-700 font-black text-lg tracking-tight rounded-xl shadow-md">
-                                <Printer className="w-5 h-5 mr-2" />
-                                PRINT ID CARD
                             </Button>
                         </div>
                     </div>
