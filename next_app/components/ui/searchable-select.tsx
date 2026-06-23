@@ -19,7 +19,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/components/auth/auth-provider"
 
 interface SearchableSelectProps {
     options: { label: string; value: string }[]
