@@ -1,7 +1,7 @@
 "use client"
 
 import React, { forwardRef } from 'react'
-import Barcode from 'react-barcode'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface IDCardProps {
     contact: {
@@ -26,9 +26,9 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
     const orgName = organizationName || 'MANDI GROW';
 
     return (
-        <div ref={ref} className="w-[85.6mm] h-[54mm] bg-white border-2 border-gray-300 rounded-lg p-4 flex flex-col justify-between items-center shadow-sm relative overflow-hidden print:shadow-none print:border-black" style={{ boxSizing: 'border-box' }}>
+        <div ref={ref} className="w-[85.6mm] h-[54mm] bg-white border-2 border-gray-300 rounded-lg p-3 flex flex-col justify-between items-center shadow-sm relative overflow-hidden print:shadow-none print:border-black" style={{ boxSizing: 'border-box' }}>
             {/* Header / Org Name */}
-            <div className="w-full text-center border-b-2 border-gray-200 pb-2 mb-2">
+            <div className="w-full text-center border-b-2 border-gray-200 pb-1.5 mb-1.5">
                 <h1 className="text-lg font-black uppercase tracking-widest text-gray-900 leading-tight">
                     {orgName}
                 </h1>
@@ -37,32 +37,34 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
                 </p>
             </div>
 
-            {/* Contact Info */}
-            <div className="w-full text-center flex-1 flex flex-col justify-center">
-                <h2 className="text-xl font-bold text-gray-900 uppercase leading-tight truncate px-2">
-                    {displayName}
-                </h2>
-                {contact.city && (
-                    <p className="text-xs font-semibold text-gray-600 uppercase mt-1">
-                        {contact.city}
-                    </p>
-                )}
-            </div>
+            {/* Contact Info + QR side by side */}
+            <div className="w-full flex flex-row items-center justify-between flex-1 gap-2">
+                {/* Left: Name & details */}
+                <div className="flex flex-col justify-center flex-1 min-w-0">
+                    <h2 className="text-base font-black text-gray-900 uppercase leading-tight break-words">
+                        {displayName}
+                    </h2>
+                    {contact.city && (
+                        <p className="text-[10px] font-semibold text-gray-500 uppercase mt-0.5">
+                            {contact.city}
+                        </p>
+                    )}
+                    <div className="mt-1.5 inline-flex items-center gap-1 bg-gray-100 rounded px-1.5 py-0.5 w-fit">
+                        <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{displayType}</span>
+                        <span className="text-[11px] font-black text-gray-900 tracking-wider">{displayId}</span>
+                    </div>
+                </div>
 
-            {/* Barcode Area */}
-            <div className="w-full flex flex-col items-center justify-end mt-2 bg-gray-50 rounded p-1 print:bg-transparent">
-                <div className="transform scale-90 origin-bottom">
-                    <Barcode 
-                        value={displayId} 
-                        format="CODE128"
-                        width={2}
-                        height={40}
-                        displayValue={true}
-                        fontSize={14}
-                        fontOptions="bold"
-                        margin={0}
-                        background="transparent"
+                {/* Right: QR Code */}
+                <div className="flex flex-col items-center justify-center shrink-0">
+                    <QRCodeSVG
+                        value={displayId}
+                        size={72}
+                        level="M"
+                        bgColor="#ffffff"
+                        fgColor="#000000"
                     />
+                    <span className="text-[8px] font-bold text-gray-400 mt-0.5 tracking-wider">{displayId}</span>
                 </div>
             </div>
         </div>
