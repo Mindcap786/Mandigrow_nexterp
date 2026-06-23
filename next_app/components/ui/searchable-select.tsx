@@ -325,7 +325,25 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                         variant="outline"
                         size="icon"
                         className="h-10 w-10 shrink-0 rounded-lg border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 transition-all"
-                        onClick={() => setShowQrScanner(true)}
+                        onClick={async () => {
+                            try {
+                                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                                    toast({ title: "Camera Error", description: "Camera access requires a secure HTTPS connection or localhost.", variant: "destructive" });
+                                    return;
+                                }
+                                // Request permission synchronously on button click (fixes iOS Safari/Chrome NotAllowedError)
+                                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                                stream.getTracks().forEach(track => track.stop());
+                                setShowQrScanner(true);
+                            } catch (err: any) {
+                                const errMsg = err?.message || err?.toString() || "Unknown error";
+                                if (errMsg.includes("NotAllowedError") || errMsg.includes("Permission denied") || errMsg.includes("Permission dismissed")) {
+                                    toast({ title: "Camera Permission Denied", description: "Please allow camera access in your browser or device settings.", variant: "destructive" });
+                                } else {
+                                    toast({ title: "Camera Error", description: errMsg, variant: "destructive" });
+                                }
+                            }
+                        }}
                         title="Scan QR Code"
                     >
                         <Camera className="w-4 h-4 text-indigo-500" />
