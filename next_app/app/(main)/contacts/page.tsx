@@ -226,6 +226,7 @@ export default function ContactsPage() {
     const handlePrintIdCard = useReactToPrint({
         contentRef: printRef,
         documentTitle: `ID_Card_${contactToPrint?.name || 'MandiGrow'}`,
+        pageStyle: `@page { size: 85.6mm 54mm; margin: 0mm !important; } @media print { body { margin: 0 !important; padding: 0 !important; overflow: hidden; } }`
     })
 
     const handlePrint = () => window.print()
