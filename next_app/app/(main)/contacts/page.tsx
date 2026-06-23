@@ -17,6 +17,7 @@ import { BulkImportDialog } from "@/components/contacts/bulk-import-dialog"
 import { IDCard } from "@/components/contacts/id-card"
 import { useRef } from "react"
 import * as htmlToImage from 'html-to-image'
+import { useReactToPrint } from "react-to-print"
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
@@ -221,6 +222,11 @@ export default function ContactsPage() {
         for (let i = start; i <= end; i++) pages.push(i)
         return pages
     }
+
+    const handlePrintIdCard = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `ID_Card_${contactToPrint?.name || 'MandiGrow'}`,
+    })
 
     const handlePrint = () => window.print()
 
@@ -781,7 +787,7 @@ export default function ContactsPage() {
                                 <Share className="w-4 h-4 mr-2" />
                                 Share
                             </Button>
-                            <Button onClick={() => window.print()} className="flex-1 bg-blue-600 text-white hover:bg-blue-700 font-black tracking-tight rounded-xl">
+                            <Button onClick={() => handlePrintIdCard()} className="flex-1 bg-blue-600 text-white hover:bg-blue-700 font-black tracking-tight rounded-xl">
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print Now
                             </Button>

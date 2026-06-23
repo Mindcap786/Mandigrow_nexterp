@@ -32,9 +32,15 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
                 {`
                   @page { size: 85.6mm 54mm; margin: 0; }
                   body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                  /* Hide all other elements on the page */
+                  body * { visibility: hidden; }
+                  /* Show only the ID card and its children */
+                  #id-card-print-area, #id-card-print-area * { visibility: visible; }
+                  /* Position it at the exact top left of the printed page to avoid layout shifts */
+                  #id-card-print-area { position: absolute; left: 0; top: 0; margin: 0; padding: 0; }
                 `}
             </style>
-            <div ref={ref} className="w-[85.6mm] h-[54mm] bg-white border-2 border-gray-300 rounded-lg p-3 flex flex-col justify-between items-center shadow-sm relative overflow-hidden print:shadow-none print:border-none print:w-[85.6mm] print:h-[54mm] print:m-0 print:p-3" style={{ boxSizing: 'border-box' }}>
+            <div id="id-card-print-area" ref={ref} className="w-[85.6mm] h-[54mm] bg-white border-2 border-gray-300 rounded-lg p-3 flex flex-col justify-between items-center shadow-sm relative overflow-hidden print:shadow-none print:border-none print:w-[85.6mm] print:h-[54mm] print:m-0 print:p-3" style={{ boxSizing: 'border-box' }}>
             {/* Header / Org Name */}
             <div className="w-full text-center border-b-2 border-gray-200 pb-1.5 mb-1.5">
                 <h1 className="text-lg font-black uppercase tracking-widest text-gray-900 leading-tight">

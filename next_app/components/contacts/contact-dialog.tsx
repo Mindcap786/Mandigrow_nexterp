@@ -32,6 +32,7 @@ import { IDCard } from "./id-card"
 import { useRef } from "react"
 import { Printer, Share2, Download } from "lucide-react"
 import html2canvas from "html2canvas"
+import { useReactToPrint } from "react-to-print"
 
 const contactSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -94,8 +95,13 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
         }
     })
 
+    const handlePrintIdCard = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `ID_Card_${generatedContact?.internal_id || 'new'}`,
+    })
+
     const handlePrint = () => {
-        window.print()
+        handlePrintIdCard()
     }
 
     const [isSharing, setIsSharing] = useState(false)
