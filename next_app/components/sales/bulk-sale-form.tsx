@@ -628,7 +628,9 @@ export function BulkLotSaleForm() {
                                                                                 className={cn(
                                                                                     "h-10 rounded-xl transition-all",
                                                                                     buyerWarnings[field.value]?.overLimit && "border-red-300 bg-red-50/20"
-                                                                                )} 
+                                                                                )}
+                                                                                enableQrScan={true}
+                                                                                contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                                                                             />
                                                                             {field.value && (
                                                                                 <div className="absolute -top-1.5 -right-1.5 flex gap-1 animate-in zoom-in-50">

@@ -589,7 +589,9 @@ const syncBasis = watchedDistributions?.map(d => ({
                                                                     value={f.value} 
                                                                     onChange={f.onChange} 
                                                                     placeholder="Select Buyer..." 
-                                                                    className="bg-white border-slate-300 h-10 font-bold" 
+                                                                    className="bg-white border-slate-300 h-10 font-bold"
+                                                                    enableQrScan={true}
+                                                                    contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                                                                 />
                                                                 <ContactDialog defaultType="buyer" onSuccess={fetchMasters}><Button type="button" size="icon" className="h-10 w-10 shrink-0 bg-slate-900 text-white rounded-xl"><Plus className="w-4 h-4"/></Button></ContactDialog>
                                                             </div>

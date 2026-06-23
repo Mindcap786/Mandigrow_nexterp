@@ -1121,6 +1121,8 @@ export default function POSPage() {
                                 "bg-slate-50 border-slate-200 text-slate-800 font-bold h-10 w-full rounded-xl",
                                 showErrors && (paymentMode === 'Credit' || paymentMode === 'Cheque') && !selectedBuyerId && "border-red-500 border-2"
                             )}
+                            enableQrScan={true}
+                            contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                         />
                         {selectedBuyerId && (
                             <motion.div 

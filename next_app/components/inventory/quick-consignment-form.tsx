@@ -643,6 +643,8 @@ export function QuickPurchaseForm() {
                                         placeholder="Select party..."
                                         className="h-10 bg-white border border-slate-200 rounded-md text-sm font-medium w-full"
                                         error={!!form.formState.errors.supplier_id}
+                                        enableQrScan={true}
+                                        contacts={masterContacts.map(c => ({ id: c.id, internal_id: c.internal_id, contact_code: c.contact_code }))}
                                     />
                                     <FormMessage />
                                 </FormItem>

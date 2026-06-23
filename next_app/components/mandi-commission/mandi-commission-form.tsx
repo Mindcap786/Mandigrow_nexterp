@@ -435,6 +435,8 @@ export function MandiCommissionForm() {
                                 }}
                                 placeholder={t('sales.search_farmer')}
                                 className="h-12 text-base font-bold border-2 border-slate-200 mt-1 rounded-xl"
+                                enableQrScan={true}
+                                contacts={farmers.map(f => ({ id: f.id, internal_id: f.internal_id, contact_code: f.contact_code }))}
                             />
                         </div>
 
@@ -738,6 +740,8 @@ export function MandiCommissionForm() {
                         onSelected={() => buyerLoadingRef.current?.focus()}
                         placeholder="Search buyer..."
                         className="h-12 text-base font-bold border-blue-200 focus:border-blue-500 bg-white rounded-xl"
+                        enableQrScan={true}
+                        contacts={buyers.map(b => ({ id: b.id, internal_id: b.internal_id, contact_code: b.contact_code }))}
                     />
                 </div>
 

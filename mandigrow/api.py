@@ -18782,3 +18782,73 @@ def get_sales_audit_data(date_from: str = None, date_to: str = None) -> dict:
         "date_to":       date_to,
         "total_revenue": round(total_revenue, 2),
     }
+
+
+@frappe.whitelist(allow_guest=False)
+def assign_missing_internal_ids(org_id: str = None) -> dict:
+    """
+    Backfill internal_id for all existing Mandi Contacts in an organization
+    that don't yet have one. Safe to call multiple times — only contacts
+    with internal_id = NULL or '' will be updated.
+    """
+    if not org_id:
+        org_id = frappe.get_value(
+            "Mandi Organization",
+            {"owner": frappe.session.user},
+            "name"
+        )
+    if not org_id:
+        return {"success": False, "error": "No organization found"}
+
+    prefix_map = {
+        "farmer":   "F",
+        "buyer":    "B",
+        "supplier": "S",
+        "staff":    "E",
+    }
+
+    total_assigned = 0
+
+    for contact_type, prefix in prefix_map.items():
+        missing = frappe.db.sql("""
+            SELECT name
+            FROM `tabMandi Contact`
+            WHERE organization_id = %s
+              AND contact_type = %s
+              AND (internal_id IS NULL OR internal_id = '')
+            ORDER BY creation ASC
+        """, (org_id, contact_type), as_dict=True)
+
+        if not missing:
+            continue
+
+        existing = frappe.db.sql("""
+            SELECT internal_id
+            FROM `tabMandi Contact`
+            WHERE organization_id = %s AND internal_id LIKE %s
+        """, (org_id, f"{prefix}-%"), as_list=True)
+
+        max_num = 1000
+        for (id_val,) in existing:
+            try:
+                parts = (id_val or "").split("-")
+                if len(parts) == 2:
+                    num_part = int(parts[1])
+                    if num_part > max_num:
+                        max_num = num_part
+            except (IndexError, ValueError):
+                pass
+
+        for row in missing:
+            max_num += 1
+            new_id = f"{prefix}-{max_num}"
+            frappe.db.set_value("Mandi Contact", row["name"], "internal_id", new_id, update_modified=False)
+            total_assigned += 1
+
+    frappe.db.commit()
+
+    return {
+        "success": True,
+        "assigned": total_assigned,
+        "message": f"Assigned internal IDs to {total_assigned} contacts."
+    }

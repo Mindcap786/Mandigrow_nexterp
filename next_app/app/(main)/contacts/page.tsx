@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore, Upload } from "lucide-react"
+import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore, Upload, QrCode } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
@@ -44,6 +44,7 @@ export default function ContactsPage() {
     const [contactToPrint, setContactToPrint] = useState<any | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [mounted, setMounted] = useState(false)
+    const [isBackfilling, setIsBackfilling] = useState(false)
     const printRef = useRef<HTMLDivElement>(null)
     const itemsPerPage = 20
 
@@ -168,6 +169,27 @@ export default function ContactsPage() {
             toast.error(`Bulk reset failed: ${error?.message || 'Network error'}`) 
         }
         finally { setLoading(false) }
+    }
+
+    // One-time backfill: assign internal_id to all contacts that lack one
+    const backfillIds = async () => {
+        if (!profile?.organization_id) return
+        setIsBackfilling(true)
+        try {
+            const res: any = await callApi('mandigrow.api.assign_missing_internal_ids', {
+                org_id: profile.organization_id
+            })
+            if (res?.success) {
+                toast.success(res.message || `Assigned IDs to ${res.assigned} contacts`)
+                fetchContacts()
+            } else {
+                toast.error(res?.error || 'ID assignment failed')
+            }
+        } catch (e: any) {
+            toast.error(`Failed: ${e?.message || 'Network error'}`)
+        } finally {
+            setIsBackfilling(false)
+        }
     }
 
     const filteredContacts = contacts.filter(c => {
@@ -477,6 +499,18 @@ export default function ContactsPage() {
                     <Button variant="outline" onClick={handleDownloadCSV} className="h-12 px-4 rounded-xl font-bold text-slate-600 border-slate-200 hover:bg-slate-100"><Download className="w-4 h-4 mr-2" /> Export</Button>
                     {(searchTerm || typeFilter !== 'all' || locationFilter !== 'all') && (
                         <Button variant="outline" onClick={bulkResetSequences} className="h-12 px-4 rounded-xl font-bold text-orange-600 border-orange-100 hover:bg-orange-50 bg-orange-50/30"><RotateCcw className="w-4 h-4 mr-2" /> Reset All Filtered</Button>
+                    )}
+                    {/* Backfill button — only shown if some contacts have no internal_id */}
+                    {contacts.some(c => !c.internal_id) && (
+                        <Button
+                            variant="outline"
+                            onClick={backfillIds}
+                            disabled={isBackfilling}
+                            className="h-12 px-4 rounded-xl font-bold text-indigo-600 border-indigo-100 hover:bg-indigo-50 bg-indigo-50/30 hidden sm:flex"
+                        >
+                            {isBackfilling ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
+                            Assign IDs
+                        </Button>
                     )}
                     {canImport && (
                         <BulkImportDialog onSuccess={fetchContacts}>

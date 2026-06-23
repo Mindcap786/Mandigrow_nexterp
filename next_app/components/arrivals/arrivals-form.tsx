@@ -917,6 +917,8 @@ export default function ArrivalsEntryForm() {
                                                                 onChange={field.onChange}
                                                                 placeholder={getLabel('contact_id', 'Search Supplier Database...')}
                                                                 className="h-10 text-slate-900 font-semibold bg-white border-slate-300"
+                                                                enableQrScan={true}
+                                                                contacts={(contacts || []).map(c => ({ id: c.id, internal_id: c.internal_id, contact_code: c.contact_code }))}
                                                             />
                                                         </div>
                                                         <ContactDialog onSuccess={refetchMaster}>
