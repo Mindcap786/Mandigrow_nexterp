@@ -140,8 +140,16 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                 },
                 () => { /* scan frame error - ignore */ }
             );
-        } catch (err) {
+        } catch (err: any) {
             console.error("Camera error:", err);
+            const errMsg = err?.message || err?.toString() || "Unknown error";
+            if (errMsg.includes("NotAllowedError") || errMsg.includes("Permission denied")) {
+                toast.error("Camera permission denied. Please allow camera access in your browser or device settings.");
+            } else if (errMsg.includes("NotSupportedError") || !navigator.mediaDevices) {
+                toast.error("Camera access requires a secure HTTPS connection or localhost.");
+            } else {
+                toast.error(`Camera error: ${errMsg}`);
+            }
             setShowQrScanner(false);
         }
     }, [id, matchAndSelectByCode])
