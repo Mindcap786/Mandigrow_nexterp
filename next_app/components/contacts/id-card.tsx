@@ -75,6 +75,7 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
                     <span className="text-[8px] font-bold text-gray-400 mt-0.5 tracking-wider">{displayId}</span>
                 </div>
             </div>
+            </div>
         </>
     )
 })
