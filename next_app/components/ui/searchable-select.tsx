@@ -91,8 +91,6 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
     }
 
     const { profile } = useAuth()
-    const { toast } = useToast()
-
     // Match by internal_id or contact_code and select
     const matchAndSelectByCode = React.useCallback((code: string) => {
         let trimmed = code.trim();

@@ -740,7 +740,7 @@ export default function ContactsPage() {
                                 <IDCard 
                                     ref={printRef} 
                                     contact={contactToPrint} 
-                                    organizationName={profile?.organization?.name || profile?.organization_name}
+                                    organizationName={profile?.organization?.name || (profile as any)?.organization_name}
                                     orgId={profile?.organization_id}
                                 />
                             </div>
