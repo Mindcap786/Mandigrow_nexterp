@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react'
 
 interface IDCardProps {
     contact: {
+        id?: string
         full_name?: string
         name?: string // as fallback
         contact_type?: string
@@ -58,7 +59,7 @@ export const IDCard = forwardRef<HTMLDivElement, IDCardProps>(({ contact, organi
                 {/* Right: QR Code */}
                 <div className="flex flex-col items-center justify-center shrink-0">
                     <QRCodeSVG
-                        value={displayId}
+                        value={contact.id || displayId}
                         size={72}
                         level="M"
                         bgColor="#ffffff"
