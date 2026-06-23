@@ -7995,13 +7995,13 @@ def get_sale_master_data(org_id: str = None) -> dict:
         b_params.append(org_id)
 
     buyers_raw = frappe.db.sql(f"""
-        SELECT name AS id, full_name AS display_name, contact_type, city
+        SELECT name AS id, full_name AS display_name, contact_type, city, internal_id, contact_code
         FROM `tabMandi Contact`
         WHERE {' AND '.join(b_where)}
         ORDER BY full_name ASC
         LIMIT 500
     """, b_params, as_dict=True)
-    buyers = [{"id": b.get("id") or "", "name": b.get("display_name") or b.get("id") or "Unknown", "type": b.get("contact_type") or "", "city": b.get("city") or ""} for b in buyers_raw]
+    buyers = [{"id": b.get("id") or "", "name": b.get("display_name") or b.get("id") or "Unknown", "type": b.get("contact_type") or "", "city": b.get("city") or "", "internal_id": b.get("internal_id") or "", "contact_code": b.get("contact_code") or ""} for b in buyers_raw]
 
     # Lots from Mandi Lot — fields: item_id, qty, unit, supplier_rate, sale_price, lot_code
     lot_filters = {"qty": [">", 0]}
@@ -9885,9 +9885,8 @@ def get_pos_master_data() -> dict:
         if org_id and frappe.db.has_column("Mandi Contact", "organization_id"):
             buyer_where.append("organization_id = %s")
             buyer_params.append(org_id)
-
         buyers = frappe.db.sql(f"""
-            SELECT name AS id, full_name AS name, contact_type, city
+            SELECT name AS id, full_name AS name, contact_type, city, internal_id, contact_code
             FROM `tabMandi Contact`
             WHERE {' AND '.join(buyer_where)}
             ORDER BY full_name ASC

@@ -299,7 +299,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                                     {options.map((option) => (
                                         <CommandItem
                                             key={option.value}
-                                            value={`${option.label}__${option.value}`}
+                                            value={`${option.label}__${option.value}__${contacts?.find(c => c.id === option.value)?.internal_id || ''}__${contacts?.find(c => c.id === option.value)?.contact_code || ''}`}
                                             onSelect={() => handleSelect(option.value)}
                                             className="!pointer-events-auto flex items-center gap-2 px-2 py-2 rounded-md font-black text-sm text-black hover:bg-slate-100 cursor-pointer aria-selected:bg-slate-100 data-[selected='true']:bg-blue-50 data-[selected='true']:text-blue-700 transition-colors"
                                         >
