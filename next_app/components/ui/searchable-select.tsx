@@ -59,7 +59,6 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
     const internalRef = React.useRef<HTMLButtonElement>(null)
     const justSelectedRef = React.useRef(false)
     const [showQrScanner, setShowQrScanner] = React.useState(false)
-    const [isMobile, setIsMobile] = React.useState(false)  // SSR-safe: starts false, set after mount
     const qrRegionRef = React.useRef<HTMLDivElement>(null)
     const scannerRef = React.useRef<any>(null)
 
@@ -170,17 +169,9 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
         };
     }, [showQrScanner])
 
-    // Detect if mobile (touch device) — must run after mount to avoid SSR hydration mismatch
-    React.useEffect(() => {
-        const check = () => setIsMobile(window.matchMedia('(pointer: coarse)').matches);
-        check();
-        // Also re-check if device changes (e.g. dev tools toggle)
-        const mq = window.matchMedia('(pointer: coarse)');
-        mq.addEventListener('change', check);
-        return () => mq.removeEventListener('change', check);
-    }, []);
-
-    const showCameraBtn = enableQrScan && isMobile;
+    // We no longer strictly require mobile to show camera; 
+    // desktop users can use their webcams too!
+    const showCameraBtn = enableQrScan;
 
     return (
         <>
@@ -213,7 +204,13 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[max(var(--radix-popover-trigger-width),350px)] p-0 bg-white border border-slate-200 text-black shadow-xl rounded-xl overflow-hidden z-[100]">
-                        <Command className="bg-transparent border-none text-black">
+                        <Command 
+                            className="bg-transparent border-none text-black"
+                            filter={(value, search) => {
+                                if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                                return 0;
+                            }}
+                        >
                             <div className="flex items-center border-b border-slate-100 px-3 py-2" cmdk-input-wrapper="">
                                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-slate-500" />
                                 <CommandInput

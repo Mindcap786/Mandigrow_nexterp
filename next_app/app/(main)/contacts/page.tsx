@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore, Upload, QrCode } from "lucide-react"
+import { Plus, Search, Users, Phone, MapPin, Loader2, Printer, Download, ChevronLeft, ChevronRight, RotateCcw, AlertCircle, Trash2, Filter, ChevronDown, Pencil, Box, Archive, ArchiveRestore, Upload, QrCode, Share } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { isNativePlatform, isMobileAppView } from "@/lib/capacitor-utils"
@@ -16,6 +16,7 @@ import { useGlobalFeature } from "@/hooks/use-global-feature"
 import { BulkImportDialog } from "@/components/contacts/bulk-import-dialog"
 import { IDCard } from "@/components/contacts/id-card"
 import { useRef } from "react"
+import * as htmlToImage from 'html-to-image'
 
 // Native components
 import { NativeCard } from "@/components/mobile/NativeCard"
@@ -739,6 +740,46 @@ export default function ContactsPage() {
                         <div className="flex gap-3 w-full pt-6 print:hidden">
                             <Button variant="outline" className="flex-1 rounded-xl border-slate-300 font-bold text-black" onClick={() => setContactToPrint(null)}>
                                 Close
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                className="flex-1 rounded-xl border-slate-300 font-bold text-blue-600 hover:bg-blue-50" 
+                                onClick={async () => {
+                                    if (!printRef.current) return;
+                                    try {
+                                        const toastId = toast.loading('Preparing image...');
+                                        const blob = await htmlToImage.toBlob(printRef.current, { 
+                                            pixelRatio: 3, // High quality for sharing
+                                            backgroundColor: '#ffffff'
+                                        });
+                                        toast.dismiss(toastId);
+                                        if (!blob) throw new Error('Could not generate image');
+                                        
+                                        const file = new File([blob], `${contactToPrint?.name}-ID.png`, { type: 'image/png' });
+                                        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                                            await navigator.share({
+                                                title: `${contactToPrint?.name} - ID Card`,
+                                                text: `Official ID Card for ${contactToPrint?.name}`,
+                                                files: [file]
+                                            });
+                                        } else {
+                                            // Fallback to download
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = `${contactToPrint?.name}-ID.png`;
+                                            a.click();
+                                            URL.revokeObjectURL(url);
+                                            toast.success('Image downloaded (Share not supported on this browser)');
+                                        }
+                                    } catch (err) {
+                                        console.error(err);
+                                        toast.error('Failed to share ID card');
+                                    }
+                                }}
+                            >
+                                <Share className="w-4 h-4 mr-2" />
+                                Share
                             </Button>
                             <Button onClick={() => window.print()} className="flex-1 bg-blue-600 text-white hover:bg-blue-700 font-black tracking-tight rounded-xl">
                                 <Printer className="w-4 h-4 mr-2" />
