@@ -634,9 +634,10 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                             </CommandGroup>
                                                         )}
                                                         {searchTerm && !displayedItems.some(i => i.name.toLowerCase() === searchTerm.toLowerCase()) && (
-                                                            <CommandGroup heading="Create New">
+                                                            <CommandGroup heading="Create New" forceMount>
                                                                 <CommandItem
                                                                     value={searchTerm}
+                                                                    forceMount
                                                                     onSelect={() => {
                                                                         form.setValue("name", searchTerm)
                                                                         setOpenCombobox(false)
