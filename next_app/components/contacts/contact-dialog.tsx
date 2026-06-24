@@ -247,12 +247,12 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
             setLoadingState("Finalizing...")
             toast({ title: "Success", description: initialData?.id ? `${data.name} updated successfully` : `${data.type} added successfully` })
             
-            if (!initialData?.id && (res.message?.internal_id || payload.internal_id)) {
+            if (!initialData?.id && (res.internal_id || res.message?.internal_id || payload.internal_id)) {
                 // Show ID card instead of closing
                 setGeneratedContact({
                     ...payload,
-                    id: res.message?.name || res.message?.id,
-                    internal_id: res.message?.internal_id || payload.internal_id
+                    id: res.name || res.id || res.message?.name || res.message?.id,
+                    internal_id: res.internal_id || res.message?.internal_id || payload.internal_id
                 })
                 if (onSuccess) onSuccess()
             } else {
