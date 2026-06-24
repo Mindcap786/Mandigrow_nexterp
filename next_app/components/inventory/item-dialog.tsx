@@ -48,7 +48,7 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
-import { Check, ChevronsUpDown, Loader2, Package, QrCode, Printer } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Package, QrCode, Printer, Plus } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { cn } from "@/lib/utils"
 import inventoryData from "@/inventory_data.json"
@@ -573,8 +573,24 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                 <Command className="bg-white">
                                                     {!initialItem && <CommandInput placeholder="Search user item..." className="text-gray-900 placeholder:text-gray-400" onValueChange={setSearchTerm} />}
                                                     <CommandList>
-                                                        <CommandEmpty className="py-6 text-center text-sm text-gray-700">
+                                                        <CommandEmpty className="py-6 flex flex-col items-center justify-center text-sm text-gray-700">
                                                             <p>No item found.</p>
+                                                            {searchTerm && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    className="mt-4 text-blue-600 border-blue-200 hover:bg-blue-50 font-bold"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        form.setValue("name", searchTerm);
+                                                                        setOpenCombobox(false);
+                                                                    }}
+                                                                >
+                                                                    <Plus className="w-4 h-4 mr-2" />
+                                                                    Create "{searchTerm}"
+                                                                </Button>
+                                                            )}
                                                         </CommandEmpty>
                                                         {displayedItems.length > 0 && (
                                                             <CommandGroup heading="Suggestions">
@@ -633,27 +649,24 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                                                 ))}
                                                             </CommandGroup>
                                                         )}
-                                                        {searchTerm && !displayedItems.some(i => i.name.toLowerCase() === searchTerm.toLowerCase()) && (
-                                                            <CommandGroup heading="Create New" forceMount>
-                                                                <CommandItem
-                                                                    value={searchTerm}
-                                                                    forceMount
-                                                                    onSelect={() => {
-                                                                        form.setValue("name", searchTerm)
-                                                                        setOpenCombobox(false)
-                                                                    }}
-                                                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                    onClick={(e) => {
-                                                                        form.setValue("name", searchTerm)
-                                                                        setOpenCombobox(false)
-                                                                    }}
-                                                                    className="!pointer-events-auto text-blue-600 font-bold aria-selected:text-blue-700 aria-selected:bg-blue-50 cursor-pointer"
-                                                                >
-                                                                    + Create "{searchTerm}"
-                                                                </CommandItem>
-                                                            </CommandGroup>
-                                                        )}
                                                     </CommandList>
+                                                    {searchTerm && !displayedItems.some(i => i.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                                                        <div className="p-2 border-t border-slate-100 bg-slate-50 mt-auto rounded-b-xl">
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-100/50 font-bold"
+                                                                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                onClick={(e) => {
+                                                                    form.setValue("name", searchTerm);
+                                                                    setOpenCombobox(false);
+                                                                }}
+                                                            >
+                                                                <Plus className="w-4 h-4 mr-2" />
+                                                                Create "{searchTerm}"
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
