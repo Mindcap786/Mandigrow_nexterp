@@ -9849,7 +9849,7 @@ def get_pos_master_data() -> dict:
             [
                 "name as id", "name", "item_id", "qty", "unit", "sale_price",
                 "supplier_rate", "packing_cost", "loading_cost", "farmer_charges",
-                "lot_code", "net_qty", "barcode"
+                "lot_code", "short_code", "net_qty", "barcode"
             ],
             ["initial_qty", "current_qty", "status", "custom_attributes"],
         )

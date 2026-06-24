@@ -140,10 +140,10 @@ export default function POSPage() {
             
             for (const it of items) {
                 const matchedLot = it.lot_details?.find(ld =>
-                    ld.qr_code === barcode || ld.barcode === barcode || ld.lot_code === barcode
+                    ld.qr_code === barcode || ld.barcode === barcode || ld.lot_code === barcode || ld.short_code === barcode
                 );
                 if (matchedLot) {
-                    const scanId = matchedLot.qr_code || matchedLot.lot_code;
+                    const scanId = matchedLot.qr_code || matchedLot.short_code || matchedLot.lot_code;
                     if (scanId && scannedLots.includes(scanId)) {
                         toast.error("Scanned Twice", { description: "This specific lot is already fully added into the cart.", position: 'top-center' });
                         return;
@@ -384,6 +384,7 @@ export default function POSPage() {
                         image_url: imgUrl,
                         lot_id: lot.id,
                         lot_code: lot.lot_code,
+                        short_code: lot.short_code,
                         grade: displayAttributes?.grade || displayAttributes?.GRADE || '',
                         lot_details: [],
                         supplier_name: supplierName,
@@ -398,9 +399,10 @@ export default function POSPage() {
                 stockMap[key].total_qty += Number(lot.current_qty) || 0;
                 stockMap[key].lot_details.push({ 
                     id: lot.id, 
-                    qr_code: lot.qr_code || lot.lot_code || null, 
+                    qr_code: lot.qr_code || lot.short_code || lot.lot_code || null, 
                     barcode: lot.barcode,
                     lot_code: lot.lot_code || null,
+                    short_code: lot.short_code || null,
                     current_qty: Number(lot.current_qty), 
                     arrival_id: lot.arrival_id 
                 });
