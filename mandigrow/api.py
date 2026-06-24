@@ -9886,7 +9886,7 @@ def get_pos_master_data() -> dict:
             buyer_where.append("organization_id = %s")
             buyer_params.append(org_id)
         buyers = frappe.db.sql(f"""
-            SELECT name AS id, full_name AS name, contact_type, city, internal_id
+            SELECT name AS id, full_name AS name, contact_type, city, internal_id, contact_code
             FROM `tabMandi Contact`
             WHERE {' AND '.join(buyer_where)}
             ORDER BY full_name ASC

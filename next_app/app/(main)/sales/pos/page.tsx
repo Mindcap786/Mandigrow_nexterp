@@ -93,63 +93,7 @@ export default function POSPage() {
         setHwScannerEnabled(localStorage.getItem('mg_hw_scanner_enabled') === 'true')
     }, [])
 
-    useBarcodeScanner({
-        onScan: (rawBarcode) => {
-            if (rawBarcode) {
-                let barcode = rawBarcode;
-                // Check for strictly secure Mandi QR Code
-                if (rawBarcode.startsWith('MGC|')) {
-                    const parts = rawBarcode.split('|');
-                    if (parts.length >= 3) {
-                        const scannedOrgId = parts[1];
-                        if (orgId && scannedOrgId !== orgId) {
-                            toast.error("Security Error: This ID Card belongs to a different Mandi!");
-                            return;
-                        }
-                        barcode = parts.slice(2).join('|');
-                    }
-                }
 
-                const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode || b.id === barcode)
-                if (matchedBuyer) {
-                    setSelectedBuyerId(matchedBuyer.id)
-                    toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })
-                } else {
-                    let foundItem: POSItem | undefined = undefined;
-                    let lotQty = 0;
-                    let lotQrCode: string | undefined = undefined;
-                    
-                    for (const it of items) {
-                        const matchedLot = it.lot_details?.find(ld =>
-                            ld.qr_code === barcode || ld.barcode === barcode || ld.lot_code === barcode
-                        );
-                        if (matchedLot) {
-                            const scanId = matchedLot.qr_code || matchedLot.lot_code;
-                            if (scanId && scannedLots.includes(scanId)) {
-                                toast.error("Scanned Twice", { description: "This specific lot is already fully added into the cart.", position: 'top-center' });
-                                return;
-                            }
-                            foundItem = it;
-                            lotQty = matchedLot.current_qty;
-                            lotQrCode = matchedLot.lot_code || matchedLot.qr_code || undefined;
-                            break;
-                        }
-                    }
-                    
-                    if (!foundItem) {
-                        foundItem = items.find(it => it.barcode === barcode || it.sku_code === barcode);
-                        lotQty = 1;
-                    }
-
-                    if (foundItem) {
-                        setScanResult({ item: foundItem, qty: lotQty > 0 ? lotQty : 1, lotQrCode });
-                    } else {
-                        toast.error("Unrecognized Barcode", { description: "The scanned item or ID was not found.", position: 'top-center' });
-                    }
-                }
-            }
-        }
-    })
 
     const { isConnected, rawWeight, requestConnection, disconnect } = useWebSerial({
         onWeightParsed: (weight) => {
@@ -169,47 +113,62 @@ export default function POSPage() {
     // Scan result popup
     const [scanResult, setScanResult] = useState<{ item: POSItem; qty: number; lotQrCode?: string } | null>(null)
     
-    useEffect(() => {
-        if (!search) return
-        
-        // 1. Check for specific Arrival Lot QR codes first
-        let foundItem: POSItem | undefined = undefined;
-        let lotQty = 0;
-        let lotQrCode: string | undefined = undefined;
-        
-        for (const it of items) {
-            // Match by: qr_code, barcode, or lot_code (the 6-digit unique scan code)
-            const matchedLot = it.lot_details?.find(ld =>
-                ld.qr_code === search || ld.barcode === search || ld.lot_code === search
-            );
-            if (matchedLot) {
-                const scanId = matchedLot.qr_code || matchedLot.lot_code;
-                if (scanId && scannedLots.includes(scanId)) {
-                    toast.error("Scanned Twice", { description: "This specific lot is already fully added into the cart.", position: 'top-center' });
-                    setSearch('');
+    const handleScan = (rawBarcode: string) => {
+        if (!rawBarcode) return;
+        let barcode = rawBarcode.trim();
+        // Check for strictly secure Mandi QR Code
+        if (rawBarcode.startsWith('MGC|')) {
+            const parts = rawBarcode.split('|');
+            if (parts.length >= 3) {
+                const scannedOrgId = parts[1];
+                if (orgId && scannedOrgId !== orgId) {
+                    toast.error("Security Error: This ID Card belongs to a different Mandi!");
                     return;
                 }
-                foundItem = it;
-                lotQty = matchedLot.current_qty;
-                // Use lot_code as the scan display code (the unique 6-digit number)
-                lotQrCode = matchedLot.lot_code || matchedLot.qr_code || undefined;
-                break;
+                barcode = parts.slice(2).join('|');
             }
         }
-        
-        // 2. If not a specific lot, check generic commodity master barcode/sku
-        if (!foundItem) {
-            foundItem = items.find(it => it.barcode === search || it.sku_code === search);
-            lotQty = 1; // Generic commodities default to adding 1
-        }
 
-        
-        if (foundItem) {
-            // Show item detail popup instead of directly adding
-            setScanResult({ item: foundItem, qty: lotQty > 0 ? lotQty : 1, lotQrCode });
-            setSearch('');
+        const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode || b.id === barcode)
+        if (matchedBuyer) {
+            setSelectedBuyerId(matchedBuyer.id)
+            toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })
+        } else {
+            let foundItem: POSItem | undefined = undefined;
+            let lotQty = 0;
+            let lotQrCode: string | undefined = undefined;
+            
+            for (const it of items) {
+                const matchedLot = it.lot_details?.find(ld =>
+                    ld.qr_code === barcode || ld.barcode === barcode || ld.lot_code === barcode
+                );
+                if (matchedLot) {
+                    const scanId = matchedLot.qr_code || matchedLot.lot_code;
+                    if (scanId && scannedLots.includes(scanId)) {
+                        toast.error("Scanned Twice", { description: "This specific lot is already fully added into the cart.", position: 'top-center' });
+                        return;
+                    }
+                    foundItem = it;
+                    lotQty = matchedLot.current_qty;
+                    lotQrCode = matchedLot.lot_code || matchedLot.qr_code || undefined;
+                    break;
+                }
+            }
+            
+            if (!foundItem) {
+                foundItem = items.find(it => it.barcode === barcode || it.sku_code === barcode);
+                lotQty = 1;
+            }
+
+            if (foundItem) {
+                setScanResult({ item: foundItem, qty: lotQty > 0 ? lotQty : 1, lotQrCode });
+            } else {
+                toast.error("Unrecognized Barcode", { description: "The scanned item or ID was not found.", position: 'top-center' });
+            }
         }
-    }, [search, items])
+    };
+
+    useBarcodeScanner({ onScan: handleScan });
 
     const [loading, setLoading] = useState(!cachedPos)
     const [saving, setSaving] = useState(false)
@@ -1052,6 +1011,15 @@ export default function POSPage() {
                             placeholder={hwScannerEnabled ? "Scanner Active. Scan Barcode or Search (Alt+S)..." : "Scan Barcode or Search Item (Alt+S)..."}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    if (search.trim()) {
+                                        handleScan(search.trim());
+                                        setSearch('');
+                                    }
+                                }
+                            }}
                             className="w-full pl-16 pr-6 py-4 bg-white border-2 border-slate-300 rounded-2xl text-xl font-bold text-black placeholder:text-slate-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all outline-none shadow-sm"
                         />
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-blue-50 px-2 py-1 rounded text-[10px] font-black text-blue-600 border border-blue-100 uppercase tracking-widest">Live Sync</div>

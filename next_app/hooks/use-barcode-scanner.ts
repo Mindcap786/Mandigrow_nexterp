@@ -23,6 +23,11 @@ export function useBarcodeScanner({ onScan, timeout = 50 }: UseBarcodeScannerPro
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+                return; // Let the input handle its own events
+            }
+
             const currentTime = Date.now();
             const timeDiff = currentTime - lastKeyTime.current;
 
