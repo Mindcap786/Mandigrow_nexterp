@@ -113,9 +113,18 @@ export default function POSPage() {
     // Scan result popup
     const [scanResult, setScanResult] = useState<{ item: POSItem; qty: number; lotQrCode?: string } | null>(null)
     
+    const lastScanRef = useRef({ time: 0, code: '' });
+
     const handleScan = (rawBarcode: string) => {
         if (!rawBarcode) return;
         let barcode = rawBarcode.trim();
+
+        const now = Date.now();
+        if (now - lastScanRef.current.time < 300 && lastScanRef.current.code === barcode) {
+            return; // Debounce duplicate concurrent scans
+        }
+        lastScanRef.current = { time: now, code: barcode };
+
         // Check for strictly secure Mandi QR Code
         if (rawBarcode.startsWith('MGC|')) {
             const parts = rawBarcode.split('|');

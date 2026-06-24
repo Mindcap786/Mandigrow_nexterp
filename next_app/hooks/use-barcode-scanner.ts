@@ -23,11 +23,6 @@ export function useBarcodeScanner({ onScan, timeout = 50 }: UseBarcodeScannerPro
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            const target = e.target as HTMLElement;
-            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-                return; // Let the input handle its own events
-            }
-
             const currentTime = Date.now();
             const timeDiff = currentTime - lastKeyTime.current;
 
@@ -56,6 +51,11 @@ export function useBarcodeScanner({ onScan, timeout = 50 }: UseBarcodeScannerPro
                             }
                             finalBarcode = parts.slice(2).join('|');
                         }
+                    }
+
+                    // Blur active element to prevent leftover focus bugs on inputs
+                    if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur();
                     }
 
                     onScanRef.current(finalBarcode);
