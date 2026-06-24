@@ -115,7 +115,37 @@ export default function POSPage() {
                     setSelectedBuyerId(matchedBuyer.id)
                     toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })
                 } else {
-                    setSearch(barcode)
+                    let foundItem: POSItem | undefined = undefined;
+                    let lotQty = 0;
+                    let lotQrCode: string | undefined = undefined;
+                    
+                    for (const it of items) {
+                        const matchedLot = it.lot_details?.find(ld =>
+                            ld.qr_code === barcode || ld.barcode === barcode || ld.lot_code === barcode
+                        );
+                        if (matchedLot) {
+                            const scanId = matchedLot.qr_code || matchedLot.lot_code;
+                            if (scanId && scannedLots.includes(scanId)) {
+                                toast.error("Scanned Twice", { description: "This specific lot is already fully added into the cart.", position: 'top-center' });
+                                return;
+                            }
+                            foundItem = it;
+                            lotQty = matchedLot.current_qty;
+                            lotQrCode = matchedLot.lot_code || matchedLot.qr_code || undefined;
+                            break;
+                        }
+                    }
+                    
+                    if (!foundItem) {
+                        foundItem = items.find(it => it.barcode === barcode || it.sku_code === barcode);
+                        lotQty = 1;
+                    }
+
+                    if (foundItem) {
+                        setScanResult({ item: foundItem, qty: lotQty > 0 ? lotQty : 1, lotQrCode });
+                    } else {
+                        toast.error("Unrecognized Barcode", { description: "The scanned item or ID was not found.", position: 'top-center' });
+                    }
                 }
             }
         }

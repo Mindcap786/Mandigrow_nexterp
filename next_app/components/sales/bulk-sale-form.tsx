@@ -244,7 +244,7 @@ export function BulkLotSaleForm() {
             const { data: bData } = await supabase
                 .schema('mandi')
                 .from("contacts")
-                .select("id, name, contact_type, city, status, state_code, gstin")
+                .select("id, name, contact_type, city, status, state_code, gstin, internal_id, contact_code")
                 .eq("organization_id", profile.organization_id)
                 .eq("contact_type", "buyer")
                 .or("status.is.null,status.eq.active")
