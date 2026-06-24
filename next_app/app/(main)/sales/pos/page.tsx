@@ -138,7 +138,8 @@ export default function POSPage() {
             }
         }
 
-        const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.contact_code === barcode || b.id === barcode)
+        // 1. Try to match as Buyer first (via internal_id or system ID)
+        const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.id === barcode)
         if (matchedBuyer) {
             setSelectedBuyerId(matchedBuyer.id)
             toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })
