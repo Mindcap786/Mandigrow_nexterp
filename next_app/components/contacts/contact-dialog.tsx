@@ -251,6 +251,7 @@ export function ContactDialog({ children, onSuccess, defaultType = "farmer", ini
                 // Show ID card instead of closing
                 setGeneratedContact({
                     ...payload,
+                    id: res.message?.name || res.message?.id,
                     internal_id: res.message?.internal_id || payload.internal_id
                 })
                 if (onSuccess) onSuccess()
