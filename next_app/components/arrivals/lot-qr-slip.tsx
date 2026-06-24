@@ -42,11 +42,15 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
 
 function SingleLotSlip({ lot }: { lot: LotQRData }) {
     const qrString = generateQRString(lot);
+    const typeInfo = TYPE_LABELS[lot.arrivalType] || TYPE_LABELS.direct;
     
     return (
-        <div className="lot-qr-slip bg-white rounded-2xl p-4 flex gap-5 mb-4 shadow-sm w-full max-w-sm border border-gray-200 mx-auto">
+        <div className="lot-qr-slip bg-white rounded-2xl p-4 flex gap-5 mb-4 shadow-sm w-full max-w-sm border-2 mx-auto relative overflow-hidden" style={{ borderColor: typeInfo.color }}>
+            <div className="absolute top-0 right-0 left-0 text-center py-0.5 text-[10px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: typeInfo.color }}>
+                {typeInfo.label}
+            </div>
             {/* Left: QR + Number inside a card */}
-            <div className="flex-shrink-0 bg-white border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center min-w-[120px]">
+            <div className="flex-shrink-0 bg-white border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center min-w-[120px] mt-4">
                 <QRCodeSVG value={qrString} size={100} level="Q" includeMargin={false} />
                 <div className="text-black font-black text-lg tracking-widest mt-2">{lot.qrNumber}</div>
             </div>
@@ -179,11 +183,13 @@ export default function LotQRSlip({ lots, open, onClose }: LotQRSlipProps) {
                         ))
                     ) : (
                         lots.map(lot => {
+                            const typeInfo = TYPE_LABELS[lot.arrivalType] || TYPE_LABELS.direct;
                             const copies = Math.max(1, parseInt(String(lot.qty)) || 1);
                             return Array.from({ length: copies }).map((_, i) => (
-                                <div key={`${lot.lotId}-${i}`} className="small-label">
+                                <div key={`${lot.lotId}-${i}`} className="small-label" style={{ borderTop: `4px solid ${typeInfo.color}` }}>
                                     <QRCodeSVG value={generateQRString(lot)} size={80} level="L" includeMargin={false} />
                                     <div className="label-details">
+                                        <div style={{ color: typeInfo.color, fontSize: '6px', textTransform: 'uppercase' }}>{typeInfo.label}</div>
                                         <div className="label-title">{lot.itemName}</div>
                                         <div className="label-party">{lot.partyName || 'Direct'}</div>
                                         <div className="label-code">{lot.qrNumber}</div>
