@@ -185,6 +185,7 @@ export const Sidebar = memo(function Sidebar({ onCollapseChange, isMobileDrawer 
                         <Link prefetch={true} scroll={false}
                             key={item.href}
                             href={item.href}
+                            data-tour={item.tourId || undefined}
                             onClick={() => {
                                 // Trigger internal refresh to clear stale caches (PRO navigation)
                                 setTimeout(() => router.refresh(), 100);
@@ -253,6 +254,7 @@ const NavGroup = React.memo(function NavGroup({ item, pathname, collapsed, profi
         <div className="space-y-2">
             <button
                 onClick={() => !collapsed && setExpanded(!expanded)}
+                data-tour={item.tourId || undefined}
                 className={cn(
                     "w-full flex items-center px-4 py-4 rounded-xl transition-all group relative overflow-hidden",
                     isGroupActive ? "bg-white/50 shadow-sm" : "hover:bg-white"
@@ -281,6 +283,7 @@ const NavGroup = React.memo(function NavGroup({ item, pathname, collapsed, profi
                             <Link prefetch={true} scroll={false}
                                 key={sub.href}
                                 href={sub.href}
+                                data-tour={sub.tourId || undefined}
                                 onClick={() => {
                                     // Trigger internal refresh to clear stale caches (PRO navigation)
                                     setTimeout(() => router.refresh(), 100);

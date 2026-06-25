@@ -18851,3 +18851,58 @@ def assign_missing_internal_ids(org_id: str = None) -> dict:
         "assigned": total_assigned,
         "message": f"Assigned internal IDs to {total_assigned} contacts."
     }
+
+
+# ── Onboarding Tour ──────────────────────────────────────────────────────────
+@frappe.whitelist(allow_guest=False)
+def mark_onboarding_complete(tier: str = "tier1") -> dict:
+    """
+    Marks a specific onboarding tour tier as complete for the current user.
+    Persists server-side so the tour never shows again across devices/browsers.
+    
+    Tiers:
+      - tier1: Core flow tour (Arrivals → POS → P&L → Settings)
+      - tier2: Operations tour (Commission → Stock → Payments → Bulk Sale)
+      - tier3: Power user tour (Employees → Day Book → Team Access)
+    """
+    allowed_tiers = {"tier1", "tier2", "tier3"}
+    if tier not in allowed_tiers:
+        frappe.throw(f"Invalid tier: {tier}. Must be one of: {', '.join(allowed_tiers)}")
+
+    field_map = {
+        "tier1": "mandi_tour_tier1_done",
+        "tier2": "mandi_tour_tier2_done",
+        "tier3": "mandi_tour_tier3_done",
+    }
+    field = field_map[tier]
+
+    # Gracefully handle case where custom field doesn't exist yet
+    if frappe.db.has_column("User", field):
+        frappe.db.set_value(
+            "User", frappe.session.user, field, 1,
+            update_modified=False
+        )
+        frappe.db.commit()
+
+    return {"ok": True, "tier": tier}
+
+
+@frappe.whitelist(allow_guest=False)
+def get_onboarding_status() -> dict:
+    """
+    Returns which onboarding tour tiers have been completed for the current user.
+    Frontend uses this to decide whether to show each tier of the product tour.
+    """
+    user = frappe.session.user
+    result = {}
+    for tier, field in {
+        "tier1": "mandi_tour_tier1_done",
+        "tier2": "mandi_tour_tier2_done",
+        "tier3": "mandi_tour_tier3_done",
+    }.items():
+        if frappe.db.has_column("User", field):
+            result[tier] = bool(frappe.db.get_value("User", user, field))
+        else:
+            result[tier] = False  # Field not migrated yet — show tour
+    return result
+

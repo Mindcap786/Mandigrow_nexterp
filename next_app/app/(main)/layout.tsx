@@ -20,6 +20,7 @@ import { isNativePlatform, isMobileAppView } from '@/lib/capacitor-utils'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { MaintenanceModeInterceptor } from '@/components/layout/maintenance-mode-interceptor'
+import { ProductTour } from '@/components/onboarding/ProductTour'
 
 export default function MainLayout({
     children,
@@ -166,6 +167,8 @@ export default function MainLayout({
                 <SubscriptionExpiryWarning />
                 {!isCapacitor && <SupportHelpdeskWidget />}
                 <PlatformPrintBranding />
+                {/* Product Tour — shown once on first login, never again */}
+                <ProductTour />
             </div>
         </StockAlertsProvider>
         </MaintenanceModeInterceptor>

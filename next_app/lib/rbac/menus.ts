@@ -18,19 +18,22 @@ export interface MenuItem {
     permission?: string;
     domain?: string;
     sidebarHidden?: boolean;
+    /** Used by ProductTour to anchor spotlight tooltips via data-tour attribute */
+    tourId?: string;
     items?: MenuItem[];
 }
 
 export const NAV_ITEMS: MenuItem[] = [
-    { tKey: 'nav.dashboard', href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+    { tKey: 'nav.dashboard', href: ROUTES.DASHBOARD, icon: LayoutDashboard, tourId: 'tour-dashboard' },
     {
         tKey: 'nav.purchase',
         icon: Receipt,
         module: 'mandi',
+        tourId: 'tour-purchase-group',
         items: [
-            { tKey: 'nav.mandi_commission', href: ROUTES.MANDI_COMMISSION, icon: Scale },
+            { tKey: 'nav.mandi_commission', href: ROUTES.MANDI_COMMISSION, icon: Scale, tourId: 'tour-commission' },
             { tKey: 'nav.gate_entry', href: ROUTES.GATE, icon: Gavel },
-            { tKey: 'nav.arrivals', href: ROUTES.ARRIVALS, icon: Truck },
+            { tKey: 'nav.arrivals', href: ROUTES.ARRIVALS, icon: Truck, tourId: 'tour-arrivals' },
             { tKey: 'nav.purchase_bills', href: ROUTES.PURCHASE_BILLS, icon: Receipt },
         ]
     },
@@ -38,9 +41,10 @@ export const NAV_ITEMS: MenuItem[] = [
         tKey: 'nav.sales',
         icon: Calculator,
         module: 'mandi',
+        tourId: 'tour-sales-group',
         items: [
             { tKey: 'nav.sale_invoice', href: ROUTES.SALES, icon: FileInput },
-            { tKey: 'nav.bulk_lot_sale', href: ROUTES.SALES_NEW_INVOICE, icon: Zap },
+            { tKey: 'nav.bulk_lot_sale', href: ROUTES.SALES_NEW_INVOICE, icon: Zap, tourId: 'tour-bulk-sale' },
         ]
     },
     {
@@ -49,11 +53,11 @@ export const NAV_ITEMS: MenuItem[] = [
         module: 'mandi',
         items: [
             { tKey: 'nav.commodity_master', href: ROUTES.INVENTORY_ITEMS, icon: Tag },
-            { tKey: 'nav.stock_status', href: ROUTES.STOCK, icon: Package },
+            { tKey: 'nav.stock_status', href: ROUTES.STOCK, icon: Package, tourId: 'tour-stock' },
         ]
     },
-    { tKey: 'nav.payments_receipts', href: ROUTES.FINANCE_PAYMENTS, icon: Wallet, module: 'finance' },
-    { tKey: 'nav.trading_pl', href: ROUTES.TRADING_PL, icon: TrendingUp, module: 'mandi' },
+    { tKey: 'nav.payments_receipts', href: ROUTES.FINANCE_PAYMENTS, icon: Wallet, module: 'finance', tourId: 'tour-payments' },
+    { tKey: 'nav.trading_pl', href: ROUTES.TRADING_PL, icon: TrendingUp, module: 'mandi', tourId: 'tour-trading-pl' },
     {
         tKey: 'nav.finance',
         icon: TrendingUp,
@@ -91,9 +95,10 @@ export const NAV_ITEMS: MenuItem[] = [
     {
         tKey: 'nav.settings',
         icon: Settings,
+        tourId: 'tour-settings',
         items: [
             { tKey: 'nav.general_settings', href: ROUTES.SETTINGS, icon: Settings },
-            { tKey: 'nav.team_access', href: ROUTES.SETTINGS_TEAM, icon: ShieldCheck },
+            { tKey: 'nav.team_access', href: ROUTES.SETTINGS_TEAM, icon: ShieldCheck, tourId: 'tour-team-access' },
             { tKey: 'nav.bank_details', href: ROUTES.SETTINGS_BANK_DETAILS, icon: QrCode },
             { tKey: 'nav.branding', href: ROUTES.SETTINGS_BRANDING, icon: Palette },
             { tKey: 'nav.subscription_billing', href: ROUTES.SETTINGS_BILLING, icon: CreditCard },

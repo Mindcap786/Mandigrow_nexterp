@@ -20,6 +20,7 @@ import { NativeSummaryCard, StatChip } from '@/components/mobile/NativeSummaryCa
 import { QuickActionRow } from '@/components/mobile/QuickActionRow'
 import { NativeCard } from '@/components/mobile/NativeCard'
 import { SkeletonDashboard } from '@/components/mobile/ShimmerSkeleton'
+import { GettingStartedChecklist } from '@/components/onboarding/GettingStartedChecklist'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // ALL BUSINESS LOGIC IS COMPLETELY UNCHANGED BELOW. Only JSX return changes.
@@ -318,6 +319,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             </header>
+
+            {/* Getting Started Checklist — shown only to new users until dismissed */}
+            <GettingStartedChecklist stats={stats} organization={profile?.organization} />
 
             {/* Stock Alerts Area */}
             <div className="animate-in slide-in-from-top duration-500">
