@@ -404,7 +404,13 @@ export default function POSPage() {
                 const price = (Number(lot.sale_price) > 0) ? Number(lot.sale_price) : (Number(commodity.sale_price) > 0 ? Number(commodity.sale_price) : Number(lot.supplier_rate) || 0);
                 
                 const supplierName = lot.custom_attributes?.supplier_name || 'Anonymous Supplier';
-                const key = `${lot.item_id}|${lot.unit}|${price}|${supplierName}|${JSON.stringify(lot.custom_attributes || {})}`;
+                // ── Each lot gets its own card ──────────────────────────────────────
+                // Key = lot.id (unique per lot). This means:
+                //  - Lot 449567 shows ONLY its own 100 boxes, not 1356.4 combined
+                //  - Each lot has its own price, supplier, and attributes displayed
+                //  - Searching by name shows all lots of that item as separate cards
+                //  - Scanning by short_code shows exactly that one lot
+                const key = lot.id;
 
                 if (!stockMap[key]) {
                     let imgUrl = commodity.image_url || null;
