@@ -3,7 +3,7 @@
 import { QRCodeSVG } from "qrcode.react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, QrCode, Tag, LayoutGrid } from "lucide-react";
+import { Printer, QrCode, LayoutGrid } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -440,16 +440,6 @@ export default function LotQRSlip({ lots, open, onClose }: LotQRSlipProps) {
                             >
                                 <LayoutGrid className="w-3.5 h-3.5" />
                                 10 per Sheet ⭐
-                            </Button>
-
-                            <Button
-                                onClick={() => openPrintWindow(buildSingleHtml(lots))}
-                                variant="outline"
-                                className="gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-9 text-xs font-black"
-                                title="One large label per A4 page"
-                            >
-                                <Tag className="w-3.5 h-3.5" />
-                                1 per Page
                             </Button>
 
                             <Button
