@@ -302,7 +302,10 @@ export default function Checkout() {
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400/80 mb-1">Order Total</p>
-                                <span className="text-3xl font-black">₹{finalPrice.toLocaleString()}</span>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-3xl font-black">₹{finalPrice.toLocaleString()}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">(incl. GST)</span>
+                                </div>
                                 {discount > 0 && (
                                     <span className="ml-2 text-emerald-400 text-sm font-bold">(-₹{discount.toLocaleString()} off)</span>
                                 )}
@@ -660,7 +663,10 @@ export default function Checkout() {
                         <div className="space-y-6 mb-10">
                             <div className="flex justify-between items-center group">
                                 <span className="opacity-50 font-bold group-hover:opacity-100 transition-opacity capitalize">{plan?.display_name || plan?.name || 'Subscription'} Plan ({cycle})</span>
-                                <span className="font-black text-xl tracking-tighter">₹{planPrice.toLocaleString()}</span>
+                                <div className="flex flex-col items-end">
+                                    <span className="font-black text-xl tracking-tighter">₹{planPrice.toLocaleString()}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">(incl. GST)</span>
+                                </div>
                             </div>
 
                             {discount > 0 && (
@@ -675,7 +681,10 @@ export default function Checkout() {
                             <div className="h-px bg-white/10 my-6" />
                             <div className="flex justify-between items-end">
                                 <span className="text-lg font-black italic">Total Payable</span>
-                                <span className="text-4xl font-black">₹{finalPrice.toLocaleString()}</span>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-4xl font-black">₹{finalPrice.toLocaleString()}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">(incl. GST)</span>
+                                </div>
                             </div>
                         </div>
 

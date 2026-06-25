@@ -187,9 +187,12 @@ export default function CheckoutContent() {
                         )}
                         <div className="flex justify-between items-center border-t border-dashed border-slate-200 pt-3">
                             <span className="font-black text-slate-800 uppercase tracking-wide text-sm">Total Due</span>
-                            <span className="text-3xl font-[1000] tracking-tighter text-purple-700">
-                                ₹{finalPrice.toLocaleString('en-IN')}
-                                <span className="text-sm font-bold text-slate-400 ml-1">/{cycle === 'yearly' ? 'yr' : 'mo'}</span>
+                            <span className="text-3xl font-[1000] tracking-tighter text-purple-700 flex flex-col items-end">
+                                <div>
+                                    ₹{finalPrice.toLocaleString('en-IN')}
+                                    <span className="text-sm font-bold text-slate-400 ml-1">/{cycle === 'yearly' ? 'yr' : 'mo'}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">(incl. GST)</span>
                             </span>
                         </div>
                         {cycle === 'yearly' && basePrice < (plan.price_monthly || 0) * 12 && (

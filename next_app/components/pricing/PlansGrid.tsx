@@ -197,19 +197,24 @@ export function PlansGrid({ isSubscribePage = false }: PlansGridProps) {
                                         {formattedPrice}
                                     </span>
                                     {price > 0 && (
-                                        <span className={cn('text-sm font-bold', highlight ? 'text-emerald-300' : 'text-gray-400')}>
-                                            /mo
-                                        </span>
+                                        <div className="flex flex-col justify-end pb-1 ml-1 leading-none">
+                                            <span className={cn('text-sm font-bold', highlight ? 'text-emerald-300' : 'text-gray-400')}>
+                                                /mo
+                                            </span>
+                                            <span className={cn('text-[9px] font-bold mt-1 uppercase tracking-widest', highlight ? 'text-emerald-300/70' : 'text-gray-400/80')}>
+                                                (incl. GST)
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                                 {billing === 'yearly' && price > 0 && (
-                                    <p className={cn('text-xs font-bold mt-1', highlight ? 'text-emerald-300' : 'text-emerald-600')}>
-                                        Billed {formatPrice(plan.price_yearly)} annually
+                                    <p className={cn('text-xs font-bold mt-2', highlight ? 'text-emerald-300' : 'text-emerald-600')}>
+                                        Billed {formatPrice(plan.price_yearly)} annually (incl. GST)
                                     </p>
                                 )}
                                 {billing === 'monthly' && (
-                                    <p className={cn('text-xs font-medium mt-1', highlight ? 'text-emerald-400' : 'text-gray-400')}>
-                                        {price > 0 ? 'per month · cancel anytime' : 'Contact us for pricing'}
+                                    <p className={cn('text-xs font-medium mt-2', highlight ? 'text-emerald-400' : 'text-gray-400')}>
+                                        {price > 0 ? 'per month (incl. GST) · cancel anytime' : 'Contact us for pricing'}
                                     </p>
                                 )}
                             </div>

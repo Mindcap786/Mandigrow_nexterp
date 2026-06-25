@@ -394,9 +394,12 @@ export default function BillingCheckout() {
                         )}
                         <div className="border-t border-slate-100 pt-2 flex justify-between">
                             <span className="font-black text-slate-800">Total Due</span>
-                            <span className="font-black text-xl text-slate-900">
-                                ₹{finalPrice.toLocaleString()}
-                                <span className="text-xs font-bold text-slate-400">/{cycle === 'yearly' ? 'yr' : 'mo'}</span>
+                            <span className="font-black text-xl text-slate-900 flex flex-col items-end">
+                                <div>
+                                    ₹{finalPrice.toLocaleString()}
+                                    <span className="text-xs font-bold text-slate-400 ml-1">/{cycle === 'yearly' ? 'yr' : 'mo'}</span>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">(incl. GST)</span>
                             </span>
                         </div>
                     </div>

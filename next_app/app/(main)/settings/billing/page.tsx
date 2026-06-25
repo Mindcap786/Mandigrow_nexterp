@@ -247,11 +247,16 @@ export default function SaasBillingPage() {
                                 </div>
                             </div>
                             <div className="text-left md:text-right w-full md:w-auto mt-6 md:mt-0">
-                                <div className="text-4xl md:text-6xl font-[1000] tracking-tighter drop-shadow-sm">
-                                    ₹{(currentPlan?.price_monthly || 0).toLocaleString()}
-                                    <span className="text-sm md:text-base font-bold opacity-40">/mo</span>
+                                <div className="flex items-baseline justify-start md:justify-end gap-1">
+                                    <div className="text-4xl md:text-6xl font-[1000] tracking-tighter drop-shadow-sm">
+                                        ₹{(currentPlan?.price_monthly || 0).toLocaleString()}
+                                    </div>
+                                    <div className="flex flex-col justify-end pb-1 md:pb-2 text-left leading-none">
+                                        <span className="text-sm md:text-base font-bold opacity-40">/mo</span>
+                                        <span className="text-[9px] font-bold opacity-40 mt-1 uppercase tracking-widest whitespace-nowrap">(incl. GST)</span>
+                                    </div>
                                 </div>
-                                <p className="text-[10px] md:text-xs font-black opacity-50 mt-1 uppercase tracking-widest break-words">
+                                <p className="text-[10px] md:text-xs font-black opacity-50 mt-2 uppercase tracking-widest break-words">
                                     Annual savings available via Enterprise
                                 </p>
                             </div>
@@ -345,9 +350,14 @@ export default function SaasBillingPage() {
                                             <Icon className={`w-5 h-5 ${isCurrent && !isCustomPlan ? "text-purple-600" : "text-slate-400"}`} />
                                             <h4 className="font-black text-slate-800 uppercase tracking-tight">{plan.display_name}</h4>
                                         </div>
-                                        <div className="text-3xl font-[1000] text-slate-900 tracking-tighter">
-                                            ₹{(billingCycle === 'yearly' ? plan.price_yearly : plan.price_monthly).toLocaleString()}
-                                            <span className="text-sm font-bold text-slate-400">/{billingCycle === 'yearly' ? 'yr' : 'mo'}</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <div className="text-3xl font-[1000] text-slate-900 tracking-tighter">
+                                                ₹{(billingCycle === 'yearly' ? plan.price_yearly : plan.price_monthly).toLocaleString()}
+                                            </div>
+                                            <div className="flex flex-col justify-end pb-0.5 leading-none">
+                                                <span className="text-sm font-bold text-slate-400">/{billingCycle === 'yearly' ? 'yr' : 'mo'}</span>
+                                                <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest whitespace-nowrap">(incl. GST)</span>
+                                            </div>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-xs font-bold text-slate-500">
