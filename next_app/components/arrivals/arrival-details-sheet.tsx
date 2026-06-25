@@ -350,7 +350,7 @@ export function ArrivalDetailsSheet({ arrivalId, isOpen, onClose, onUpdate }: Ar
                 lots={lots.map(lot => ({
                     lotId: lot.id,
                     lotCode: lot.lot_code,
-                    qrNumber: lot.qr_code || lot.short_code || lot.lot_code || 'No QR',
+                    qrNumber: lot.short_code || lot.qr_code || lot.lot_code || 'No QR',
                     orgId: arrival?.organization_id || '',
                     arrivalType: arrival?.arrival_type || 'direct',
                     itemName: formatCommodityName(lot.item?.name, lot.item?.custom_attributes) || 'Unknown',

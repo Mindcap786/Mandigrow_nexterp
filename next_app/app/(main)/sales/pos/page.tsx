@@ -174,29 +174,56 @@ export default function POSPage() {
         // item.id === Frappe item_code (immutable) — set once at creation, never changes.
         if (barcode.startsWith('ITEM|')) {
             const itemCode = barcode.slice(5); // strip 'ITEM|'
-            // Aggregate across all units/lots of this item — find any matching POSItem
-            const foundItem = items.find(it => it.id === itemCode);
-            if (foundItem) {
-                if (foundItem.available_qty <= 0) {
-                    toast.error('Out of Stock', {
-                        description: `${foundItem.name} has no available stock to sell.`,
-                        position: 'top-center'
-                    });
-                    return;
-                }
-                // Show qty-adjust dialog — user confirms how many before cart add
-                setScanResult({ item: foundItem, qty: foundItem.available_qty, lotQrCode: undefined });
-                toast.success('Item Scanned', {
-                    description: `${foundItem.name} — ${foundItem.available_qty} ${foundItem.unit} available. Adjust qty below.`,
-                    position: 'top-center',
-                    duration: 2000,
-                });
-            } else {
+            // Find ALL POSItem rows matching this item_code (could be multiple units/grades)
+            const matchingItems = items.filter(it => it.id === itemCode);
+            if (matchingItems.length === 0) {
                 toast.error('Item Not Found', {
                     description: `No item with code "${itemCode}" found in current stock.`,
                     position: 'top-center'
                 });
+                return;
             }
+
+            // ── FIFO Lot Selection ────────────────────────────────────────────
+            // Across all POSItem rows for this item, find the oldest lot with stock > 0.
+            // lot_details are already in API-returned order (oldest arrival first).
+            // We build a flat list of all lots with stock, pick the first (oldest).
+            let fifoLot: typeof matchingItems[0]['lot_details'] extends (infer L)[] | undefined ? L : never | null = null;
+            let fifoItem: POSItem | null = null;
+            for (const posItem of matchingItems) {
+                const availableLot = posItem.lot_details?.find(ld => ld.current_qty > 0);
+                if (availableLot) {
+                    fifoLot = availableLot;
+                    fifoItem = posItem;
+                    break;
+                }
+            }
+
+            if (!fifoItem || !fifoLot) {
+                toast.error('Out of Stock', {
+                    description: `${matchingItems[0].name} has no available stock in any lot.`,
+                    position: 'top-center'
+                });
+                return;
+            }
+
+            // Build a lot-pinned POSItem so cart correctly decrements the chosen lot
+            const lotPinnedItem: POSItem = {
+                ...fifoItem,
+                lot_id:        fifoLot.id,
+                lot_code:      fifoLot.lot_code || undefined,
+                available_qty: fifoLot.current_qty,
+                unique_key:    `${fifoItem.unique_key}__lot__${fifoLot.id}`,
+                lot_details:   [fifoLot],
+            };
+
+            // Show qty-adjust dialog — user confirms how many before cart add
+            setScanResult({ item: lotPinnedItem, qty: fifoLot.current_qty, lotQrCode: undefined });
+            toast.success('Item Scanned', {
+                description: `${fifoItem.name} — Lot ${fifoLot.lot_code || fifoLot.short_code || fifoLot.id} — ${fifoLot.current_qty} ${fifoItem.unit} available (FIFO). Adjust qty below.`,
+                position: 'top-center',
+                duration: 2500,
+            });
             return;
         }
 
@@ -281,8 +308,36 @@ export default function POSPage() {
 
     const startPosScanner = useCallback(async () => {
         const scannerId = "pos-qr-reader";
+
+        // ── Fix: DOM Race Condition ───────────────────────────────────────────
+        // React renders the <div id="pos-qr-reader"> in the same tick that
+        // setShowPosQrScanner(true) is called, but the DOM paint may not be
+        // complete when startPosScanner fires. We poll until the element exists
+        // (max 2 seconds) before handing off to Html5Qrcode.
+        const waitForElement = (id: string, maxMs = 2000): Promise<HTMLElement | null> =>
+            new Promise(resolve => {
+                const el = document.getElementById(id);
+                if (el) { resolve(el); return; }
+                const start = Date.now();
+                const interval = setInterval(() => {
+                    const found = document.getElementById(id);
+                    if (found || Date.now() - start > maxMs) {
+                        clearInterval(interval);
+                        resolve(found);
+                    }
+                }, 50);
+            });
+
         try {
             if (posScannerRef.current) await stopPosScanner();
+
+            // Wait for DOM element before mounting scanner
+            const el = await waitForElement(scannerId);
+            if (!el) {
+                toast.error("Camera Error", { description: "Scanner element not ready. Please try again.", position: 'top-center' });
+                setShowPosQrScanner(false);
+                return;
+            }
 
             const scanner = new Html5Qrcode(scannerId);
             posScannerRef.current = scanner;
