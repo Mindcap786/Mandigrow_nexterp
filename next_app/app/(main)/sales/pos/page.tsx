@@ -123,50 +123,69 @@ export default function POSPage() {
 
     const handleScan = (rawBarcode: string) => {
         if (!rawBarcode) return;
-        let barcode = rawBarcode.trim();
 
         const now = Date.now();
-        if (now - lastScanRef.current.time < 300 && lastScanRef.current.code === barcode) {
+        if (now - lastScanRef.current.time < 300 && lastScanRef.current.code === rawBarcode) {
             return; // Debounce duplicate concurrent scans
         }
-        lastScanRef.current = { time: now, code: barcode };
+        lastScanRef.current = { time: now, code: rawBarcode };
 
-        // ── Secure Mandi QR Code  (MGC|orgId|shortCode) ──────────────────────
-        if (rawBarcode.startsWith('MGC|')) {
-            const parts = rawBarcode.split('|');
+        // ── Security + Prefix Strip ───────────────────────────────────────────
+        // TWO paths reach handleScan:
+        //   A) Physical HW scanner  → useBarcodeScanner hook ALREADY strips MGC|orgId|
+        //      so rawBarcode = just the identifier (UUID or short_code)
+        //   B) Camera scanner (pos) → Html5Qrcode sends the full raw QR string
+        //      so rawBarcode = "MGC|orgId|943442" — we must strip it here
+        // Either way: after this block, `barcode` = the clean identifier.
+        let barcode = rawBarcode.trim();
+        if (barcode.startsWith('MGC|')) {
+            const parts = barcode.split('|');
             if (parts.length >= 3) {
                 const scannedOrgId = parts[1];
                 if (orgId && scannedOrgId !== orgId) {
-                    toast.error("Security Error: This QR belongs to a different Mandi!");
+                    toast.error('Security Error', {
+                        description: 'This QR code belongs to a different Mandi!',
+                        position: 'top-center'
+                    });
                     return;
                 }
-                barcode = parts.slice(2).join('|'); // Extract the short_code
+                barcode = parts.slice(2).join('|'); // e.g. "943442" or a UUID
             }
         }
 
-        // ── 1. Buyer ID match ─────────────────────────────────────────────────
-        const matchedBuyer = buyers.find(b => b.internal_id === barcode || b.id === barcode)
+        // ── Priority 1: BUYER / CONTACT match ────────────────────────────────
+        // Buyer ID cards encode contact.id (UUID) as the identifier.
+        // Match against: contact UUID, internal_id, or contact_code.
+        const matchedBuyer = buyers.find(b =>
+            b.id === barcode ||
+            b.internal_id === barcode
+        );
         if (matchedBuyer) {
-            setSelectedBuyerId(matchedBuyer.id)
-            toast.success(`Buyer selected: ${matchedBuyer.name}`, { position: 'top-center' })
+            setSelectedBuyerId(matchedBuyer.id);
+            toast.success(`Buyer Selected`, {
+                description: `${matchedBuyer.name} set as buyer for this sale.`,
+                position: 'top-center'
+            });
             return;
         }
 
-        // ── 2. LOT match (short_code / lot_code / qr_code / barcode) ──────────
-        //    Lot sale = scan → immediately add entire available qty to cart.
-        //    No dialog needed; mandi sells complete lots, not individual units.
+        // ── Priority 2: LOT match ─────────────────────────────────────────────
+        // Lot slips encode short_code as the identifier.
+        // Match against: short_code, lot_code, qr_code string, or physical barcode.
+        // Lot sale → direct cart add of the entire available qty, no dialog.
         for (const it of items) {
             const matchedLot = it.lot_details?.find(ld =>
-                ld.qr_code === barcode ||
-                ld.barcode === barcode ||
-                ld.lot_code === barcode ||
-                ld.short_code === barcode
+                ld.short_code === barcode ||
+                ld.lot_code   === barcode ||
+                ld.qr_code    === barcode ||
+                ld.barcode    === barcode
             );
             if (matchedLot) {
-                // De-dupe: prevent scanning the same lot twice into the same sale
                 const scanId = matchedLot.short_code || matchedLot.qr_code || matchedLot.lot_code;
+
+                // De-dupe: prevent scanning the same lot twice in one sale
                 if (scanId && scannedLots.includes(scanId)) {
-                    toast.error("Already in Cart", {
+                    toast.error('Already in Cart', {
                         description: `Lot ${matchedLot.lot_code || scanId} is already in this sale. Remove it first to re-scan.`,
                         position: 'top-center'
                     });
@@ -175,49 +194,49 @@ export default function POSPage() {
 
                 const lotCurrentQty = matchedLot.current_qty;
                 if (lotCurrentQty <= 0) {
-                    toast.error("Lot Exhausted", {
-                        description: `This lot has no remaining stock.`,
+                    toast.error('Lot Exhausted', {
+                        description: 'This lot has no remaining stock.',
                         position: 'top-center'
                     });
                     return;
                 }
 
-                // Build a per-lot POSItem view so cart tracks the specific lot
+                // Build a per-lot POSItem so multiple lots of same commodity
+                // can exist as separate cart lines
                 const lotItem: POSItem = {
                     ...it,
-                    // Override to this specific lot only
-                    lot_id: matchedLot.id,
-                    lot_code: matchedLot.lot_code || undefined,
+                    lot_id:       matchedLot.id,
+                    lot_code:     matchedLot.lot_code || undefined,
                     available_qty: lotCurrentQty,
-                    // Unique key per lot so multiple lots of same item can be in cart separately
-                    unique_key: `${it.unique_key}__lot__${matchedLot.id}`,
-                    lot_details: [matchedLot],
+                    unique_key:   `${it.unique_key}__lot__${matchedLot.id}`,
+                    lot_details:  [matchedLot],
                 };
 
-                // Directly add to cart (lot-sale: no dialog, no manual qty entry)
                 addToCart(lotItem, lotCurrentQty);
                 if (scanId) setScannedLots(prev => [...prev, scanId]);
-                toast.success(`✅ Lot Added to Cart`, {
-                    description: `${lotCurrentQty} ${it.unit} of ${it.name} (Lot: ${matchedLot.lot_code || scanId}) added.`,
+                toast.success('✅ Lot Added to Cart', {
+                    description: `${lotCurrentQty} ${it.unit} of ${it.name} — Lot ${matchedLot.lot_code || scanId}`,
                     position: 'top-center',
-                    duration: 2500,
+                    duration: 3000,
                 });
                 return;
             }
         }
 
-        // ── 3. Item-level match (SKU / product barcode) ───────────────────────
-        //    Show dialog so user can adjust qty before adding.
+        // ── Priority 3: ITEM barcode / SKU ────────────────────────────────────
+        // Generic product barcodes / SKU — show qty dialog so user can adjust.
         const foundItem = items.find(it => it.barcode === barcode || it.sku_code === barcode);
         if (foundItem) {
             setScanResult({ item: foundItem, qty: 1, lotQrCode: undefined });
-        } else {
-            toast.error("Not Found", {
-                description: `No lot or item matched "${barcode}". Check the code and try again.`,
-                position: 'top-center'
-            });
+            return;
         }
+
+        toast.error('Not Found', {
+            description: `No buyer, lot, or item matched "${barcode}". Check the code and try again.`,
+            position: 'top-center'
+        });
     };
+
     // Always keep the ref up to date with the latest handleScan
     handleScanRef.current = handleScan;
 
