@@ -1090,46 +1090,44 @@ export default function POSPage() {
         }
         const lower = search.toLowerCase().trim();
 
-        // ── PRIORITY 1: Lot-code / short_code exact match ───────────────────
-        // When user types a specific lot identifier (6-digit code, lot_code, or
-        // QR code), show only THAT lot's card with its individual remaining qty.
-        // This is the "lot sale" mode — one lot, one sale.
         const lotViewItems: POSItem[] = [];
+        const nameFilteredItems: POSItem[] = [];
+
         for (const item of items) {
-            const matchedLot = item.lot_details?.find(ld =>
-                (ld.short_code && ld.short_code.toLowerCase() === lower) ||
-                (ld.lot_code  && ld.lot_code.toLowerCase()  === lower) ||
-                (ld.qr_code   && ld.qr_code.toLowerCase()   === lower)
+            // Priority 1: Match by item name, local name, sku, or barcode (General item card)
+            const nameMatch = 
+                (item.name       || '').toLowerCase().includes(lower) ||
+                (item.local_name || '').toLowerCase().includes(lower) ||
+                (item.sku_code   || '').toLowerCase().includes(lower) ||
+                (item.barcode    || '').toLowerCase().includes(lower);
+            
+            if (nameMatch) {
+                nameFilteredItems.push(item);
+            }
+
+            // Priority 2: Match specific lots by lot_code, short_code, or qr_code (Lot-specific card)
+            const matchedLots = item.lot_details?.filter(ld =>
+                (ld.short_code && ld.short_code.toLowerCase().includes(lower)) ||
+                (ld.lot_code  && ld.lot_code.toLowerCase().includes(lower)) ||
+                (ld.qr_code   && ld.qr_code.toLowerCase().includes(lower))
             );
-            if (matchedLot) {
-                // Build a lot-scoped view of this item:
-                // — available_qty shows ONLY this lot's remaining stock
-                // — unique_key is lot-specific so it renders as a separate card
-                lotViewItems.push({
-                    ...item,
-                    available_qty: matchedLot.current_qty,
-                    lot_id:   matchedLot.id,
-                    lot_code: matchedLot.lot_code || undefined,
-                    unique_key: `${item.unique_key}__lot__${matchedLot.id}`,
-                    lot_details: [matchedLot],
-                });
+
+            if (matchedLots && matchedLots.length > 0) {
+                for (const matchedLot of matchedLots) {
+                    lotViewItems.push({
+                        ...item,
+                        available_qty: matchedLot.current_qty,
+                        lot_id:   matchedLot.id,
+                        lot_code: matchedLot.lot_code || undefined,
+                        unique_key: `${item.unique_key}__lot__${matchedLot.id}`,
+                        lot_details: [matchedLot],
+                    });
+                }
             }
         }
-        if (lotViewItems.length > 0) {
-            setFilteredItems(lotViewItems);
-            return;
-        }
 
-        // ── PRIORITY 2: Name / SKU / barcode search ──────────────────────────
-        // Show the item with its TOTAL combined qty across all lots.
-        // Clicking adds the full stock to the cart (FIFO across lots).
-        const nameFiltered = items.filter(item =>
-            (item.name       || '').toLowerCase().includes(lower) ||
-            (item.local_name || '').toLowerCase().includes(lower) ||
-            (item.sku_code   || '').toLowerCase().includes(lower) ||
-            (item.barcode    || '').toLowerCase().includes(lower)
-        );
-        setFilteredItems(nameFiltered);
+        // Show exact lot matches first, then partial lot matches, then general item matches
+        setFilteredItems([...lotViewItems, ...nameFilteredItems]);
     }, [search, items])
 
 
