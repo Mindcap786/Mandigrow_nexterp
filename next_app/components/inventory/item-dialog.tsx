@@ -70,7 +70,7 @@ const itemSchema = z.object({
     category: z.string().optional(),
     sub_category: z.string().optional(),
     purchase_price: z.number().min(0).optional(),
-    barcode: z.string().optional(),
+    // barcode removed — replaced by org-scoped Item QR Code
     gst_rate: z.number().min(0).max(28).optional(),
     sale_gst_rate: z.number().min(0).max(28).optional(),
     sale_gst_type: z.string().optional(),
@@ -311,7 +311,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
             category: initialItem?.category || "",
             sub_category: initialItem?.sub_category || "",
             purchase_price: initialItem?.purchase_price || 0,
-            barcode: initialItem?.barcode || "",
+            // barcode field removed
             gst_rate: initialItem?.gst_rate || 0,
             sale_gst_rate: initialItem?.sale_gst_rate || 0,
             sale_gst_type: initialItem?.sale_gst_type || "Exclusive",
@@ -328,26 +328,90 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
 
 
 
+    // ── Internal ID uniqueness check ─────────────────────────────────────
+    // Works in both CREATE and EDIT mode.
+    // In edit mode we exclude the current item so it doesn't flag itself.
     const checkIdUniqueness = async (id: string) => {
-        if (!id || !profile?.organization_id || initialItem) {
+        if (!id || !profile?.organization_id) {
             setIdConflict(null)
             return
         }
-        
+        // In edit mode: if the user hasn't changed the value, skip the roundtrip
+        if (initialItem && initialItem.internal_id === id) {
+            setIdConflict(null)
+            return
+        }
         try {
-            const res: any = await callApi('frappe.client.get_value', {
-                doctype: 'Item',
-                fieldname: 'name',
-                filters: { name: id }
+            const res: any = await callApi('mandigrow.api.check_item_internal_id_unique', {
+                internal_id: id,
+                exclude_item_id: initialItem?.name || null,
+                org_id: profile.organization_id
             });
-            
-            if (res && res.message) {
-                setIdConflict(`This ID is already allocated. Please use a different identifier.`)
+            if (res?.exists) {
+                setIdConflict(`Internal ID "${id}" is already used by "${res.item_name}". Choose a different ID.`)
             } else {
                 setIdConflict(null)
             }
-        } catch (err) {
+        } catch {
             setIdConflict(null)
+        }
+    }
+
+    // ── Item QR helpers ───────────────────────────────────────────────────
+    // QR payload: MGC|{orgId}|ITEM|{item_code}
+    // item_code = initialItem.name (Frappe doc name) — immutable after creation.
+    const itemQrValue = initialItem?.name && profile?.organization_id
+        ? `MGC|${profile.organization_id}|ITEM|${initialItem.name}`
+        : null
+
+    const handlePrintItemQR = () => {
+        if (!itemQrValue) return
+        const orgName = profile?.organization?.name || 'MandiGrow'
+        const itemName = initialItem?.item_name || initialItem?.name || 'Item'
+        const internalId = initialItem?.internal_id || initialItem?.name || ''
+        const svgEl = document.getElementById('item-qr-svg-print')
+        const svgData = svgEl ? svgEl.outerHTML : ''
+        const html = `<!DOCTYPE html><html><head><title>Item QR — ${itemName}</title>
+<style>
+  @page { size: 85mm 55mm; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+  body { display: flex; align-items: center; justify-content: center; width: 85mm; height: 55mm; }
+  .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px;
+          display: flex; align-items: center; gap: 10px; width: 100%; }
+  .qr { flex-shrink: 0; }
+  .info { flex: 1; overflow: hidden; }
+  .org { font-size: 8px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .name { font-size: 11px; font-weight: 900; color: #111; margin: 2px 0; line-height: 1.2; }
+  .code { font-size: 8px; font-family: monospace; color: #555; }
+  .tag { font-size: 7px; color: #999; margin-top: 4px; }
+</style></head><body>
+<div class="card">
+  <div class="qr">${svgData}</div>
+  <div class="info">
+    <div class="org">${orgName}</div>
+    <div class="name">${itemName}</div>
+    <div class="code">${internalId}</div>
+    <div class="tag">Scan to add to POS cart</div>
+  </div>
+</div></body></html>`
+        const win = window.open('', '_blank', 'width=400,height=320')
+        if (win) { win.document.write(html); win.document.close(); win.focus(); win.print() }
+    }
+
+    const handleShareItemQR = async () => {
+        if (!itemQrValue) return
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: 'Item QR Code', text: itemQrValue })
+            } else {
+                await navigator.clipboard.writeText(itemQrValue)
+                toast({ title: 'Copied!', description: 'QR code string copied to clipboard.' })
+            }
+        } catch {
+            try {
+                await navigator.clipboard.writeText(itemQrValue)
+                toast({ title: 'Copied!', description: 'QR code string copied to clipboard.' })
+            } catch { /* silent */ }
         }
     }
 
@@ -385,7 +449,7 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                 category: initialItem?.category || "",
                 sub_category: initialItem?.sub_category || "",
                 purchase_price: initialItem?.purchase_price || 0,
-                barcode: initialItem?.barcode || "",
+                // barcode field removed
                 gst_rate: initialItem?.gst_rate || 0,
                 sale_gst_rate: initialItem?.sale_gst_rate || 0,
                 sale_gst_type: initialItem?.sale_gst_type || "Exclusive",
@@ -720,22 +784,52 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
                                             <p className="text-[9px] text-red-600 font-bold uppercase tracking-tight">{idConflict}</p>
                                         )}
                                     </div>
+                                    {/* ── Item QR Code Panel (replaces Barcode/EAN) ── */}
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Barcode / EAN</Label>
-                                        <div className="relative">
-                                            <Input
-                                                placeholder="Scan or enter barcode"
-                                                className="w-full bg-white border-gray-300 text-gray-900 font-bold h-12 rounded-xl focus:border-indigo-500 transition-all font-mono"
-                                                {...form.register("barcode")}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => form.setValue('barcode', String(Math.floor(Math.random() * 1000000000000)).padStart(12, '0'))}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-indigo-600 hover:text-indigo-700"
-                                            >
-                                                <QrCode className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-700">Item QR Code</Label>
+                                        {itemQrValue ? (
+                                            <div className="bg-gradient-to-br from-slate-50 to-indigo-50/40 rounded-2xl p-4 border border-slate-200 flex flex-col items-center gap-3">
+                                                <div className="bg-white rounded-xl p-2 shadow-sm border border-slate-100">
+                                                    <QRCodeSVG
+                                                        id="item-qr-svg-print"
+                                                        value={itemQrValue}
+                                                        size={96}
+                                                        level="Q"
+                                                        includeMargin={false}
+                                                    />
+                                                </div>
+                                                <p className="font-mono text-[9px] text-slate-400 text-center break-all leading-relaxed px-1">
+                                                    {itemQrValue}
+                                                </p>
+                                                <div className="flex gap-2 w-full">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handlePrintItemQR}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold rounded-xl border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50 transition-all"
+                                                    >
+                                                        <Printer className="w-3.5 h-3.5" />
+                                                        Print
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleShareItemQR}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
+                                                    >
+                                                        <QrCode className="w-3.5 h-3.5" />
+                                                        Share
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-50 rounded-xl p-4 text-center border border-dashed border-slate-300 flex flex-col items-center gap-2">
+                                                <QrCode className="w-8 h-8 text-slate-300" />
+                                                <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                                                    {form.watch('internal_id')
+                                                        ? 'Save item first to generate QR code'
+                                                        : 'Enter Internal ID, then save to generate QR'}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

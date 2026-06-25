@@ -4540,6 +4540,42 @@ def check_contact_id_exists(internal_id: str, contact_type: str) -> dict:
         return {"exists": True, "name": name}
     return {"exists": False}
 
+
+@frappe.whitelist(allow_guest=False)
+def check_item_internal_id_unique(internal_id: str, exclude_item_id: str = None, org_id: str = None) -> dict:
+    """
+    Checks if an internal_id is already used by another item in the same organisation.
+
+    Args:
+        internal_id:     The ID to check (value typed by user in the form).
+        exclude_item_id: Frappe doc name of the item currently being edited (so we
+                         don't flag the item against itself in edit mode).
+        org_id:          Organisation scope — defaults to the caller's org.
+
+    Returns:
+        {"exists": False}                         — ID is available
+        {"exists": True, "item_name": "Apple US"} — ID is taken by another item
+    """
+    if not internal_id:
+        return {"exists": False}
+
+    resolved_org = org_id or _get_user_org()
+    if not resolved_org:
+        return {"exists": False}
+
+    filters = {
+        "internal_id": internal_id,
+        "organization_id": resolved_org,
+    }
+    if exclude_item_id:
+        filters["name"] = ["!=", exclude_item_id]
+
+    row = frappe.db.get_value("Item", filters, ["item_name", "name"], as_dict=True)
+    if row:
+        return {"exists": True, "item_name": row.item_name or row.name}
+    return {"exists": False}
+
+
 def _get_or_create_temporary_opening_account(company: str) -> str:
     """Ensures 'Temporary Opening' account exists for a company and returns its name."""
     account_name = "Temporary Opening"

@@ -169,10 +169,42 @@ export default function POSPage() {
             return;
         }
 
-        // ── Priority 2: LOT match ─────────────────────────────────────────────
+        // ── Priority 2: ITEM QR scan ──────────────────────────────────────────
+        // Item QR payload after stripping MGC|orgId|: "ITEM|MG-appleus-3942"
+        // item.id === Frappe item_code (immutable) — set once at creation, never changes.
+        if (barcode.startsWith('ITEM|')) {
+            const itemCode = barcode.slice(5); // strip 'ITEM|'
+            // Aggregate across all units/lots of this item — find any matching POSItem
+            const foundItem = items.find(it => it.id === itemCode);
+            if (foundItem) {
+                if (foundItem.available_qty <= 0) {
+                    toast.error('Out of Stock', {
+                        description: `${foundItem.name} has no available stock to sell.`,
+                        position: 'top-center'
+                    });
+                    return;
+                }
+                // Show qty-adjust dialog — user confirms how many before cart add
+                setScanResult({ item: foundItem, qty: foundItem.available_qty, lotQrCode: undefined });
+                toast.success('Item Scanned', {
+                    description: `${foundItem.name} — ${foundItem.available_qty} ${foundItem.unit} available. Adjust qty below.`,
+                    position: 'top-center',
+                    duration: 2000,
+                });
+            } else {
+                toast.error('Item Not Found', {
+                    description: `No item with code "${itemCode}" found in current stock.`,
+                    position: 'top-center'
+                });
+            }
+            return;
+        }
+
+        // ── Priority 3: LOT match ─────────────────────────────────────────────
         // Lot slips encode short_code as the identifier.
         // Match against: short_code, lot_code, qr_code string, or physical barcode.
         // Lot sale → direct cart add of the entire available qty, no dialog.
+
         for (const it of items) {
             const matchedLot = it.lot_details?.find(ld =>
                 ld.short_code === barcode ||
@@ -223,19 +255,13 @@ export default function POSPage() {
             }
         }
 
-        // ── Priority 3: ITEM barcode / SKU ────────────────────────────────────
-        // Generic product barcodes / SKU — show qty dialog so user can adjust.
-        const foundItem = items.find(it => it.barcode === barcode || it.sku_code === barcode);
-        if (foundItem) {
-            setScanResult({ item: foundItem, qty: 1, lotQrCode: undefined });
-            return;
-        }
-
+        // ── Priority 4: Not Found ─────────────────────────────────────────────
         toast.error('Not Found', {
             description: `No buyer, lot, or item matched "${barcode}". Check the code and try again.`,
             position: 'top-center'
         });
     };
+
 
     // Always keep the ref up to date with the latest handleScan
     handleScanRef.current = handleScan;
@@ -550,7 +576,7 @@ export default function POSPage() {
                 sku_code: stock.sku_code,
                 custom_attributes: stock.custom_attributes,
                 sale_price: stock.sale_price,
-                barcode: commodityMap[stock.item_id]?.barcode || null,
+                barcode: null, // item-level barcode field removed — replaced by Item QR system
                 lot_details: stock.lot_details,
                 unit: stock.unit,
                 gst_rate: Number(commodityMap[stock.item_id]?.gst_rate) || 0,
