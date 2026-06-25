@@ -30,7 +30,20 @@ interface LotQRSlipProps {
     onClose: () => void;
 }
 
+/**
+ * QR payload format: MGC|{orgId}|{shortCode}
+ * - MGC = MandiGrow Code (prefix the POS scanner recognises)
+ * - orgId = organisation ID — prevents cross-mandi lot collisions
+ * - shortCode = the human-readable 6-digit lot code
+ *
+ * The POS (pos/page.tsx line 129-138) already validates this format:
+ *   if rawBarcode.startsWith('MGC|') → extract orgId → reject if wrong org
+ */
 export function generateQRString(lot: LotQRData): string {
+    if (lot.orgId) {
+        return `MGC|${lot.orgId}|${lot.qrNumber}`;
+    }
+    // Fallback for legacy lots without orgId
     return lot.qrNumber;
 }
 
@@ -173,7 +186,7 @@ function buildSlipsHtml(lots: LotQRData[]): string {
             <div class="slip-banner" style="background:${t.color}">${t.label}</div>
             <div class="slip-body">
                 <div class="slip-qr-col">
-                    <img src="${qrImgUrl(lot.qrNumber, 220)}" alt="QR ${lot.qrNumber}" />
+                    <img src="${qrImgUrl(generateQRString(lot), 220)}" alt="QR ${lot.qrNumber}" />
                     <div class="slip-code">${lot.qrNumber}</div>
                 </div>
                 <div class="slip-info">
@@ -273,7 +286,7 @@ function buildSheet10Html(lots: LotQRData[]): string {
             <div class="label-banner" style="background:${t.color}">${t.label}</div>
             <div class="label-body">
                 <div class="label-qr">
-                    <img src="${qrImgUrl(lot.qrNumber, 144)}" alt="${lot.qrNumber}" />
+                    <img src="${qrImgUrl(generateQRString(lot), 144)}" alt="${lot.qrNumber}" />
                     <div class="label-qr-code">${lot.qrNumber}</div>
                 </div>
                 <div class="label-info">
@@ -343,7 +356,7 @@ function buildSingleHtml(lots: LotQRData[]): string {
             <div class="label-banner" style="background:${t.color}">${t.label}</div>
             <div class="label-body">
                 <div class="label-qr">
-                    <img src="${qrImgUrl(lot.qrNumber, 264)}" alt="${lot.qrNumber}" />
+                    <img src="${qrImgUrl(generateQRString(lot), 264)}" alt="${lot.qrNumber}" />
                     <div class="label-qr-code">${lot.qrNumber}</div>
                 </div>
                 <div class="label-info">
@@ -376,7 +389,7 @@ function SlipPreview({ lot }: { lot: LotQRData }) {
             <div className="flex gap-5 p-4">
                 {/* QR */}
                 <div className="flex-shrink-0 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center mt-1">
-                    <QRCodeSVG value={lot.qrNumber} size={100} level="Q" includeMargin={false} />
+                    <QRCodeSVG value={generateQRString(lot)} size={100} level="Q" includeMargin={false} />
                     <div className="text-black font-black text-lg tracking-widest mt-2">{lot.qrNumber}</div>
                 </div>
                 {/* Details */}

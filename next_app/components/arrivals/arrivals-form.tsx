@@ -802,11 +802,13 @@ export default function ArrivalsEntryForm() {
                      const partyName = contacts?.find(c => c.id === values.contact_id)?.name || 'Unknown Party';
                      const shortCode = result.short_codes ? result.short_codes[idx] : code;
                      return {
+                        lotId: code,
+                        lotCode: code,
                         qrNumber: shortCode,
+                        orgId: profile?.organization_id || '',
                         item_id: item.item_id,
                         arrivalType: values.arrival_type,
                         unitWeight: item.unit_weight,
-                        lotCode: code,
                         itemName,
                         qty: item.qty,
                         unit: item.unit,
