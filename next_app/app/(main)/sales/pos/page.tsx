@@ -230,14 +230,16 @@ export default function POSPage() {
         // ── Priority 3: LOT match ─────────────────────────────────────────────
         // Lot slips encode short_code as the identifier.
         // Match against: short_code, lot_code, qr_code string, or physical barcode.
+        // All comparisons are case-insensitive and trimmed for robustness.
         // Lot sale → direct cart add of the entire available qty, no dialog.
+        const barcodeUpper = barcode.trim().toUpperCase();
 
         for (const it of items) {
             const matchedLot = it.lot_details?.find(ld =>
-                ld.short_code === barcode ||
-                ld.lot_code   === barcode ||
-                ld.qr_code    === barcode ||
-                ld.barcode    === barcode
+                (ld.short_code && ld.short_code.trim().toUpperCase() === barcodeUpper) ||
+                (ld.lot_code   && ld.lot_code.trim().toUpperCase()   === barcodeUpper) ||
+                (ld.qr_code    && ld.qr_code.trim().toUpperCase()    === barcodeUpper) ||
+                (ld.barcode    && ld.barcode.trim().toUpperCase()     === barcodeUpper)
             );
             if (matchedLot) {
                 const scanId = matchedLot.short_code || matchedLot.qr_code || matchedLot.lot_code;
@@ -611,12 +613,16 @@ export default function POSPage() {
                 }
 
                 stockMap[key].total_qty += Number(lot.current_qty) || 0;
+                // short_code is the canonical 6-digit scan identifier.
+                // For old lots that were created before short_code existed, lot_code
+                // may itself be the 6-digit number. Use short_code first, fall to lot_code.
+                const effectiveShortCode = lot.short_code || (lot.lot_code && /^\d{5,8}$/.test(lot.lot_code.trim()) ? lot.lot_code.trim() : null);
                 stockMap[key].lot_details.push({ 
                     id: lot.id, 
-                    qr_code: lot.qr_code || lot.short_code || lot.lot_code || null, 
+                    qr_code: effectiveShortCode || lot.lot_code || null, 
                     barcode: lot.barcode,
                     lot_code: lot.lot_code || null,
-                    short_code: lot.short_code || null,
+                    short_code: effectiveShortCode,
                     current_qty: Number(lot.current_qty), 
                     arrival_id: lot.arrival_id 
                 });
