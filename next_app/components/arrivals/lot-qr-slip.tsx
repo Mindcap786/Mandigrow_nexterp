@@ -184,9 +184,11 @@ export default function LotQRSlip({ lots, open, onClose }: LotQRSlipProps) {
                     ) : (
                         lots.map(lot => {
                             const typeInfo = TYPE_LABELS[lot.arrivalType] || TYPE_LABELS.direct;
-                            const copies = Math.max(1, parseInt(String(lot.qty)) || 1);
-                            return Array.from({ length: copies }).map((_, i) => (
-                                <div key={`${lot.lotId}-${i}`} className="small-label" style={{ borderTop: `4px solid ${typeInfo.color}` }}>
+                            // ONE label per lot — the QR code identifies the entire lot,
+                            // not individual crates. Previously this was multiplied by qty
+                            // which caused 100 pages for a 100-box lot.
+                            return (
+                                <div key={lot.lotId} className="small-label" style={{ borderTop: `4px solid ${typeInfo.color}` }}>
                                     <QRCodeSVG value={generateQRString(lot)} size={80} level="L" includeMargin={false} />
                                     <div className="label-details">
                                         <div style={{ color: typeInfo.color, fontSize: '6px', textTransform: 'uppercase' }}>{typeInfo.label}</div>
@@ -195,7 +197,7 @@ export default function LotQRSlip({ lots, open, onClose }: LotQRSlipProps) {
                                         <div className="label-code">{lot.qrNumber}</div>
                                     </div>
                                 </div>
-                            ));
+                            );
                         })
                     )}
                 </div>
