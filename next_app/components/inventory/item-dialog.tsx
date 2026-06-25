@@ -359,9 +359,11 @@ export function ItemDialog({ children, onSuccess, initialItem }: ItemDialogProps
 
     // ── Item QR helpers ───────────────────────────────────────────────────
     // QR payload: MGC|{orgId}|ITEM|{item_code}
-    // item_code = initialItem.name (Frappe doc name) — immutable after creation.
-    const itemQrValue = initialItem?.name && profile?.organization_id
-        ? `MGC|${profile.organization_id}|ITEM|${initialItem.name}`
+    // item_code = initialItem.id (Frappe doc name = "name as id" from API) — immutable after creation.
+    // ⚠️  Do NOT use initialItem.name here — that is the display name (e.g. "Grapes").
+    //     initialItem.id is the Frappe doctype name (e.g. "MG-grapes-1234") which POS matches against it.id
+    const itemQrValue = initialItem?.id && profile?.organization_id
+        ? `MGC|${profile.organization_id}|ITEM|${initialItem.id}`
         : null
 
     const handlePrintItemQR = () => {
