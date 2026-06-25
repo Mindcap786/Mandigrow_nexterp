@@ -117,6 +117,9 @@ export default function POSPage() {
     const posScannerRef = useRef<any>(null)
     
     const lastScanRef = useRef({ time: 0, code: '' });
+    // Keep handleScan in a ref so the camera scanner always calls the latest version
+    // without needing it as a useCallback dependency (avoids stale closure restarts)
+    const handleScanRef = useRef<(code: string) => void>(() => {});
 
     const handleScan = (rawBarcode: string) => {
         if (!rawBarcode) return;
@@ -215,6 +218,8 @@ export default function POSPage() {
             });
         }
     };
+    // Always keep the ref up to date with the latest handleScan
+    handleScanRef.current = handleScan;
 
     useBarcodeScanner({ onScan: handleScan });
 
@@ -232,32 +237,33 @@ export default function POSPage() {
     const startPosScanner = useCallback(async () => {
         const scannerId = "pos-qr-reader";
         try {
-            if (posScannerRef.current) {
-                await stopPosScanner();
-            }
+            if (posScannerRef.current) await stopPosScanner();
+
             const scanner = new Html5Qrcode(scannerId);
             posScannerRef.current = scanner;
 
+            // Use ref so we always call the latest handleScan — no stale closure
             const onScanSuccess = (decodedText: string) => {
                 stopPosScanner();
-                handleScan(decodedText);
+                handleScanRef.current(decodedText);
             };
 
             try {
                 await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
-            } catch (envError) {
+            } catch {
                 await scanner.start({ facingMode: "user" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {}).catch(async () => {
-                     const cameras = await Html5Qrcode.getCameras();
-                     if (cameras && cameras.length > 0) {
-                         await scanner.start(cameras[0].id, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
-                     } else throw new Error("No cameras found");
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (cameras && cameras.length > 0) {
+                        await scanner.start(cameras[0].id, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
+                    } else throw new Error("No cameras found on device.");
                 });
             }
         } catch (err: any) {
             toast.error("Camera Error", { description: err.message || "Failed to access camera", position: 'top-center' });
             setShowPosQrScanner(false);
         }
-    }, [handleScan, stopPosScanner]);
+    // stopPosScanner is stable (no deps); handleScanRef.current is accessed at call time — no dep needed
+    }, [stopPosScanner]);
 
     useEffect(() => {
         let isMounted = true;
