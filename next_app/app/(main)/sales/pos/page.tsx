@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { callApi } from '@/lib/frappeClient'
 import { useAuth } from '@/components/auth/auth-provider'
-import { Search, ShoppingCart, Trash2, Zap, Wallet, Banknote, CreditCard, ChevronRight, Barcode, Plus, Minus, CheckCircle, Printer, X, Package, User, FileText, Landmark, CalendarIcon, ArrowLeft, Loader2, AlertTriangle, Tag, Usb } from 'lucide-react'
+import { Search, ShoppingCart, Trash2, Zap, Wallet, Banknote, CreditCard, ChevronRight, Barcode, Plus, Minus, CheckCircle, Printer, X, Package, User, FileText, Landmark, CalendarIcon, ArrowLeft, Loader2, AlertTriangle, Tag, Usb, Camera } from 'lucide-react'
 import { useLanguage } from '@/components/i18n/language-provider'
 import { t } from '@/components/local-invoices/translations'
 import ThermalReceipt from '@/components/sales/thermal-receipt'
@@ -11,6 +11,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { useBarcodeScanner } from '@/hooks/use-barcode-scanner'
 import { useWebSerial } from '@/hooks/use-web-serial'
 import { toast, Toaster } from 'sonner'
+import { Html5Qrcode } from 'html5-qrcode'
 import { getIntelligentVisual } from '@/lib/utils/commodity-mapping'
 import { formatCommodityName } from '@/lib/utils/commodity-utils'
 import { cn } from '@/lib/utils'
@@ -112,6 +113,8 @@ export default function POSPage() {
     const [scannedLots, setScannedLots] = useState<string[]>([]) // Track exact QR strings already fully scanned
     // Scan result popup
     const [scanResult, setScanResult] = useState<{ item: POSItem; qty: number; lotQrCode?: string } | null>(null)
+    const [showPosQrScanner, setShowPosQrScanner] = useState(false)
+    const posScannerRef = useRef<any>(null)
     
     const lastScanRef = useRef({ time: 0, code: '' });
 
@@ -214,6 +217,66 @@ export default function POSPage() {
     };
 
     useBarcodeScanner({ onScan: handleScan });
+
+    const stopPosScanner = useCallback(async () => {
+        if (posScannerRef.current) {
+            try {
+                await posScannerRef.current.stop();
+                posScannerRef.current.clear();
+            } catch { /* ignore */ }
+            posScannerRef.current = null;
+        }
+        setShowPosQrScanner(false);
+    }, []);
+
+    const startPosScanner = useCallback(async () => {
+        const scannerId = "pos-qr-reader";
+        try {
+            if (posScannerRef.current) {
+                await stopPosScanner();
+            }
+            const scanner = new Html5Qrcode(scannerId);
+            posScannerRef.current = scanner;
+
+            const onScanSuccess = (decodedText: string) => {
+                stopPosScanner();
+                handleScan(decodedText);
+            };
+
+            try {
+                await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
+            } catch (envError) {
+                await scanner.start({ facingMode: "user" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {}).catch(async () => {
+                     const cameras = await Html5Qrcode.getCameras();
+                     if (cameras && cameras.length > 0) {
+                         await scanner.start(cameras[0].id, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
+                     } else throw new Error("No cameras found");
+                });
+            }
+        } catch (err: any) {
+            toast.error("Camera Error", { description: err.message || "Failed to access camera", position: 'top-center' });
+            setShowPosQrScanner(false);
+        }
+    }, [handleScan, stopPosScanner]);
+
+    useEffect(() => {
+        let isMounted = true;
+        if (showPosQrScanner) {
+            setTimeout(() => { if (isMounted) startPosScanner(); }, 100);
+        }
+        return () => {
+            isMounted = false;
+            if (posScannerRef.current) {
+                try {
+                    posScannerRef.current.stop().then(() => {
+                        posScannerRef.current?.clear();
+                        posScannerRef.current = null;
+                    }).catch(() => {});
+                } catch { /* ignore */ }
+            }
+        };
+    }, [showPosQrScanner, startPosScanner]);
+
 
     const [loading, setLoading] = useState(!cachedPos)
     const [saving, setSaving] = useState(false)
@@ -1078,6 +1141,34 @@ export default function POSPage() {
                 </DialogContent>
             </Dialog>
 
+            {/* POS QR Camera Scanner Overlay */}
+            {showPosQrScanner && (
+                <div className="fixed inset-0 z-[200] bg-black/80 flex flex-col items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                            <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Scan Lot QR</span>
+                            <Button variant="ghost" size="icon" onClick={stopPosScanner} className="h-8 w-8 text-slate-400 hover:bg-slate-100 rounded-full">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="p-4 relative bg-slate-50">
+                            <div id="pos-qr-reader" className="w-full rounded-xl overflow-hidden shadow-inner border-2 border-slate-200 bg-white"></div>
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                <div className="w-48 h-48 border-2 border-indigo-500 rounded-2xl opacity-50 relative">
+                                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
+                                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
+                                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-4 py-3 bg-white border-t border-slate-100">
+                            <p className="text-xs text-center font-bold text-slate-500">Point your camera at a Lot QR code to add it to cart.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden print:hidden">
                 <div className="mb-6 flex gap-3">
                     <div className="relative flex-1">
@@ -1101,9 +1192,30 @@ export default function POSPage() {
                                     }
                                 }
                             }}
-                            className="w-full pl-16 pr-6 py-4 bg-white border-2 border-slate-300 rounded-2xl text-xl font-bold text-black placeholder:text-slate-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all outline-none shadow-sm"
+                            className="w-full pl-16 pr-24 py-4 bg-white border-2 border-slate-300 rounded-2xl text-xl font-bold text-black placeholder:text-slate-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all outline-none shadow-sm"
                         />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-blue-50 px-2 py-1 rounded text-[10px] font-black text-blue-600 border border-blue-100 uppercase tracking-widest">Live Sync</div>
+                        <div className="absolute right-14 top-1/2 -translate-y-1/2 bg-blue-50 px-2 py-1 rounded text-[10px] font-black text-blue-600 border border-blue-100 uppercase tracking-widest hidden md:block">Live Sync</div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 text-indigo-600 hover:bg-indigo-50 rounded-xl"
+                            onClick={async () => {
+                                try {
+                                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                                        toast.error("Camera Error", { description: "Camera access requires HTTPS or localhost." });
+                                        return;
+                                    }
+                                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                                    stream.getTracks().forEach(track => track.stop());
+                                    setShowPosQrScanner(true);
+                                } catch (err: any) {
+                                    toast.error("Camera Permission Denied", { description: "Please allow camera access in your browser." });
+                                }
+                            }}
+                        >
+                            <Camera className="w-5 h-5" />
+                        </Button>
                     </div>
                     {hwScaleEnabled && (
                         <Button
