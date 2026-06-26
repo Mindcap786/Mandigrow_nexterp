@@ -111,10 +111,46 @@ export default function MandiBillingSoftwarePage() {
 
             <section className="py-20 px-6 bg-white">
                 <div className="max-w-5xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-12 text-center">Smart Billing for the Mandi</h2>
+                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-6 text-center">Smart Billing for the Mandi</h2>
+                    
+                    <div className="mb-16 prose prose-lg text-gray-700 max-w-none">
+                        <p className="text-xl text-center max-w-3xl mx-auto mb-10">Generic accounting software like Tally or Busy fails in the mandi because they are built for retail shops, not auction yards. MandiGrow is built specifically for the high-speed, high-volume reality of agricultural APMCs.</p>
+                        
+                        <div className="grid md:grid-cols-2 gap-8 mb-10">
+                            <div className="bg-[#f7fbf3] border border-emerald-100 p-6 rounded-2xl">
+                                <h3 className="text-xl font-bold text-gray-900 mt-0 mb-3 flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-sm">1</span>
+                                    The 5-Second Billing Rule
+                                </h3>
+                                <p className="mb-0 text-gray-700">In a morning rush between 5 AM and 9 AM, a commission agent handles hundreds of buyers. You do not have 3 minutes to generate a bill. MandiGrow's POS interface allows you to select the farmer lot, enter the auction rate, and print a thermal receipt in <strong>under 5 seconds</strong>. No mouse required.</p>
+                            </div>
+                            <div className="bg-[#f7fbf3] border border-emerald-100 p-6 rounded-2xl">
+                                <h3 className="text-xl font-bold text-gray-900 mt-0 mb-3 flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-sm">2</span>
+                                    Katchi Parchi vs Pakki Parchi
+                                </h3>
+                                <p className="mb-0 text-gray-700">Generate a <em>Katchi Parchi</em> (rough estimate/slip) during the live auction for the buyer to take delivery of the goods. Later, easily convert these into a consolidated <em>Pakki Parchi</em> (GST Tax Invoice) for formal accounting and compliance without re-entering any data.</p>
+                            </div>
+                            <div className="bg-[#f7fbf3] border border-emerald-100 p-6 rounded-2xl">
+                                <h3 className="text-xl font-bold text-gray-900 mt-0 mb-3 flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-sm">3</span>
+                                    Auto APMC 6R & J-Form
+                                </h3>
+                                <p className="mb-0 text-gray-700">Stop spending hours manually calculating Mandi Shulk (tax) and Nirashrit fund. MandiGrow auto-calculates all APMC cesses based on your state's active rates and automatically generates the <strong>6R form</strong> or <strong>J-Form</strong> ready for submission to the Mandi Samiti.</p>
+                            </div>
+                            <div className="bg-[#f7fbf3] border border-emerald-100 p-6 rounded-2xl">
+                                <h3 className="text-xl font-bold text-gray-900 mt-0 mb-3 flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center text-sm">4</span>
+                                    Regional Language Thermal Prints
+                                </h3>
+                                <p className="mb-0 text-gray-700">Farmers prefer to read their Pattis (settlement bills) in their native tongue. MandiGrow natively supports thermal printing in Hindi, Telugu, Marathi, Tamil, Kannada, and Urdu, building extreme trust between the Arhtiya and the Kisan.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-6">
                         {FEATURES.map(f => (
-                            <div key={f.title} className="bg-[#f7fbf3] border border-emerald-100 rounded-2xl p-6 flex gap-4">
+                            <div key={f.title} className="bg-white shadow-sm border border-emerald-100 rounded-2xl p-6 flex gap-4">
                                 <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">{f.icon}</div>
                                 <div>
                                     <h3 className="font-black text-lg text-gray-900 mb-1">{f.title}</h3>

@@ -130,7 +130,29 @@ export default function AnajMandiSoftwarePage() {
                     <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-gray-900 mb-6">What is Anaj Mandi Software?</h2>
                     <div className="prose prose-lg text-gray-700 max-w-none">
                         <p>Anaj mandi software is a specialized ERP system built for commission agents (arhatias), grain traders, and APMC mandi operators who deal in wheat, rice, dal, maize, soybean, and other agricultural commodities. Unlike generic accounting software, anaj mandi software understands the language of the grain market — quintals, sacks, hamali, palledari, market fee, and farmer patti.</p>
-                        <p className="mt-4">MandiGrow is India's most advanced anaj mandi software, used by over 200 mandi businesses across Andhra Pradesh, Telangana, Maharashtra, Punjab, Rajasthan, Uttar Pradesh, and more. Our system automates the entire grain trade workflow — from farmer arrival and auction to buyer billing and settlement — in one seamless cloud platform.</p>
+                        
+                        <div className="bg-[#f0fdf4] border-l-4 border-emerald-600 p-6 rounded-r-xl my-8">
+                            <h3 className="text-xl font-bold text-gray-900 mt-0 mb-3">How Anaj Mandis Differ from Fruit & Veg (F&V) Mandis</h3>
+                            <p className="mb-4">Most generic "mandi software" is built for vegetables and fails completely in a grain yard. The mechanics are entirely different:</p>
+                            <ul className="grid md:grid-cols-2 gap-4 mt-2 list-none pl-0">
+                                <li className="flex items-start gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div><span><strong>Weight vs Lots:</strong> F&V uses crates/boxes. Anaj uses strictly <em>Quintals</em> and standardized bags (e.g., 50kg, 100kg).</span></li>
+                                <li className="flex items-start gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div><span><strong>Quality Cuts:</strong> Anaj requires deductions for <em>Moisture (Nami)</em> and impurities (Karda/Dharada), which F&V does not.</span></li>
+                                <li className="flex items-start gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div><span><strong>Government Forms:</strong> Grain procurement heavily involves government bodies (FCI, NAFED) requiring <strong>J-Forms</strong> and <strong>I-Forms</strong> (especially in Punjab/Haryana).</span></li>
+                                <li className="flex items-start gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div><span><strong>Tulai (Weighing):</strong> Weighbridge (Dharam Kanta) integration is mandatory for Anaj, as trucks are weighed loaded and empty.</span></li>
+                            </ul>
+                        </div>
+
+                        <p className="mt-4">MandiGrow is India's most advanced anaj mandi software, used by over 200 mandi businesses across Andhra Pradesh, Telangana, Maharashtra, Punjab, Rajasthan, Uttar Pradesh, and more. Our system automates the entire grain trade workflow — from farmer arrival and weighbridge auction to buyer billing and settlement — in one seamless cloud platform.</p>
+                        
+                        <h3 className="text-2xl font-bold text-gray-900 mt-10 mb-4">Mastering the J-Form and I-Form Compliance</h3>
+                        <p>In major grain-producing states like Punjab and Haryana, compliance revolves around the <strong>J-Form</strong> (Farmer's sale receipt) and <strong>I-Form</strong> (Delivery to government agencies). MandiGrow automatically compiles the J-Form data as soon as the auction is complete and Tulai is entered. It handles the exact mandated deductions for:</p>
+                        <ul className="list-disc pl-5 mb-6">
+                            <li>Dami / Arhat (Commission) - typically 2.5% in Anaj mandis</li>
+                            <li>Rural Development Fund (RDF)</li>
+                            <li>Market Development Fee (MDF)</li>
+                            <li>Tulai (Weighing charges per quintal)</li>
+                        </ul>
+
                         <p className="mt-4">Whether you are a small arhtiya with 50 daily transactions or a large grain commission house handling crores of rupees in weekly turnover, MandiGrow scales to your operation without requiring an IT team or manual data entry.</p>
                     </div>
 
