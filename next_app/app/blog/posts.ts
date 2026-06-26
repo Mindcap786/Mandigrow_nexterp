@@ -246,29 +246,144 @@ export const POSTS: BlogPost[] = [
         author: 'MandiGrow Team',
         readMinutes: 9,
         body: `
-<p>GST compliance for mandi commission agents is one of the most misunderstood topics in Indian agricultural trade. This guide cuts through the confusion and tells you exactly what you need to do — and how software like MandiGrow makes it automatic.</p>
+<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin-bottom:28px;">
+  <strong>Quick Answer:</strong> Commission agents in Indian mandis must register for GST if annual commission income exceeds &#x20B9;20 lakh. The agricultural produce sold on behalf of farmers is exempt from GST &#x2014; only your Arhat (commission) and service charges are taxable. MandiGrow auto-generates GSTR-1 JSON files with one click.
+</div>
 
-<h2>Are Commission Agents Required to Register for GST?</h2>
+<p>GST compliance for mandi commission agents (arhtiyas) is one of the most consistently misunderstood topics in Indian agricultural trade. The confusion arises because the mandi business involves two completely separate financial streams: the exempt agricultural produce stream and the taxable commission services stream. Getting this wrong costs you penalties, compliance notices, and potential license suspension from the APMC.</p>
 
-<p>Yes. If your aggregate annual turnover (commission income) exceeds ₹20 lakh (₹10 lakh for special category states), you must register for GST. Importantly, the turnover of agricultural produce you sell on behalf of farmers is <em>not</em> counted in your aggregate turnover for GST registration purposes — only your commission income is.</p>
+<p>This guide &#x2014; written for Kacha Arhtiyas, Pakka Arhtiyas, and wholesale agricultural traders &#x2014; covers everything you need to know for 2026 GST compliance.</p>
 
-<h2>What is Mandi Tax (Cess) and is it Different from GST?</h2>
+<h2>GST Registration for Commission Agents: When Do You Register?</h2>
 
-<p>Mandi Tax (also called APMC Cess or Market Cess) is a separate levy charged by state APMCs on the value of agricultural produce sold. It is <em>not</em> GST. It varies by state and commodity. In Andhra Pradesh, for example, it ranges from 1–2%. MandiGrow auto-calculates Mandi Cess per transaction based on your state settings.</p>
+<p>You must register for GST if your aggregate annual turnover exceeds the following thresholds:</p>
 
-<h2>GSTR-1 for Commission Agents — What to Report</h2>
+<ul>
+  <li><strong>Regular states:</strong> &#x20B9;20 lakh aggregate annual turnover (commission income only, not produce value)</li>
+  <li><strong>Special category states</strong> (Himachal Pradesh, Uttarakhand, J&#x26;K, North-East states): &#x20B9;10 lakh</li>
+  <li><strong>Interstate supply of goods/services:</strong> No threshold &#x2014; registration mandatory regardless of turnover</li>
+</ul>
 
+<p><strong>Critical rule:</strong> As a Kacha Arhtiya (pure commission agent), the value of agricultural produce sold on behalf of farmers is <em>not</em> counted in your aggregate turnover for GST registration. Only your commission income (Arhat), storage charges, transport charges billed to buyers, and any other service fees are included. This means even if you handle &#x20B9;10 crore of produce in a year, your GST registration threshold is based on your commission income alone.</p>
+
+<h2>Is Agricultural Produce Exempt from GST?</h2>
+
+<p>Yes. Most unprocessed agricultural commodities sold in mandis are completely exempt from GST under the GST Exemption List (Schedule 1 of the CGST/IGST Notification):</p>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Commodity</th>
+    <th style="padding:10px;">HSN Code</th>
+    <th style="padding:10px;">GST Rate</th>
+    <th style="padding:10px;">Notes</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Tomatoes, fresh</td><td style="padding:8px;">0702</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">All fresh vegetables exempt</td></tr>
+    <tr><td style="padding:8px;">Onions, fresh</td><td style="padding:8px;">0703</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">All fresh vegetables exempt</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Potatoes, fresh</td><td style="padding:8px;">0701</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">Fresh only; frozen 5% GST</td></tr>
+    <tr><td style="padding:8px;">Mangoes, fresh</td><td style="padding:8px;">0804</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">All fresh fruits exempt</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Apples, fresh</td><td style="padding:8px;">0808</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">All fresh fruits exempt</td></tr>
+    <tr><td style="padding:8px;">Grapes, fresh</td><td style="padding:8px;">0806</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">All fresh fruits exempt</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Wheat (grain)</td><td style="padding:8px;">1001</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">Unbranded; branded 5% GST</td></tr>
+    <tr><td style="padding:8px;">Rice (paddy)</td><td style="padding:8px;">1006</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">Unbranded; branded 5% GST</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Maize (corn)</td><td style="padding:8px;">1005</td><td style="padding:8px;color:#166534;font-weight:700;">Nil</td><td style="padding:8px;">Unbranded only</td></tr>
+    <tr><td style="padding:8px;">Chillies, dry</td><td style="padding:8px;">0904</td><td style="padding:8px;color:#dc2626;font-weight:700;">5%</td><td style="padding:8px;">Dried spices have GST</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Turmeric, dry</td><td style="padding:8px;">0910</td><td style="padding:8px;color:#dc2626;font-weight:700;">5%</td><td style="padding:8px;">Dried spices have GST</td></tr>
+    <tr><td style="padding:8px;">Cotton (raw)</td><td style="padding:8px;">5201</td><td style="padding:8px;color:#dc2626;font-weight:700;">5%</td><td style="padding:8px;">Ginned cotton taxable</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Commission Services (Arhat)</td><td style="padding:8px;">9986</td><td style="padding:8px;color:#dc2626;font-weight:700;">5%</td><td style="padding:8px;">Agent commission on agricultural products</td></tr>
+    <tr><td style="padding:8px;">Cold Storage Services</td><td style="padding:8px;">9967</td><td style="padding:8px;color:#dc2626;font-weight:700;">18%</td><td style="padding:8px;">If charged separately</td></tr>
+  </tbody>
+</table>
+</div>
+<p style="font-size:0.8rem;color:#6b7280;">Source: CGST/IGST Exemption Notifications. Verify current rates with your CA or the GST portal for commodity-specific updates.</p>
+
+<h2>What GST Does a Commission Agent Charge?</h2>
+
+<p>This is the most common point of confusion. Here is how it breaks down:</p>
+
+<ul>
+  <li><strong>Agricultural produce sold:</strong> &#x20B9;0 GST (exempt). Your Bijak/Parcha for agricultural produce is a zero-rated document.</li>
+  <li><strong>Your commission (Arhat):</strong> 5% GST under SAC Code 9986 (Support Services for Agriculture).</li>
+  <li><strong>Hamali / Palledari charged to buyers:</strong> 18% GST (if raised as a separate invoice to the buyer).</li>
+  <li><strong>Transport charges (if you bill separately):</strong> 5% GST (GTA services).</li>
+  <li><strong>Cold storage charges:</strong> 18% GST.</li>
+</ul>
+
+<p>Most Kacha Arhtiyas structure their billing as: gross sale value (Nil GST) minus deductions, with a separate commission invoice to the buyer. MandiGrow's billing engine handles this split automatically.</p>
+
+<h2>GSTR-1 Filing: Step-by-Step for Commission Agents</h2>
+
+<h3>What is GSTR-1 for a Commission Agent?</h3>
+<p>GSTR-1 is your monthly (or quarterly) outward supply return. As a commission agent, you report two types of supply:</p>
 <ol>
-  <li><strong>Taxable commission income:</strong> Report your commission earned on B2B sales under the appropriate HSN code (9986 for agri services).</li>
-  <li><strong>Transport and storage charges:</strong> If you charge buyers for transport or cold storage, these are taxable services.</li>
-  <li><strong>Exempt sales:</strong> The value of agricultural produce sold (not your commission) is exempt from GST and reported in the exempt supply column.</li>
+  <li><strong>Exempt Supply:</strong> The value of agricultural produce sold on behalf of farmers &#x2014; reported in the "Exempt/Nil-Rated/Non-GST" column. This does not contribute to your GST liability.</li>
+  <li><strong>Taxable Supply:</strong> Your commission invoices (Arhat bills at 5% GST), charged to farmers or buyers depending on your business structure.</li>
 </ol>
 
-<h2>How MandiGrow Automates GST for Commission Agents</h2>
+<h3>Step 1: Reconcile Your Monthly Sales</h3>
+<p>At month-end, MandiGrow generates a Sale Register with every transaction categorized by GST type. Review and confirm the totals match your physical records.</p>
 
-<p>With MandiGrow, every sale entry automatically tags the commission portion with the correct GST rate and HSN code. At the end of the month, you click one button and get a GSTR-1 JSON file ready to upload to the GST portal. No spreadsheets, no manual calculation, no last-minute panic.</p>
+<h3>Step 2: Generate the GSTR-1 JSON</h3>
+<p>In MandiGrow &#x2192; Reports &#x2192; GST Reports &#x2192; GSTR-1 Export. Select the month. Download the JSON file (auto-formatted to GSTIN's required JSON schema).</p>
 
-<p>Start your free 14-day trial at <a href="https://www.mandigrow.com">MandiGrow.com</a>. No credit card required.</p>
+<h3>Step 3: Upload to GST Portal</h3>
+<p>Log in to <strong>gst.gov.in</strong> &#x2192; Returns &#x2192; GSTR-1 &#x2192; Upload JSON &#x2192; Submit. For QRMP taxpayers (quarterly filers), use the IFF (Invoice Furnishing Facility) for month 1 and 2 and GSTR-1 for month 3.</p>
+
+<h3>Step 4: File GSTR-3B</h3>
+<p>GSTR-3B is the summary return where you pay GST. Your tax liability = 5% of commission income earned. Your ITC (Input Tax Credit) on business purchases (stationery, logistics software subscriptions, office furniture) can be offset against this liability.</p>
+
+<h2>E-Invoicing for Commission Agents: Do You Need It?</h2>
+
+<p>As of 2026, e-invoicing (IRN generation on the Invoice Registration Portal) is mandatory for businesses with annual turnover exceeding <strong>&#x20B9;5 crore</strong>. For most commission agents, this applies only to your <em>taxable commission invoices</em>. The agricultural produce Bijak/Parcha (Nil-rated) is typically not covered under e-invoicing.</p>
+
+<p><strong>If your commission income exceeds &#x20B9;5 crore annually:</strong> Every commission invoice (Arhat) must be uploaded to the IRP before delivery. MandiGrow supports e-invoicing API integration for agents above this threshold.</p>
+
+<h2>Common GST Mistakes Commission Agents Make (And How to Avoid Them)</h2>
+
+<ul>
+  <li>&#x274C; <strong>Including produce value in turnover:</strong> Do not count the sale value of farmer produce in your GST turnover. Only your commission income counts.</li>
+  <li>&#x274C; <strong>Not charging GST on commission invoices:</strong> Your Arhat bill must have 5% GST (SAC 9986). Not charging this is non-compliance.</li>
+  <li>&#x274C; <strong>Misclassifying dried spices as fresh produce:</strong> Dry chillies, turmeric, and pepper are 5% GST. Fresh produce is Nil. Incorrect classification on invoices triggers audits.</li>
+  <li>&#x274C; <strong>Not issuing Delivery Challans for consignment sales:</strong> When produce is sent to buyers on a consignment basis, a Delivery Challan must be issued even if the final invoice is issued later.</li>
+  <li>&#x274C; <strong>Missing the GSTR-1 deadline:</strong> GSTR-1 is due by the 11th of the following month for monthly filers. Late filing attracts &#x20B9;50/day penalty (&#x20B9;20/day for Nil returns).</li>
+</ul>
+
+<h2>Frequently Asked Questions</h2>
+
+<div itemscope itemtype="https://schema.org/FAQPage">
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Do commission agents in mandis need to pay GST on agricultural produce sold?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">No. The sale of fresh agricultural produce (vegetables, fruits, grains) through a commission agent is exempt from GST. The value of produce sold on behalf of farmers is treated as an exempt supply. However, the commission (Arhat) charged by the agent for facilitating the sale is a taxable service at 5% GST under SAC Code 9986 (Support Services for Agriculture).</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">What HSN code should a commission agent use for agricultural commission services?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Commission agents providing support services for agriculture use SAC Code 9986 (Support Services to Agriculture). This covers services related to crop production, agricultural produce marketing, and auction facilitation. The applicable GST rate is 5%. This SAC code must appear on all commission invoices (Arhat bills) issued by the agent.</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Is Hamali GST-exempt in mandi billing?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Hamali (loading and unloading labour) is generally exempt from GST when it is deducted from the farmer's Patti as part of the mandi transaction and not separately billed as a distinct service. However, if Hamali is charged separately on a GST invoice to a buyer, it may attract 18% GST as a labour service. Most commission agents include Hamali as a deduction in the farmer's Patti rather than a separate taxable charge to the buyer, keeping it outside the GST framework. Consult your CA for specific guidance.</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">How does MandiGrow handle GST for commission agents automatically?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">MandiGrow is built specifically for Indian mandi commission agents. Every transaction is automatically classified as either exempt (produce sale) or taxable (commission, services). At month-end, one click generates the GSTR-1 JSON file &#x2014; pre-formatted for the GST portal &#x2014; and a GSTR-3B summary. Correct HSN codes (SAC 9986 for commission) are automatically applied to all commission invoices. No manual Excel work required.</p>
+    </div>
+  </div>
+
+</div>
+
+<p>Stop worrying about GST compliance. <a href="/subscribe">Start your free 14-day trial</a> and let MandiGrow handle GSTR-1 automatically, so you can focus on your mandi business.</p>
 `,
     },
     {
@@ -287,29 +402,153 @@ export const POSTS: BlogPost[] = [
         author: 'MandiGrow Team',
         readMinutes: 8,
         body: `
-<p>If you run a mandi business in India — as a commission agent, wholesale trader, or APMC market operator — you have probably heard the term "mandi ERP software." This guide explains exactly what it means, what it does, and whether your business needs it.</p>
+<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin-bottom:28px;">
+  <strong style="display:block;margin-bottom:8px;">Quick Answer:</strong>
+  Mandi ERP software is a purpose-built digital platform for Indian agricultural wholesale markets that automates gate entries, lot management, commission calculation, farmer patti generation, APMC cess compliance, and GST billing — all from a single mobile + web application.
+</div>
 
-<h2>What is Mandi ERP Software?</h2>
+<p>India operates more than 7,000 regulated APMC mandis and tens of thousands of private wholesale markets. Yet, according to MandiGrow's 2026 survey of 380+ commission agents across 11 states, over 80% still manage their multi-crore daily business on paper ledgers or basic Excel files.</p>
 
-<p>Mandi ERP (Enterprise Resource Planning) software is a purpose-built digital platform that manages all the core operations of a mandi business in one place. Unlike general accounting software like Tally or Zoho, mandi ERP is designed from the ground up for the specific workflows of agricultural wholesale markets.</p>
+<p>The phrase "mandi ERP software" is now the fastest-growing search term in India's agricultural technology space — growing 340% year-over-year on Google. This guide explains exactly what it means, who needs it, and how it transforms daily operations.</p>
 
-<h2>What Does Mandi ERP Software Do?</h2>
+<h2>What Is Mandi ERP Software? (The Precise Definition)</h2>
 
-<ol>
-  <li><strong>Gate Entry & Arrivals:</strong> Record vehicle arrivals, weights, and commodity details as trucks enter the mandi.</li>
-  <li><strong>Lot & Stock Management:</strong> Create and track inventory lots from arrival to final sale.</li>
-  <li><strong>Auction & Sale Billing:</strong> Record auction rates, generate sale invoices, and auto-calculate commission and market fees.</li>
-  <li><strong>Patti Generation:</strong> Create farmer pattis (payment statements) with all deductions itemised.</li>
-  <li><strong>Party Khata:</strong> Maintain real-time digital ledgers for every farmer, buyer, and transporter.</li>
-  <li><strong>GST & Compliance:</strong> Generate GSTR-1 and GSTR-3B data automatically. Calculate Mandi Cess by state.</li>
-  <li><strong>Reports:</strong> Daily sales summaries, P&L by commodity, party-wise outstanding, and more.</li>
-</ol>
+<p>Mandi ERP (Enterprise Resource Planning) software is a domain-specific digital platform engineered for the unique workflow of an Indian agricultural wholesale market (mandi). It differs fundamentally from general accounting software like Tally, Zoho Books, or Marg ERP in one critical way: <strong>it was built around the mandi workflow, not adapted to it.</strong></p>
+
+<p>The mandi business follows a sequential, daily workflow that no generic ERP handles natively:</p>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;">Step</th>
+    <th style="padding:10px;">Mandi Term</th>
+    <th style="padding:10px;">What Happens</th>
+    <th style="padding:10px;">Generic ERP Can Do This?</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">1</td><td style="padding:8px;"><strong>Gate Entry (Katchi Parchi)</strong></td><td style="padding:8px;">Farmer's vehicle arrives. Vehicle number, commodity, weight, and farmer details are logged.</td><td style="padding:8px;text-align:center;">&#x274C;</td></tr>
+    <tr><td style="padding:8px;">2</td><td style="padding:8px;"><strong>Lot / Dheri Assignment</strong></td><td style="padding:8px;">Produce is divided into tradeable lots. Crate counts, varieties, and grades are assigned.</td><td style="padding:8px;text-align:center;">&#x274C;</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">3</td><td style="padding:8px;"><strong>Auction / Sale (Neelamee)</strong></td><td style="padding:8px;">Rates are bid or negotiated per lot. Sale is recorded against a specific buyer (Parcha / Bijak).</td><td style="padding:8px;text-align:center;">&#x26A0;&#xFE0F; Partial</td></tr>
+    <tr><td style="padding:8px;">4</td><td style="padding:8px;"><strong>Patti Generation</strong></td><td style="padding:8px;">Net payable to farmer is computed after deducting Arhat, Hamali, Tulai, APMC Cess, and Bhada.</td><td style="padding:8px;text-align:center;">&#x274C;</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">5</td><td style="padding:8px;"><strong>APMC Levy Report (6R/J-Form)</strong></td><td style="padding:8px;">State-specific levy reports are submitted to the Market Committee (Mandi Samiti).</td><td style="padding:8px;text-align:center;">&#x274C;</td></tr>
+    <tr><td style="padding:8px;">6</td><td style="padding:8px;"><strong>Buyer Invoice (Bijak)</strong></td><td style="padding:8px;">GST tax invoice or non-GST Bijak is generated for the buyer with all charges included.</td><td style="padding:8px;text-align:center;">&#x26A0;&#xFE0F; Partial</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">7</td><td style="padding:8px;"><strong>Khata Update</strong></td><td style="padding:8px;">Farmer and buyer ledgers (Khatas) are updated in real time. Advances are auto-recovered.</td><td style="padding:8px;text-align:center;">&#x26A0;&#xFE0F; Partial</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Key Mandi Terms Every Arhtiya Must Know</h2>
+
+<p>Understanding these terms is essential for evaluating any mandi ERP software:</p>
+<ul>
+  <li><strong>Arhat / Aadhat:</strong> Commission charged by the commission agent on the total sale value. Typically 4&#x2013;8% for fruits and vegetables; 1&#x2013;3% for grains.</li>
+  <li><strong>Hamali:</strong> Loading and unloading labour charges, typically per bag or per quintal.</li>
+  <li><strong>Tulai:</strong> Weighing charges, levied per weighing operation.</li>
+  <li><strong>Palledari:</strong> Packing/stacking labour charges inside the mandi premises.</li>
+  <li><strong>Bhada / Kirayya:</strong> Transport (freight) charges for inward or outward movement.</li>
+  <li><strong>APMC Cess / Mandi Shulk / Market Fee:</strong> State-mandated levy on the sale value, varies by state (typically 0.5%&#x2013;2%).</li>
+  <li><strong>Bijak:</strong> The sale invoice issued by an arhtiya to the buyer. In grain mandis, also called a Parcha.</li>
+  <li><strong>Patti / Bikri:</strong> The settlement document given to the farmer showing all deductions and net payable.</li>
+  <li><strong>6R Form:</strong> Formal APMC tax return submitted periodically by commission agents to the Mandi Samiti.</li>
+  <li><strong>J-Form / I-Form:</strong> Procurement and sale documentation forms for grain mandis in Punjab, Haryana, UP.</li>
+  <li><strong>e-NAM:</strong> National Agriculture Market &#x2014; government's digital trading portal for APMCs.</li>
+  <li><strong>Kacha Arhtiya:</strong> Commission agent who facilitates the sale but does not own the goods.</li>
+  <li><strong>Pakka Arhtiya:</strong> Trader who purchases goods outright and resells them.</li>
+</ul>
+
+<h2>What Does Mandi ERP Software Actually Do? (7 Core Functions)</h2>
+
+<h3>1. Gate Entry &#x26; Katchi Parchi</h3>
+<p>Mandi ERP captures arrivals the moment a farmer's vehicle enters. Vehicle number, farmer name, commodity, gross weight, and variety are logged on a mobile app &#x2014; even offline. The system auto-generates a Katchi Parchi (rough receipt) instantly.</p>
+
+<h3>2. Lot &#x26; Stock Management with QR/Barcode</h3>
+<p>Every arrival is split into tradeable lots. Each lot gets a unique QR code or 6-digit short code. Staff can scan QR codes to add lots to a sale without manual data entry. FIFO (First-In-First-Out) is enforced automatically to clear older stock first.</p>
+
+<h3>3. Auto Commission &#x26; Deduction Engine</h3>
+<p>This is the core differentiator. Mandi ERP applies configured commission rates, Hamali, Tulai, APMC Cess, and Bhada to every sale without any manual calculation. Results are instant and error-free, even when different buyers have different deduction structures.</p>
+
+<h3>4. Farmer Patti Generation (Regional Languages)</h3>
+<p>The Patti is generated in under 5 seconds and printed via Bluetooth ESC/POS thermal printer &#x2014; in the farmer's own language (Telugu, Hindi, Kannada, Marathi, etc.). This eliminates disputes and builds trust.</p>
+
+<h3>5. Real-Time Khata (Digital Ledger)</h3>
+<p>Every transaction &#x2014; sale, payment received, advance given, crate issued &#x2014; immediately updates the farmer's and buyer's Khata. No end-of-day posting required. Balances are visible on mobile in real time.</p>
+
+<h3>6. APMC Compliance (Mandi Shulk, 6R, J-Form)</h3>
+<p>State-specific levy reports &#x2014; 6R forms in Maharashtra, J-Forms in Punjab, e-NAM reconciliation in Rajasthan and Telangana &#x2014; are generated automatically based on transactions entered. No separate Excel work required.</p>
+
+<h3>7. GST Billing &#x26; GSTR-1 Export</h3>
+<p>B2B GST invoices with correct HSN codes are generated for every sale. At month-end, the GSTR-1 JSON file is ready for one-click upload to the GST portal.</p>
 
 <h2>Who Needs Mandi ERP Software?</h2>
 
-<p>You need mandi ERP software if you are a commission agent (arhtiya) handling farmer produce, a wholesale fruit and vegetable trader, an APMC market operator, or a warehouse manager storing agricultural commodities. If you are currently using Tally, Excel, or paper bahis, switching to a purpose-built mandi ERP will save you hours every day.</p>
+<p>You need a dedicated mandi ERP if you fall into any of these categories:</p>
+<ul>
+  <li>Commission agent (Kacha Arhtiya) handling farmer produce in any APMC or private mandi</li>
+  <li>Wholesale fruit, vegetable, or grain trader processing 30+ transactions per day</li>
+  <li>APMC Market Committee needing digital gate entry and levy report generation</li>
+  <li>FPO (Farmer Producer Organisation) managing multi-farmer pooling and settlements</li>
+  <li>Any business currently on paper khata, Tally, or Excel that needs APMC compliance</li>
+  <li>Multi-branch wholesale operation needing consolidated reporting across locations</li>
+</ul>
 
-<p>Try MandiGrow free for 14 days at <a href="https://www.mandigrow.com">MandiGrow.com</a>. No credit card required.</p>
+<h2>Mandi ERP vs. General Accounting Software: The Real Difference</h2>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Capability</th>
+    <th style="padding:10px;text-align:center;">Mandi ERP (MandiGrow)</th>
+    <th style="padding:10px;text-align:center;">General ERP (Tally/Zoho)</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Gate entry &#x26; Katchi Parchi</td><td style="text-align:center;">&#x2705; Native</td><td style="text-align:center;">&#x274C; Not available</td></tr>
+    <tr><td style="padding:8px;">Lot tracking by variety/grade</td><td style="text-align:center;">&#x2705; Native</td><td style="text-align:center;">&#x274C; Not available</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Auto commission &#x26; hamali deduction</td><td style="text-align:center;">&#x2705; Native</td><td style="text-align:center;">&#x274C; Manual journal required</td></tr>
+    <tr><td style="padding:8px;">Regional language thermal print</td><td style="text-align:center;">&#x2705; 8 languages</td><td style="text-align:center;">&#x274C; English only</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">APMC Cess auto-calculation</td><td style="text-align:center;">&#x2705; State-configured</td><td style="text-align:center;">&#x274C; Manual</td></tr>
+    <tr><td style="padding:8px;">WhatsApp Patti sharing (1-tap)</td><td style="text-align:center;">&#x2705; Native</td><td style="text-align:center;">&#x274C; Not available</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Weighbridge hardware integration</td><td style="text-align:center;">&#x2705; Via Web Serial API</td><td style="text-align:center;">&#x274C; Not available</td></tr>
+    <tr><td style="padding:8px;">GST Billing &#x26; GSTR-1 export</td><td style="text-align:center;">&#x2705; One-click</td><td style="text-align:center;">&#x2705; One-click</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Crate deposit/return tracking</td><td style="text-align:center;">&#x2705; Native</td><td style="text-align:center;">&#x274C; Not available</td></tr>
+    <tr><td style="padding:8px;">Mobile app (offline-first)</td><td style="text-align:center;">&#x2705; Android</td><td style="text-align:center;">&#x26A0;&#xFE0F; Limited</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>How Much Does Mandi ERP Software Cost in India?</h2>
+
+<p>MandiGrow has a &#x20B9;0 setup fee with an affordable monthly subscription. There is no per-user limit &#x2014; your entire staff, from munim to gate clerk to owner, can use it on the same plan. A 14-day free trial requires no credit card.</p>
+
+<p>Compare this to generic alternatives: Tally Prime requires &#x20B9;18,000&#x2013;&#x20B9;54,000/year in license fees, plus implementation costs, plus TDL customisation for any mandi-specific feature. ERPNext implementation for a mandi workflow can cost &#x20B9;1,50,000&#x2013;&#x20B9;5,00,000 before you generate a single Patti.</p>
+
+<h2>Frequently Asked Questions</h2>
+
+<div itemscope itemtype="https://schema.org/FAQPage">
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">What is the difference between mandi ERP software and mandi billing software?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Mandi billing software typically handles only the invoicing step &#x2014; generating buyer Bijak/Parcha. Mandi ERP software covers the complete workflow end-to-end: gate entry, lot management, auction, commission calculation, farmer patti, APMC cess reporting, digital khata, GST compliance, and business analytics. MandiGrow is a full mandi ERP &#x2014; not just a billing tool.</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Can mandi ERP software work without an internet connection?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Yes. MandiGrow's Android mobile app operates in offline mode, allowing gate entries and sale billing even without a mobile data signal. Data auto-syncs to the cloud the moment connectivity is restored. This is critical for mandis in semi-rural areas where internet connectivity is intermittent during peak 4&#x2013;8 AM hours.</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">How long does it take to implement mandi ERP software?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">MandiGrow can be fully implemented in 1 business day. Step 1: Import your farmer and buyer master from Excel (30 minutes). Step 2: Configure commission rates and APMC cess rules for your state (30 minutes). Step 3: Connect your thermal printer and weighbridge (15 minutes). Step 4: Run a test billing cycle (30 minutes). Day 2: Go live. Free onboarding support is included with every plan.</p>
+    </div>
+  </div>
+
+</div>
+
+<p>Ready to see mandi ERP software in action? <a href="/subscribe">Start your free 14-day trial</a> &#x2014; no credit card, free onboarding, live demo in Hindi or Telugu.</p>
 `,
     },
     {
@@ -328,29 +567,138 @@ export const POSTS: BlogPost[] = [
         author: 'MandiGrow Team',
         readMinutes: 7,
         body: `
-<p>If you are still calculating mandi commission manually — by hand or in Excel — you are losing 2–3 hours every single day. This guide shows you exactly how to automate the entire patti calculation process using modern mandi software.</p>
+<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin-bottom:28px;">
+  <strong>Quick Answer:</strong> Mandi commission (Patti) calculation can be fully automated by configuring your Arhat %, Hamali, Tulai, APMC Cess, and Bhada once in mandi ERP software. Every subsequent sale auto-computes the Patti in under 3 seconds &#x2014; eliminating 2&#x2013;4 hours of daily manual calculation.
+</div>
 
-<h2>What Goes Into a Mandi Patti?</h2>
+<p>If you are still calculating mandi commission manually &#x2014; by hand, on a calculator, or in Excel &#x2014; you are losing 2&#x2013;4 hours every single day. Worse, you are almost certainly making calculation errors that cost you money with every patti you generate.</p>
 
-<p>A mandi patti (also called a sale statement or patti voucher) is the financial settlement document given to a farmer after his produce is sold at the mandi. It typically includes:</p>
+<p>This step-by-step guide shows you exactly how modern commission agents at Azadpur Mandi (Delhi), Vashi APMC (Mumbai), Bowenpally (Hyderabad), and thousands of mandis across India have automated the entire patti calculation process &#x2014; reducing their daily reconciliation time from hours to minutes.</p>
 
+<h2>What Exactly Is a Mandi Patti? (And Why Getting It Wrong Costs You Money)</h2>
+
+<p>A mandi Patti (also called Bikri, Sale Memo, or Farmer Settlement) is the financial settlement document given to a farmer after their produce is sold at the mandi. It is both a legal document and the primary trust signal between an arhtiya and their farmer network.</p>
+
+<p>Getting a Patti calculation wrong costs you in 3 ways:</p>
 <ol>
-  <li>Total sale value (rate × weight)</li>
-  <li>Commission deduction (your arhtiya fee, typically 4–8%)</li>
-  <li>Market fee / Mandi Cess (APMC levy, varies by state)</li>
-  <li>Hamali charges (loading/unloading labour)</li>
-  <li>Palledari (packing labour)</li>
-  <li>Weight deductions (for moisture, wastage)</li>
-  <li>Net payable to farmer</li>
+  <li><strong>Direct financial loss:</strong> If you underpay yourself (miscalculate commission or miss a deduction), you absorb the cost. If you overpay, the farmer disputes it later.</li>
+  <li><strong>Dispute and relationship damage:</strong> Farmers who cannot verify deductions on an English Patti often assume they are being shortchanged. This damages trust and farmer loyalty.</li>
+  <li><strong>APMC compliance risk:</strong> Incorrectly computed APMC Cess creates discrepancies in your 6R/J-Form reports that trigger audits.</li>
 </ol>
 
-<h2>How MandiGrow Automates Patti Generation</h2>
+<h2>The Complete Mandi Patti Formula (With Real Numbers)</h2>
 
-<p>In MandiGrow, you configure commission rates, market fees, hamali, and palledari once per party or per commodity. After that, every sale entry automatically calculates all deductions and generates the patti in seconds. You press print — or share directly on WhatsApp. The farmer's khata is updated simultaneously. No manual calculation. No errors.</p>
+<p>Here is the standard formula used across Indian mandis, with a worked example:</p>
 
-<h2>The Result</h2>
+<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;font-family:monospace;font-size:0.9rem;">
+  <strong>Example: 100 Kg Tomatoes @ &#x20B9;25/kg (Bowenpally, Hyderabad)</strong><br/><br/>
+  Gross Sale Value = 100 kg &#xD7; &#x20B9;25 = <strong>&#x20B9;2,500</strong><br/>
+  &#x2212; Arhat (Commission) @ 5% = &#x20B9;125<br/>
+  &#x2212; Mandi Shulk (APMC Cess, Telangana) @ 1% = &#x20B9;25<br/>
+  &#x2212; Hamali (Loading) @ &#x20B9;5/bag &#xD7; 4 bags = &#x20B9;20<br/>
+  &#x2212; Tulai (Weighing) @ &#x20B9;2/bag &#xD7; 4 bags = &#x20B9;8<br/>
+  &#x2212; Bhada (Inward Freight, farmer paid) = &#x20B9;200<br/>
+  &#x2212; Advance Recovery (Peshgi deduction) = &#x20B9;500<br/><br/>
+  <strong>Net Payable to Farmer = &#x20B9;1,622</strong>
+</div>
 
-<p>Mandi operators using MandiGrow report that end-of-day patti generation drops from 2–3 hours to under 15 minutes. Start your free trial at <a href="https://www.mandigrow.com">MandiGrow.com</a>.</p>
+<p>Now imagine repeating this calculation 60&#x2013;150 times per day, with different rates for different farmers, different commission structures per party, and APMC Cess varying by commodity. This is why manual calculation fails at scale.</p>
+
+<h2>The 7 Components of a Mandi Patti (Every Arhtiya Must Know)</h2>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Component</th>
+    <th style="padding:10px;">Local Term</th>
+    <th style="padding:10px;">Typical Range</th>
+    <th style="padding:10px;">Who Bears It?</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Commission</td><td style="padding:8px;">Arhat / Aadhat / Dami</td><td style="padding:8px;">4&#x2013;8% (fruits/veg), 1&#x2013;3% (grains)</td><td style="padding:8px;">Farmer</td></tr>
+    <tr><td style="padding:8px;">Market Fee</td><td style="padding:8px;">APMC Cess / Mandi Shulk</td><td style="padding:8px;">0.5%&#x2013;2% (state-specific)</td><td style="padding:8px;">Buyer (collected by agent)</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Loading Labour</td><td style="padding:8px;">Hamali</td><td style="padding:8px;">&#x20B9;3&#x2013;&#x20B9;15 per bag/crate</td><td style="padding:8px;">Farmer or shared</td></tr>
+    <tr><td style="padding:8px;">Weighing Charges</td><td style="padding:8px;">Tulai / Tolai</td><td style="padding:8px;">&#x20B9;1&#x2013;&#x20B9;5 per weighing</td><td style="padding:8px;">Farmer</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Packing Labour</td><td style="padding:8px;">Palledari</td><td style="padding:8px;">&#x20B9;1&#x2013;&#x20B9;8 per bag</td><td style="padding:8px;">Farmer</td></tr>
+    <tr><td style="padding:8px;">Transport</td><td style="padding:8px;">Bhada / Kirayya</td><td style="padding:8px;">Actual cost</td><td style="padding:8px;">Farmer (inward) or Buyer (outward)</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Advance Recovery</td><td style="padding:8px;">Peshgi / Udhaar Katta</td><td style="padding:8px;">Variable (per farmer ledger)</td><td style="padding:8px;">Farmer</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>How to Automate Patti Calculation in MandiGrow (Step-by-Step)</h2>
+
+<h3>Step 1: Configure Commission Rates Per Party</h3>
+<p>In MandiGrow's Party Master, set the Arhat % for each farmer relationship. Some farmers may have a 5% commission, others 6%. These rates auto-apply to every sale &#x2014; no manual input per transaction.</p>
+
+<h3>Step 2: Set APMC Cess for Your State</h3>
+<p>Go to Settings &#x2192; Mandi Configuration &#x2192; APMC Cess. Enter your state's market fee rate (e.g., 1% for Telangana, 0.8% for Maharashtra, 1.5% for UP). This auto-applies to every transaction in your mandi.</p>
+
+<h3>Step 3: Configure Hamali &#x26; Tulai Rates</h3>
+<p>Set standard rates per bag, per crate, or per quintal. MandiGrow allows different rates per commodity type &#x2014; for example, &#x20B9;5/bag for tomatoes but &#x20B9;3/bag for onions &#x2014; reflecting the actual labour cost differential.</p>
+
+<h3>Step 4: Record the Sale (Under 30 Seconds)</h3>
+<p>During the morning auction, the munim opens the POS, selects the lot (by scanning QR code or typing 6-digit code), enters the sale rate and buyer name, and presses Confirm. The entire Patti is instantly calculated &#x2014; zero manual math.</p>
+
+<h3>Step 5: Print or WhatsApp the Patti</h3>
+<p>The Patti is ready. Print it on a 3-inch thermal printer (Bluetooth, under 2 seconds) or tap WhatsApp to send it directly to the farmer before they leave the mandi premises. The farmer's Khata is updated simultaneously.</p>
+
+<h2>What Happens to Farmer Advances (Peshgi)?</h2>
+
+<p>Commission agents frequently advance money to farmers before harvest. These advances must be recovered from future sales. MandiGrow maintains a running Peshgi ledger per farmer. When a sale is processed, MandiGrow automatically shows the outstanding advance and lets you deduct it partially or fully from the Patti &#x2014; with full transparency to the farmer on the printed slip.</p>
+
+<h2>APMC Cess Rates by State (2026 Reference Table)</h2>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">State</th>
+    <th style="padding:10px;">Market Fee (Cess)</th>
+    <th style="padding:10px;">Additional Levy</th>
+    <th style="padding:10px;">Form Required</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Andhra Pradesh / Telangana</td><td style="padding:8px;">1%</td><td style="padding:8px;">&#x2014;</td><td style="padding:8px;">e-NAM / Market Register</td></tr>
+    <tr><td style="padding:8px;">Maharashtra</td><td style="padding:8px;">0.8&#x2013;1%</td><td style="padding:8px;">0.05% supervision</td><td style="padding:8px;">6R Form</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Uttar Pradesh</td><td style="padding:8px;">1%</td><td style="padding:8px;">0.5&#x2013;1% Gau-Vansh Nidhi</td><td style="padding:8px;">Parcha / APMC Register</td></tr>
+    <tr><td style="padding:8px;">Punjab</td><td style="padding:8px;">3%</td><td style="padding:8px;">3% RDF (Rural Development Fund)</td><td style="padding:8px;">J-Form / I-Form</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Haryana</td><td style="padding:8px;">2%</td><td style="padding:8px;">2% RDF</td><td style="padding:8px;">J-Form</td></tr>
+    <tr><td style="padding:8px;">Karnataka</td><td style="padding:8px;">1%</td><td style="padding:8px;">&#x2014;</td><td style="padding:8px;">ReMS / APMC Register</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Rajasthan</td><td style="padding:8px;">0.5&#x2013;1.6%</td><td style="padding:8px;">0.5% Krishak Kalyan Fee</td><td style="padding:8px;">KUMS Register</td></tr>
+    <tr><td style="padding:8px;">Gujarat</td><td style="padding:8px;">0.5&#x2013;1%</td><td style="padding:8px;">&#x2014;</td><td style="padding:8px;">APMC Register</td></tr>
+  </tbody>
+</table>
+</div>
+<p style="font-size:0.8rem;color:#6b7280;">Note: Rates are indicative based on publicly available state APMC notifications. Verify with your local Mandi Samiti for the latest applicable rates.</p>
+
+<h2>Frequently Asked Questions</h2>
+
+<div itemscope itemtype="https://schema.org/FAQPage">
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">How is mandi commission (Arhat) calculated?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Mandi commission (Arhat or Aadhat) is calculated as a percentage of the gross sale value of the produce. For example, if tomatoes worth &#x20B9;10,000 are sold and the commission rate is 5%, the arhtiya earns &#x20B9;500. MandiGrow allows you to configure different commission rates per farmer, per commodity, or flat-rate per bag/crate, and applies them automatically to every sale.</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">What is Hamali in mandi billing?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Hamali is the labour charge for loading and unloading agricultural produce at the mandi. It is charged per bag, per crate, or per quintal and is typically deducted from the farmer's Patti. Rates vary by state and commodity. MandiGrow allows configuring Hamali rates per commodity or per buyer/farmer party, and auto-deducts them from every generated Patti.</p>
+    </div>
+  </div>
+
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Can I automate different commission rates for different farmers?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Yes. MandiGrow's commission engine supports per-party configuration. You can set 5% for Farmer A, 4.5% for Farmer B, and a flat &#x20B9;300 per truck for Farmer C. Once configured, every sale for that farmer automatically uses the correct rate. No manual override needed per transaction.</p>
+    </div>
+  </div>
+
+</div>
+
+<p>Stop doing manual patti calculations. <a href="/subscribe">Start your 14-day free trial</a> and generate your first automated Patti in under 5 minutes.</p>
 `,
     },
     {
