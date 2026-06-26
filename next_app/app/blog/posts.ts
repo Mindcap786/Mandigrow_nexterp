@@ -1615,8 +1615,441 @@ export const POSTS: BlogPost[] = [
   <a href="/subscribe" style="background:#16a34a;color:white;padding:14px 32px;border-radius:8px;font-weight:900;text-decoration:none;font-size:1rem;">Start Free Trial →</a>
 </div>
 `
-    }
+    },
+    // ─── NEW BLOG POST: Mandi Software Price ──────────────────────────────────
+    {
+        slug: 'mandi-software-price-india-2026',
+        title: 'Mandi Software Price in India 2026: What You Actually Pay vs What You Get',
+        description: 'A transparent breakdown of mandi ERP software pricing in India 2026. Compare MandiGrow, Tally, Busy, and custom solutions by actual cost, hidden fees, and ROI for commission agents.',
+        keywords: [
+            'mandi software price',
+            'mandi software cost india',
+            'mandi erp software price india 2026',
+            'commission agent software price',
+            'best cheap mandi software india',
+            'apmc software subscription cost',
+            'arhtiya software fees',
+        ],
+        publishedAt: '2026-06-22',
+        author: 'MandiGrow Product Team',
+        readMinutes: 8,
+        body: `
+<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin-bottom:28px;">
+  <strong>Quick Summary:</strong> Purpose-built mandi ERP software in India typically costs ₹0–₹2,999/month depending on features. Generic accounting software (Tally, Busy) costs ₹9,000–₹18,000/year but requires ₹30,000–₹1,50,000 in customization to simulate mandi workflows. Custom-built mandi software costs ₹3–15 lakh upfront with 1–2 years to build. MandiGrow starts at ₹0 for the free tier and grows with your business.
+</div>
+
+<p>When a commission agent (Arhtiya) or a mandi operator searches for software, the first question is always: <em>"Kitna paisa lagega?"</em> (How much will it cost?). This is the right question. But the honest answer is almost never given on software company websites — because the real cost depends heavily on what you're starting from, what you need, and what you'll need to customize.</p>
+
+<p>This guide breaks down the real economics of mandi software in India in 2026 with no marketing fluff.</p>
+
+<h2>The 4 Categories of Mandi Software — and Their Real Costs</h2>
+
+<h3>1. Generic Accounting Software (Tally, Busy, Marg)</h3>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Item</th>
+    <th style="padding:10px;">Tally Prime</th>
+    <th style="padding:10px;">Busy Accounting</th>
+    <th style="padding:10px;">Marg ERP 9+</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Base License (1 PC)</td><td style="padding:8px;">₹22,500/yr</td><td style="padding:8px;">₹9,000/yr</td><td style="padding:8px;">₹8,000–18,000/yr</td></tr>
+    <tr><td style="padding:8px;">Mandi Customization Needed</td><td style="padding:8px;">₹50,000–₹1,50,000</td><td style="padding:8px;">₹30,000–₹80,000</td><td style="padding:8px;">₹25,000–₹60,000</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Does it do Farmer Patti natively?</td><td style="padding:8px;">❌ No</td><td style="padding:8px;">❌ No</td><td style="padding:8px;">❌ No</td></tr>
+    <tr><td style="padding:8px;">APMC 6R/J-Form support?</td><td style="padding:8px;">❌ No</td><td style="padding:8px;">❌ No</td><td style="padding:8px;">❌ No</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Regional language thermal print?</td><td style="padding:8px;">❌ No</td><td style="padding:8px;">❌ No</td><td style="padding:8px;">❌ No</td></tr>
+    <tr><td style="padding:8px;">First Year Total Cost (estimate)</td><td style="padding:8px;font-weight:700;color:#dc2626;">₹72,500–₹1,72,500</td><td style="padding:8px;font-weight:700;color:#dc2626;">₹39,000–₹89,000</td><td style="padding:8px;font-weight:700;color:#dc2626;">₹33,000–₹78,000</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Ongoing Customization Support Cost</td><td style="padding:8px;">₹15,000–50,000/yr</td><td style="padding:8px;">₹10,000–30,000/yr</td><td style="padding:8px;">₹8,000–25,000/yr</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>The hidden trap:</strong> Generic accounting software is not designed for the mandi workflow. Tally and Busy use a standard Purchase-Sale accounting model. A mandi operates on a consignment-commission model — the goods never belong to the Arhtiya. Forcing a commission agency into a retail accounting model requires heavy customization by a local Tally partner, ongoing maintenance costs, and still delivers a slow, error-prone experience.</p>
+
+<h3>2. Purpose-Built Mandi Software (MandiGrow, etc.)</h3>
+
+<p>Purpose-built means the software was designed from scratch for the mandi workflow — Farmer arrivals, lot-level billing, Patti generation, APMC cess calculation, and 6R/J-Form reporting are native features, not add-ons.</p>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">MandiGrow Plan</th>
+    <th style="padding:10px;">Monthly</th>
+    <th style="padding:10px;">Annual</th>
+    <th style="padding:10px;">Best For</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;font-weight:700;">Starter (Free)</td><td style="padding:8px;">₹0</td><td style="padding:8px;">₹0</td><td style="padding:8px;">Small commission agents, trial period, upto 100 bills/month</td></tr>
+    <tr><td style="padding:8px;font-weight:700;">Growth</td><td style="padding:8px;">₹999</td><td style="padding:8px;">₹9,999 (save 2 months)</td><td style="padding:8px;">Mid-sized commission houses, upto 1,000 bills/month</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;font-weight:700;">Professional</td><td style="padding:8px;">₹1,999</td><td style="padding:8px;">₹19,999 (save 2 months)</td><td style="padding:8px;">Large mandis, multiple users, unlimited bills, WhatsApp Patti</td></tr>
+    <tr><td style="padding:8px;font-weight:700;">Enterprise</td><td style="padding:8px;">Custom</td><td style="padding:8px;">Custom</td><td style="padding:8px;">Multi-yard operations, API integration, dedicated support</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>What's included in every MandiGrow plan:</strong></p>
+<ul>
+  <li>Farmer Patti generation (auto commission, Hamali, Peshgi deduction)</li>
+  <li>Buyer Parcha / Bijak (GST invoice or non-GST cash bill)</li>
+  <li>Digital Khata for every farmer and buyer party</li>
+  <li>APMC Cess auto-calculation (state-specific rates)</li>
+  <li>Thermal printer support (Bluetooth + USB)</li>
+  <li>8 Indian language support (Hindi, Telugu, Kannada, Marathi, Tamil, Urdu, Gujarati, English)</li>
+  <li>Free onboarding and setup (our team migrates your data)</li>
+  <li>Mobile app (Android) for gate-level operations</li>
+</ul>
+
+<p><strong>What there is no charge for:</strong></p>
+<ul>
+  <li>No setup fee</li>
+  <li>No training fee</li>
+  <li>No charge per bill or per transaction</li>
+  <li>No charge for adding more commodities or party masters</li>
+</ul>
+
+<h3>3. Custom-Built Mandi Software</h3>
+
+<p>Some large mandi operators — usually APMC Market Committees or large-scale commission houses with 50+ users — opt for custom-built software. The economics:</p>
+
+<ul>
+  <li><strong>Development cost:</strong> ₹5–15 lakh for a basic system; ₹20–50 lakh for enterprise features</li>
+  <li><strong>Time to build:</strong> 6 months (minimum) to 2 years (realistic, for complex requirements)</li>
+  <li><strong>Ongoing maintenance:</strong> ₹1–3 lakh/year for bug fixes and updates</li>
+  <li><strong>Risk:</strong> Very high. 60–70% of custom software projects in India are over budget or abandoned mid-way.</li>
+</ul>
+
+<p>Custom software makes sense only when you have highly unique requirements that no existing product can address. For the vast majority of mandis, MandiGrow's Professional or Enterprise plan covers every operational need at a fraction of the cost.</p>
+
+<h3>4. Excel + Paper (The "Free" Option)</h3>
+
+<p>The real hidden cost of running a mandi on Excel and paper is not the ₹0 you pay for Excel — it is the cost of errors:</p>
+
+<ul>
+  <li>Average calculation error per 100 bills in manual/Excel billing: 3–8%</li>
+  <li>Time spent per Patti manually: 5–12 minutes</li>
+  <li>Time spent in month-end reconciliation: 3–5 days per month</li>
+  <li>A single APMC audit fine for incorrect 6R submission: ₹5,000–₹50,000</li>
+</ul>
+
+<p>A commission agency doing ₹5 crore monthly turnover with a 6% commission earns ₹30 lakh in commission income. A 3% calculation error rate costs ₹90,000/month in under-collected commission. At MandiGrow's Professional plan (₹1,999/month), the software pays for itself with the very first corrected billing error.</p>
+
+<h2>Real Cost Comparison: Year 1 Total Ownership</h2>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Solution</th>
+    <th style="padding:10px;">Year 1 Cost</th>
+    <th style="padding:10px;">Mandi-Native?</th>
+    <th style="padding:10px;">Error Risk</th>
+    <th style="padding:10px;">Setup Time</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Excel / Paper</td><td style="padding:8px;">₹0 (hidden cost: errors)</td><td style="padding:8px;">❌</td><td style="padding:8px;">🔴 Very High</td><td style="padding:8px;">Immediate</td></tr>
+    <tr><td style="padding:8px;">Tally + Customization</td><td style="padding:8px;">₹72,500–₹1,72,500</td><td style="padding:8px;">❌</td><td style="padding:8px;">🟡 Medium</td><td style="padding:8px;">3–6 months</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Busy + Customization</td><td style="padding:8px;">₹39,000–₹89,000</td><td style="padding:8px;">❌</td><td style="padding:8px;">🟡 Medium</td><td style="padding:8px;">2–4 months</td></tr>
+    <tr><td style="padding:8px;">MandiGrow Starter</td><td style="padding:8px;font-weight:700;color:#16a34a;">₹0</td><td style="padding:8px;">✅</td><td style="padding:8px;">🟢 Low</td><td style="padding:8px;">2 hours</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">MandiGrow Growth</td><td style="padding:8px;font-weight:700;color:#16a34a;">₹9,999/yr</td><td style="padding:8px;">✅</td><td style="padding:8px;">🟢 Very Low</td><td style="padding:8px;">2 hours</td></tr>
+    <tr><td style="padding:8px;">Custom Built Software</td><td style="padding:8px;">₹5–15 lakh</td><td style="padding:8px;">✅ (if built right)</td><td style="padding:8px;">🟢 Low (after testing)</td><td style="padding:8px;">6–24 months</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Frequently Asked Questions About Mandi Software Price</h2>
+
+<div itemscope itemtype="https://schema.org/FAQPage">
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">What is the price of mandi software in India in 2026?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Purpose-built mandi ERP software in India costs between ₹0 and ₹2,999 per month depending on scale and features. MandiGrow offers a free plan for small commission agents and paid plans starting at ₹999/month for mid-sized operations. Generic software like Tally costs ₹22,500/year in licenses plus ₹50,000–₹1,50,000 in customization to simulate mandi workflows. Custom-built mandi software costs ₹5–15 lakh upfront and takes 6–24 months to build.</p>
+    </div>
+  </div>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Is there a free mandi software in India?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Yes. MandiGrow offers a free Starter plan for commission agents with up to 100 bills per month. The free plan includes farmer Patti generation, digital Khata, APMC cess calculation, and thermal print support. No credit card is required. Upgrade to paid plans as your volume grows.</p>
+    </div>
+  </div>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Is Tally good for mandi billing?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Tally is not designed for mandi billing natively. It uses a retail purchase-sale accounting model that does not understand consignment commission operations. To use Tally for a mandi, you need ₹50,000–₹1,50,000 in customization from a local Tally partner, and still face limitations like no farmer Patti generation, no APMC cess auto-calculation, and no regional language thermal printing. For mandi operations, purpose-built software like MandiGrow is significantly better and often costs less.</p>
+    </div>
+  </div>
+</div>
+
+<p>MandiGrow is the most affordable, feature-complete mandi software in India. <a href="/subscribe">Start your free trial today</a> — setup takes 2 hours, not 6 months.</p>
+`
+    },
+    // ─── NEW BLOG POST: GSTR-1 for Commission Agents ─────────────────────────
+    {
+        slug: 'gstr-1-commission-agents-complete-guide-2026',
+        title: 'GSTR-1 for Commission Agents (Arhtiyas): Step-by-Step Filing Guide 2026',
+        description: 'A complete, practical guide to filing GSTR-1 for commission agents (arhtiyas) in India. Covers SAC codes, invoice types, nil-rated vs exempt produce, and how to use MandiGrow for one-click export.',
+        keywords: [
+            'GSTR-1 commission agents',
+            'GST for arhtiyas',
+            'GSTR-1 mandi commission agent',
+            'SAC code for commission agents',
+            'GST on arhat income',
+            'mandi commission agent GST filing',
+            'GSTR-1 agricultural produce india',
+        ],
+        publishedAt: '2026-06-23',
+        author: 'MandiGrow Tax Advisory',
+        readMinutes: 10,
+        body: `
+<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin-bottom:28px;">
+  <strong>Quick Summary:</strong> A commission agent (Arhtiya/Aadhatia) must file GSTR-1 monthly or quarterly reporting their commission (Arhat) income under <strong>SAC code 9986</strong> at 5% GST. The sale of agricultural produce on behalf of the farmer is <em>not the Arhtiya's supply</em> — only the commission/Arhat earned is their taxable supply. Fresh agricultural produce sold by farmers is Nil-rated under GST Schedule I.
+</div>
+
+<p>Filing GSTR-1 as a commission agent is one of the most misunderstood aspects of GST compliance in Indian mandis. Most arhtiyas either over-report (accidentally reporting the farmer's produce sale as their own turnover) or under-report (missing commission income). Both create serious compliance risks.</p>
+
+<p>This guide is written specifically for commission agents — the Kacha Arhtiya (Aadhatia) operating in APMC regulated markets across India.</p>
+
+<h2>Is a Commission Agent Required to Register for GST?</h2>
+
+<p>Under the GST Act, a commission agent must register for GST if their <strong>commission income (Arhat)</strong> exceeds ₹20 lakh in a financial year (₹10 lakh for special category states). This is a common source of confusion:</p>
+
+<ul>
+  <li><strong>The farmer's produce value does NOT count toward the Arhtiya's GST turnover limit.</strong> The Arhtiya never owns the goods — they are a facilitator.</li>
+  <li><strong>Only the Arhat (commission) earned counts</strong> toward the ₹20 lakh registration threshold.</li>
+  <li>However, if the Arhtiya is a <em>del credere agent</em> (personally guarantees the buyer's payment) or acts as a Pakka Arhtiya (takes title to the goods), different rules apply.</li>
+</ul>
+
+<div style="background:#fefce8;border:1px solid #eab308;border-radius:8px;padding:16px;margin:20px 0;">
+  <strong>⚠️ Important:</strong> The GSTN portal requires commission agents to mandatorily register <strong>regardless of turnover</strong> if they make supplies on behalf of other principals (Rule 7, GST Registration). Always consult your GST practitioner for your specific situation.
+</div>
+
+<h2>The SAC Code for Commission Agent (Arhtiya) Services</h2>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Service Description</th>
+    <th style="padding:10px;">SAC Code</th>
+    <th style="padding:10px;">GST Rate</th>
+    <th style="padding:10px;">Notes</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Commission on sale of agricultural produce (F&V, Grains, Pulses)</td><td style="padding:8px;font-weight:700;">9986</td><td style="padding:8px;font-weight:700;color:#16a34a;">5%</td><td style="padding:8px;">SAC 9986: Support services to agriculture, hunting, forestry, fishing</td></tr>
+    <tr><td style="padding:8px;">Hamali / Loading-Unloading services</td><td style="padding:8px;">9967</td><td style="padding:8px;">5%</td><td style="padding:8px;">If separately billed; often Nil if part of exempt services</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Weighing (Tulai) services</td><td style="padding:8px;">9986</td><td style="padding:8px;">Nil / 5%</td><td style="padding:8px;">Nil if for farmer's benefit; 5% if separately charged commercially</td></tr>
+    <tr><td style="padding:8px;">Cold storage rent (if applicable)</td><td style="padding:8px;">9967</td><td style="padding:8px;">18%</td><td style="padding:8px;">GST applies on commercial cold storage rental</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Transport (Bhada) billed to farmer/buyer</td><td style="padding:8px;">9965</td><td style="padding:8px;">5%</td><td style="padding:8px;">GTA rules apply; reverse charge may apply</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>What to Report in GSTR-1: The Arhtiya's Exact Taxable Supplies</h2>
+
+<p>This is where most commission agents get confused. Here is the definitive answer on what goes into your GSTR-1 as an Arhtiya:</p>
+
+<h3>What is Your Taxable Supply?</h3>
+<ul>
+  <li>✅ <strong>Arhat (Commission) earned</strong> on every sale — at 5% GST under SAC 9986</li>
+  <li>✅ Any separately charged services (cold storage, loading, weighing) at applicable rates</li>
+  <li>❌ <strong>NOT the farmer's produce sale value</strong> — this is the farmer's supply, not yours</li>
+  <li>❌ <strong>NOT the APMC Cess / Mandi Shulk</strong> collected — this is a pass-through, not your income</li>
+</ul>
+
+<h3>Example: What to Enter in GSTR-1 for a Month</h3>
+<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;font-family:monospace;font-size:0.9rem;">
+  <strong>Your mandi handled ₹1 crore in produce sales in June 2026</strong><br/>
+  Arhat at 5% average = ₹5,00,000 (your commission income)<br/><br/>
+  <strong>Your GSTR-1 should show:</strong><br/>
+  Taxable Supply (SAC 9986): ₹5,00,000<br/>
+  GST @ 5% = ₹25,000 (CGST ₹12,500 + SGST ₹12,500 for intrastate)<br/><br/>
+  ❌ WRONG: Reporting ₹1 crore as your taxable turnover<br/>
+  ✅ CORRECT: Reporting only ₹5,00,000 (your commission/Arhat income)
+</div>
+
+<h2>Step-by-Step: Filing GSTR-1 as a Commission Agent</h2>
+
+<h3>Step 1: Identify Your Invoice Type</h3>
+<p>Commission agents issue Tax Invoices to buyers for their commission services (if GST registered). If the Arhtiya charges commission to the farmer (deducted from Patti), that is a B2C supply. If billing to a registered firm (trader), it is B2B.</p>
+
+<h3>Step 2: Classify Your Supplies Correctly</h3>
+<ul>
+  <li><strong>B2B supplies:</strong> Fill in Table 4A of GSTR-1 with GSTIN of the buyer (if they're GST registered and you're invoicing them for commission)</li>
+  <li><strong>B2C supplies:</strong> Fill in Table 5 (aggregate B2C supplies below ₹2.5 lakh) or Table 6 (B2C large invoices above ₹2.5 lakh)</li>
+  <li><strong>Nil-rated/Exempt supplies:</strong> Fresh agricultural produce sold is Nil-rated. Report in Table 8A of GSTR-1 if you were also selling produce in your own name</li>
+</ul>
+
+<h3>Step 3: Export Data from MandiGrow</h3>
+<p>MandiGrow generates a GSTR-1 ready export directly from your recorded transactions:</p>
+<ol>
+  <li>Go to Finance → GST Reports → GSTR-1 Export</li>
+  <li>Select the filing period (monthly or quarterly)</li>
+  <li>Review: Only your commission income (SAC 9986) appears as taxable supply</li>
+  <li>Download as JSON (for direct GSTN portal upload) or Excel (for your CA's review)</li>
+  <li>Upload to GSTN portal under File Returns → GSTR-1</li>
+</ol>
+
+<h3>Step 4: Due Dates — Monthly vs Quarterly</h3>
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Scheme</th>
+    <th style="padding:10px;">Who Qualifies?</th>
+    <th style="padding:10px;">Due Date</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Monthly GSTR-1</td><td style="padding:8px;">Turnover above ₹5 crore</td><td style="padding:8px;">11th of next month</td></tr>
+    <tr><td style="padding:8px;">Quarterly GSTR-1 (QRMP Scheme)</td><td style="padding:8px;">Turnover up to ₹5 crore</td><td style="padding:8px;">13th of month after quarter end</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">IFF (Invoice Furnishing Facility)</td><td style="padding:8px;">QRMP taxpayers, monthly B2B invoices</td><td style="padding:8px;">13th of following month</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Common GSTR-1 Mistakes by Commission Agents</h2>
+
+<ol>
+  <li><strong>Reporting produce sale value as your turnover:</strong> The biggest and most common mistake. You earned ₹5 lakh commission on ₹1 crore sales — ₹5 lakh is your turnover, not ₹1 crore.</li>
+  <li><strong>Forgetting to report Hamali charged separately:</strong> If you charge Hamali and Tulai as separate line items on invoices, they may be taxable at 5% and must appear in GSTR-1.</li>
+  <li><strong>Not obtaining buyer GSTIN for B2B invoices:</strong> For registered traders, always collect GSTIN and issue a proper Tax Invoice — this allows the buyer to claim ITC and builds long-term business relationships.</li>
+  <li><strong>Missing export-eligible transactions:</strong> If you sell to exporters or export commodity directly, zero-rated supply rules apply. File LUT (Letter of Undertaking) and report in Table 6A.</li>
+  <li><strong>Filing commission as B2C when it is B2B:</strong> This deprives your buyer of ITC and is a reconciliation issue during scrutiny.</li>
+</ol>
+
+<div itemscope itemtype="https://schema.org/FAQPage">
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">What SAC code does a commission agent use for GST filing?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">A mandi commission agent (Arhtiya) uses SAC code 9986 — "Support services to agriculture, hunting, forestry, fishing, and related activities" — for their commission (Arhat) income. The GST rate on this service is 5% (2.5% CGST + 2.5% SGST for intrastate supplies). This is different from the produce itself, which is fresh agricultural produce and is Nil-rated under GST.</p>
+    </div>
+  </div>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Do arhtiyas need to file GSTR-1 every month?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Arhtiyas (commission agents) whose annual turnover exceeds ₹5 crore must file GSTR-1 monthly by the 11th of the following month. Those with turnover up to ₹5 crore can opt for the QRMP (Quarterly Return Monthly Payment) scheme and file GSTR-1 quarterly, by the 13th of the month after the quarter ends. However, they must still report B2B invoices monthly via the Invoice Furnishing Facility (IFF).</p>
+    </div>
+  </div>
+</div>
+
+<p>MandiGrow automatically separates your commission income from produce sales and generates GSTR-1 ready data with one click. <a href="/subscribe">Start your free trial</a> and be GST-compliant from day one.</p>
+`
+    },
+    // ─── NEW BLOG POST: Weighbridge Software ─────────────────────────────────
+    {
+        slug: 'weighbridge-software-mandi-india-2026',
+        title: 'Weighbridge Software for Mandi India 2026: How to Connect Dharam Kanta to Your ERP',
+        description: 'How to integrate weighbridge (Dharam Kanta) machines with mandi ERP software in India. Covers RS-232, USB serial, and wireless connectivity — with no manual weight entry errors.',
+        keywords: [
+            'weighbridge software mandi',
+            'dharam kanta software mandi india',
+            'weighbridge integration mandi erp',
+            'weighbridge billing software india',
+            'weighbridge machine integration',
+            'mandi weighbridge software',
+        ],
+        publishedAt: '2026-06-24',
+        author: 'MandiGrow Tech Team',
+        readMinutes: 7,
+        body: `
+<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin-bottom:28px;">
+  <strong>Quick Summary:</strong> MandiGrow connects directly to physical weighbridge (Dharam Kanta) machines via RS-232 Serial, USB-to-Serial adapters, or wireless display modules. Weight readings are captured automatically into the billing form — eliminating manual entry errors and weight tampering. No additional hardware or drivers required beyond a ₹200–₹800 USB adapter.
+</div>
+
+<p>In any grain mandi, wholesale vegetable market, or APMC yard, the weighbridge (Dharam Kanta / Tulai Machine) is the single most critical piece of hardware in the entire operation. Every purchase bill, every farmer Patti, every 6R form entry ultimately starts with a weight reading. And yet, in most mandis across India, the weighbridge operator shouts the weight across the yard, an accountant scribbles it on paper, and then types it into the billing software manually.</p>
+
+<p>This creates three problems:</p>
+<ol>
+  <li><strong>Manual entry errors:</strong> Transposing digits (e.g., 1420 vs 1240) is extremely common under morning rush pressure</li>
+  <li><strong>Weight manipulation risk:</strong> A disconnected workflow makes it easy to record a weight that is different from what the machine actually showed</li>
+  <li><strong>Speed bottleneck:</strong> Manual relay adds 2–4 minutes per truck, creating queues during peak arrival hours</li>
+</ol>
+
+<h2>How Weighbridges Communicate Data: Technical Background</h2>
+
+<p>Every weighbridge indicator (the electronic display unit) has a <strong>serial data output port</strong> — typically RS-232 or RS-485 protocol. This port continuously or on-demand transmits the weight reading as a text string (e.g., <code>+01420.00 kg</code>).</p>
+
+<p>The formats vary by brand:</p>
+<ul>
+  <li><strong>Avery Weigh-Tronix, Rice Lake, Mettler Toledo:</strong> Standard ASCII weight string with start/end characters</li>
+  <li><strong>SainSonic, S-Tech, Indian OEM brands (common in small mandis):</strong> Typically simple numeric string or custom format</li>
+  <li><strong>Wireless indicators:</strong> Some modern indicators transmit over WiFi or Bluetooth to a PC or tablet</li>
+</ul>
+
+<h2>What You Need to Connect Your Weighbridge to MandiGrow</h2>
+
+<h3>Option 1: USB-to-RS-232 Adapter (Most Common Setup)</h3>
+
+<p>If your weighbridge indicator has a 9-pin RS-232 port (DB9 connector), all you need is:</p>
+<ul>
+  <li>A <strong>USB-to-RS-232 adapter</strong> (₹200–₹800 at any electronics shop or Amazon India). Recommended brands: Prolific PL2303, FTDI FT232RL chipset for reliability.</li>
+  <li>A standard RS-232 serial cable to connect from the indicator to the adapter</li>
+  <li>A PC or laptop with MandiGrow running in Chrome browser (version 89+)</li>
+</ul>
+
+<p>MandiGrow uses the browser's native <strong>Web Serial API</strong> to read data from the COM port — no drivers, no installed software, no IT team required.</p>
+
+<h3>Option 2: Direct USB Serial (Newer Indicators)</h3>
+<p>Many weighbridge indicators manufactured after 2018 have a direct USB port for data output. Connect directly to your PC's USB port. MandiGrow detects it automatically.</p>
+
+<h3>Option 3: Network/Ethernet-Connected Indicators</h3>
+<p>High-end indicators (Mettler Toledo IND780, Avery Falcon series) support Ethernet. MandiGrow can poll the indicator via its local IP address for weight data.</p>
+
+<h2>Setting Up Weighbridge Integration in MandiGrow: Step by Step</h2>
+
+<ol>
+  <li><strong>Connect your weighbridge indicator to the billing PC</strong> via USB-to-RS-232 adapter or direct USB cable</li>
+  <li><strong>Open MandiGrow in Chrome browser</strong> (requires Chrome 89+ or Edge 89+ for Web Serial API support)</li>
+  <li><strong>Go to Settings → Hardware → Weighbridge</strong></li>
+  <li><strong>Click "Connect Weighbridge"</strong> and select the COM port that appears</li>
+  <li><strong>Configure baud rate:</strong> Match to your indicator's setting. Common values: 9600, 1200, 2400. Your indicator manual will specify this.</li>
+  <li><strong>Test the connection:</strong> Place a known load on the weighbridge. MandiGrow shows a live weight reading in the settings panel.</li>
+  <li><strong>Start billing:</strong> When you open a new Farmer Arrival or Gate Entry, the weight field auto-fills from the weighbridge. Press Enter to confirm and proceed.</li>
+</ol>
+
+<h2>Compatibility: Which Weighbridge Brands Work with MandiGrow?</h2>
+
+<div style="overflow-x:auto;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead><tr style="background:#166534;color:white;">
+    <th style="padding:10px;text-align:left;">Brand</th>
+    <th style="padding:10px;">Models</th>
+    <th style="padding:10px;">Connection Type</th>
+    <th style="padding:10px;">MandiGrow Compatible?</th>
+  </tr></thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Avery Weigh-Tronix</td><td style="padding:8px;">E1240, ZM301, ZM303</td><td style="padding:8px;">RS-232</td><td style="padding:8px;">✅ Yes</td></tr>
+    <tr><td style="padding:8px;">Mettler Toledo</td><td style="padding:8px;">IND231, IND236, IND780</td><td style="padding:8px;">RS-232 / USB / Ethernet</td><td style="padding:8px;">✅ Yes</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Rice Lake Weighing Systems</td><td style="padding:8px;">920i, 280, 682</td><td style="padding:8px;">RS-232</td><td style="padding:8px;">✅ Yes</td></tr>
+    <tr><td style="padding:8px;">Bhoomi Electro Weighing (Indian OEM)</td><td style="padding:8px;">All standard models</td><td style="padding:8px;">RS-232</td><td style="padding:8px;">✅ Yes (custom format config)</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">SainSonic / S-Tech</td><td style="padding:8px;">Various</td><td style="padding:8px;">RS-232</td><td style="padding:8px;">✅ Yes</td></tr>
+    <tr><td style="padding:8px;">Fairbanks</td><td style="padding:8px;">Ultegra, FB2255</td><td style="padding:8px;">RS-232 / USB</td><td style="padding:8px;">✅ Yes</td></tr>
+    <tr style="background:#f0fdf4;"><td style="padding:8px;">Unknown/Chinese OEM</td><td style="padding:8px;">No-brand displays</td><td style="padding:8px;">RS-232 (varies)</td><td style="padding:8px;">⚠️ Depends on format — test required</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>The Business Case: How Much Does Manual Entry Cost You?</h2>
+
+<p>Consider a grain mandi weighing 50 trucks per day, 25 working days per month = 1,250 weighings per month. Manual entry error rate of even 1% = 12–13 incorrect weights per month. At ₹18/kg for wheat, a 20 kg error in a 5,000 kg load = ₹360 per incident. 12 incidents/month = ₹4,320/month in systematic billing errors from weight entry alone.</p>
+
+<p>MandiGrow weighbridge integration eliminates this at ₹0 additional cost — it is part of every plan.</p>
+
+<div itemscope itemtype="https://schema.org/FAQPage">
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Can MandiGrow connect to my existing weighbridge?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">Yes. MandiGrow connects to virtually any weighbridge (Dharam Kanta) indicator that has an RS-232 serial output port — which includes most weighbridge models sold in India. You need a ₹200–₹800 USB-to-RS-232 adapter and Chrome browser. The connection is configured in under 5 minutes in Settings → Hardware → Weighbridge. No special drivers or IT support is needed.</p>
+    </div>
+  </div>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+    <h3 itemprop="name">Do I need to replace my old weighbridge to use MandiGrow?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <p itemprop="text">No. You do not need to replace your existing weighbridge. MandiGrow works with your existing indicator via a simple RS-232 serial connection. Even older weighbridge indicators from 10–20 years ago typically have serial ports. You only need a USB-to-RS-232 adapter (widely available for ₹200–₹800) and a standard serial cable.</p>
+    </div>
+  </div>
+</div>
+
+<p>Ready to stop typing weights manually? <a href="/subscribe">Start your free MandiGrow trial</a> and connect your weighbridge in your first session.</p>
+`
+    },
 ];
 
 export const getPost = (slug: string) => POSTS.find((p) => p.slug === slug);
-
