@@ -1215,7 +1215,23 @@ export default function POSPage() {
                                                 onClick={() => setScanResult(prev => prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : null)}
                                                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-slate-700"
                                             >−</button>
-                                            <span className="w-12 text-center font-black text-xl text-slate-900">{scanResult.qty}</span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={item.available_qty}
+                                                value={scanResult.qty || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                                                    setScanResult(prev => prev ? { ...prev, qty: val === 0 ? 0 : Math.min(item.available_qty, Math.max(0, val)) } : null)
+                                                }}
+                                                onBlur={(e) => {
+                                                    const val = parseInt(e.target.value, 10);
+                                                    if (isNaN(val) || val < 1) {
+                                                        setScanResult(prev => prev ? { ...prev, qty: 1 } : null)
+                                                    }
+                                                }}
+                                                className="w-24 h-10 text-center font-black text-xl text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
                                             <button
                                                 type="button"
                                                 onClick={() => setScanResult(prev => prev ? { ...prev, qty: Math.min(item.available_qty, prev.qty + 1) } : null)}
